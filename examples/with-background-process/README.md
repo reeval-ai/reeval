@@ -1,6 +1,6 @@
 # with-background-process
 
-**Shows:** a server started during the attempt and checked over HTTP. The agent adds a `/health`
+**Shows:** a server started during the trial and checked over HTTP. The agent adds a `/health`
 route to a small `node:http` server; the eval starts it with
 `c.exec('node server.js', { background: true })`, calls the route with `curl`, records the
 answer with `c.observe`, then stops it with `kill()`. The server lives only while the task runs,
@@ -35,7 +35,7 @@ labeled `health`, retries until the server listens. Without the route, `curl -f`
 
 ```text
 with-background-process.eval.ts
-  · with-background-process  mean 0% · 0/1 run at 100% (pass@1)  capability(1)
+  · with-background-process  mean 0% · 0/1 trial at 100% (pass@1)  capability(1)
     #1  0%  succeeded:health 0%, observed:health 0%
 ```
 
@@ -48,5 +48,5 @@ If the task doesn't call `kill()`, teardown stops the server.
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, and the real agents from `../profiles.ts` |
 
-`c.exec` and its `background` option are in the [Attempt context reference](../../docs/reference/attempt-context.mdx)
+`c.exec` and its `background` option are in the [Trial context reference](../../docs/reference/trial-context.mdx)
 reference.

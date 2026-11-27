@@ -90,20 +90,20 @@ const modelsDev = async (dir: string) => {
 
 export const cases: PlanCase[] = [
   { dir: 'matrix', name: 'default', args: [] },
-  { dir: 'matrix', name: 'runs-override', args: ['--runs', '1'] },
-  { dir: 'runs-default', name: 'default', args: [] },
-  { dir: 'runs-default', name: 'runs-flag', args: ['--runs', '2'] },
-  { dir: 'runs-default', name: 'config-runs', args: ['--config', 'reeval.once.config.ts'] },
-  { dir: 'runs-default', name: 'profile-defaults', args: ['--profile', 'two'] },
-  { dir: 'runs-default', name: 'profile-limit', args: ['--profile', 'pr'] },
+  { dir: 'matrix', name: 'trials-override', args: ['--trials', '1'] },
+  { dir: 'trials-default', name: 'default', args: [] },
+  { dir: 'trials-default', name: 'trials-flag', args: ['--trials', '2'] },
+  { dir: 'trials-default', name: 'config-trials', args: ['--config', 'reeval.once.config.ts'] },
+  { dir: 'trials-default', name: 'profile-defaults', args: ['--profile', 'two'] },
+  { dir: 'trials-default', name: 'profile-limit', args: ['--profile', 'pr'] },
   {
-    dir: 'runs-default',
+    dir: 'trials-default',
     name: 'profile-limit-capped',
-    args: ['--profile', 'pr', 'compare-runs-2'],
+    args: ['--profile', 'pr', 'compare-trials-2'],
   },
-  { dir: 'runs-default', name: 'compare-off', args: ['--profile', 'off'] },
+  { dir: 'trials-default', name: 'compare-off', args: ['--profile', 'off'] },
   { dir: 'best-of', name: 'default', args: [] },
-  { dir: 'best-of', name: 'runs-override', args: ['--runs', '2'] },
+  { dir: 'best-of', name: 'trials-override', args: ['--trials', '2'] },
   { dir: 'best-of', name: 'limited', args: ['--profile', 'pr'] },
   { dir: 'best-of', name: 'profile-defaults', args: ['--profile', 'nightly'] },
   { dir: 'best-of', name: 'yaml', args: ['--config', 'reeval.best-of.yml'] },
@@ -112,13 +112,13 @@ export const cases: PlanCase[] = [
     name: 'yaml-limited',
     args: ['--config', 'reeval.best-of.yml', '--profile', 'pr'],
   },
-  { dir: 'compare', name: 'control-and-variants', args: ['evals/variants/'] },
+  { dir: 'compare', name: 'baseline-and-variants', args: ['evals/variants/'] },
   { dir: 'compare', name: 'independent', args: ['evals/independent.eval.ts'] },
-  { dir: 'compare', name: 'control', args: ['evals/control.eval.ts'] },
+  { dir: 'compare', name: 'baseline', args: ['evals/baseline.eval.ts'] },
   {
     dir: 'compare',
-    name: 'control-off',
-    args: ['--profile', 'off', 'evals/control.eval.ts'],
+    name: 'baseline-off',
+    args: ['--profile', 'off', 'evals/baseline.eval.ts'],
   },
   { dir: 'compare', name: 'harness-scoped', args: ['evals/scoped.eval.ts'] },
   {
@@ -181,11 +181,11 @@ export const cases: PlanCase[] = [
     name: 'questions-profile-judge',
     args: ['--profile', 'judged', 'evals/questions/'],
   },
-  { dir: 'compare', name: 'questions-attempts', args: ['evals/questions-attempts/'] },
+  { dir: 'compare', name: 'questions-trials', args: ['evals/questions-trials/'] },
   {
     dir: 'compare',
     name: 'questions-one-harness',
-    args: ['--profile', 'one', 'evals/questions-attempts/'],
+    args: ['--profile', 'one', 'evals/questions-trials/'],
   },
   { dir: 'profiles', name: 'local-none', args: [] },
   { dir: 'profiles', name: 'pr-in-ci', args: [], env: { CI: 'true' } },
@@ -545,7 +545,7 @@ export const cases: PlanCase[] = [
     name: 'extend-replace',
     args: ['parent-image', 'child-replaces-sandbox', 'child-keeps-parent-sandbox'],
   },
-  { dir: 'environments', name: 'control-over-config', args: ['compare'] },
+  { dir: 'environments', name: 'baseline-over-config', args: ['compare'] },
   { dir: 'environments', name: 'inherit-config', args: ['inherit'] },
   {
     dir: 'environments',
@@ -563,7 +563,7 @@ export const cases: PlanCase[] = [
   { dir: 'environments', name: 'traits', args: ['traits'] },
   {
     dir: 'environments',
-    name: 'empty-control',
+    name: 'empty-baseline',
     args: ['--config', 'reeval.empty.config.ts', 'empty'],
   },
   { dir: 'cost', name: 'no-history', args: [], cost: true, env: PRICES, prepare: modelsDev },
@@ -664,15 +664,15 @@ describe('the JSON plan', { concurrency: CLIS }, () => {
     assert.ok(plan.concurrency >= 1)
     assert.equal(
       plan.estimateMs,
-      plan.totals.attempts * 30_000,
-      'the fake agent in a Docker sandbox is estimated at its 30s setup an attempt',
+      plan.totals.trials * 30_000,
+      'the fake agent in a Docker sandbox is estimated at its 30s setup a trial',
     )
   })
 
-  test('with no history, the fake agent in the fake sandbox is estimated at 1s an attempt', async () => {
+  test('with no history, the fake agent in the fake sandbox is estimated at 1s a trial', async () => {
     const plan = await planJson({ dir: 'profiles', args: [] })
-    assert.ok(plan.totals.attempts > 0)
-    assert.equal(plan.estimateMs, plan.totals.attempts * 1000)
+    assert.ok(plan.totals.trials > 0)
+    assert.equal(plan.estimateMs, plan.totals.trials * 1000)
   })
 
   test("where runs whatever --trait leaves: its refusals and excluded pairs don't depend on the flags", async () => {
@@ -1010,7 +1010,7 @@ export default defineEval({ environment: p, egress: 'deny-all', task: async () =
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.match(
       r.stdout,
-      /Warning: phased egress on rootless Podman: at the switch to the agent's policy an attempt's container leaves Podman's bridge network, .* Under it: phased\. Run with --concurrency 1/,
+      /Warning: phased egress on rootless Podman: at the switch to the agent's policy a trial's container leaves Podman's bridge network, .* Under it: phased\. Run with --concurrency 1/,
     )
     // Twin: one at a time, nothing runs beside the switch.
     const alone = await runCli(p.dir, ['run', '--dry-run', '--concurrency', '1'], { env })
@@ -1616,7 +1616,7 @@ const lib = defineEnvironment('lib', {
   sandbox: docker(),
   egress: { allow: ['registry.npmjs.org', 'pypi.org'] },
 })
-export default defineEval({ environment: lib, runs: 1, task: async () => {} })
+export default defineEval({ environment: lib, trials: 1, task: async () => {} })
 `,
       'evals/two.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
@@ -1624,7 +1624,7 @@ const lib = defineEnvironment('lib', {
   sandbox: docker(),
   egress: { allow: ['registry.npmjs.org', 'pypi.org'] },
 })
-export default defineEval({ environment: lib, runs: 1, task: async () => {} })
+export default defineEval({ environment: lib, trials: 1, task: async () => {} })
 `,
       'evals/three.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
@@ -1632,7 +1632,7 @@ const lib = defineEnvironment('lib', {
   sandbox: docker(),
   egress: { allow: ['registry.npmjs.org', 'pypi.org'] },
 })
-export default defineEval({ environment: lib, runs: 1, task: async () => {} })
+export default defineEval({ environment: lib, trials: 1, task: async () => {} })
 `,
       'evals/kept.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
@@ -1640,7 +1640,7 @@ const mixed = defineEnvironment('mixed', {
   sandbox: docker(),
   egress: { allow: ['example.com'] },
 })
-export default defineEval({ environment: mixed, runs: 1, task: async () => {} })
+export default defineEval({ environment: mixed, trials: 1, task: async () => {} })
 `,
       'evals/own.eval.ts': `import { defineEval, defineEnvironment } from 'reeval'
 import { docker } from 'reeval/sandbox'
@@ -1648,7 +1648,7 @@ const mixed = defineEnvironment('mixed', {
   sandbox: docker(),
   egress: { allow: ['example.com'] },
 })
-export default defineEval({ environment: mixed, runs: 1, egress: 'deny-all', task: async () => {} })
+export default defineEval({ environment: mixed, trials: 1, egress: 'deny-all', task: async () => {} })
 `,
     })
     const r = await runCli(p.dir, ['run', '--dry-run'], { env: NO_DOCKER })
@@ -1665,11 +1665,11 @@ export default defineEval({ environment: mixed, runs: 1, egress: 'deny-all', tas
     assert.match(r.stdout, /\bown\b.*egress: deny-all$/m)
   })
 
-  test("a cell filter narrows each row's counts in the text plan, a variant keeping its control", async () => {
+  test("a cell filter narrows each row's counts in the text plan, a variant keeping its baseline", async () => {
     const p = await fixture('plan/compare')
     const r = await runCli(p.dir, ['run', '--dry-run', 'variants/', '--cell', 'b/skilled/docker'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.match(r.stdout, /2 evals · 4 cells · 12 attempts/)
+    assert.match(r.stdout, /2 evals · 4 cells · 12 trials/)
     const rows = r.stdout
       .split('\n')
       .filter((l) => /^variants\//.test(l))

@@ -25,7 +25,7 @@ from reeval_python.options import CaseOptions, EvalOptions
 from reeval_python.wire import options_to_wire
 
 if TYPE_CHECKING:
-    from reeval_python.context import AttemptContext, SyncAttemptContext
+    from reeval_python.context import TrialContext, SyncTrialContext
 
 Mode = w.DeclaredMode
 
@@ -211,16 +211,16 @@ def group(
     _register_group(name, mode, opts, factory)
 
 
-SyncBody = Callable[["SyncAttemptContext"], None]
-AsyncBody = Callable[["AttemptContext"], Coroutine[Any, Any, None]]
+SyncBody = Callable[["SyncTrialContext"], None]
+AsyncBody = Callable[["TrialContext"], Coroutine[Any, Any, None]]
 # A body is a `def` taking the blocking context or an `async def` taking the awaiting one, and
 # returns nothing: pyright refuses a mismatched context, a generator or a returned value.
 Body = TypeVar("Body", SyncBody, AsyncBody)
 
 
 T = TypeVar("T")
-SyncCaseBody = Callable[["SyncAttemptContext", T], None]
-AsyncCaseBody = Callable[["AttemptContext", T], Coroutine[Any, Any, None]]
+SyncCaseBody = Callable[["SyncTrialContext", T], None]
+AsyncCaseBody = Callable[["TrialContext", T], Coroutine[Any, Any, None]]
 
 
 class _Cases(Generic[T]):
@@ -353,17 +353,17 @@ def _register_cases(name: str, mode: Mode, opts: dict[str, Any], fn: Callable[..
     cases = cast(Sequence[Any], cases)
     if not cases:
         raise ValueError(f"cases in {where} is an empty list. Give at least one case.")
-    if isinstance(opts.get("runs"), dict):
+    if isinstance(opts.get("trials"), dict):
         raise ValueError(
-            f"{where} has cases, so it can't take runs={{'best_of': …}}: best-of stops each cell "
-            "on its own, and the cases pool over the runs. Set a fixed count, e.g. runs=3."
+            f"{where} has cases, so it can't take trials={{'best_of': …}}: best-of stops each cell "
+            "on its own, and the cases pool over the trials. Set a fixed count, e.g. trials=3."
         )
     _refuse_generator(fn, where)
     try:
         inspect.signature(fn).bind(None, None)
     except TypeError:
         raise TypeError(
-            f"{where}: with cases, the body takes the attempt and its case, e.g. def body(c, case)"
+            f"{where}: with cases, the body takes the trial and its case, e.g. def body(c, case)"
         ) from None
     except ValueError:
         pass
@@ -586,7 +586,7 @@ def _register_eval(
     if earlier is not None:
         raise ValueError(
             f"{where} is declared twice in this file. Each eval needs its own name, or its "
-            f"attempts are merged into one eval.{hint}{_separator_hint(path, earlier[0])}"
+            f"trials are merged into one eval.{hint}{_separator_hint(path, earlier[0])}"
         )
     if family is None and key in _families:
         raise _named_like_family(path, _families[key])

@@ -534,7 +534,7 @@ test('an eval still going with a failed run spins, red, and only gets its ✗ on
     (e) =>
       ({
         key: e.key,
-        attempt: { n: 1, gate: 'all', label: 'fake #1', cell: { key: 'fake/-/fake' } },
+        trial: { n: 1, gate: 'all', label: 'fake #1', cell: { key: 'fake/-/fake' } },
       }) as never,
   )
   live.start(one)
@@ -546,7 +546,7 @@ test('an eval still going with a failed run spins, red, and only gets its ✗ on
   } as never)
   const going = live.files()[0]?.rows[0]
   assert.equal(going?.icon, 'failing')
-  assert.equal(going?.summary, '1 of 2 runs done')
+  assert.equal(going?.summary, '1 of 2 trials done')
   assert.deepEqual(live.counts(), { done: 0, total: 1, running: 1, failed: 0, failing: 1 })
   const state = {
     files: live.files(),
@@ -577,7 +577,7 @@ test('under a passRate gate, a failed run marks the eval only once its cell can 
   const ref = (key: string) =>
     ({
       key,
-      attempt: { n: 1, gate: { passRate: 0.5 }, label: 'fake', cell: { key: 'fake/-/fake' } },
+      trial: { n: 1, gate: { passRate: 0.5 }, label: 'fake', cell: { key: 'fake/-/fake' } },
     }) as never
   const end = (key: string, state: 'passed' | 'failed') =>
     live.end({ ...(ref(key) as object), state, errors: state === 'failed' ? ['no'] : [] } as never)
@@ -599,7 +599,7 @@ test('under a passRate gate, a failed run marks the eval only once its cell can 
   assert.equal(strict.files()[0]?.rows[0]?.icon, 'failing', '3 fails of 4 can no longer reach 0.5')
 })
 
-/** An eval with cases as `collected` lists it: each attempt planned in its cell. */
+/** An eval with cases as `collected` lists it: each trial planned in its cell. */
 const caseEvals = (cases: string[], harnesses: string[]) =>
   cases.flatMap((k, i) =>
     harnesses.map((harness) => ({
@@ -608,7 +608,7 @@ const caseEvals = (cases: string[], harnesses: string[]) =>
       group: [],
       name: `bank [${k}]`,
       skipped: false,
-      attempt: {
+      trial: {
         n: 1,
         gate: 'all',
         label: harness,
@@ -617,7 +617,7 @@ const caseEvals = (cases: string[], harnesses: string[]) =>
           harness,
           environment: '-',
           sandbox: 'fake',
-          role: 'control',
+          role: 'baseline',
         },
         family: { id: 'bank', name: 'bank', case: i, cases: cases.length },
       } as never,
@@ -628,11 +628,11 @@ const caseRef = (k: string, harness: string) => {
   const key = `bank [${k}] # ${harness}/-/fake#1`
   return {
     key,
-    attempt: { n: 1, gate: 'all', label: harness, cell: { key: `${harness}/-/fake` } },
+    trial: { n: 1, gate: 'all', label: harness, cell: { key: `${harness}/-/fake` } },
   } as never
 }
 
-test('an eval with cases is one row while it runs, its case table filling in as attempts end', () => {
+test('an eval with cases is one row while it runs, its case table filling in as trials end', () => {
   const live = new LiveList('fake')
   live.collected('evals/a.eval.ts', caseEvals(['red', 'blue', 'green'], ['claude', 'codex']))
   const rows = () => live.files()[0]?.rows ?? []
@@ -653,7 +653,7 @@ test('an eval with cases is one row while it runs, its case table filling in as 
   live.start(caseRef('blue', 'claude'))
   live.end({ ...(caseRef('red', 'claude') as object), state: 'passed' } as never)
   live.end({ ...(caseRef('blue', 'claude') as object), state: 'failed', errors: ['no'] } as never)
-  assert.equal(rows()[0]?.summary, '2 of 6 runs done · 3 cases')
+  assert.equal(rows()[0]?.summary, '2 of 6 trials done · 3 cases')
   assert.equal(rows()[0]?.icon, 'failing', 'a failed case spins it red')
   assert.deepEqual(
     rows()[0]?.detail.map((d) => [d.mark, d.text]),
@@ -667,7 +667,7 @@ test('an eval with cases is one row while it runs, its case table filling in as 
   assert.equal(
     rows()[0]?.detail[2]?.note,
     'no',
-    "a failed attempt's message is its case row's note",
+    "a failed trial's message is its case row's note",
   )
   for (const [k, h] of [
     ['red', 'codex'],
@@ -690,9 +690,9 @@ test('an eval with cases is one row while it runs, its case table filling in as 
   assert.deepEqual(live.counts(), { done: 1, total: 1, running: 0, failed: 1, failing: 0 })
 })
 
-test("a compare's live case table heads its columns as the finished table does, the control first", () => {
+test("a compare's live case table heads its columns as the finished table does, the baseline first", () => {
   const live = new LiveList('fake')
-  const arm = (env: string, role: string, variant?: string) => ({
+  const environment = (env: string, role: string, variant?: string) => ({
     key: `fake/${env}/fake`,
     harness: 'fake',
     environment: env,
@@ -703,32 +703,32 @@ test("a compare's live case table heads its columns as the finished table does, 
   live.collected(
     'evals/a.eval.ts',
     ['a', 'b'].flatMap((k, i) =>
-      [arm('skilled', 'variant', 'skilled'), arm('app', 'control')].map((cell) => ({
+      [environment('skilled', 'variant', 'skilled'), environment('app', 'baseline')].map((cell) => ({
         id: `w [${k}]`,
         key: `w [${k}] # ${cell.key}#1`,
         group: [],
         name: `w [${k}]`,
         skipped: false,
-        attempt: {
+        trial: {
           n: 1,
           gate: 'all',
-          label: cell.role === 'control' ? 'control' : 'skilled',
+          label: cell.role === 'baseline' ? 'baseline' : 'skilled',
           cell,
           family: { id: 'w', name: 'w', case: i, cases: 2 },
         } as never,
       })),
     ),
   )
-  assert.equal(live.files()[0]?.rows[0]?.detail[0]?.text, '  case  app (control)  skilled')
+  assert.equal(live.files()[0]?.rows[0]?.detail[0]?.text, '  case  app (baseline)  skilled')
 })
 
-test('a queued attempt names its harness and its run in the cell, from the plan', () => {
+test('a queued trial names its harness and its run in the cell, from the plan', () => {
   const live = new LiveList('fake')
   live.collected(
     'evals/a.eval.ts',
     caseEvals(['red'], ['claude']).map((x) => ({
       ...x,
-      attempt: { ...(x.attempt as object), n: 2 } as never,
+      trial: { ...(x.trial as object), n: 2 } as never,
     })),
   )
   live.collected('evals/b.eval.ts', [
@@ -738,7 +738,7 @@ test('a queued attempt names its harness and its run in the cell, from the plan'
       group: [],
       name: 'greets',
       skipped: false,
-      attempt: { n: 3, gate: 'all', label: 'codex #3', cell: { key: 'codex/-/fake' } } as never,
+      trial: { n: 3, gate: 'all', label: 'codex #3', cell: { key: 'codex/-/fake' } } as never,
     },
   ])
   assert.deepEqual(

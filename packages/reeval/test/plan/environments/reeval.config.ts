@@ -2,7 +2,7 @@ import { defineConfig, defineEnvironment } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { docker } from 'reeval/sandbox'
 
-/** The config default, which a compare.control replaces. */
+/** The config default, which a compare.baseline replaces. */
 export const node22 = defineEnvironment('node22', {
   sandbox: docker({ from: 'node:22-bookworm' }),
 })

@@ -1,7 +1,7 @@
 import { defineEval } from 'reeval'
 import { missing } from './env.ts'
 
-// A workspace that can't be fetched fails its attempts as an infra error naming the ref
+// A workspace that can't be fetched fails its trials as an infra error naming the ref
 // (features.test.ts checks the message), and the eval body never runs.
 export default defineEval({
   environment: missing,

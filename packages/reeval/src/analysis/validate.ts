@@ -24,28 +24,28 @@ const normal = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase()
 const NUMBER = /(?<![\w.#/:-])[−-]?\d+(?:\.\d+)?(?![\w/])/g
 
 /**
- * Resolves attempt cites on a claim into attempt ids, paths, and a shared eval tag when every
+ * Resolves trial cites on a claim into trial ids, paths, and a shared eval tag when every
  * cite points at one eval.
  */
 function claimKeys(
   cites: string[],
   digest: Digest,
-): { evalId?: string; attempts?: Array<{ attemptId: string; path: string }> } {
-  const attempts: Array<{ attemptId: string; path: string }> = []
+): { evalId?: string; trials?: Array<{ trialId: string; path: string }> } {
+  const trials: Array<{ trialId: string; path: string }> = []
   const seen = new Set<string>()
   const evalIds = new Set<string>()
   for (const cite of cites) {
     const c = cite.trim().replace(/^\[|\]$/g, '')
     const id = c.replace(/:exec\d+$/, '')
-    const row = digest.attempts[id]
+    const row = digest.trials[id]
     if (!row || seen.has(id)) continue
     seen.add(id)
-    attempts.push({ attemptId: row.attempt, path: id })
+    trials.push({ trialId: row.trial, path: id })
     if (row.eval) evalIds.add(row.eval)
   }
   return {
     ...(evalIds.size === 1 ? { evalId: [...evalIds][0] } : {}),
-    ...(attempts.length ? { attempts } : {}),
+    ...(trials.length ? { trials } : {}),
   }
 }
 
@@ -54,13 +54,13 @@ export function citations(digest: Digest) {
   const { ids, lines } = citable(digest)
   const factText = new Map(digest.facts.map((f) => [f.id, JSON.stringify(f)]))
   const evidenceText = new Map(digest.evidence.map((e) => [e.id, e.lines.join('\n')]))
-  const evidenceOf = (attempt: string) =>
-    digest.evidence.filter((e) => e.ref.endsWith(`:${attempt}`)).map((e) => e.id)
+  const evidenceOf = (trial: string) =>
+    digest.evidence.filter((e) => e.ref.endsWith(`:${trial}`)).map((e) => e.id)
   /** The text a citation names, or null when it names nothing in the digest. */
   const resolve = (cite: string): string | null => {
     const c = cite.trim().replace(/^\[|\]$/g, '')
     if (ids.has(c)) {
-      return factText.get(c) ?? evidenceText.get(c) ?? JSON.stringify(digest.attempts[c])
+      return factText.get(c) ?? evidenceText.get(c) ?? JSON.stringify(digest.trials[c])
     }
     const line = LINE.exec(c)
     if (line) {
@@ -72,16 +72,16 @@ export function citations(digest: Digest) {
     }
     const trajectory = TRAJECTORY.exec(c)
     if (trajectory) {
-      const [, attempt = '', n = ''] = trajectory
-      for (const id of evidenceOf(attempt)) {
+      const [, trial = '', n = ''] = trajectory
+      for (const id of evidenceOf(trial)) {
         if (lines.get(id)?.has(Number(n))) return resolve(`${id}:L${n}`)
       }
       return null
     }
     const exec = EXEC.exec(c)
     if (exec) {
-      const [, attempt = '', n = ''] = exec
-      const a = digest.attempts[attempt]
+      const [, trial = '', n = ''] = exec
+      const a = digest.trials[trial]
       return a && Number(n) >= 1 && Number(n) <= a.execs ? JSON.stringify(a) : null
     }
     return null
@@ -91,7 +91,7 @@ export function citations(digest: Digest) {
 
 const ANY_NUMBER = /[−-]?\d+(?:\.\d+)?/g
 const FRACTION = /(\d+)\/(\d+)/g
-const ATTEMPT_CITE = /:exec\d+$|:L\d+$/
+const TRIAL_CITE = /:exec\d+$|:L\d+$/
 
 /** A decimal in [0, 1]: the form a judge score or threshold takes in the digest. */
 const looksLikeScore = (raw: string) => {
@@ -105,8 +105,8 @@ const addScore = (scores: number[], n: unknown) => {
 }
 
 /**
- * Recorded judge scores (and thresholds) on the cited attempt, fact or evidence. The digest stores
- * them as an attempt's `judges`, a failure's `judges: [{ score, threshold }]`, a criteria row's mean
+ * Recorded judge scores (and thresholds) on the cited trial, fact or evidence. The digest stores
+ * them as a trial's `judges`, a failure's `judges: [{ score, threshold }]`, a criteria row's mean
  * scores, and `judge score:` lines.
  */
 function citedJudgeScores(cites: string[], digest: Digest): number[] {
@@ -115,8 +115,8 @@ function citedJudgeScores(cites: string[], digest: Digest): number[] {
     const id = cite
       .trim()
       .replace(/^\[|\]$/g, '')
-      .replace(ATTEMPT_CITE, '')
-    for (const s of Object.values(digest.attempts[id]?.judges ?? {})) addScore(scores, s)
+      .replace(TRIAL_CITE, '')
+    for (const s of Object.values(digest.trials[id]?.judges ?? {})) addScore(scores, s)
     const fact = digest.facts.find((f) => f.id === id)
     if (fact) {
       if (Array.isArray(fact.judges)) {

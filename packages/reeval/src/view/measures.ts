@@ -6,9 +6,9 @@
 // read it.
 import { pairTallies } from '../compare/pairs.ts'
 import { casePairs } from '../history/families.ts'
-import type { AttemptRecord, CellCheck, EvalEntry, FamilyLift } from '../history/types.ts'
+import type { TrialRecord, CellCheck, EvalEntry, FamilyLift } from '../history/types.ts'
 import {
-  COMPARE_RUNS,
+  COMPARE_TRIALS,
   containsZero,
   liftInterval,
   mannWhitney,
@@ -17,8 +17,8 @@ import {
   minimumP,
   normalCdf,
   PAIRED_MIN,
-  RUNS_TO_HOLD_MAX,
-  runsToHold,
+  TRIALS_TO_HOLD_MAX,
+  trialsToHold,
   signedRank,
 } from '../stats.ts'
 import { clip } from '../text.ts'
@@ -49,11 +49,11 @@ export type Measure = {
    * a median count, milliseconds or tokens.
    */
   variant: number
-  control: number
+  baseline: number
   /**
    * The difference: pass-rate points (-1–1) for pass rate and checks, the mean score's difference
-   * for a judge, the variant's share of decisive pairs for a question, and variant over control
-   * for effort (null when the control's is 0).
+   * for a judge, the variant's share of decisive pairs for a question, and variant over baseline
+   * for effort (null when the baseline's is 0).
    */
   estimate: number | null
   /** The 95% interval on pass-rate points; null for the other measures. */
@@ -67,14 +67,14 @@ export type Measure = {
   /** `5× faster`, `same pass rate`, `judge "tidy" +0.12`. */
   text: string
   /**
-   * On a lean, the runs a side (a case, on a family) or the cases (`unit`) at which a lean this
-   * size would hold; null past `RUNS_TO_HOLD_MAX`, or on any other verdict.
+   * On a lean, the trials a side (a case, on a family) or the cases (`unit`) at which a lean this
+   * size would hold; null past `TRIALS_TO_HOLD_MAX`, or on any other verdict.
    */
   needed: number | null
-  unit: 'runs' | 'cases'
+  unit: 'trials' | 'cases'
   /**
-   * On a lean whose test can't reach its lean p at this sample at all (two runs a side, or three,
-   * for a rank test): the runs a side or cases (`unit`) it has (`now`) and the fewest at which it
+   * On a lean whose test can't reach its lean p at this sample at all (two trials a side, or three,
+   * for a rank test): the trials a side or cases (`unit`) it has (`now`) and the fewest at which it
    * can (`at`). Null otherwise.
    */
   short: { now: number; at: number } | null
@@ -84,10 +84,10 @@ type Side = { pass: number; counted: number }
 /** Decisive pairs each side won, the pairs voted, and each side's votes (both orders of a pair). */
 type Wins = {
   variant: number
-  control: number
+  baseline: number
   voted: number
   variantVotes: number
-  controlVotes: number
+  baselineVotes: number
 }
 
 const LABEL_CHARS = 60
@@ -111,7 +111,7 @@ export const QUESTION_PAIRS_MIN = 4
 /**
  * A lean below its measure's smallest effect, or at a p of `leanP` or more, is `same`; unless a
  * sample this size can't reach `leanP` at all (`floor`, the test's smallest p at these sizes, ties
- * aside), when it stays a lean on too few runs, since its p says nothing.
+ * aside), when it stays a lean on too few trials, since its p says nothing.
  */
 const screened = (
   verdict: MeasureVerdict,
@@ -134,14 +134,14 @@ const shortOf = (
 ): Measure['short'] =>
   verdict === 'leans' && floor >= LEAN_P ? { now, at: smallestFrom(now + 1, reaches) } : null
 
-/** `12× faster, but 3 runs a side can't confirm it; 4 is the least that can`: a lean's text. */
+/** `12× faster, but 3 trials a side can't confirm it; 4 is the least that can`: a lean's text. */
 export function leanText(m: Measure): string {
   if (!m.short) return m.text
   const { now, at } = m.short
   const has =
     m.unit === 'cases'
       ? `${now} ${now === 1 ? 'case' : 'cases'}`
-      : `${now} ${now === 1 ? 'run' : 'runs'} a side`
+      : `${now} ${now === 1 ? 'trial' : 'trials'} a side`
   return `${m.text}, but ${has} can't confirm it; ${at} is the least that can`
 }
 
@@ -176,7 +176,7 @@ function proportionP(v: Side, c: Side): number {
   const z = Math.abs(v.pass / v.counted - c.pass / c.counted) / se
   return 2 * (1 - normalCdf(z))
 }
-const isCounted = (a: Pick<AttemptRecord, 'outcome'>) =>
+const isCounted = (a: Pick<TrialRecord, 'outcome'>) =>
   a.outcome === 'pass' || a.outcome === 'fail'
 const sign = (x: number) => (x > 0 ? '+' : x < 0 ? '−' : '±')
 const pts = (x: number) => `${sign(x)}${Math.round(Math.abs(x) * 100)} pts`
@@ -214,8 +214,8 @@ const rankReaches = (n: number) => minimumP(n, n) < LEAN_P
 const signedReaches = (n: number) => 2 / 2 ** n < LEAN_P
 const rateFloor = (nv: number, nc: number) =>
   proportionP({ pass: nv, counted: nv }, { pass: 0, counted: nc })
-/** A rate confirms only from `COMPARE_RUNS` a side, where lift's interval can hold. */
-const rateReaches = (n: number) => n >= COMPARE_RUNS && rateFloor(n, n) < LEAN_P
+/** A rate confirms only from `COMPARE_TRIALS` a side, where lift's interval can hold. */
+const rateReaches = (n: number) => n >= COMPARE_TRIALS && rateFloor(n, n) < LEAN_P
 
 /**
  * The sample at which a rank test's lean would hold at `EFFORT_ALPHA`: at a fixed effect a z grows
@@ -227,22 +227,22 @@ function scaled(p: number, now: number, floor: number): number | null {
   const z = zOf(p)
   if (z === 0) return Math.max(now + 1, floor)
   const n = Math.max(now + 1, floor, Math.ceil(now * (zOf(EFFORT_ALPHA) / z) ** 2))
-  return n > RUNS_TO_HOLD_MAX ? null : n
+  return n > TRIALS_TO_HOLD_MAX ? null : n
 }
 
 const RANK_FLOOR = smallest((n) => minimumP(n, n) < EFFORT_ALPHA)
 const SIGNED_FLOOR = smallest((n) => 2 / 2 ** n < EFFORT_ALPHA)
 
 /**
- * The runs a side (a case, over `cases`) at which a question's decisive pairs would hold: one pair
+ * The trials a side (a case, over `cases`) at which a question's decisive pairs would hold: one pair
  * a run, the same share of them decisive and the same share of those for the leading side,
  * through the exact sign test.
  */
 function signRuns(wins: Wins, cases: number): number | null {
-  const decisive = wins.variant + wins.control
-  const share = Math.max(wins.variant, wins.control) / decisive
+  const decisive = wins.variant + wins.baseline
+  const share = Math.max(wins.variant, wins.baseline) / decisive
   const runs = wins.voted / cases
-  for (let n = Math.floor(runs) + 1; n <= RUNS_TO_HOLD_MAX; n++) {
+  for (let n = Math.floor(runs) + 1; n <= TRIALS_TO_HOLD_MAX; n++) {
     const d = Math.round((decisive * n) / runs)
     const lead = Math.round(d * share)
     if (mcnemar(lead, d - lead) < EFFORT_ALPHA) return n
@@ -252,7 +252,7 @@ function signRuns(wins: Wins, cases: number): number | null {
 
 /**
  * A pass rate's verdict, lift's maths: `same` at equal rates; `better` or `worse` when the
- * interval on the difference excludes 0 on `COMPARE_RUNS` or more a side; else `leans`, with the
+ * interval on the difference excludes 0 on `COMPARE_TRIALS` or more a side; else `leans`, with the
  * runs at which the observed rates would hold.
  */
 function rateMeasure(
@@ -267,7 +267,7 @@ function rateMeasure(
   const computed = liftInterval({ pass: v.pass, n: v.counted }, { pass: c.pass, n: c.counted })
   const lo = stored?.lo ?? computed.low
   const hi = stored?.hi ?? computed.high
-  const holds = !containsZero(lo, hi) && Math.min(v.counted, c.counted) >= COMPARE_RUNS
+  const holds = !containsZero(lo, hi) && Math.min(v.counted, c.counted) >= COMPARE_TRIALS
   const way = vr > cr ? 'better' : 'worse'
   const p = proportionP(v, c)
   const floor = rateFloor(v.counted, c.counted)
@@ -279,12 +279,12 @@ function rateMeasure(
     floor,
   )
   const name = measure === 'pass' ? 'pass rate' : `"${clip(label ?? '', LABEL_CHARS)}"`
-  const from = Math.max(v.counted, c.counted, COMPARE_RUNS - 1) + 1
+  const from = Math.max(v.counted, c.counted, COMPARE_TRIALS - 1) + 1
   return {
     measure,
     label,
     variant: vr,
-    control: cr,
+    baseline: cr,
     estimate: vr - cr,
     lo,
     hi,
@@ -296,9 +296,9 @@ function rateMeasure(
       verdict !== 'leans'
         ? null
         : containsZero(lo, hi)
-          ? runsToHold(vr, cr, from)
-          : Math.max(from, COMPARE_RUNS),
-    unit: 'runs',
+          ? trialsToHold(vr, cr, from)
+          : Math.max(from, COMPARE_TRIALS),
+    unit: 'trials',
     short: shortOf(verdict, floor, Math.min(v.counted, c.counted), rateReaches),
   }
 }
@@ -334,7 +334,7 @@ const EFFORT = [
   },
 ] as const
 
-/** Values of one effort measure, left out where an attempt didn't report it (tokens). */
+/** Values of one effort measure, left out where a trial didn't report it (tokens). */
 const valuesOf = (
   samples: readonly EffortSample[],
   pick: (s: EffortSample) => number | undefined,
@@ -344,12 +344,12 @@ const valuesOf = (
     return x === undefined ? [] : [x]
   })
 
-/** One arm's counted attempts in one case (one entry, for a cell). */
-type Arm = { attempts: readonly AttemptRecord[]; checks: readonly CellCheck[] | undefined }
+/** One environment's counted trials in one case (one entry, for a cell). */
+type CompareEnvironment = { trials: readonly TrialRecord[]; checks: readonly CellCheck[] | undefined }
 
 type Input = {
-  variant: Arm[]
-  control: Arm[]
+  variant: CompareEnvironment[]
+  baseline: CompareEnvironment[]
   pass: Measure
   questions: Map<string, Wins>
   /** A family's lift: effort is its paired verdict, by case. */
@@ -358,8 +358,8 @@ type Input = {
 
 function effortMeasures(input: Input, runs: number): Measure[] {
   const out: Measure[] = []
-  const vs = input.variant.map((a) => a.attempts.map(effortSample))
-  const cs = input.control.map((a) => a.attempts.map(effortSample))
+  const vs = input.variant.map((a) => a.trials.map(effortSample))
+  const cs = input.baseline.map((a) => a.trials.map(effortSample))
   for (const m of EFFORT) {
     const v = valuesOf(vs.flat(), m.pick)
     const c = valuesOf(cs.flat(), m.pick)
@@ -374,7 +374,7 @@ function effortMeasures(input: Input, runs: number): Measure[] {
     let reaches: (n: number) => boolean
     let verdict: MeasureVerdict
     let needed: number | null = null
-    let unit: 'runs' | 'cases' = 'runs'
+    let unit: 'trials' | 'cases' = 'trials'
     if (input.family?.effort) {
       const metric =
         m.measure === 'tokens' ? input.family.effort.tokens : input.family.effort[m.measure]
@@ -432,7 +432,7 @@ function effortMeasures(input: Input, runs: number): Measure[] {
       measure: m.measure,
       label: null,
       variant: vm,
-      control: cm,
+      baseline: cm,
       estimate: ratio,
       lo: null,
       hi: null,
@@ -452,10 +452,10 @@ function effortMeasures(input: Input, runs: number): Measure[] {
 }
 
 function checkMeasures(input: Input): Measure[] {
-  const sum = (arms: Arm[]) => {
+  const sum = (environments: CompareEnvironment[]) => {
     const by = new Map<string, Side>()
-    for (const arm of arms)
-      for (const k of arm.checks ?? []) {
+    for (const environment of environments)
+      for (const k of environment.checks ?? []) {
         const t = by.get(k.label) ?? { pass: 0, counted: 0 }
         t.pass += k.pass
         t.counted += k.pass + k.fail
@@ -464,7 +464,7 @@ function checkMeasures(input: Input): Measure[] {
     return by
   }
   const v = sum(input.variant)
-  const c = sum(input.control)
+  const c = sum(input.baseline)
   return [...v].flatMap(([label, side]) => {
     const other = c.get(label)
     if (!other || !side.counted || !other.counted) return []
@@ -473,9 +473,9 @@ function checkMeasures(input: Input): Measure[] {
 }
 
 function judgeMeasures(input: Input, runs: number): Measure[] {
-  const scores = (arms: Arm[]) => {
+  const scores = (environments: CompareEnvironment[]) => {
     const by = new Map<string, number[]>()
-    for (const a of arms.flatMap((x) => x.attempts))
+    for (const a of environments.flatMap((x) => x.trials))
       for (const j of labeledJudgments(a)) {
         const key = j.check ?? j.label
         by.set(key, [...(by.get(key) ?? []), j.judgment.score])
@@ -483,7 +483,7 @@ function judgeMeasures(input: Input, runs: number): Measure[] {
     return by
   }
   const v = scores(input.variant)
-  const c = scores(input.control)
+  const c = scores(input.baseline)
   return [...v].flatMap(([label, xs]) => {
     const ys = c.get(label)
     const test = ys && mannWhitney(xs, ys)
@@ -502,7 +502,7 @@ function judgeMeasures(input: Input, runs: number): Measure[] {
         measure: 'judge',
         label,
         variant: mean(xs),
-        control: mean(ys),
+        baseline: mean(ys),
         estimate: diff,
         lo: null,
         hi: null,
@@ -512,7 +512,7 @@ function judgeMeasures(input: Input, runs: number): Measure[] {
         text:
           verdict === 'same' ? `same ${name}` : `${name} ${sign(diff)}${Math.abs(diff).toFixed(2)}`,
         needed: verdict === 'leans' ? scaled(test.p, runs, RANK_FLOOR) : null,
-        unit: 'runs',
+        unit: 'trials',
         short: shortOf(
           verdict,
           minimumP(xs.length, ys.length),
@@ -527,27 +527,27 @@ function judgeMeasures(input: Input, runs: number): Measure[] {
 function questionMeasures(input: Input, cases: number): Measure[] {
   return [...input.questions].flatMap(([question, wins]): Measure[] => {
     if (!wins.voted) return []
-    const decisive = wins.variant + wins.control
-    const p = mcnemar(wins.variant, wins.control)
-    const s = wins.variant - wins.control
+    const decisive = wins.variant + wins.baseline
+    const p = mcnemar(wins.variant, wins.baseline)
+    const s = wins.variant - wins.baseline
     const verdict = screened(
       tested(p, s, true),
-      decisive >= QUESTION_PAIRS_MIN ? Math.max(wins.variant, wins.control) / decisive : 0,
+      decisive >= QUESTION_PAIRS_MIN ? Math.max(wins.variant, wins.baseline) / decisive : 0,
       QUESTION_MIN,
       p,
       0,
       QUESTION_LEAN_P,
     )
     const name = `"${clip(question, LABEL_CHARS)}"`
-    const lead = s > 0 ? 'the variant' : 'the control'
-    const votes = wins.variantVotes + wins.controlVotes
-    const pairs = `${Math.max(wins.variant, wins.control)} of ${decisive} decisive ${decisive === 1 ? 'pair' : 'pairs'}`
+    const lead = s > 0 ? 'the variant' : 'the baseline'
+    const votes = wins.variantVotes + wins.baselineVotes
+    const pairs = `${Math.max(wins.variant, wins.baseline)} of ${decisive} decisive ${decisive === 1 ? 'pair' : 'pairs'}`
     return [
       {
         measure: 'question',
         label: question,
         variant: wins.variant,
-        control: wins.control,
+        baseline: wins.baseline,
         estimate: decisive ? wins.variant / decisive : null,
         lo: null,
         hi: null,
@@ -557,9 +557,9 @@ function questionMeasures(input: Input, cases: number): Measure[] {
         text:
           s === 0
             ? `${name} picked ${decisive ? 'each side as often' : 'neither'}`
-            : `${name} picked ${lead} in ${s > 0 ? wins.variantVotes : wins.controlVotes} of ${votes} votes (${pairs})`,
+            : `${name} picked ${lead} in ${s > 0 ? wins.variantVotes : wins.baselineVotes} of ${votes} votes (${pairs})`,
         needed: verdict === 'leans' ? signRuns(wins, cases) : null,
-        unit: 'runs',
+        unit: 'trials',
         short: null,
       },
     ]
@@ -567,7 +567,7 @@ function questionMeasures(input: Input, cases: number): Measure[] {
 }
 
 function measuresOf(input: Input): Measure[] {
-  const runs = Math.max(1, ...[...input.variant, ...input.control].map((a) => a.attempts.length))
+  const runs = Math.max(1, ...[...input.variant, ...input.baseline].map((a) => a.trials.length))
   return [
     input.pass,
     ...effortMeasures(input, runs),
@@ -578,7 +578,7 @@ function measuresOf(input: Input): Measure[] {
 }
 
 /**
- * Each pairwise question's decisive pairs for the variant and for the control, summed over the
+ * Each pairwise question's decisive pairs for the variant and for the baseline, summed over the
  * entries. A pair decides only when both its orders pick the same side (or one is a tie): a split
  * followed the position, not the work, and a tie says nothing.
  */
@@ -586,13 +586,13 @@ function questionWins(
   pairs: ReadonlyArray<{
     entry: Pick<EvalEntry, 'answers' | 'cells'>
     variant: string
-    control: string
+    baseline: string
   }>,
 ): Map<string, Wins> {
   const out = new Map<string, Wins>()
-  for (const { entry, variant, control } of pairs) {
+  for (const { entry, variant, baseline } of pairs) {
     const v = entry.cells.find((c) => c.key === variant)
-    const c = entry.cells.find((x) => x.key === control)
+    const c = entry.cells.find((x) => x.key === baseline)
     if (!v || !c || v.harness !== c.harness) continue
     for (const answer of entry.answers ?? []) {
       for (const t of pairTallies(answer.votes)) {
@@ -602,13 +602,13 @@ function questionWins(
         if (!forward && !back) continue
         const wins = out.get(answer.question) ?? {
           variant: 0,
-          control: 0,
+          baseline: 0,
           voted: 0,
           variantVotes: 0,
-          controlVotes: 0,
+          baselineVotes: 0,
         }
         wins.variant += forward ? t.aWins : t.bWins
-        wins.control += forward ? t.bWins : t.aWins
+        wins.baseline += forward ? t.bWins : t.aWins
         wins.voted += t.pairs
         out.set(answer.question, wins)
       }
@@ -618,31 +618,31 @@ function questionWins(
         const sides = new Set([vote.a, vote.b])
         if (!sides.has(v.environment) || !sides.has(c.environment)) continue
         if (vote.winner === v.environment) wins.variantVotes++
-        else if (vote.winner === c.environment) wins.controlVotes++
+        else if (vote.winner === c.environment) wins.baselineVotes++
       }
     }
   }
   return out
 }
 
-const armOf = (e: Pick<EvalEntry, 'attempts' | 'cells'>, key: string): Arm => ({
-  attempts: e.attempts.filter((a) => a.cell === key && isCounted(a)),
+const environmentOf = (e: Pick<EvalEntry, 'trials' | 'cells'>, key: string): CompareEnvironment => ({
+  trials: e.trials.filter((a) => a.cell === key && isCounted(a)),
   checks: e.cells.find((c) => c.key === key)?.checks,
 })
 
-/** A variant cell against its control in one entry; null when either side counted nothing. */
+/** A variant cell against its baseline in one entry; null when either side counted nothing. */
 export function cellMeasures(
-  entry: Pick<EvalEntry, 'attempts' | 'answers' | 'cells'>,
+  entry: Pick<EvalEntry, 'trials' | 'answers' | 'cells'>,
   variant: string,
-  control: string,
+  baseline: string,
 ): Measure[] | null {
   const v = entry.cells.find((c) => c.key === variant)
-  const c = entry.cells.find((x) => x.key === control)
+  const c = entry.cells.find((x) => x.key === baseline)
   if (!v || !c || v.pass + v.fail === 0 || c.pass + c.fail === 0) return null
-  const lift = v.lift?.vs === control ? v.lift : undefined
+  const lift = v.lift?.vs === baseline ? v.lift : undefined
   return measuresOf({
-    variant: [armOf(entry, variant)],
-    control: [armOf(entry, control)],
+    variant: [environmentOf(entry, variant)],
+    baseline: [environmentOf(entry, baseline)],
     pass: rateMeasure(
       'pass',
       null,
@@ -650,14 +650,14 @@ export function cellMeasures(
       { pass: c.pass, counted: c.pass + c.fail },
       lift?.interval,
     ),
-    questions: questionWins([{ entry, variant, control }]),
+    questions: questionWins([{ entry, variant, baseline }]),
   })
 }
 
 /**
- * A family's variant against its control over its cases: pass rate is the family's pooled lift
+ * A family's variant against its baseline over its cases: pass rate is the family's pooled lift
  * (`lift`/`drop` hold, a difference within noise or `insufficient` leans), effort its paired
- * verdict by case, and checks, judges and questions every case's attempts pooled.
+ * verdict by case, and checks, judges and questions every case's trials pooled.
  */
 export function familyMeasures(cases: readonly EvalEntry[], lift: FamilyLift): Measure[] {
   const paired = cases.filter(
@@ -665,8 +665,8 @@ export function familyMeasures(cases: readonly EvalEntry[], lift: FamilyLift): M
       e.cells.some((c) => c.key === lift.variant && c.pass + c.fail > 0) &&
       e.cells.some((c) => c.key === lift.vs && c.pass + c.fail > 0),
   )
-  const same = lift.variantRate === lift.controlRate
-  const way = lift.variantRate > lift.controlRate ? 'better' : 'worse'
+  const same = lift.variantRate === lift.baselineRate
+  const way = lift.variantRate > lift.baselineRate ? 'better' : 'worse'
   const verdict = screened(
     same
       ? 'same'
@@ -681,13 +681,13 @@ export function familyMeasures(cases: readonly EvalEntry[], lift: FamilyLift): M
     0,
   )
   return measuresOf({
-    variant: paired.map((e) => armOf(e, lift.variant)),
-    control: paired.map((e) => armOf(e, lift.vs)),
+    variant: paired.map((e) => environmentOf(e, lift.variant)),
+    baseline: paired.map((e) => environmentOf(e, lift.vs)),
     pass: {
       measure: 'pass',
       label: null,
       variant: lift.variantRate,
-      control: lift.controlRate,
+      baseline: lift.baselineRate,
       estimate: lift.points,
       lo: lift.interval.lo,
       hi: lift.interval.hi,
@@ -700,7 +700,7 @@ export function familyMeasures(cases: readonly EvalEntry[], lift: FamilyLift): M
       short: null,
     },
     questions: questionWins(
-      paired.map((entry) => ({ entry, variant: lift.variant, control: lift.vs })),
+      paired.map((entry) => ({ entry, variant: lift.variant, baseline: lift.vs })),
     ),
     family: lift,
   })
@@ -714,7 +714,7 @@ export function familyMeasures(cases: readonly EvalEntry[], lift: FamilyLift): M
  */
 export type Reading =
   | { told: 'apart'; measures: Measure[] }
-  | { told: 'leans'; measures: Measure[]; needed: number | null; unit: 'runs' | 'cases' }
+  | { told: 'leans'; measures: Measure[]; needed: number | null; unit: 'trials' | 'cases' }
   | { told: 'same' }
 
 export function readMeasures(measures: readonly Measure[]): Reading {
@@ -724,7 +724,7 @@ export function readMeasures(measures: readonly Measure[]): Reading {
   const leans = rest.filter((m) => m.verdict === 'leans')
   if (!leans.length) return { told: 'same' }
   const confirmable = leans.filter((m) => m.needed !== null)
-  const unit = confirmable.some((m) => m.unit === 'runs') ? 'runs' : 'cases'
+  const unit = confirmable.some((m) => m.unit === 'trials') ? 'trials' : 'cases'
   const soonest = confirmable
     .filter((m) => m.unit === unit)
     .sort((a, b) => (a.needed ?? 0) - (b.needed ?? 0))[0]
@@ -732,7 +732,7 @@ export function readMeasures(measures: readonly Measure[]): Reading {
     told: 'leans',
     measures: leans,
     needed: soonest?.needed ?? null,
-    unit: soonest?.unit ?? leans[0]?.unit ?? 'runs',
+    unit: soonest?.unit ?? leans[0]?.unit ?? 'trials',
   }
 }
 
@@ -765,8 +765,8 @@ export function boundOf(
 }
 
 /**
- * How arms that both passed, or both failed, every run read: a floor is always a `tie` (a timeout
- * counts as a fail, so effort differs exactly when one arm hangs); a ceiling is a `tie` only when
+ * How environments that both passed, or both failed, every trial read: a floor is always a `tie` (a timeout
+ * counts as a fail, so effort differs exactly when one environment hangs); a ceiling is a `tie` only when
  * every other measure is the same, a lean when some only lean, and null when one is better or
  * worse, since then the comparison is the result.
  */

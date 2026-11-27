@@ -334,7 +334,7 @@ describe('reeval studio share', () => {
       assert.match(r.stdout, /^Pushing /m)
       assert.match(
         r.stderr,
-        /recorded with artifacts evidence, so passing attempts' trajectories weren't kept: for future runs, history\.artifacts: 'all' or reeval record --artifacts all/,
+        /recorded with artifacts evidence, so passing trials' trajectories weren't kept: for future runs, history\.artifacts: 'all' or reeval record --artifacts all/,
       )
     } finally {
       await p.close()
@@ -868,7 +868,7 @@ describe('reeval cloud push --out and --json', () => {
     const staged = readdirSync(join(runs, id), { recursive: true }).map(String)
     assert.ok(
       staged.some((f) => /trajectory/.test(f)),
-      `the passing attempt's trajectory is in .reeval/runs: ${staged.join(', ')}`,
+      `the passing trial's trajectory is in .reeval/runs: ${staged.join(', ')}`,
     )
 
     const refused = await runCli(scratchOnly, ['cloud', 'push', id, '--out', 'run.zip'])
@@ -889,7 +889,7 @@ describe('reeval cloud push --out and --json', () => {
     assert.equal(r.code, 0, r.stdout + r.stderr)
     assert.equal(JSON.parse(r.stdout).runId, id)
     const file = join(scratchOnly, 'run.zip')
-    assert.ok((await trajectories(file)).length > 0, "the passing attempt's trajectory")
+    assert.ok((await trajectories(file)).length > 0, "the passing trial's trajectory")
     const archive = await openArchive(file)
     try {
       await archive.verify()
@@ -949,7 +949,7 @@ describe('reeval cloud push --out and --json', () => {
         host: hostname(),
         heartbeatAt: now,
         phase: 'running',
-        attempts: [],
+        trials: [],
       }),
     )
     try {
@@ -983,7 +983,7 @@ describe('reeval cloud push --out and --json', () => {
     ])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const file = join(dir, 'out', 'all.zip')
-    assert.ok((await trajectories(file)).length > 0, "the passing attempt's trajectory")
+    assert.ok((await trajectories(file)).length > 0, "the passing trial's trajectory")
     const archive = await openArchive(file)
     try {
       await archive.verify()
@@ -1188,7 +1188,7 @@ describe('reeval cloud push --out and --json', () => {
     }
   }
 
-  test("a run recorded with reeval record --artifacts all carries every attempt's trajectory", async () => {
+  test("a run recorded with reeval record --artifacts all carries every trial's trajectory", async () => {
     const all = await linkedProject('cloud-push-artifacts')
     const flag = await runCli(all, ['run', '--artifacts', 'all'])
     assert.equal(flag.code, 2, flag.stdout + flag.stderr)
@@ -1202,10 +1202,10 @@ describe('reeval cloud push --out and --json', () => {
     assert.equal(recorded.code, 0, recorded.stdout + recorded.stderr)
     const r = await runCli(all, ['cloud', 'push', '--out', 'run.zip'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.ok((await trajectories(join(all, 'run.zip'))).length > 0, 'the passing attempt keeps it')
+    assert.ok((await trajectories(join(all, 'run.zip'))).length > 0, 'the passing trial keeps it')
     const evidence = await runCli(dir, ['cloud', 'push', '--out', 'out/run.zip'])
     assert.equal(evidence.code, 0, evidence.stdout + evidence.stderr)
-    assert.deepEqual(await trajectories(out()), [], "'evidence' leaves a passing attempt's out")
+    assert.deepEqual(await trajectories(out()), [], "'evidence' leaves a passing trial's out")
   })
 })
 

@@ -139,7 +139,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/reeval
 
-  examples/with-compare-control:
+  examples/with-compare-baseline:
     dependencies:
       reeval:
         specifier: workspace:*

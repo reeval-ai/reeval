@@ -3,7 +3,7 @@ import { docker } from 'reeval/sandbox'
 import { changedOnto, show } from './repo.ts'
 import type { Task } from './tasks.ts'
 
-/** What the arms differ by: the repo's guide for contributors, and the feature contract. */
+/** What the environments differ by: the repo's guide for contributors, and the feature contract. */
 export const GUIDES = ['AGENTS.md', 'packages/reeval/test/features/README.md']
 
 /** Node, pnpm and every task's dependencies already in the pnpm store, so an install is offline. */
@@ -34,18 +34,18 @@ const amend =
   'git add -A && git -c user.name=reeval -c user.email=reeval@localhost commit -q --amend --no-edit'
 
 /**
- * A branch of guide changes to try as a third arm, as `REEVAL_CONTRIBUTING_GUIDES=<branch>`: the
+ * A branch of guide changes to try as a third environment, as `REEVAL_CONTRIBUTING_GUIDES=<branch>`: the
  * branch's diff from HEAD's history, applied to each task's starting commit.
  */
 const NEW_GUIDES = process.env.REEVAL_CONTRIBUTING_GUIDES
 
 /**
- * The arms of one task. The control has no guides, and its one commit doesn't either, so
+ * The environments of one task. The baseline has no guides, and its one commit doesn't either, so
  * `git status` and `git show` don't point at them. The variant places them as files, so
  * `reeval query skill_files` counts the agent's reads of each. `newGuides`, with
- * REEVAL_CONTRIBUTING_GUIDES set, has that branch's guides, committed like the control.
+ * REEVAL_CONTRIBUTING_GUIDES set, has that branch's guides, committed like the baseline.
  */
-export function arms(task: Task) {
+export function environments(task: Task) {
   return {
     newGuides: NEW_GUIDES
       ? repoAt(task, `${task.id}-new-guides`, {
@@ -53,7 +53,7 @@ export function arms(task: Task) {
           setup: [amend],
         })
       : undefined,
-    control: repoAt(task, `${task.id}-no-guides`, {
+    baseline: repoAt(task, `${task.id}-no-guides`, {
       setup: [`rm -f ${GUIDES.join(' ')} && ${amend}`],
     }),
     variant: repoAt(task, `${task.id}-guides`, {

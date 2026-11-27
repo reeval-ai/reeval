@@ -4,7 +4,7 @@
 its query from the name it's given; the agent fixes it and the eval runs the tests, then a grader
 runs a hidden exploit test against the agent's `src/` in a sandbox of its own. The exploit tries
 `' OR '1'='1`, and a real name with a quote in it, so stripping quotes doesn't pass. The repo's
-own tests pass on the vulnerable code, so the exploit grader is required: an attempt that
+own tests pass on the vulnerable code, so the exploit grader is required: a trial that
 leaves the hole open scores 0.
 
 **Needs:** Docker, where the exploit runs, even for the fake agent; in this repo, run

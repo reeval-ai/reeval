@@ -51,7 +51,7 @@ type File = {
   data: Buffer
   record: boolean
   /**
-   * Whether it may be a link: inside an attempt's workspace snapshot, which keeps the workspace's
+   * Whether it may be a link: inside a trial's workspace snapshot, which keeps the workspace's
    * own links, in `.reeval/runs` or in the run's folder in the history. Every other file is one
    * that reeval reads as written, never through a link.
    */

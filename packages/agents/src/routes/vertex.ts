@@ -9,7 +9,7 @@ export type VertexPublisher = 'anthropic' | 'google' | 'xai'
 /** The host variable `vertex()` takes its project from when it names none. */
 export const VERTEX_PROJECT_ENV = 'GOOGLE_CLOUD_PROJECT'
 
-/** What the attempt's harness runs on: the `vertex()` entry, with its defaults filled in. */
+/** What the trial's harness runs on: the `vertex()` entry, with its defaults filled in. */
 export type VertexSettings = {
   project: string
   location: string

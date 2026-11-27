@@ -1,7 +1,7 @@
 import { defineEval } from 'reeval'
 import { plain } from './env.ts'
 
-// A turn the provider stopped for credit fails the attempt as an infra error (features.test.ts
+// A turn the provider stopped for credit fails the trial as an infra error (features.test.ts
 // checks the message and the record's `provider`), even when the body catches it; a turn that
 // failed otherwise, the first, doesn't.
 export default defineEval({

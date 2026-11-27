@@ -9,7 +9,7 @@ const fakeFile = (path: string) =>
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  // A scripted agent that copies ./fake-agent's files into the workspace, so the attempt runs
+  // A scripted agent that copies ./fake-agent's files into the workspace, so the trial runs
   // without keys. The hidden test's grader runs in Docker.
   agents: fakeAgent({
     files: { 'src/slugify.js': fakeFile('src/slugify.js') },

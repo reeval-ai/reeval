@@ -1,6 +1,6 @@
 // A harness's CLI installed in a machine reeval doesn't build with Docker: Tart's preflight bakes
-// it into an image each attempt clones, and `boat()` installs it as each VM starts. Both run the
-// bootstrap Docker's images bake, so an attempt's harness finds its marker and skips the install.
+// it into an image each trial clones, and `boat()` installs it as each VM starts. Both run the
+// bootstrap Docker's images bake, so a trial's harness finds its marker and skips the install.
 import { setupOf } from '@reeval/agents'
 import {
   adapterVersion,

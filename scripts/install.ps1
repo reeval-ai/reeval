@@ -46,7 +46,7 @@
     $headers = @{}
     if ($env:GITHUB_TOKEN) { $headers.Authorization = "Bearer $env:GITHUB_TOKEN" }
     $releases = $null
-    foreach ($attempt in 1..2) {
+    foreach ($trial in 1..2) {
       try { $releases = Invoke-RestMethod -Headers $headers $api; break }
       catch {
         $status = [int]$_.Exception.Response.StatusCode

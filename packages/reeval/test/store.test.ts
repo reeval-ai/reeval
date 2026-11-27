@@ -14,7 +14,7 @@ import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
 import { UsageError } from '../src/errors.ts'
 import { encodeRecord } from '../src/history/files.ts'
-import { readKeptFiles } from '../src/history/stored-attempt.ts'
+import { readKeptFiles } from '../src/history/stored-trial.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { resolveHistory } from '../src/store/resolve.ts'
 import { s3Settings, s3Store } from '../src/store/s3.ts'
@@ -615,17 +615,17 @@ describe('debug data to s3()', () => {
   after(() => s3.close())
 
   const debugDir = () => join(dir, '.reeval/debug')
-  /** Runs once, unrecorded, and returns its id and its one attempt's debug path. */
+  /** Runs once, unrecorded, and returns its id and its one trial's debug path. */
   const runOnce = async () => {
     const r = await runCli(dir, ['run'], { env: env() })
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const runId = readdirSync(debugDir()).sort().at(-1) as string
-    const attempt = (function find(at: string): string {
+    const trial = (function find(at: string): string {
       const [name] = readdirSync(join(debugDir(), runId, at))
       const next = at ? `${at}/${name}` : (name as string)
       return /^\d+$/.test(name as string) ? next : find(next)
     })('')
-    return { runId, attempt }
+    return { runId, trial }
   }
   const month = (runId: string) => `${runId.slice(0, 4)}-${runId.slice(4, 6)}`
   const uploaded = (runId: string) =>
@@ -642,9 +642,9 @@ describe('debug data to s3()', () => {
   const key = `AIza${'Q'.repeat(31)}WXYZ`
 
   test("'requests' uploads each requests.ndjson beside the run, and leaves out one with a secret", async () => {
-    const { runId, attempt } = await runOnce()
+    const { runId, trial } = await runOnce()
     const clean = '{"method":"POST","url":"https://api.example.com/v1/chat"}\n'
-    writeFileSync(join(debugDir(), runId, attempt, 'requests.ndjson'), clean)
+    writeFileSync(join(debugDir(), runId, trial, 'requests.ndjson'), clean)
     mkdirSync(join(debugDir(), runId, 'a/other/2'), { recursive: true })
     writeFileSync(join(debugDir(), runId, 'a/other/2/requests.ndjson'), `{"key":"${key}"}\n`)
     const r = await runCli(dir, ['record', '--profile', 'requests', runId], { env: env() })
@@ -657,14 +657,14 @@ describe('debug data to s3()', () => {
       ),
     )
     assert.match(r.stdout, /, 1 debug file, [\d.]+ KB\)$/m)
-    assert.deepEqual(uploaded(runId), [`${attempt}/requests.ndjson`])
-    const path = `dbg/debug/${month(runId)}/${runId}/${attempt}/requests.ndjson`
+    assert.deepEqual(uploaded(runId), [`${trial}/requests.ndjson`])
+    const path = `dbg/debug/${month(runId)}/${runId}/${trial}/requests.ndjson`
     assert.equal(String(s3.objects.get(path)?.bytes), clean)
     const { debug } = recordIn(runId)
     assert.equal(debug?.level, 'requests')
     assert.deepEqual(
       debug?.files.map((f) => f.path),
-      [`${attempt}/requests.ndjson`],
+      [`${trial}/requests.ndjson`],
     )
     assert.deepEqual(
       debug?.dropped?.map((d) => d.path),
@@ -679,8 +679,8 @@ describe('debug data to s3()', () => {
   })
 
   test('--skip-secret-scan still scans the debug data', async () => {
-    const { runId, attempt } = await runOnce()
-    writeFileSync(join(debugDir(), runId, attempt, 'requests.ndjson'), `{"key":"${key}"}\n`)
+    const { runId, trial } = await runOnce()
+    writeFileSync(join(debugDir(), runId, trial, 'requests.ndjson'), `{"key":"${key}"}\n`)
     const r = await runCli(dir, ['record', '--profile', 'requests', '--skip-secret-scan', runId], {
       env: env(),
     })
@@ -691,8 +691,8 @@ describe('debug data to s3()', () => {
   })
 
   test('re-recording a run whose debug folder was pruned says so', async () => {
-    const { runId, attempt } = await runOnce()
-    writeFileSync(join(debugDir(), runId, attempt, 'requests.ndjson'), '{"method":"GET"}\n')
+    const { runId, trial } = await runOnce()
+    writeFileSync(join(debugDir(), runId, trial, 'requests.ndjson'), '{"method":"GET"}\n')
     const first = await runCli(dir, ['record', '--profile', 'requests', runId], { env: env() })
     assert.equal(first.code, 0, first.stdout + first.stderr)
     rmSync(join(debugDir(), runId), { recursive: true, force: true })
@@ -708,23 +708,23 @@ describe('debug data to s3()', () => {
   })
 
   test("'all' uploads debug.log too", async () => {
-    const { runId, attempt } = await runOnce()
+    const { runId, trial } = await runOnce()
     const r = await runCli(dir, ['record', '--profile', 'all', runId], { env: env() })
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.ok(uploaded(runId).includes(`${attempt}/debug.log`), uploaded(runId).join(', '))
+    assert.ok(uploaded(runId).includes(`${trial}/debug.log`), uploaded(runId).join(', '))
     assert.equal(recordIn(runId).debug?.level, 'all')
   })
 
   test("reeval sync --debug downloads one run's debug data on another machine, checked", async () => {
-    const { runId, attempt } = await runOnce()
+    const { runId, trial } = await runOnce()
     const lines = '{"method":"POST","url":"https://api.example.com/v1/responses"}\n'
-    writeFileSync(join(debugDir(), runId, attempt, 'requests.ndjson'), lines)
+    writeFileSync(join(debugDir(), runId, trial, 'requests.ndjson'), lines)
     const r = await runCli(dir, ['record', '--profile', 'requests', runId], { env: env() })
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const other = await project('store-debug-other', {
       'reeval.config.ts': readFileSync(join(dir, 'reeval.config.ts'), 'utf8'),
     })
-    const local = join(other.dir, '.reeval/debug', runId, attempt, 'requests.ndjson')
+    const local = join(other.dir, '.reeval/debug', runId, trial, 'requests.ndjson')
     const sync = (...args: string[]) =>
       runCli(other.dir, ['sync', '--profile', 'requests', ...args], { env: env() })
     const pulled = await sync()
@@ -747,7 +747,7 @@ describe('debug data to s3()', () => {
     )
 
     rmSync(join(other.dir, '.reeval/debug'), { recursive: true })
-    const key = `dbg/debug/${month(runId)}/${runId}/${attempt}/requests.ndjson`
+    const key = `dbg/debug/${month(runId)}/${runId}/${trial}/requests.ndjson`
     const object = s3.objects.get(key) as { bytes: Buffer; etag: string }
     s3.objects.set(key, { ...object, bytes: Buffer.from('{"tampered":true}\n') })
     const tampered = await sync('--debug', runId)
@@ -774,8 +774,8 @@ describe('debug data to s3()', () => {
   })
 
   test('a run that failed to upload keeps its debug data for reeval sync', async () => {
-    const { runId, attempt } = await runOnce()
-    writeFileSync(join(debugDir(), runId, attempt, 'requests.ndjson'), '{"n":1}\n')
+    const { runId, trial } = await runOnce()
+    writeFileSync(join(debugDir(), runId, trial, 'requests.ndjson'), '{"n":1}\n')
     s3.failNext(100)
     const r = await runCli(dir, ['record', '--profile', 'requests', runId], { env: env() })
     s3.failNext(0)
@@ -783,7 +783,7 @@ describe('debug data to s3()', () => {
     rmSync(join(debugDir(), runId), { recursive: true })
     const synced = await runCli(dir, ['sync', '--profile', 'requests'], { env: env() })
     assert.equal(synced.code, 0, synced.stdout + synced.stderr)
-    assert.deepEqual(uploaded(runId), [`${attempt}/requests.ndjson`])
+    assert.deepEqual(uploaded(runId), [`${trial}/requests.ndjson`])
     assert.equal(existsSync(join(storeDir(), 'debug', runId)), false)
   })
 })
@@ -920,19 +920,19 @@ describe('kept workspaces in s3()', () => {
     )
     assert.ok(isRemote(history))
     const record = JSON.parse(readFileSync(join(history.dir, `${runId}.json`), 'utf8')) as RunRecord
-    const attempt = record.evals[0]?.attempts[0]
-    assert.ok(attempt?.files.workspace)
-    const archive = join(history.dir, runId, ...attempt.files.workspace.path.split('/'))
+    const trial = record.evals[0]?.trials[0]
+    assert.ok(trial?.files.workspace)
+    const archive = join(history.dir, runId, ...trial.files.workspace.path.split('/'))
     rmSync(archive)
     const runDir = join(history.dir, runId)
     assert.equal(
-      await (await readKeptFiles(runDir, attempt))?.readFile('src/app.js').catch(() => 'missing'),
+      await (await readKeptFiles(runDir, trial))?.readFile('src/app.js').catch(() => 'missing'),
       'missing',
     )
     const saved = { ...process.env }
     Object.assign(process.env, keyEnv(s3))
     try {
-      const files = await readKeptFiles(runDir, attempt, { fetch: fetchWorkspace(history, runId) })
+      const files = await readKeptFiles(runDir, trial, { fetch: fetchWorkspace(history, runId) })
       assert.equal((await files?.readFile('src/app.js'))?.toString(), 'export {}\n')
     } finally {
       for (const name of Object.keys(keyEnv(s3))) {

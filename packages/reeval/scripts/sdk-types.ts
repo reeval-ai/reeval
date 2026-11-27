@@ -1,4 +1,4 @@
-// Generates each language SDK's wire types from the JSON Schemas in schema/: the attempt protocol
+// Generates each language SDK's wire types from the JSON Schemas in schema/: the trial protocol
 // (schema/protocol/) and the declaration tree (schema/plan/declaration.schema.json). The types
 // are the SDK's private view of the wire; its public API stays hand-written.
 //

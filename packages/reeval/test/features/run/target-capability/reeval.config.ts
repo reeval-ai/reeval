@@ -5,5 +5,5 @@ import { fakeSandbox } from 'reeval/sandbox'
 export default defineConfig({
   agents: fakeAgent({}),
   sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }),
-  runs: 2,
+  trials: 2,
 })

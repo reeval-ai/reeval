@@ -1,0 +1,23 @@
+import { defineConfig, regression } from 'reeval'
+import { fakeAgent } from 'reeval/agent'
+import { fakeAnalysis } from 'reeval/judge'
+
+// REEVAL_FIXTURE_SANDBOX picks the tier: the fake sandbox (F) by default, or docker (D).
+// The answer reports what the trial's question was shown as its text, for the record check.
+export default defineConfig({
+  target: regression(),
+  agents: fakeAgent({ files: { 'out.txt': 'hi\n' }, text: 'REPLY-MARK' }),
+  analysis: {
+    model: fakeAnalysis({
+      answer: (q) => ({
+        choice: 'yes',
+        text: JSON.stringify({
+          keys: Object.keys(q.trial).sort(),
+          choices: q.choices,
+          task: q.prompt.includes('<task>'),
+          reply: q.prompt.includes('REPLY-MARK'),
+        }),
+      }),
+    }),
+  },
+})

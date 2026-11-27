@@ -25,7 +25,7 @@ import { type EvalDetail, joinRunReport, type RunReportIndex } from '../src/view
 import { readableRunReport } from '../src/view/report/schema.ts'
 import { project, runCli, tempDir } from './helpers.ts'
 import { CORPUS_DIR, corpus, corpusEntries, HISTORY_DIR } from './support/corpus.ts'
-import { REAL_HARNESSES, realAttempts } from './support/real-runs.ts'
+import { REAL_HARNESSES, realTrials } from './support/real-runs.ts'
 import { traceProblems } from './support/trace.ts'
 
 const entries = corpusEntries()
@@ -58,10 +58,10 @@ const REQUIRED = [
 
 function covers(record: RunRecord, raw: Record<string, unknown>, hasAnalysis: boolean): string[] {
   const out = new Set<string>()
-  const attempts = record.evals.flatMap((e) => e.attempts)
+  const trials = record.evals.flatMap((e) => e.trials)
   if (record.evals.some((e) => e.cells.some((c) => c.lift))) out.add('compare with lift')
   if (record.evals.some((e) => e.lifts?.length)) out.add('eval with cases')
-  for (const a of attempts) {
+  for (const a of trials) {
     for (const j of a.judgements) out.add(`judge ${j.verdict}`)
     out.add(`outcome ${a.outcome}`)
     if (a.files.trajectory) out.add('trajectory')
@@ -251,21 +251,21 @@ describe('the record corpus', { concurrency: 4 }, () => {
   })
 
   test('real-harness runs have the trajectories and diffs later readers use', () => {
-    const attempts = realAttempts()
+    const trials = realTrials()
     for (const harness of REAL_HARNESSES) {
-      const e2e = attempts.filter((a) => a.entry === 'real-e2e-pairs' && a.harness === harness)
+      const e2e = trials.filter((a) => a.entry === 'real-e2e-pairs' && a.harness === harness)
       assert.equal(new Set(e2e.map((a) => a.runId)).size, 2, `${harness}: two e2e runs`)
-      const contract = attempts.filter((a) => a.entry === 'real-contract' && a.harness === harness)
+      const contract = trials.filter((a) => a.entry === 'real-contract' && a.harness === harness)
       assert.equal(new Set(contract.map((a) => a.runId)).size, 1, `${harness}: one contract run`)
       assert.ok(
-        contract.some((a) => a.attempt.outcome === 'fail'),
+        contract.some((a) => a.trial.outcome === 'fail'),
         `${harness}: a canary fails`,
       )
-      const agent = [...e2e, ...contract].filter((a) => a.attempt.turns.length)
-      assert.ok(agent.length >= 8, `${harness}: e2e and contract attempts that reached the agent`)
+      const agent = [...e2e, ...contract].filter((a) => a.trial.turns.length)
+      assert.ok(agent.length >= 8, `${harness}: e2e and contract trials that reached the agent`)
       for (const a of agent) {
-        const where = `${a.entry} ${a.runId} ${a.attempt.key}`
-        assert.equal(a.attempt.outcome, 'pass', where)
+        const where = `${a.entry} ${a.runId} ${a.trial.key}`
+        assert.equal(a.trial.outcome, 'pass', where)
         assert.ok(a.trajectory && existsSync(a.trajectory), `${where}: trajectory`)
         assert.ok(a.diff && existsSync(a.diff), `${where}: diff`)
       }

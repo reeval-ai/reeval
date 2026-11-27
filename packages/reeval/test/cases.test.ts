@@ -93,7 +93,7 @@ describe('an eval with cases in a record from before it was one entry', () => {
     )
   })
 
-  test("keeps where's exclusions, the pooled lift and each attempt's case", () => {
+  test("keeps where's exclusions, the pooled lift and each trial's case", () => {
     const r = read()
     const lands = evalNamed(r, 'lands')
     assert.ok(
@@ -117,15 +117,16 @@ describe('an eval with cases in a record from before it was one entry', () => {
       lifted?.cases?.every((k) => k.outcome === 'pass'),
       'each case passes on its own',
     )
-    assert.deepEqual([...new Set(lifted?.attempts.map((a) => a.case))], ['Ada', 'Grace', 'Linus'])
-    assert.ok(lifted?.attempts.every((a) => a.id === `${a.cell}#${a.case}#${a.n}`))
+    assert.deepEqual([...new Set(lifted?.trials.map((a) => a.case))], ['Ada', 'Grace', 'Linus'])
+    assert.ok(lifted?.trials.every((a) => a.id === `${a.cell}#${a.case}#${a.n}`))
   })
 
-  test('unfolds back into the entries the run planned, attempt keys and all', () => {
+  test('unfolds back into the entries the run planned, trial keys and all', () => {
     const r = read()
     const back = unfoldCases(r)
-    const keys = (x: RunRecord) => x.evals.flatMap((e) => e.attempts.map((a) => a.key)).sort()
-    assert.deepEqual(keys(back), keys(raw))
+    const keys = (x: RunRecord) => x.evals.flatMap((e) => e.trials.map((a) => a.key)).sort()
+    const v1 = raw as unknown as { evals: Array<{ attempts: Array<{ key: string }> }> }
+    assert.deepEqual(keys(back), v1.evals.flatMap((e) => e.attempts.map((a) => a.key)).sort())
     assert.deepEqual(back.evals.map((e) => e.id).sort(), raw.evals.map((e) => e.id).sort())
     const rated = back.families?.find((f) => f.name === 'rated')
     const old = raw.families?.find((f) => f.name === 'rated')
@@ -233,7 +234,7 @@ describe('reeval run prints an eval with cases', () => {
 import { defineEval } from 'reeval'
 export default defineEval({
   cases: ${JSON.stringify(keys.map((key) => ({ key })))},
-  runs: 2,
+  trials: 2,
   async task(c, { key: k }) {
     await c.send(k)
     assert.equal(Number(k.slice(1)) > 10, true, 'ok')
@@ -243,7 +244,7 @@ export default defineEval({
     })
     const r = await runCli(p.dir, ['run', '--ui', 'plain'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(r.stdout, /^ {5}#q8 +0% +ok false !== true \(2 of 2 runs\)$/m)
+    assert.match(r.stdout, /^ {5}#q8 +0% +ok false !== true \(2 of 2 trials\)$/m)
     assert.doesNotMatch(r.stdout, /#q9 /)
     assert.match(r.stdout, /^ {5}\+2 more cases \(-v\)$/m)
     assert.doesNotMatch(r.stdout, /#q1[12] /, 'a case at 100% has no row')
@@ -256,11 +257,11 @@ export default defineEval({
 import { capability, defineEval } from 'reeval'
 export default defineEval({
   cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }],
-  runs: 2,
+  trials: 2,
   target: capability(1, { blocking: true }),
   async task(c, { key: k }) {
     await c.send(k)
-    assert.equal(k === 'a' || (k === 'b' && c.attempt.n === 1), true, 'ok')
+    assert.equal(k === 'a' || (k === 'b' && c.trial.n === 1), true, 'ok')
   },
 })
 `,
@@ -272,7 +273,7 @@ export default defineEval({
       /^└─ ✗ e {2}mean \d+% · 2\/3 cases hit 100% \(pass@2\) {2}capability\(1, \{ blocking: true \}\)$/m,
     )
     assert.doesNotMatch(r.stdout, /runs at 100% \(pass@6\)/, 'canary: not pooled over the cases')
-    assert.match(r.stdout, /^ {5}#c +0% +ok false !== true \(2 of 2 runs\)$/m)
+    assert.match(r.stdout, /^ {5}#c +0% +ok false !== true \(2 of 2 trials\)$/m)
     assert.equal(readRun(p.dir).run.evals[0]?.outcome, 'fail')
     const q = await runCli(p.dir, ['query', 'SELECT outcome, pass_at_k FROM evals', '--json'])
     assert.equal(q.code, 0, q.stdout + q.stderr)
@@ -290,7 +291,7 @@ const app = defineEnvironment('app', { env: { SKILL: '' } })
 const skilled = app.extend('skilled', { env: { SKILL: 'yes' } })
 export default defineEval({
   cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }, { key: 'd' }, { key: 'e' }, { key: 'f' }],
-  compare: { control: app, variants: [skilled] },
+  compare: { baseline: app, variants: [skilled] },
   async task(c) {
     await c.send('go')
     assert.equal((await c.exec('printf %s "$SKILL"')).stdout, 'yes', 'skill')

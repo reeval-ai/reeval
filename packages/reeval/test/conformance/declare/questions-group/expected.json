@@ -6,7 +6,7 @@
       "mode": "run",
       "options": {
         "compare": {
-          "control": {
+          "baseline": {
             "kind": "environment",
             "name": "base",
             "layers": [
@@ -69,7 +69,7 @@
           "name": "also inherits it",
           "mode": "run",
           "options": {
-            "runs": 2,
+            "trials": 2,
             "target": {
               "kind": "regression",
               "threshold": 0.5
@@ -86,7 +86,7 @@
           "mode": "run",
           "options": {
             "compare": {
-              "control": {
+              "baseline": {
                 "kind": "environment",
                 "name": "base",
                 "layers": [
@@ -182,7 +182,7 @@
           "mode": "run",
           "options": {
             "compare": {
-              "control": {
+              "baseline": {
                 "kind": "environment",
                 "name": "base",
                 "layers": [

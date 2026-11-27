@@ -8,13 +8,6 @@
       "description": "A note on one eval and harness of a run, which the studio shows: `.reeval/analysis/<runId>/notes/<eval slug>__<harness slug>.json`.",
       "type": "object",
       "properties": {
-        "attempts": {
-          "description": "The attempt ids (`<cell key>#<n>`) the note covers.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
         "createdAt": {
           "type": "string"
         },
@@ -49,11 +42,18 @@
           "type": "string"
         },
         "schemaVersion": {
-          "const": 1
+          "const": 2
         },
         "text": {
           "description": "Empty when the call failed.",
           "type": "string"
+        },
+        "trials": {
+          "description": "The trial ids (`<cell key>#<n>`) the note covers.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "usage": {
           "type": "object",
@@ -83,7 +83,6 @@
         }
       },
       "required": [
-        "attempts",
         "createdAt",
         "evalId",
         "harness",
@@ -93,9 +92,10 @@
         "runId",
         "schemaVersion",
         "text",
+        "trials",
         "usage"
       ]
     }
   },
-  "x-schemaVersion": 1
+  "x-schemaVersion": 2
 }

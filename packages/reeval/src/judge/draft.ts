@@ -16,7 +16,7 @@ export type DraftSource = Pick<TurnData, 'prompt' | 'text' | 'trajectory'> & {
   subagents?: readonly JudgeSubagent[]
 }
 
-/** What the judge's state is drawn from: an attempt's turns, diff, execs, observations and files. */
+/** What the judge's state is drawn from: a trial's turns, diff, execs, observations and files. */
 export type DraftSources = {
   turns: readonly DraftSource[]
   /** The graded turn's index in `turns`. */
@@ -111,7 +111,7 @@ function checksShown(
     const missing = which.find((command) => !ran.some((r) => r.command === command))
     if (missing !== undefined) {
       throw new Error(
-        `${who} checks names a command this attempt hasn't run: ${JSON.stringify(missing)}`,
+        `${who} checks names a command this trial hasn't run: ${JSON.stringify(missing)}`,
       )
     }
   }

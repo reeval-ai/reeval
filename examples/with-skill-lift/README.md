@@ -1,7 +1,7 @@
 # with-skill-lift
 
 **Shows:** whether a skill helps. The skill says every change adds a line to `CHANGELOG.md`.
-`compare` runs the same task without it (the control) and with it (the variant), four times
+`compare` runs the same task without it (the baseline) and with it (the variant), four times
 each, and reports the difference as lift.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -24,23 +24,23 @@ skill. `pnpm eval --profile claude-code` runs the same compare on Claude Code, a
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the result block's arms and the grader that tells them apart:
+**What to look at:** the result block's environments and the grader that tells them apart:
 
 ```text
 with-skill-lift.eval.ts
-  · with-skill-lift  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
-    arm              pass
+  · with-skill-lift  mean 100% · 4/4 trials at 100% (pass@4)  capability(1)
+    environment      pass
     math             0 of 4
-      error  score 0.50 below 1: has-file:CHANGELOG.md scored 0.00 (4 runs)
+      error  score 0.50 below 1: has-file:CHANGELOG.md scored 0.00 (4 trials)
     changelog        4 of 4  helped
 ```
 
-The target holds the variant only, so the control's misses don't fail the run. After a run,
+The target holds the variant only, so the baseline's misses don't fail the run. After a run,
 `pnpm reeval query lift` lists the lift and its 95% interval.
 
 | File | What it is |
 |---|---|
-| [`with-skill-lift.eval.ts`](./with-skill-lift.eval.ts) | The eval: the control, the variant and two graders |
+| [`with-skill-lift.eval.ts`](./with-skill-lift.eval.ts) | The eval: the baseline, the variant and two graders |
 | [`skills/changelog/SKILL.md`](./skills/changelog/SKILL.md) | The skill under test |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |

@@ -11,8 +11,8 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
 import { OPTION_SUPPORT, type SharedOption } from '@reeval/agents/options'
-import { attemptDebugDir, parseAttemptKey } from '../src/debug/files.ts'
-import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
+import { trialDebugDir, parseTrialKey } from '../src/debug/files.ts'
+import type { TrialRecord, RunRecord } from '../src/history/types.ts'
 import type { PluginPart, TokenUsage, TrajectoryEvent } from '../src/types.ts'
 import { isRuntimeState } from '../src/view/classify.ts'
 import type { DebugRequest } from '../src/view/debug.ts'
@@ -37,7 +37,7 @@ import {
   harnessOf,
   keyOf,
   ON_BOAT,
-  reserveAttempts,
+  reserveTrials,
   rowEnv,
   scanTargets,
   skipRow,
@@ -80,7 +80,7 @@ const PLUGIN_FILE =
 const evalsNamed = (run: RunRecord, name: RegExp) => run.evals.filter((e) => name.test(e.name))
 
 /**
- * The sandbox's segment of every attempt id: `boat-image`, which reeval.config.ts gives its
+ * The sandbox's segment of every trial id: `boat-image`, which reeval.config.ts gives its
  * `docker()` as its `id`, else `docker`.
  */
 const SANDBOX_ID = process.env.REEVAL_CONTRACT_SANDBOX === 'boat-image' ? 'boat-image' : 'docker'
@@ -137,8 +137,8 @@ const TAGGED = {
 } as const
 
 /** What a row's run starts: the contract's evals, less those its tags leave out. */
-const attemptsFor = (row: HarnessRow) =>
-  CONTRACT_ATTEMPTS -
+const trialsFor = (row: HarnessRow) =>
+  CONTRACT_TRIALS -
   tagsLeftOut(row).reduce((sum, tag) => sum + TAGGED[tag as keyof typeof TAGGED], 0)
 
 /** Why a row skips the plugin behaviors: it has no plugin field, as another row covers its harness's. */
@@ -159,23 +159,23 @@ const evalNamed = (run: RunRecord, name: string) => {
 }
 
 /**
- * An option eval's only attempt, after checking its id: the row's cell with the options' suffix
+ * An option eval's only trial, after checking its id: the row's cell with the options' suffix
  * (`[tools=bash]`, `[instructions=<hash>]`, …).
  */
-function optionAttempt(ran: Ran, row: HarnessRow, name: string, env: string, suffix: RegExp) {
-  const ids = evalNamed(ran.run, name).attempts.map((a) => a.id)
+function optionTrial(ran: Ran, row: HarnessRow, name: string, env: string, suffix: RegExp) {
+  const ids = evalNamed(ran.run, name).trials.map((a) => a.id)
   assert.equal(ids.length, 1, `${name}: ${ids.join(', ')}`)
   const [cell, ...rest] = (ids[0] ?? '').split('/')
   assert.ok(cell?.startsWith(cellOf(row)), `${name}: ${ids[0]}`)
   assert.match(cell.slice(cellOf(row).length), suffix, `${name}: ${ids[0]}`)
   assert.equal(rest.join('/'), `${env}/${SANDBOX_ID}#1`)
-  const a = evalNamed(ran.run, name).attempts[0] as AttemptRecord
+  const a = evalNamed(ran.run, name).trials[0] as TrialRecord
   assert.equal(a.outcome, 'pass', `${name}: ${detail(a)}`)
   return a
 }
 
-/** The size of an attempt's first model call: the system prompt and tools, then the prompt. */
-const firstCallSent = (ran: Ran, row: HarnessRow, a: AttemptRecord) => {
+/** The size of a trial's first model call: the system prompt and tools, then the prompt. */
+const firstCallSent = (ran: Ran, row: HarnessRow, a: TrialRecord) => {
   const calls = modelCalls(ran, row, a).sort((x, y) => x.at.localeCompare(y.at))
   assert.ok(calls.length > 0, `${a.key} made no model call on ${row.apiHost}`)
   return (calls.find((c) => c.sent >= MAIN_CALL_BYTES) ?? (calls[0] as DebugRequest)).sent
@@ -187,17 +187,17 @@ const firstCallSent = (ran: Ran, row: HarnessRow, a: AttemptRecord) => {
  */
 const MAIN_CALL_BYTES = 3000
 
-/** The eval's only attempt, after checking its id: an eval that didn't run fails here. */
-function attempt(ran: Ran, row: HarnessRow, name: string, env: string): AttemptRecord {
+/** The eval's only trial, after checking its id: an eval that didn't run fails here. */
+function trial(ran: Ran, row: HarnessRow, name: string, env: string): TrialRecord {
   const e = evalNamed(ran.run, name)
   assert.deepEqual(
-    e.attempts.map((a) => a.id),
+    e.trials.map((a) => a.id),
     [`${cellOf(row)}/${env}/${SANDBOX_ID}#1`],
   )
-  return e.attempts[0] as AttemptRecord
+  return e.trials[0] as TrialRecord
 }
 
-const detail = (a: AttemptRecord) =>
+const detail = (a: TrialRecord) =>
   JSON.stringify(
     {
       outcome: a.outcome,
@@ -222,9 +222,9 @@ function checkAndCanary(
   canary: RegExp,
   canaryEnv = env,
 ) {
-  const lands = attempt(ran, row, name, env)
+  const lands = trial(ran, row, name, env)
   assert.equal(lands.outcome, 'pass', `${name}: ${detail(lands)}`)
-  const c = attempt(ran, row, `${name}-canary`, canaryEnv)
+  const c = trial(ran, row, `${name}-canary`, canaryEnv)
   assert.equal(c.outcome, 'fail', `${name} canary: ${detail(c)}`)
   assert.equal(c.error?.kind, 'assertion', `${name} canary: ${detail(c)}`)
   assert.match(c.error?.message ?? '', canary)
@@ -240,17 +240,17 @@ function filesContaining(dir: string, needle: string): string {
   }
 }
 
-/** Every attempt that ran an agent turn: what a real row spends. */
+/** Every trial that ran an agent turn: what a real row spends. */
 const withTurns = (run: RunRecord) =>
-  run.evals.flatMap((e) => e.attempts).filter((a) => a.turns.length > 0)
+  run.evals.flatMap((e) => e.trials).filter((a) => a.turns.length > 0)
 
-type TurnRecord = AttemptRecord['turns'][number] & {
+type TurnRecord = TrialRecord['turns'][number] & {
   usage?: TokenUsage | null
   model?: string | null
 }
 
-/** The attempt's normalized trajectory, from its `trajectory.jsonl`. */
-const trajectoryOf = (ran: Ran, a: AttemptRecord): TrajectoryEvent[] => {
+/** The trial's normalized trajectory, from its `trajectory.jsonl`. */
+const trajectoryOf = (ran: Ran, a: TrialRecord): TrajectoryEvent[] => {
   const file = a.files.trajectory?.path
   assert.ok(file, `${a.key} has no trajectory`)
   return parseTrajectory(readFileSync(join(ran.runDir, file), 'utf8')).filter(
@@ -258,12 +258,12 @@ const trajectoryOf = (ran: Ran, a: AttemptRecord): TrajectoryEvent[] => {
   )
 }
 
-/** The model calls an attempt sent the harness's key on, from its `.reeval/debug` requests.ndjson. */
-function modelCalls(ran: Ran, row: HarnessRow, a: AttemptRecord): DebugRequest[] {
-  const at = parseAttemptKey(a.key)
-  assert.ok(at, `${a.key} isn't an attempt key`)
+/** The model calls a trial sent the harness's key on, from its `.reeval/debug` requests.ndjson. */
+function modelCalls(ran: Ran, row: HarnessRow, a: TrialRecord): DebugRequest[] {
+  const at = parseTrialKey(a.key)
+  assert.ok(at, `${a.key} isn't a trial key`)
   const file = join(
-    attemptDebugDir(ran.project, ran.run.runId, at.evalId, at.cell, at.n),
+    trialDebugDir(ran.project, ran.run.runId, at.evalId, at.cell, at.n),
     'requests.ndjson',
   )
   return readFileSync(file, 'utf8')
@@ -280,8 +280,8 @@ const envOf: Record<string, string> = {
   egress: 'closed',
 }
 
-/** What one contract run starts: reeval.config.ts's budget.attempts, which reeval run enforces too. */
-const CONTRACT_ATTEMPTS = 32
+/** What one contract run starts: reeval.config.ts's budget.trials, which reeval run enforces too. */
+const CONTRACT_TRIALS = 32
 
 export const behaviors: Behavior[] = [
   {
@@ -289,8 +289,8 @@ export const behaviors: Behavior[] = [
     canary: true,
     skips: withoutOption('instructions'),
     check(ran, row) {
-      optionAttempt(ran, row, 'instructions', 'ruled', /^\[instructions=[0-9a-f]{8}\]$/)
-      const c = attempt(ran, row, 'instructions-canary', 'ruled')
+      optionTrial(ran, row, 'instructions', 'ruled', /^\[instructions=[0-9a-f]{8}\]$/)
+      const c = trial(ran, row, 'instructions-canary', 'ruled')
       assert.equal(c.outcome, 'fail', `instructions canary: ${detail(c)}`)
       assert.equal(c.error?.kind, 'assertion', `instructions canary: ${detail(c)}`)
       assert.match(c.error?.message ?? '', new RegExp(`- '${OPTION_WORD}'`))
@@ -301,10 +301,10 @@ export const behaviors: Behavior[] = [
     canary: false,
     skips: withoutOption('systemPrompt'),
     check(ran, row) {
-      const a = optionAttempt(ran, row, 'system-prompt', 'notes', /^\[systemPrompt=[0-9a-f]{8}\]$/)
+      const a = optionTrial(ran, row, 'system-prompt', 'notes', /^\[systemPrompt=[0-9a-f]{8}\]$/)
       // The twin: the harness's own prompt on the same task makes its first model call bigger.
       const replaced = firstCallSent(ran, row, a)
-      const own = firstCallSent(ran, row, attempt(ran, row, 'edit-and-run', 'notes'))
+      const own = firstCallSent(ran, row, trial(ran, row, 'edit-and-run', 'notes'))
       assert.ok(
         replaced < own,
         `system prompt: first model call ${replaced} bytes, ${own} with the harness's own`,
@@ -316,7 +316,7 @@ export const behaviors: Behavior[] = [
     canary: false,
     skips: withoutOption('tools'),
     async check(ran, row) {
-      const a = optionAttempt(ran, row, 'tools', 'notes', /^\[tools=bash\]$/)
+      const a = optionTrial(ran, row, 'tools', 'notes', /^\[tools=bash\]$/)
       const catalog = await catalogOf(row)
       // A call the harness refused (`ok: false`, "no such tool") is the filter working.
       const called = trajectoryOf(ran, a).flatMap((e) =>
@@ -332,7 +332,7 @@ export const behaviors: Behavior[] = [
     canary: true,
     skips: withoutOption('commands'),
     check(ran, row) {
-      const a = optionAttempt(
+      const a = optionTrial(
         ran,
         row,
         'commands',
@@ -343,8 +343,8 @@ export const behaviors: Behavior[] = [
         (e) => e.type === 'tool' && JSON.stringify(e.input ?? '').includes(DENIED_COMMAND),
       )
       assert.ok(tried.length > 0, `commands: the agent never tried ${DENIED_COMMAND}: ${detail(a)}`)
-      const c = evalNamed(ran.run, 'commands-canary').attempts[0]
-      assert.ok(c, 'commands canary has no attempt')
+      const c = evalNamed(ran.run, 'commands-canary').trials[0]
+      assert.ok(c, 'commands canary has no trial')
       assert.equal(c.outcome, 'fail', `commands canary: ${detail(c)}`)
       assert.equal(c.error?.kind, 'assertion', `commands canary: ${detail(c)}`)
       assert.match(c.error?.message ?? '', /the denied command ran/)
@@ -377,7 +377,7 @@ export const behaviors: Behavior[] = [
       assert.deepEqual(env?.skills, [], 'reeval placed no skill')
       const r = await runCli(ran.project, [
         'query',
-        `SELECT skill, source, reads FROM skill_reads WHERE attempt_key = '${a.key}' AND skill = 'contract-installed'`,
+        `SELECT skill, source, reads FROM skill_reads WHERE trial_key = '${a.key}' AND skill = 'contract-installed'`,
         '--json',
       ])
       assert.equal(r.code, 0, r.stderr)
@@ -489,11 +489,11 @@ export const behaviors: Behavior[] = [
         Object.fromEntries(keys.map((k) => [k, us.reduce((n, u) => n + (u?.[k] ?? 0), 0)]))
       let compared = 0
       // A subagent's model calls pass the gateway but aren't in its parent turn's usage.
-      const attempts = ran.run.evals
+      const trials = ran.run.evals
         .filter((e) => e.name !== 'plugin-subagent')
-        .flatMap((e) => e.attempts)
+        .flatMap((e) => e.trials)
         .filter((a) => a.turns.length > 0)
-      for (const a of attempts) {
+      for (const a of trials) {
         const calls = trajectoryOf(ran, a).flatMap((e) =>
           e.type === 'model-call' && e.role !== 'side' ? [e.usage] : [],
         )
@@ -516,8 +516,8 @@ export const behaviors: Behavior[] = [
     check(ran, row) {
       const expected = row.reasoning
       assert.ok(expected)
-      const attempts = withTurns(ran.run)
-      const tokens = attempts.flatMap((a) =>
+      const trials = withTurns(ran.run)
+      const tokens = trials.flatMap((a) =>
         (a.turns as TurnRecord[]).map((t) => t.usage?.reasoning ?? 0),
       )
       if (expected.tokens)
@@ -526,7 +526,7 @@ export const behaviors: Behavior[] = [
           `no turn records reasoning tokens: ${JSON.stringify(tokens)}`,
         )
       if (expected.text) {
-        const chars = attempts.map((a) =>
+        const chars = trials.map((a) =>
           trajectoryOf(ran, a).reduce(
             (n, e) => n + (e.type === 'reasoning' ? e.text.length : 0),
             0,
@@ -573,9 +573,9 @@ export const behaviors: Behavior[] = [
     name: 'served model recorded',
     canary: false,
     check(ran, row) {
-      const attempts = withTurns(ran.run)
-      assert.ok(attempts.length > 0, 'no turns ran')
-      for (const a of attempts) {
+      const trials = withTurns(ran.run)
+      assert.ok(trials.length > 0, 'no turns ran')
+      for (const a of trials) {
         for (const t of a.turns as TurnRecord[]) {
           const reported = t.model ?? null
           if (row.servedModel) assert.match(reported ?? '', row.servedModel, `${a.key}: turn model`)
@@ -610,8 +610,8 @@ export const behaviors: Behavior[] = [
       const effort = row.effort
       assert.ok(effort)
       const e = evalNamed(ran.run, 'effort')
-      const a = e.attempts[0]
-      assert.ok(a, 'the effort eval has no attempt')
+      const a = e.trials[0]
+      assert.ok(a, 'the effort eval has no trial')
       assert.equal(a.id, `${cellOf(row)}[effort=${effort.value}]/notes/${SANDBOX_ID}#1`)
       assert.equal(a.outcome, 'pass', `effort: ${detail(a)}`)
       // A CLI's own side calls (a session title) may set no reasoning, or turn it off and be
@@ -624,7 +624,7 @@ export const behaviors: Behavior[] = [
         assert.match(c.requestEffort ?? '', effort.asked, `effort: ${c.url} → ${c.status}`)
       // The twin: the same task without effort leaves it off some call. Not every one: OpenCode's
       // session title on Gemini sets `low` of its own accord.
-      const plain = modelCalls(ran, row, attempt(ran, row, 'edit-and-run', 'notes'))
+      const plain = modelCalls(ran, row, trial(ran, row, 'edit-and-run', 'notes'))
       assert.ok(plain.length > 0, 'edit and run: no model calls')
       assert.ok(
         plain.some((c) => !effort.asked.test(c.requestEffort ?? '')),
@@ -638,8 +638,8 @@ export const behaviors: Behavior[] = [
     skips: (row) =>
       row.reasoningModel ? undefined : `the ${row.id} row has no model that shows its thinking`,
     check(ran) {
-      const a = evalNamed(ran.run, 'reasoning').attempts[0]
-      assert.ok(a, 'the reasoning eval has no attempt')
+      const a = evalNamed(ran.run, 'reasoning').trials[0]
+      assert.ok(a, 'the reasoning eval has no trial')
       assert.equal(a.outcome, 'pass', `reasoning: ${detail(a)}`)
       const blocks = trajectoryOf(ran, a).flatMap((e) => (e.type === 'reasoning' ? [e] : []))
       assert.ok(
@@ -654,9 +654,9 @@ export const behaviors: Behavior[] = [
     name: 'upstream provider and cost recorded',
     canary: false,
     check(ran, row) {
-      const attempts = withTurns(ran.run)
-      assert.ok(attempts.length > 0, 'no turns ran')
-      for (const a of attempts) {
+      const trials = withTurns(ran.run)
+      assert.ok(trials.length > 0, 'no turns ran')
+      for (const a of trials) {
         if (!row.upstream) {
           assert.equal(a.upstreams, undefined, `${row.id} records no upstream`)
           assert.equal(a.reportedCostUsd, undefined, `${row.id} records no reported cost`)
@@ -710,7 +710,7 @@ export const behaviors: Behavior[] = [
     async check(ran, row) {
       const catalog = await catalogOf(row)
       const failures = Object.keys(SIGNALS).flatMap((name) =>
-        misfiled(catalog, name, trajectoryOf(ran, attempt(ran, row, name, envOf[name] ?? ''))),
+        misfiled(catalog, name, trajectoryOf(ran, trial(ran, row, name, envOf[name] ?? ''))),
       )
       assert.deepEqual(failures, [], failures.join('\n'))
     },
@@ -848,7 +848,7 @@ export const behaviors: Behavior[] = [
     canary: false,
     skips: noPlugins,
     check(ran, row) {
-      const a = attempt(ran, row, 'plugin-skill', 'plugged')
+      const a = trial(ran, row, 'plugin-skill', 'plugged')
       // Only the probe plugin was declared: any other skill, or a plugin item outside its copies,
       // came from somewhere else (an account's plugins, a marketplace the agent fetched).
       const undeclared = a.context
@@ -862,7 +862,7 @@ export const behaviors: Behavior[] = [
       assert.deepEqual(undeclared, [], 'undeclared plugin items in the context')
       // Nor did the agent reach another plugin's MCP servers or files while it worked.
       for (const name of ['plugin-skill', 'plugin-mcp']) {
-        const ref = attempt(ran, row, name, 'plugged').files.trajectory
+        const ref = trial(ran, row, name, 'plugged').files.trajectory
         assert.ok(ref, `${name}: no trajectory`)
         const lines = parseTrajectory(readFileSync(join(ran.runDir, ref.path), 'utf8'))
         const mcpTools = lines.flatMap((l) =>
@@ -913,7 +913,7 @@ function capture(ran: Ran, row: HarnessRow) {
   const dir = join(testDir, 'replay', row.id)
   mkdirSync(dir, { recursive: true })
   for (const name of CAPTURED.filter((n) => n !== 'mcp' || row.mcp !== false)) {
-    const a = evalNamed(ran.run, name).attempts[0]
+    const a = evalNamed(ran.run, name).trials[0]
     const raw = a?.files.rawTrajectory?.path
     assert.ok(a?.outcome === 'pass' && raw, `can't capture ${name}: ${a?.outcome}, ${raw}`)
     const lines = readFileSync(join(ran.runDir, raw), 'utf8')
@@ -938,7 +938,7 @@ for (const row of harnesses) {
     let ran: Ran | undefined
     before(
       async () => {
-        reserveAttempts(row, attemptsFor(row), 'contract')
+        reserveTrials(row, trialsFor(row), 'contract')
         const p = await fixture('contract')
         const args = ['run', '--concurrency', row.key ? '2' : '4']
         for (const tag of tagsLeftOut(row)) args.push('--tag', `!${tag}`)
@@ -974,7 +974,7 @@ for (const row of harnesses) {
     test('the run: every eval ran once, only the canaries failed (exit 1)', () => {
       assert.ok(ran)
       const out = `${ran.cli.stdout}\n${ran.cli.stderr}`
-      assert.equal(ran.run.evals.length, attemptsFor(row), out)
+      assert.equal(ran.run.evals.length, trialsFor(row), out)
       assert.equal(ran.cli.code, 1, out)
     })
     for (const b of behaviors) {
@@ -1008,7 +1008,7 @@ after(() => {
       (b) =>
         `| ${b.name} | ${rows.map((r) => results.get(r)?.get(b.name) ?? 'not run').join(' | ')} |`,
     ),
-    `| attempts with an agent turn | ${rows.map((r) => spent.get(r) ?? '—').join(' | ')} |`,
+    `| trials with an agent turn | ${rows.map((r) => spent.get(r) ?? '—').join(' | ')} |`,
   ]
   const table = `### Harness contract\n\n${lines.join('\n')}\n`
   console.log(`\n${table}`)

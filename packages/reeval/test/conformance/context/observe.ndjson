@@ -1,5 +1,5 @@
 {"case":"observe","about":"observe before and after a turn, a name observed twice keeping its last value, a list and a number","options":{}}
-{"reeval":{"type":"start","attempt":{"id":"fake/-/fake#1","cell":{"key":"fake/-/fake","harness":"fake","environment":"-","sandbox":"fake","role":"control"},"n":1},"file":"evals/observe.eval.ts","body":"b1"}}
+{"reeval":{"type":"start","trial":{"id":"fake/-/fake#1","cell":{"key":"fake/-/fake","harness":"fake","environment":"-","sandbox":"fake","role":"baseline"},"n":1},"file":"evals/observe.eval.ts","body":"b1"}}
 {"runner":{"id":"1","call":{"op":"observe","name":"orm","value":"none yet"}}}
 {"reeval":{"id":"1","ok":true,"op":"observe"}}
 {"runner":{"id":"2","call":{"op":"send","prompt":"add a database layer"}}}

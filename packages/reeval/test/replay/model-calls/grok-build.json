@@ -1,6 +1,6 @@
 {
   "harness": "grok-build",
-  "attempts": [
+  "trials": [
     {
       "eval": "audit",
       "turns": [

@@ -35,7 +35,7 @@ export default defineConfig({
   gateway: [vercel()],
   agents: claudeCode({
     model: '<model>',
-    id: 'claude-code:control',
+    id: 'claude-code:baseline',
     maxConcurrent: 2,
     startTimeout: '3m',
     gateway: 'vercel',

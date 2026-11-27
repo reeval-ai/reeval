@@ -1,12 +1,12 @@
-no profile · 5 evals · 8 cells · 8 attempts
-bedrock             opencode:global.anthropic.claude-haiku-4-5/-/docker       control  gated any  ×1  effort: opencode:global.anthropic.claude-haiku-4-5 none (reeval sends OpenCode's effort in no field amazon-bedrock/global.anthropic.claude-haiku-4-5 is known to read) · egress "deny-all" + bedrock-mantle.us-east-1.api.aws, bedrock-runtime.us-east-1.amazonaws.com, mcp.exa.ai
-both-agents         cursor:composer-2.5/-/docker                              control  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on opencode:gemini-3.8-flash
-                    opencode:gemini-3.8-flash/-/docker                        control  gated any  ×1  effort medium
-other-providers     opencode:claude-haiku-4-5/-/docker                        control  gated any  ×1  effort: opencode:claude-haiku-4-5 none (Anthropic's API takes no effort on claude-haiku-4-5) · effort: opencode:cerebras none (reeval sends OpenCode's effort in no field cerebras/gpt-oss-120b is known to read) · egress "deny-all" + api.anthropic.com, mcp.exa.ai
-                    opencode:cerebras/-/docker                                control  gated any  ×1  egress "deny-all" + api.cerebras.ai, mcp.exa.ai
-own-id              oc/-/docker                                               control  gated any  ×1  effort medium
-toolchain-deny-all  cursor:composer-2.5/python/docker:python:3.12-slim        control  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on opencode:gemini-3.8-flash · egress "deny-all" + api2.cursor.sh, *.cursor.sh
-                    opencode:gemini-3.8-flash/python/docker:python:3.12-slim  control  gated any  ×1  effort medium · egress "deny-all" + generativelanguage.googleapis.com, mcp.exa.ai
+no profile · 5 evals · 8 cells · 8 trials
+bedrock             opencode:global.anthropic.claude-haiku-4-5/-/docker       baseline  gated any  ×1  effort: opencode:global.anthropic.claude-haiku-4-5 none (reeval sends OpenCode's effort in no field amazon-bedrock/global.anthropic.claude-haiku-4-5 is known to read) · egress "deny-all" + bedrock-mantle.us-east-1.api.aws, bedrock-runtime.us-east-1.amazonaws.com, mcp.exa.ai
+both-agents         cursor:composer-2.5/-/docker                              baseline  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on opencode:gemini-3.8-flash
+                    opencode:gemini-3.8-flash/-/docker                        baseline  gated any  ×1  effort medium
+other-providers     opencode:claude-haiku-4-5/-/docker                        baseline  gated any  ×1  effort: opencode:claude-haiku-4-5 none (Anthropic's API takes no effort on claude-haiku-4-5) · effort: opencode:cerebras none (reeval sends OpenCode's effort in no field cerebras/gpt-oss-120b is known to read) · egress "deny-all" + api.anthropic.com, mcp.exa.ai
+                    opencode:cerebras/-/docker                                baseline  gated any  ×1  egress "deny-all" + api.cerebras.ai, mcp.exa.ai
+own-id              oc/-/docker                                               baseline  gated any  ×1  effort medium
+toolchain-deny-all  cursor:composer-2.5/python/docker:python:3.12-slim        baseline  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on opencode:gemini-3.8-flash · egress "deny-all" + api2.cursor.sh, *.cursor.sh
+                    opencode:gemini-3.8-flash/python/docker:python:3.12-slim  baseline  gated any  ×1  effort medium · egress "deny-all" + generativelanguage.googleapis.com, mcp.exa.ai
 excluded: —
 image docker · opencode · 4 evals
   base  reeval-sandbox:opencode-0.2.16  (reeval's image: pulled or built when missing or when its key changed)

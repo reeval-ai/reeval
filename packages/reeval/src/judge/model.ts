@@ -1,5 +1,5 @@
 import { experimental_decide as decide } from 'ai'
-import { debugTrace } from '../debug/attempt.ts'
+import { debugTrace } from '../debug/trial.ts'
 import { openRouterBilling, openRouterDecisionModel } from '../gateway/openrouter-models.ts'
 import { vercelDecisionModel } from '../gateway/vercel-models.ts'
 import { type VertexSettings, vertexDecisionModel, vertexSettings } from '../gateway/vertex.ts'

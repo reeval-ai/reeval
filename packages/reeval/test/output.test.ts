@@ -89,7 +89,7 @@ describe('every layout', () => {
       for (const head of heads) {
         assert.match(
           head,
-          / {2}(mean \d+% · (\d+\/\d+ (runs?|cases?)|every run)|\d+%|skipped|todo|not run|infra error|canceled)/,
+          / {2}(mean \d+% · (\d+\/\d+ (trials?|cases?)|every trial)|\d+%|skipped|todo|not run|infra error|canceled)/,
           head,
         )
       }
@@ -98,7 +98,7 @@ describe('every layout', () => {
 
   test('✓ and ✗ only for a blocking target; · for one that only reports', () => {
     const text = rendered('suite').join('\n')
-    assert.match(text, /^✓ writes-greet-js +mean 100% · 1\/1 run at 100% +regression\(1\)$/m)
+    assert.match(text, /^✓ writes-greet-js +mean 100% · 1\/1 trial at 100% +regression\(1\)$/m)
     assert.match(text, /^✓ choose +83% ≥ 80% +metric\(0\.8\)$/m)
     assert.match(text, /^✗ explains-why-greet-js-fails +67% < 80% +metric\(0\.8\)$/m)
     assert.match(text, /^· greets-once +100% +metric\(\)$/m)
@@ -178,7 +178,7 @@ describe('every layout', () => {
     assert.match(text, /^ {2}question {2}Which reads better\?\n {4}4 votes, every one a tie$/m)
   })
 
-  test("an attempt that didn't count reads its status in place of a score, never 0%", () => {
+  test("a trial that didn't count reads its status in place of a score, never 0%", () => {
     const g = GOLDENS.find((x) => x.name === 'results')
     assert.ok(g)
     const suite = goldenSuite(g)
@@ -439,7 +439,7 @@ describe('summary.md from RunReport', () => {
     assert.match(md, /^# /m)
     assert.equal([...md.matchAll(/^# /gm)].length, 1)
     assert.doesNotMatch(md, /^```text$/m)
-    assert.match(md, /^## Attempt index/m)
+    assert.match(md, /^## Trial index/m)
     assert.match(md, /^## State/m)
   })
 

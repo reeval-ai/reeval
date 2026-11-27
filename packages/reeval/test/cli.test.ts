@@ -292,9 +292,9 @@ Run reeval --help to see every command
       positionals: ['run'],
       values: { config: 'c.ts', 'dry-run': true },
     })
-    assert.deepEqual(parseCli(['run', 'a', '--runs', '2', 'b', '--config=c.ts']), {
+    assert.deepEqual(parseCli(['run', 'a', '--trials', '2', 'b', '--config=c.ts']), {
       positionals: ['run', 'a', 'b'],
-      values: { runs: '2', config: 'c.ts' },
+      values: { trials: '2', config: 'c.ts' },
     })
     assert.deepEqual(parseCli(['run', '--', '--odd', 'x']).positionals, ['run', '--odd', 'x'])
     assert.deepEqual(parseCli(['query', 'select 1']).positionals, ['query', 'select 1'])
@@ -399,13 +399,13 @@ Run reeval --help to see every command
     usage(['run', '-- x\nSELECT 1'], /^Unknown option '-- x\\nSELECT 1'\. Run reeval --help\.$/)
     usage(['show', "--it's\r\nx"], /^Unknown option '--it's\\r\\nx'\. Run reeval --help\.$/)
     usage(['query', '--jsonn'], /^Unknown option '--jsonn'\. Did you mean --json\? Run reeval/)
-    usage(['run', '--runs'], /^--runs needs a value, e\.g\. --runs <value>\. Run reeval --help\.$/)
+    usage(['run', '--trials'], /^--trials needs a value, e\.g\. --trials <value>\. Run reeval --help\.$/)
     usage(['run', '--json=1'], /^--json doesn't take a value: pass --json on its own\.$/)
     usage(['run', '--port', '3'], /^--port isn't an option of reeval run\. Run reeval --help\.$/)
     usage(['show', '-v'], /^--verbose isn't an option of reeval show/)
     usage(
       ['run', '--trace'],
-      /^--trace isn't an option of reeval run\. -vv keeps every attempt's trace\.ndjson in \.reeval\/debug, and reeval show --trace writes a run's timeline for ui\.perfetto\.dev\.$/,
+      /^--trace isn't an option of reeval run\. -vv keeps every trial's trace\.ndjson in \.reeval\/debug, and reeval show --trace writes a run's timeline for ui\.perfetto\.dev\.$/,
     )
     usage(
       ['history', '--trace'],
@@ -458,10 +458,10 @@ Run reeval --help to see every command
         /^reeval: Unknown option '-- x\\nSELECT 1'\. Run reeval --help\.\n$/,
       ],
       [
-        ['run', '--runs'],
-        /^reeval: --runs needs a value, e\.g\. --runs <value>\. Run reeval --help\.\n$/,
+        ['run', '--trials'],
+        /^reeval: --trials needs a value, e\.g\. --trials <value>\. Run reeval --help\.\n$/,
       ],
-      [['run', '--runs', '0'], /^reeval: --runs must be a whole number of at least 1 \(got 0\)\n$/],
+      [['run', '--trials', '0'], /^reeval: --trials must be a whole number of at least 1 \(got 0\)\n$/],
       [['clean', '--keep', 'x'], /^reeval: --keep must be a whole number \(got x\)\n$/],
       [
         ['run', '--port', '3'],

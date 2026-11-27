@@ -32,7 +32,7 @@ claude-code` runs the same eval on Claude Code, and `--profile <name>` on any ot
 one profile you need.
 
 **What to look at:** the cell is named after the sandbox and its image wherever it runs, and the
-plan notes the provider. On Boat, the first run builds the image before any attempt starts, and a
+plan notes the provider. On Boat, the first run builds the image before any trial starts, and a
 later one starts from the saved snapshot:
 
 ```text
@@ -47,11 +47,11 @@ later one starts from the saved snapshot:
   ◆  Running...
 
 with-dart.eval.ts
-  · with-dart  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
+  · with-dart  mean 100% · 1/1 trial at 100% (pass@1)  capability(1)
 ```
 
 `pnpm reeval image list --profile boat` shows the snapshots, and
-`pnpm reeval image clean --all --profile boat` deletes them. On Boat each attempt runs in a
+`pnpm reeval image clean --all --profile boat` deletes them. On Boat each trial runs in a
 container of the image, so the default egress policy holds there; a Daytona sandbox keeps its own
 network, so the `daytona` profile sets `egress: 'allow-all'`.
 

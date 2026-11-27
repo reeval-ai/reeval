@@ -1,9 +1,9 @@
 // Every sandbox kind reeval has, one entry each: what it can do, how its sandboxes are named,
 // prepared, created and cleaned up. Code outside a kind's own modules asks this table, not the
-// kind's name, so a new kind is one more entry. A kind whose attempts each run on a machine of
+// kind's name, so a new kind is one more entry. A kind whose trials each run on a machine of
 // their own is a MachineProvider (machines.ts), whose entry kindOf() derives.
 import { DOCKER_EGRESS, type EgressCapabilities } from '@reeval/sandbox-docker'
-import type { ListenerSource } from '../attempt/serve.ts'
+import type { ListenerSource } from '../trial/serve.ts'
 import type { Check, DoctorDeps } from '../doctor.ts'
 import type {
   DockerSandboxDescriptor,
@@ -29,7 +29,7 @@ export type Credential = {
   cloudSets?: true
 }
 
-/** What a sandbox kind can do, which planning and the attempt check instead of its name. */
+/** What a sandbox kind can do, which planning and the trial check instead of its name. */
 export type SandboxCapabilities = {
   /** The OS its commands run on: what a harness's bootstrap has to install a build for. */
   platform: NodeJS.Platform
@@ -65,7 +65,7 @@ export type SandboxCapabilities = {
 /** A host path in a descriptor, made absolute against the file that declares it. */
 export type HostPath = 'file' | 'dir'
 
-/** What the attempt's sandbox did to widen its own privileges, for the plan's warnings. */
+/** What the trial's sandbox did to widen its own privileges, for the plan's warnings. */
 export type SandboxPrivileges = {
   root: boolean
   capabilities: readonly string[]
@@ -89,17 +89,17 @@ export type SandboxHooks<D extends SandboxDescriptor> = {
   doctor?(sandboxes: readonly D[], ctx: DoctorContext): Promise<Check[]>
   /** The plan's warnings about `sandbox`. */
   planWarnings?(sandbox: D): string[]
-  /** How many attempts share one of `sandbox`'s machines, when more than one may. */
+  /** How many trials share one of `sandbox`'s machines, when more than one may. */
   slotsPerMachine?(sandbox: D): number
-  /** Whether each attempt on a shared machine has a network of its own, so no port collides. */
+  /** Whether each trial on a shared machine has a network of its own, so no port collides. */
   slotNetworks?(sandbox: D): boolean
-  /** Whether each machine prepares `sandbox`'s image as its attempt starts, none before the run. */
+  /** Whether each machine prepares `sandbox`'s image as its trial starts, none before the run. */
   preparesImage?(sandbox: D): boolean
   /**
-   * When preflight learns how many of `sandbox`'s attempts can run at once (the hosts it kept),
+   * When preflight learns how many of `sandbox`'s trials can run at once (the hosts it kept),
    * reads that cap for the gate.
    */
-  attemptCap?(
+  trialCap?(
     sandbox: D,
   ):
     | ((o: { harness: HarnessDescriptor; root: string; runId: string }) => Promise<number | null>)
@@ -118,7 +118,7 @@ export type SandboxKind<D extends SandboxDescriptor = SandboxDescriptor> = Sandb
   id(sandbox: D): string
   /** The descriptor's host paths, which a declaration written as data makes absolute. */
   hostPaths: Readonly<Record<string, HostPath>>
-  /** Whether the attempt's sandbox may take long to start: build an image, or boot a VM. */
+  /** Whether the trial's sandbox may take long to start: build an image, or boot a VM. */
   buildsAtStart(sandbox: D): boolean
   /**
    * The most of its sandboxes the host runs at once, across the run, and why: the cap when
@@ -128,9 +128,9 @@ export type SandboxKind<D extends SandboxDescriptor = SandboxDescriptor> = Sandb
   privileges(sandbox: D): SandboxPrivileges
   create(sandbox: D, options: SandboxOptions): Promise<Sandbox>
   /** What its sandboxes may use at once, when they run somewhere other than the host. */
-  capacity?(sandbox: D): Promise<{ cpus: number; memoryBytes: number; attempts?: number } | null>
+  capacity?(sandbox: D): Promise<{ cpus: number; memoryBytes: number; trials?: number } | null>
   /**
-   * Removes what the run left behind (a worker killed mid-attempt never destroys its sandboxes):
+   * Removes what the run left behind (a worker killed mid-trial never destroys its sandboxes):
    * for `sandboxes`, or for every provider of the kind when unset.
    */
   cleanupRun?(runId: string, sandboxes?: readonly D[]): Promise<void>

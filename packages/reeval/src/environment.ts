@@ -246,7 +246,7 @@ export const mcpHeaderHosts = (
 }
 
 /**
- * A secret an attempt puts in the sandbox: where it's set (`KEY`, `mcp.docs.headers.auth`), the
+ * A secret a trial puts in the sandbox: where it's set (`KEY`, `mcp.docs.headers.auth`), the
  * host variable it reads, and the hosts it's brokered to, or none when the sandbox gets its value.
  */
 export type PlannedSecret = {
@@ -262,7 +262,7 @@ export type UnbrokeredSecret = Omit<PlannedSecret, 'hosts'>
 
 /**
  * Every secret among `env` and the layers' env and MCP servers (their local plugins' included),
- * layered as the attempt resolves them: a later layer's variable or MCP server replaces an
+ * layered as the trial resolves them: a later layer's variable or MCP server replaces an
  * earlier one of the same name.
  */
 export function plannedSecrets(env: EnvVars, layers: readonly EnvironmentLayer[]): PlannedSecret[] {
@@ -339,7 +339,7 @@ export const credentialHeader = (name: string, value: string) =>
 
 /**
  * The plain-header values masked like a secret-named host variable's: 8 or more characters, so a
- * guessed-at header such as `X-Token-Count: '1000'` can't mask every `1000` the attempt writes.
+ * guessed-at header such as `X-Token-Count: '1000'` can't mask every `1000` the trial writes.
  */
 export const maskedHeaderValue = (name: string, value: string) =>
   value.length >= 8 && credentialHeader(name, value)
@@ -393,7 +393,7 @@ export type PlainCredentialEnv = { label: string; name: string; plugin?: true }
 
 /**
  * The `env` strings among `env`, the layers' env and their stdio MCP servers' env that look like
- * credentials but aren't a `secret()`, layered as the attempt resolves them.
+ * credentials but aren't a `secret()`, layered as the trial resolves them.
  */
 export function plainCredentialEnv(
   env: EnvVars,
@@ -464,13 +464,13 @@ export function parseGitRepo(repo: string): { url: string; ref?: string; path?: 
 export const workspaceLabel = (w: Pick<GitWorkspace, 'repo' | 'ref' | 'path'>) =>
   `${w.repo}${w.ref ? `#${w.ref}` : ''}${w.path ? `:${w.path}` : ''}`
 
-/** The workspace an attempt starts as: the last layer that sets one. */
+/** The workspace a trial starts as: the last layer that sets one. */
 export const workspaceOf = (layers: readonly EnvironmentLayer[]): GitWorkspace | undefined =>
   layers.findLast((l) => l.spec.workspace)?.spec.workspace
 
 /**
  * The workspace two environments both start from when, past the layers they share, each sets only
- * `workspace` and it's the same repository, ref and path: two arms that can only run the same tree.
+ * `workspace` and it's the same repository, ref and path: two environments that can only run the same tree.
  */
 export function sameWorkspaceOnly(
   a: Pick<Environment, 'layers'>,
@@ -1331,7 +1331,7 @@ const environmentEnvelope = environmentDataSchema.extend({
 /**
  * What's wrong with an environment as data (from another language, or built by hand), in the
  * words `defineEnvironment` uses for each layer's spec, or undefined. `option` names the option
- * (`environments`, `compare.control`, …) and `where` the eval or config that set it.
+ * (`environments`, `compare.baseline`, …) and `where` the eval or config that set it.
  */
 export function environmentDataProblem(
   value: unknown,
@@ -1541,7 +1541,7 @@ export function defineEnvironment(name: string, input: EnvironmentInput): Enviro
   ])
 }
 
-/** What an attempt runs in: one environment's own layers. */
+/** What a trial runs in: one environment's own layers. */
 export type AppliedEnvironment = {
   name: string
   parent: string | null

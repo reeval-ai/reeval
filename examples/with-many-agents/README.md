@@ -29,7 +29,7 @@ between them:
 
 ```text
 with-many-agents.eval.ts
-  · with-many-agents  mean 100% · 2/2 runs at 100% (pass@2)  capability(1)
+  · with-many-agents  mean 100% · 2/2 trials at 100% (pass@2)  capability(1)
     fake-quick    100%
     fake-careful  100%
 ```
@@ -37,7 +37,7 @@ with-many-agents.eval.ts
 One try a cell gives the query no verdict, so run four:
 
 ```bash
-pnpm eval --runs 4
+pnpm eval --trials 4
 pnpm reeval query "SELECT factor, level, baseline, tier, pass_verdict, effort_verdict FROM factor_effects WHERE tier = 'controlled'"
 ```
 

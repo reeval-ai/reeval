@@ -1,7 +1,7 @@
 import type { ArtifactLevel, RunRecord, RunScope } from '../../history/types.ts'
 import type { CompareCut, Outcome } from '../../types.ts'
 import type { ActionKind, Confidence } from '../analysis.ts'
-import type { AttemptFacts } from '../classify.ts'
+import type { TrialFacts } from '../classify.ts'
 import type { CompareStatus } from '../compare.ts'
 import type { Remark } from '../remarks.ts'
 
@@ -23,14 +23,14 @@ export type Rate = {
   interval: Interval | null
 }
 /** `href` is the citation target (Section 2.10). */
-export type AttemptRef = {
+export type TrialRef = {
   /** The display label, `A1..AN`, numbered over the evals the report covers. */
   id: string
-  /** The attempt's `AttemptRecord.key`, the same in every report of its run. */
+  /** The trial's `TrialRecord.key`, the same in every report of its run. */
   key: string
   href: string
 }
-export type Fairness = 'clear' | 'within-noise' | 'too-few-runs'
+export type Fairness = 'clear' | 'within-noise' | 'too-few-trials'
 export type MeasureKey =
   | 'tokens'
   | 'toolCalls'
@@ -44,7 +44,7 @@ export type MeasureCells = Record<MeasureKey, Spread | null>
 export type EvalShape = 'task' | 'ab' | 'discoverability' | 'regression'
 
 export type RunReport = {
-  reportVersion: 4
+  reportVersion: 5
   runId: string
   /** `evals.length === 1`: the eval is the `#` title and every block moves up one level. */
   single: boolean
@@ -58,7 +58,7 @@ export type RunReport = {
   /** From the analysis; empty without one. */
   actions: ReportClaim[]
   provenance: ProvenanceState
-  attempts: AttemptIndexRow[]
+  trials: TrialIndexRow[]
 }
 
 export type RunTally = {
@@ -69,7 +69,7 @@ export type RunTally = {
   /** Ungated cells (baselines by default), never in `counted`. */
   ungated: { passed: number; failed: number }
   infraError: number
-  /** Of `infraError`: attempts an unhandled turn error moved out of pass or fail. */
+  /** Of `infraError`: trials an unhandled turn error moved out of pass or fail. */
   reclassified: number
   skipped: number
 }
@@ -84,12 +84,12 @@ export type RunHeader = {
   /** Which runs this one is like-with-like with (`runScope`); unset in reports built before it. */
   scope?: RunScope
   /** Null when cells ran different counts. */
-  runsPerCell: number | null
+  trialsPerCell: number | null
   wall: Figure
   tally: RunTally
-  /** `input + output + cacheRead + cacheWrite` (`totalTokens`); null when no attempt reported usage. */
+  /** `input + output + cacheRead + cacheWrite` (`totalTokens`); null when no trial reported usage. */
   tokens: { total: Figure; cacheRead: Figure } | null
-  /** Null when no attempt or judge call has a cost. */
+  /** Null when no trial or judge call has a cost. */
   cost: {
     agent: Figure | null
     judge: Figure | null
@@ -119,7 +119,7 @@ export type IntegrityIssue = {
   /** One plain sentence that names the metric it affects. */
   text: string
   evalId: string | null
-  cites: AttemptRef[]
+  cites: TrialRef[]
 }
 
 export type ExecutiveRollup = {
@@ -130,7 +130,7 @@ export type ExecutiveRollup = {
     name: string
     anchor: string
     shapes: EvalShape[]
-    /** `3 arms × 4 coding harnesses`. */
+    /** `3 environments × 4 coding harnesses`. */
     design: string
     /** The eval's headline in one cell, in its native unit. */
     primary: string
@@ -146,7 +146,7 @@ export type RosterRow = {
   effort: string | null
   servedModels: string[]
   gateway: string | null
-  attempts: number
+  trials: number
 }
 
 export type EvalSection = {
@@ -158,7 +158,7 @@ export type EvalSection = {
   name: string
   file: string
   shapes: EvalShape[]
-  /** `3 prompts, 4 coding harnesses, 3 arms, 36 attempts`. */
+  /** `3 prompts, 4 coding harnesses, 3 environments, 36 trials`. */
   design: string
   headline: EvalHeadline
   insights: ReportClaim[]
@@ -176,7 +176,7 @@ export type EvalSection = {
   scores?: { meanScore: Figure; passAtK: Figure; passHatK: Figure }
 }
 
-export type ArmRef = { id: string; label: string }
+export type EnvironmentRef = { id: string; label: string }
 
 export type EvalHeadline = {
   /** The eval's name: the heading above the headline. */
@@ -200,19 +200,19 @@ export type HeadlinePrimary =
     }
   | {
       kind: 'lift'
-      baseline: ArmRef
-      variant: ArmRef
+      baseline: EnvironmentRef
+      variant: EnvironmentRef
       points: Delta
       interval: Interval
       baselineRate: Rate
       variantRate: Rate
       /** Every other variant, with its own interval; never dropped. */
-      others: Array<{ variant: ArmRef; points: Delta; interval: Interval; rate: Rate }>
+      others: Array<{ variant: EnvironmentRef; points: Delta; interval: Interval; rate: Rate }>
     }
   | {
       kind: 'tied-ceiling'
-      baseline: ArmRef
-      variant: ArmRef
+      baseline: EnvironmentRef
+      variant: EnvironmentRef
       rate: Rate
       assertions: number
       lead: { measure: MeasureKey; baseline: Figure; variant: Figure; delta: Delta }
@@ -221,7 +221,7 @@ export type HeadlinePrimary =
       kind: 'choice'
       question: string
       options: Array<{ label: string; count: number }>
-      attempts: number
+      trials: number
       noPick: number
     }
   | {
@@ -304,14 +304,14 @@ export type TaskResults = {
   median: BreakdownRow | null
 }
 
-export type Arm = {
+export type CompareEnvironment = {
   id: string
   label: string
   environment: string
   environmentDigest: string | null
   role: 'baseline' | 'variant'
   change: string | null
-  /** Distinct first-turn prompt hashes over the arm's attempts. */
+  /** Distinct first-turn prompt hashes over the environment's trials. */
   prompts: string[]
 }
 
@@ -322,13 +322,13 @@ export type MeasureVsBaseline = {
   lower: Count | null
 }
 
-export type ArmRow = {
-  arm: string
+export type EnvironmentRow = {
+  environment: string
   rate: Rate
   lift: Delta | null
   interval: Interval | null
   /** Pass-rate certainty only; measure direction lives in measure cells. */
-  verdict: 'baseline' | 'helped' | 'made-worse' | 'within-noise' | 'too-few-runs'
+  verdict: 'baseline' | 'helped' | 'made-worse' | 'within-noise' | 'too-few-trials'
   /** Always `pass-rate` for this column today. */
   verdictScope: 'pass-rate'
   measures: Record<MeasureKey, MeasureVsBaseline>
@@ -337,7 +337,7 @@ export type ArmRow = {
 export type EffortPivotRow = {
   /** A harness label, or `Median` for the cross-harness row. */
   harness: string
-  arm: string
+  environment: string
   rate: Rate
   measures: Record<MeasureKey, MeasureVsBaseline>
 }
@@ -350,7 +350,7 @@ export type ContrastRow = {
   measure: 'pass-rate' | MeasureKey
   delta: Delta
   interval: Interval | null
-  verdict: 'helped' | 'made-worse' | 'within-noise' | 'too-few-runs' | 'fewer' | 'more'
+  verdict: 'helped' | 'made-worse' | 'within-noise' | 'too-few-trials' | 'fewer' | 'more'
   /** `pass-rate` when the contrast is on pass rate; else the measure's own direction. */
   verdictScope: 'pass-rate' | 'measure'
 }
@@ -358,11 +358,11 @@ export type ContrastRow = {
 export type VariantComparison = {
   kind: 'comparison'
   /** Baseline first, then variants in declaration order. */
-  arms: Arm[]
-  /** Set when every arm passed every applicable assertion; `assertionsByArm` is then empty. */
+  environments: CompareEnvironment[]
+  /** Set when every environment passed every applicable assertion; `assertionsByEnvironment` is then empty. */
   uniformLead: string | null
-  summary: ArmRow[]
-  assertionsByArm: AssertionRow[]
+  summary: EnvironmentRow[]
+  assertionsByEnvironment: AssertionRow[]
   behavior: BehaviorRow[]
   /** From `contrastsOf`; empty with one variant. */
   contrasts: ContrastRow[]
@@ -403,11 +403,11 @@ export type ChoiceBreakdown = {
   options: Array<{ label: string; count: number }>
   noPick: number
   rows: Array<{
-    arm: string | null
+    environment: string | null
     prompt: string | null
     harness: string
     counts: Record<string, number>
-    attempts: number
+    trials: number
     text: string
   }>
   passByPick: Array<{ option: string; rate: Rate }>
@@ -419,9 +419,9 @@ export type DiscoveryRate = {
   found: Count
   rows: Array<{ keys: string[]; found: Count }>
   /**
-   * For a skill, the attempts that found it by where the skill they checked came from, its first
-   * use in the report's `facts`: one source an attempt, so the counts sum to at most `found`. An
-   * attempt counts in none when it has no facts, when its passing `toHaveCalledSkill` had a label
+   * For a skill, the trials that found it by where the skill they checked came from, its first
+   * use in the report's `facts`: one source a trial, so the counts sum to at most `found`. An
+   * trial counts in none when it has no facts, when its passing `toHaveCalledSkill` had a label
    * of its own (which doesn't name the skill), when the check that found it was a `not.`, or when
    * the matcher passed on a call the facts leave out (a failed call, or a file under
    * `skills/<name>/` that isn't its `SKILL.md`). Empty without facts.
@@ -450,16 +450,16 @@ export type PairwiseRow = {
   bWins: number
   ties: number
   pairs: number
-  reasons: Array<{ text: string; cites: [AttemptRef, AttemptRef]; input: string | null }>
+  reasons: Array<{ text: string; cites: [TrialRef, TrialRef]; input: string | null }>
 }
 
 export type JudgmentBreakdown = { axes: string[]; scores: JudgeRow[]; pairwise: PairwiseRow[] }
 
 export type Quote = {
   text: string
-  attempt: AttemptRef
+  trial: TrialRef
   harness: string
-  arm: string | null
+  environment: string | null
   case: string | null
   input: string | null
 }
@@ -477,23 +477,23 @@ export type CaptureShot = {
   /** Null when not kept. */
   href: string | null
   meta: string | null
-  attempt: AttemptRef
+  trial: TrialRef
   status: number | null
   pageErrors: number | null
   consoleErrors: number | null
 }
 
 export type CaptureGallery = {
-  rows: Array<{ harness: string; arm: string | null; case: string | null; shots: CaptureShot[] }>
+  rows: Array<{ harness: string; environment: string | null; case: string | null; shots: CaptureShot[] }>
 }
 
 export type FailureCluster = {
   kind: 'assertion' | 'turn-error' | 'infra-error' | 'capture-error' | 'error'
   label: string
   at: string | null
-  /** Members of the eval's counted attempts. */
+  /** Members of the eval's counted trials. */
   count: Count
-  attempts: AttemptRef[]
+  trials: TrialRef[]
 }
 
 export type FailureClusters = {
@@ -510,7 +510,7 @@ export type ReportClaim = {
   role: 'finding' | 'caveat' | 'action'
   text: string
   confidence: Confidence
-  cites: AttemptRef[]
+  cites: TrialRef[]
   action: { kind: ActionKind; target: string; change: string; verify: string | null } | null
 }
 
@@ -524,19 +524,19 @@ export type ProvenanceState = {
   warnings: string[]
 }
 
-/** What an attempt's task threw, as the report shows it. */
+/** What a trial's task threw, as the report shows it. */
 export type ReportFailure = {
   reason: string
   /** Each key of an `EvalError`'s meta, its value as text: a string as it is, anything else as JSON. */
   meta: Array<{ key: string; value: string }>
   /** The class of an error that isn't an `EvalError`, such as `TypeError`. */
   name: string | null
-  /** How many turns the attempt had sent when the task threw. */
+  /** How many turns the trial had sent when the task threw. */
   turn: number
   stack: string | null
 }
 
-/** One grader's result on an attempt. */
+/** One grader's result on a trial. */
 export type GradeRow = {
   grader: string
   kind: 'code' | 'judge' | 'builtin'
@@ -549,18 +549,18 @@ export type GradeRow = {
   error: string | null
 }
 
-export type AttemptIndexRow = {
+export type TrialIndexRow = {
   id: string
-  /** `AttemptRecord.key`. */
+  /** `TrialRecord.key`. */
   key: string
   evalId: string
   harness: string
-  arm: string | null
+  environment: string | null
   case: string | null
   outcome: Exclude<Outcome, 'skipped'> | 'canceled'
   reclassified: boolean
   turnError: string | null
-  /** What its task threw (`AttemptRecord.failure`); absent when it threw nothing. */
+  /** What its task threw (`TrialRecord.failure`); absent when it threw nothing. */
   failure?: ReportFailure
   tokens: Figure
   agentMs: Figure
@@ -569,12 +569,12 @@ export type AttemptIndexRow = {
   llmCalls?: Figure
   /**
    * What its trajectory shows it did, from the report's `facts`; absent when the report had none
-   * for it, such as a passing attempt whose trajectory `evidence` didn't keep.
+   * for it, such as a passing trial whose trajectory `evidence` didn't keep.
    */
-  facts?: AttemptFacts
-  /** `AttemptRecord.score`; absent when it has none. */
+  facts?: TrialFacts
+  /** `TrialRecord.score`; absent when it has none. */
   score?: number
-  /** Each of the attempt's grades, in the eval's order; absent when no grader ran. */
+  /** Each of the trial's grades, in the eval's order; absent when no grader ran. */
   grades?: GradeRow[]
   /** Lines exclude lockfiles; null counts print `not recorded`. */
   diff: { files: number; added: number | null; removed: number | null; text: string } | null
@@ -584,7 +584,7 @@ export type AttemptIndexRow = {
     captures: Array<{ name: string; href: string }>
     questions: string[]
   }
-  /** The target every `AttemptRef` to this attempt uses. */
+  /** The target every `TrialRef` to this trial uses. */
   href: string
 }
 
@@ -596,5 +596,5 @@ export type BlockMarkdown = {
   evalSection(section: EvalSection, single: boolean): string
   actions(claims: ReportClaim[]): string
   provenance(state: ProvenanceState): string
-  attemptIndex(rows: AttemptIndexRow[], single: boolean): string
+  trialIndex(rows: TrialIndexRow[], single: boolean): string
 }

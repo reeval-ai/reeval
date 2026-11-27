@@ -3,7 +3,7 @@ import { baseline, variant } from './env.ts'
 import { printsOut } from './graders.ts'
 
 export default defineEval({
-  compare: { control: baseline, variants: [variant] },
+  compare: { baseline: baseline, variants: [variant] },
   // The mistake: out.txt says hi, not bye.
   graders: [printsOut('bye\n')],
   questions: [

@@ -1,7 +1,7 @@
 # with-bug-fix
 
 **Shows:** fixing a seeded bug without touching the tests. The package's `median()` sorts numbers
-as strings, so one test fails; the eval runs `npm test`. Both graders are required: the attempt
+as strings, so one test fails; the eval runs `npm test`. Both graders are required: the trial
 scores 0 if the tests still fail, or if the agent fixed the test rather than the code
 (`notInDiff('test/**')`).
 
@@ -25,7 +25,7 @@ other agent in [`examples/profiles.ts`](../profiles.ts).
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the attempt's `diff.patch`, under `.reeval/runs/<run>/`: the agent's whole
+**What to look at:** the trial's `diff.patch`, under `.reeval/runs/<run>/`: the agent's whole
 change, here the one-line fix, with `test/` untouched:
 
 ```diff

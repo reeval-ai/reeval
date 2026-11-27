@@ -1,7 +1,7 @@
 # with-case-lift
 
 **Shows:** a lift you can trust from one run a side. `cases` runs the same task for six
-functions, and the compare pairs the control and the variant case by case, pooling the six into
+functions, and the compare pairs the baseline and the variant case by case, pooling the six into
 one lift. `minLift: 0.2` gates that pooled lift, not each case's. The agent adds a
 function to a small package, with and without a `jsdoc` skill.
 
@@ -25,16 +25,16 @@ when it has the skill. `pnpm eval --profile claude-code` runs the same eval on C
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** each case runs once a side, but the arms pool all six into `helped`.
+**What to look at:** each case runs once a side, but the environments pool all six into `helped`.
 `pnpm eval -v` prints each case's score and the pooled interval:
 
 ```text
 with-case-lift.eval.ts
-  ✓ with-case-lift  mean 100% · 6/6 runs at 100%  regression(1)
+  ✓ with-case-lift  mean 100% · 6/6 trials at 100%  regression(1)
     #subtract  100%
     #multiply  100%
     …
-    arm              pass
+    environment      pass
     math             0 of 6
     jsdoc            6 of 6  helped
       paired over 6 cases, 95% interval +45…+100 points

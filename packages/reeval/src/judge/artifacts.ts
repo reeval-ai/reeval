@@ -8,7 +8,7 @@ import type {
   JudgeState,
 } from '../types.ts'
 
-/** A capture handle: a name plus the file the attempt wrote. */
+/** A capture handle: a name plus the file the trial wrote. */
 export function isCaptureHandle(value: unknown): value is Capture {
   return (
     isObjectLike(value) &&
@@ -38,7 +38,7 @@ const nameOf = (item: Capture | string) => (typeof item === 'string' ? item.trim
 
 /**
  * Resolves call `artifacts` (capture handles or their names, or `true` for every capture so far,
- * in capture order) to PNG bytes this attempt captured. Unknown names throw: a mistake in the
+ * in capture order) to PNG bytes this trial captured. Unknown names throw: a mistake in the
  * call, before the provider is asked.
  */
 export function resolveJudgeArtifacts(
@@ -52,7 +52,7 @@ export function resolveJudgeArtifacts(
     const data = blobs.get(name)
     if (!data) {
       throw new Error(
-        `judge() artifacts names a capture this attempt doesn't have: ${JSON.stringify(name)}`,
+        `judge() artifacts names a capture this trial doesn't have: ${JSON.stringify(name)}`,
       )
     }
     return {

@@ -86,7 +86,7 @@
     "/history/queries": "/results/inspection/queries",
     "/history/studio": "/results/inspection/studio",
     "/concepts": "/reference/glossary",
-    "/concepts/attempt-lifecycle": "/evaluations/evaluate",
+    "/concepts/trial-lifecycle": "/evaluations/evaluate",
     "/concepts/concurrency": "/evaluations/runs/running",
     "/concepts/credential-brokering": "/configuration/environments/secrets",
     "/concepts/egress": "/configuration/environments/egress",
@@ -223,7 +223,7 @@
     "/results/debugging": "/results/inspection/debugging",
     "/results/queries": "/results/inspection/queries",
     "/reference/api": "/reference/authoring-api",
-    "/reference/context": "/reference/attempt-context",
+    "/reference/context": "/reference/trial-context",
     "/reference/environment": "/reference/environment-helpers",
     "/reference/config": "/reference/configuration",
     "/reference/env-vars": "/reference/environment-variables",
@@ -557,8 +557,8 @@
               "href": "/reference/authoring-api"
             },
             {
-              "title": "Attempt context",
-              "href": "/reference/attempt-context"
+              "title": "Trial context",
+              "href": "/reference/trial-context"
             },
             {
               "title": "Options",

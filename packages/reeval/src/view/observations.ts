@@ -1,16 +1,16 @@
-import type { AttemptRecord } from '../history/types.ts'
+import type { TrialRecord } from '../history/types.ts'
 import type { JSONValue } from '../types.ts'
 
-/** One observed name over one cell's attempts: its values tallied, or its numbers summarized. Never gates. */
+/** One observed name over one cell's trials: its values tallied, or its numbers summarized. Never gates. */
 export type ObservedTally = {
   name: string
   /** The cell's key. */
   cell: string
-  /** Attempts that observed it. */
-  attempts: number
+  /** Trials that observed it. */
+  trials: number
   /**
-   * Each string, boolean or null value, and each such item of an array value once per attempt,
-   * by how many attempts gave it, most first (ties in first-seen order); empty when none.
+   * Each string, boolean or null value, and each such item of an array value once per trial,
+   * by how many trials gave it, most first (ties in first-seen order); empty when none.
    */
   counts: Array<{ value: string; n: number }>
   /** Over the number values; null when none. */
@@ -39,27 +39,27 @@ type Acc = {
   counts: Map<string, number>
   nums: number[]
   others: number
-  attempts: number
+  trials: number
 }
 
 /**
- * Each name and cell any attempt observed it on, by name in first-observed order and then by
- * cell, tallied over that cell's attempts.
+ * Each name and cell any trial observed it on, by name in first-observed order and then by
+ * cell, tallied over that cell's trials.
  */
 export function observedTallies(
-  attempts: ReadonlyArray<Pick<AttemptRecord, 'cell' | 'observations'>>,
+  trials: ReadonlyArray<Pick<TrialRecord, 'cell' | 'observations'>>,
 ): ObservedTally[] {
   const byName = new Map<string, Map<string, Acc>>()
-  for (const a of attempts) {
+  for (const a of trials) {
     for (const { name, value, file } of a.observations ?? []) {
       const cells = byName.get(name) ?? new Map<string, Acc>()
       byName.set(name, cells)
       let t = cells.get(a.cell)
       if (!t) {
-        t = { name, cell: a.cell, counts: new Map(), nums: [], others: 0, attempts: 0 }
+        t = { name, cell: a.cell, counts: new Map(), nums: [], others: 0, trials: 0 }
         cells.set(a.cell, t)
       }
-      t.attempts++
+      t.trials++
       const count = (v: string) => t.counts.set(v, (t.counts.get(v) ?? 0) + 1)
       if (file) t.others++
       else if (typeof value === 'number') t.nums.push(value)
@@ -76,7 +76,7 @@ export function observedTallies(
       return {
         name: t.name,
         cell: t.cell,
-        attempts: t.attempts,
+        trials: t.trials,
         counts: [...t.counts].map(([value, n]) => ({ value, n })).sort((x, y) => y.n - x.n),
         numbers: nums.length
           ? {
@@ -101,7 +101,7 @@ const clipValue = (v: string) => {
   return flat.length > 40 ? `${flat.slice(0, 39)}…` : flat
 }
 
-/** `drizzle 9 · prisma 3`, `median 4 · range 1–12 · 13 attempts`, as the run output shows a tally. */
+/** `drizzle 9 · prisma 3`, `median 4 · range 1–12 · 13 trials`, as the run output shows a tally. */
 export function observedLine(t: ObservedTally): string {
   const parts = t.counts.slice(0, SHOWN).map((c) => `${clipValue(c.value)} ${c.n}`)
   const more = t.counts.length - SHOWN
@@ -111,16 +111,16 @@ export function observedLine(t: ObservedTally): string {
     parts.push(min === max ? `${num(m)}` : `median ${num(m)} · range ${num(min)}–${num(max)}`)
   }
   if (t.others)
-    parts.push(`${t.others} ${t.others === 1 ? 'value' : 'values'} in reeval query attempt_values`)
+    parts.push(`${t.others} ${t.others === 1 ? 'value' : 'values'} in reeval query trial_values`)
   const tallied = t.counts.reduce((sum, c) => sum + c.n, 0)
-  const plain = !t.numbers && !t.others && tallied === t.attempts
+  const plain = !t.numbers && !t.others && tallied === t.trials
   return plain
     ? parts.join(' · ')
-    : `${parts.join(' · ')} · ${t.attempts} ${t.attempts === 1 ? 'attempt' : 'attempts'}`
+    : `${parts.join(' · ')} · ${t.trials} ${t.trials === 1 ? 'trial' : 'trials'}`
 }
 
 const sameTally = (a: ObservedTally, b: ObservedTally) =>
-  a.attempts === b.attempts &&
+  a.trials === b.trials &&
   a.others === b.others &&
   JSON.stringify(a.counts) === JSON.stringify(b.counts) &&
   JSON.stringify(a.numbers) === JSON.stringify(b.numbers)
@@ -151,6 +151,6 @@ export function observedShift(
   else if (b && h && (b.min !== h.min || b.max !== h.max)) {
     parts.push(`range ${num(b.min)}–${num(b.max)} → ${num(h.min)}–${num(h.max)}`)
   }
-  if (base.attempts !== head.attempts) parts.push(`${base.attempts} → ${head.attempts} attempts`)
+  if (base.trials !== head.trials) parts.push(`${base.trials} → ${head.trials} trials`)
   return parts.length ? parts.join(' · ') : null
 }

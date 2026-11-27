@@ -1,4 +1,4 @@
-// Worker side of environments: layers an attempt's environments, reads skills, plugins and files
+// Worker side of environments: layers a trial's environments, reads skills, plugins and files
 // on the host, resolves secrets, and computes the digest that goes into fingerprints. Nothing here
 // touches the sandbox.
 
@@ -127,7 +127,7 @@ export type ResolvedPlugin = {
   declared: PluginSource
   /** The commit a git plugin was read at. */
   commit: string | null
-  /** A built plugin: its directory in the attempt's image and the layer's tag, copied from there instead of `files`. */
+  /** A built plugin: its directory in the trial's image and the layer's tag, copied from there instead of `files`. */
   built?: { dir: string; tag: string }
 }
 
@@ -191,7 +191,7 @@ function held(
   if (!secret) {
     if (!isPlaceholder(process.env[from])) return undefined
     throw new InfraError(
-      `${from} for ${where} is held from ${SECRETS_FILE_VAR}, and this attempt couldn't get its value from reeval's main process.`,
+      `${from} for ${where} is held from ${SECRETS_FILE_VAR}, and this trial couldn't get its value from reeval's main process.`,
     )
   }
   // The mode the file gives wins over the config's hosts: a sandbox secret is never brokered.
@@ -724,7 +724,7 @@ const readHostFile = (f: HostFile, where: string): Uint8Array => {
 
 /**
  * Layers the environment (root first; a later layer wins on shared keys, and each such key is
- * an override), over the options `env` merged down the cascade. `where` names the attempt, and
+ * an override), over the options `env` merged down the cascade. `where` names the trial, and
  * `rulesFile` is the workspace file the harness's agent reads `rules` from.
  */
 export async function resolveEnvironment(

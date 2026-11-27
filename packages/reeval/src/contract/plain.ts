@@ -410,7 +410,7 @@ export function egressProblem(value: unknown, where: string): string | undefined
       return `Unknown egress key "checks" in ${where}: checks run under the agent's policy (egress.agent). Move what a check fetches into a setup step.`
     }
     if (key === 'install' || key === 'build') {
-      return `Unknown egress key "${key}" in ${where}: image layers (install, from, dockerfile and plugin builds) build before the run, outside any attempt's egress. egress.setup covers the setup steps.`
+      return `Unknown egress key "${key}" in ${where}: image layers (install, from, dockerfile and plugin builds) build before the run, outside any trial's egress. egress.setup covers the setup steps.`
     }
     if (key !== undefined && !phased.length) return policyProblem(value, where, 'egress') ?? shape
     if (key !== undefined) {

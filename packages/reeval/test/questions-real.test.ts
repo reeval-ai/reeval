@@ -1,6 +1,6 @@
 // Questions and the analyst on a real model, weekly (real.yml's `real agents (Cursor)` job,
 // never on PRs): test/real-agents' `questions` profile, under reeval.analysis.config.ts, runs 4 real
-// attempts on Cursor and pi, and google/gemini-3.8-flash answers its questions. Checks structure
+// trials on Cursor and pi, and google/gemini-3.8-flash answers its questions. Checks structure
 // only, never the model's wording, and never retries. Skipped unless REEVAL_TEST_REAL=1.
 import assert from 'node:assert/strict'
 import { cpSync, readFileSync } from 'node:fs'
@@ -14,7 +14,7 @@ import type { RunRecord } from '../src/history/types.ts'
 import type { PairVote } from '../src/types.ts'
 import { answerRows, recordPath } from '../src/view/index.ts'
 import { pkgRoot, readRun, runCli, tempDir } from './helpers.ts'
-import { harnesses, reserveAttempts } from './support/harnesses.ts'
+import { harnesses, reserveTrials } from './support/harnesses.ts'
 
 const example = join(pkgRoot, 'test/real-agents')
 const schema = (name: string) =>
@@ -24,7 +24,7 @@ const skip =
   process.env.REEVAL_TEST_REAL === '1' ? false : 'set REEVAL_TEST_REAL=1 to run real agents'
 
 /** A pair's identity, the same for its two votes. */
-const pairKey = (v: PairVote) => [v.cut, v.harness ?? v.arm, v.run, v.a, v.b].join('\0')
+const pairKey = (v: PairVote) => [v.cut, v.harness ?? v.environment, v.run, v.a, v.b].join('\0')
 
 test('test/real-agents --profile questions: every pair is voted in both orders', {
   skip,
@@ -33,7 +33,7 @@ test('test/real-agents --profile questions: every pair is voted in both orders',
   for (const id of ['cursor', 'pi'] as const) {
     const row = harnesses.find((r) => r.id === id)
     assert.ok(row)
-    reserveAttempts(row, 2, 'questions')
+    reserveTrials(row, 2, 'questions')
   }
   const dir = tempDir('questions-real')
   cpSync(example, dir, {
@@ -54,7 +54,7 @@ test('test/real-agents --profile questions: every pair is voted in both orders',
   // The checks decide the exit code; a question never makes it 2 or 3.
   assert.ok(r.code === 0 || r.code === 1, `reeval run exited ${r.code}\n${r.stdout}\n${r.stderr}`)
   const { run } = readRun(dir)
-  assert.equal(run.summary.attempts, 4, 'the profile runs 4 attempts')
+  assert.equal(run.summary.trials, 4, 'the profile runs 4 trials')
   assert.deepEqual(validate(schema('run-record'), run), [], 'the record fits its schema')
 
   const [e] = run.evals
@@ -62,13 +62,13 @@ test('test/real-agents --profile questions: every pair is voted in both orders',
   assert.equal(e.answers?.length, 1, 'one answer for the one question')
   const [answer] = e.answers ?? []
   assert.ok(answer)
-  t.diagnostic(`${e.attempts.map((a) => `${a.id} ${a.outcome}`).join(', ')}`)
+  t.diagnostic(`${e.trials.map((a) => `${a.id} ${a.outcome}`).join(', ')}`)
   t.diagnostic(answer.rates.map((r) => `${r.name} won ${r.wins} of ${r.n}`).join(', '))
   const doc = schema('run-record')
   assert.ok(fits(doc, { $ref: '#/$defs/CompareAnswer' }, answer), 'the answer fits CompareAnswer')
   assert.equal(answer.error, undefined, `the model call failed: ${answer.error}`)
   assert.equal(answer.model, 'google/gemini-3.8-flash')
-  const outcomes = e.attempts.map((a) => `${a.id} ${a.outcome}`).join(', ')
+  const outcomes = e.trials.map((a) => `${a.id} ${a.outcome}`).join(', ')
   assert.ok(answer.votes.length > 0, `no pair to judge: ${outcomes}`)
 
   const pairs = new Map<string, PairVote[]>()
@@ -85,11 +85,11 @@ test('test/real-agents --profile questions: every pair is voted in both orders',
   }
   assert.deepEqual(answer.rates, ratesOf(answer.votes), 'rates are wins over decided votes')
 
-  // The per-attempt question: one answer from its choices on every attempt that passed or failed.
-  for (const a of e.attempts.filter((x) => x.outcome === 'pass' || x.outcome === 'fail')) {
+  // The per-trial question: one answer from its choices on every trial that passed or failed.
+  for (const a of e.trials.filter((x) => x.outcome === 'pass' || x.outcome === 'fail')) {
     const [asked] = a.answers ?? []
     assert.ok(asked, `${a.id} has an answer`)
-    assert.ok(fits(doc, { $ref: '#/$defs/AttemptAnswer' }, asked), 'it fits AttemptAnswer')
+    assert.ok(fits(doc, { $ref: '#/$defs/TrialAnswer' }, asked), 'it fits TrialAnswer')
     assert.equal(asked.error, undefined, `the model call failed on ${a.id}: ${asked.error}`)
     assert.ok(['yes', 'no'].includes(asked.choice ?? ''), `${a.id} picked ${asked.choice}`)
     assert.ok(asked.text.length > 0, `${a.id}'s answer has a reason`)

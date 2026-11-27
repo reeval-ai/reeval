@@ -1,17 +1,17 @@
 // The deterministic remarks: hard thresholds over one run's facts and, for the kinds that need
 // it, the history's derived views. No model is involved. Pure: what the history and the eval's
 // source say comes in through `RemarkContext`.
-import { FLAKY_MIN_ATTEMPTS } from '../history/facts.ts'
-import type { AttemptRecord, EvalEntry, RunRecord } from '../history/types.ts'
+import { FLAKY_MIN_TRIALS } from '../history/facts.ts'
+import type { TrialRecord, EvalEntry, RunRecord } from '../history/types.ts'
 import { sha256 } from '../ids.ts'
 import {
-  COMPARE_RUNS,
+  COMPARE_TRIALS,
   containsZero,
   familySmallSample,
   liftInterval,
   PAIRED_MIN,
-  RUNS_TO_HOLD_MAX,
-  runsToHold,
+  TRIALS_TO_HOLD_MAX,
+  trialsToHold,
   runsToSettle,
   SMALL_SAMPLE_MARGIN,
   smallSample,
@@ -29,9 +29,9 @@ import {
 import type { Remark } from '../view/remarks.ts'
 import type { CellResult, EvalResult, SuiteResult } from '../view/suite.ts'
 
-/** check-never-fails: recorded default-branch runs in a row with no fail, and their tries. */
+/** check-never-fails: recorded default-branch runs in a row with no fail, and their trials. */
 export const NEVER_FAILS_RUNS = 5
-export const NEVER_FAILS_TRIES = 20
+export const NEVER_FAILS_TRIALS = 20
 /** flaky-check: the newest comparable runs looked at, and how many must both pass and fail it. */
 export const FLAKY_WINDOW = 5
 export const FLAKY_RUNS = 2
@@ -42,7 +42,7 @@ export const SLOW_MCP_MS = 2000
 export type Candidate = Omit<Remark, 'firstSeenRun'>
 
 /** A check's streak of clean recorded runs on the default branch (`check_streaks`). */
-export type Streak = { runs: number; tries: number }
+export type Streak = { runs: number; trials: number }
 /** A check over a cell's newest comparable runs: runs that both passed and failed it, and its counts. */
 export type CheckWindow = { runs: number; mixed: number; pass: number; fail: number }
 
@@ -62,7 +62,7 @@ export type RemarkContext = {
 
 /** `KIND_ORDER` ranks remarks of one severity: the ones most worth acting on first. */
 const KIND_ORDER: Remark['kind'][] = [
-  'too-few-tries',
+  'too-few-trials',
   'cant-tell-apart',
   'flaky-check',
   'observe-throws',
@@ -98,7 +98,7 @@ export function remarkId(kind: Remark['kind'], evalId: string, entry: EvalEntry,
   return sha256(JSON.stringify([kind, evalId, sources, ...(extra ? [extra] : [])]))
 }
 
-const tries = (n: number) => `${n} ${n === 1 ? 'try' : 'tries'}`
+const trials = (n: number) => `${n} ${n === 1 ? 'trial' : 'trials'}`
 const capital = (s: string) => `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`
 const rate = (c: CellResult) => (c.passed + c.failed ? c.passed / (c.passed + c.failed) : 0)
 const counted = (c: CellResult) => c.passed + c.failed
@@ -109,12 +109,10 @@ function units(e: EvalResult): Array<{ id: string; cells: CellResult[] }> {
   return [{ id: e.id, cells: e.cells ?? [] }]
 }
 
-const armOf = (c: CellResult) => c.variant ?? (c.environment === '-' ? 'baseline' : c.environment)
+const environmentOf = (c: CellResult) => c.variant ?? (c.environment === '-' ? 'baseline' : c.environment)
 
 /** `evals/a.eval.ts:12` from `source:evals/a.eval.ts#L12`. */
 const location = (at: string) => at.replace(/^source:/, '').replace(/#L(\d+)$/, ':$1')
-
-const runs = (n: number) => `${n} ${n === 1 ? 'run' : 'runs'}`
 
 /** Whether a variant's difference from its baseline holds: its interval excludes 0. */
 function holds(variant: CellResult, base: CellResult): boolean {
@@ -139,7 +137,7 @@ const listed = (items: string[]) =>
   items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`
 
 /**
- * ` It looks 12× faster, but 3 runs a side can't confirm it; 4 is the least that can.`: leans too
+ * ` It looks 12× faster, but 3 trials a side can't confirm it; 4 is the least that can.`: leans too
  * few runs can test, beside a pass-rate remark, which already counts the runs a rate needs.
  */
 const shortLeans = (measures: readonly Measure[] | null | undefined) => {
@@ -160,7 +158,7 @@ const briefLeans = (variant: string, measures: readonly Measure[] | null | undef
 }
 
 /**
- * too-few-tries on a ceiling (concern): a variant and its baseline both passed every run and no
+ * too-few-trials on a ceiling (concern): a variant and its baseline both passed every trial and no
  * measure is better or worse, but some lean (`readMeasures`): the variant looks different, on too
  * few runs to say. It names the first such variant's leans, counting the others, and the runs (or
  * cases) at which the soonest would hold.
@@ -184,27 +182,27 @@ function looksDifferent(
   const { needed, unit } = reading
   const about =
     needed === null
-      ? `even ${RUNS_TO_HOLD_MAX} ${unit} wouldn't confirm it`
+      ? `even ${TRIALS_TO_HOLD_MAX} ${unit} wouldn't confirm it`
       : unit === 'cases'
         ? `about ${needed} cases would confirm it`
-        : `about ${runs(needed)} ${cases ? 'a case' : 'a side'} would confirm it`
-  const text = `The ${armOf(variant)} variant${on} and the control passed every run (${counts}), but the variant looks different: ${listed(reading.measures.map(leanText))}; ${about}.${more}`
+        : `about ${trials(needed)} ${cases ? 'a case' : 'a side'} would confirm it`
+  const text = `The ${environmentOf(variant)} variant${on} and the baseline passed every trial (${counts}), but the variant looks different: ${listed(reading.measures.map(leanText))}; ${about}.${more}`
   const edit =
     needed === null
-      ? "if a difference this faint doesn't matter, make the task harder, so the control can fail"
+      ? "if a difference this faint doesn't matter, make the task harder, so the baseline can fail"
       : unit === 'cases'
         ? `add cases, to ${needed}, where the soonest of these would hold`
-        : `set runs: ${needed}${cases ? ' a case' : ''}, where the soonest of these would hold`
+        : `set trials: ${needed}${cases ? ' a case' : ''}, where the soonest of these would hold`
   const at = ctx.locate(entry, null)
   const brief =
     needed === null
       ? undefined
-      : `Both passed every run, but the variant looks different; ${unit === 'cases' ? `add cases, to ${needed},` : `set runs: ${needed}${cases ? ' a case' : ''}`} at ${location(at)} to confirm it.`
+      : `Both passed every trial, but the variant looks different; ${unit === 'cases' ? `add cases, to ${needed},` : `set trials: ${needed}${cases ? ' a case' : ''}`} at ${location(at)} to confirm it.`
   return [
     {
-      id: remarkId('too-few-tries', e.path, entry, 'looks'),
+      id: remarkId('too-few-trials', e.path, entry, 'looks'),
       evalId: e.path,
-      kind: 'too-few-tries',
+      kind: 'too-few-trials',
       severity: 'concern',
       text,
       ...(brief ? { brief } : {}),
@@ -215,12 +213,12 @@ function looksDifferent(
 }
 
 /**
- * cant-tell-apart (concern): a variant and its baseline both passed every run, or both failed
- * every one, on at least `COMPARE_RUNS` runs a side (`PAIRED_MIN` cases for a family), and on a
- * ceiling every other measure of their comparison is the same (`tieOf`), so no number of runs can
+ * cant-tell-apart (concern): a variant and its baseline both passed every trial, or both failed
+ * every one, on at least `COMPARE_TRIALS` trials a side (`PAIRED_MIN` cases for a family), and on a
+ * ceiling every other measure of their comparison is the same (`tieOf`), so no number of trials can
  * tell them apart. Both passing means the task is too easy to show the change; both failing means
  * it may be too hard, or the eval broken, whatever else differs: a timeout counts as a fail, so
- * effort differs exactly when one arm hangs. It names the first such variant, counting the
+ * effort differs exactly when one environment hangs. It names the first such variant, counting the
  * others. Its id carries the bound, so a floor after a ceiling on the same source prints again.
  */
 function cantTellApart(
@@ -241,11 +239,11 @@ function cantTellApart(
     : `${variant.passed} of ${counted(variant)} and ${base.passed} of ${counted(base)}`
   const text =
     bound === 'pass'
-      ? `The ${armOf(variant)} variant${on} and the control passed every run (${counts}): the task can't tell them apart, since both always pass.${more}`
-      : `The ${armOf(variant)} variant${on} and the control failed every run (${counts}): the task may be too hard, or the eval broken.${more}`
+      ? `The ${environmentOf(variant)} variant${on} and the baseline passed every trial (${counts}): the task can't tell them apart, since both always pass.${more}`
+      : `The ${environmentOf(variant)} variant${on} and the baseline failed every trial (${counts}): the task may be too hard, or the eval broken.${more}`
   const edit =
     bound === 'pass'
-      ? 'make the task harder, so the control can fail'
+      ? 'make the task harder, so the baseline can fail'
       : 'check the eval with an oracle (a fake agent that writes the solution); if it passes, make the task easier'
   return [
     {
@@ -261,16 +259,16 @@ function cantTellApart(
 }
 
 /**
- * too-few-tries (concern): a variant's direction against its baseline doesn't hold yet. Their
+ * too-few-trials (concern): a variant's direction against its baseline doesn't hold yet. Their
  * pass rates differ but the interval on the difference spans 0, or the contrast is a small sample
- * (`smallSample`), whatever its direction: either side has fewer than `COMPARE_RUNS` runs, where
+ * (`smallSample`), whatever its direction: either side has fewer than `COMPARE_TRIALS` runs, where
  * a difference whose interval excludes 0 can still be chance (when nothing changed, 2 of 2 against
  * 0 of 2 one way or the other comes up about 1 run in 8), or a `same` whose interval still reaches
- * past `SMALL_SAMPLE_MARGIN`. It names the variant with the widest gap, and the fix the runs a side
- * at which the observed rates would hold (`runsToHold`) or, for a `same`, settle (`runsToSettle`),
- * never fewer than `COMPARE_RUNS`. A tie where both sides always pass or always fail, on
- * `COMPARE_RUNS` runs a side or more, is `cantTellApart` instead, since runs can't break it; below
- * that, "always" rests on too few runs and stays here. A family is judged by its pooled lift
+ * past `SMALL_SAMPLE_MARGIN`. It names the variant with the widest gap, and the fix the trials a side
+ * at which the observed rates would hold (`trialsToHold`) or, for a `same`, settle (`runsToSettle`),
+ * never fewer than `COMPARE_TRIALS`. A tie where both sides always pass or always fail, on
+ * `COMPARE_TRIALS` trials a side or more, is `cantTellApart` instead, since runs can't break it; below
+ * that, "always" rests on too few trials and stays here. A family is judged by its pooled lift
  * (`pooledTooFewTries`), not each case's.
  */
 function tooFewTries(e: EvalResult, entry: EvalEntry, ctx: RemarkContext): Candidate[] {
@@ -283,7 +281,7 @@ function tooFewTries(e: EvalResult, entry: EvalEntry, ctx: RemarkContext): Candi
       const base = unit.cells.find((c) => c.key === variant.vs)
       if (!variant.vs || !base || !counted(variant) || !counted(base)) continue
       const bound =
-        Math.min(counted(variant), counted(base)) >= COMPARE_RUNS ? bounded([variant, base]) : null
+        Math.min(counted(variant), counted(base)) >= COMPARE_TRIALS ? bounded([variant, base]) : null
       if (bound) {
         const tie = tieOf(bound, variant.measures)
         if (tie === 'tie') ties.push({ variant, base, bound })
@@ -306,13 +304,13 @@ function tooFewTries(e: EvalResult, entry: EvalEntry, ctx: RemarkContext): Candi
   const { variant, base, gap, held } = worst
   const harnesses = new Set(units(e).flatMap((u) => u.cells.map((c) => c.harness))).size > 1
   const on = harnesses ? ` on ${variant.harness}` : ''
-  const counts = `The ${armOf(variant)} variant${on} passed ${variant.passed} of ${runs(counted(variant))} and the control ${base.passed} of ${counted(base)}`
+  const counts = `The ${environmentOf(variant)} variant${on} passed ${variant.passed} of ${trials(counted(variant))} and the baseline ${base.passed} of ${counted(base)}`
   const others = weak.length - 1
   const more = others ? ` ${others} more ${others === 1 ? 'variant is' : 'variants are'} too.` : ''
   const side = Math.max(counted(variant), counted(base))
-  const from = Math.max(side + 1, COMPARE_RUNS)
+  const from = Math.max(side + 1, COMPARE_TRIALS)
   const needed = gap
-    ? runsToHold(rate(variant), rate(base), from)
+    ? trialsToHold(rate(variant), rate(base), from)
     : runsToSettle(rate(variant), rate(base), from)
   const { low, high } = liftInterval(
     { pass: variant.passed, n: counted(variant) },
@@ -321,37 +319,37 @@ function tooFewTries(e: EvalResult, entry: EvalEntry, ctx: RemarkContext): Candi
   const reach = Math.round(Math.max(-low, high) * 100)
   const margin = Math.round(SMALL_SAMPLE_MARGIN * 100)
   const direction = rate(variant) > rate(base) ? 'better' : 'worse'
-  const fewest = runs(Math.min(counted(variant), counted(base)))
+  const fewest = trials(Math.min(counted(variant), counted(base)))
   const also = shortLeans(variant.measures)
   const text = held
     ? `${counts}: ${direction} by ${Math.round(gap * 100)} points, on only ${fewest} a side.${also}${more}`
     : gap
-      ? `${counts}: ${direction} by ${Math.round(gap * 100)} points, but on too few runs for the difference to hold.${also}${more}`
+      ? `${counts}: ${direction} by ${Math.round(gap * 100)} points, but on too few trials for the difference to hold.${also}${more}`
       : `${counts}: the same, but ${fewest} a side can't rule out a difference of up to ${reach} points.${also}${more}`
   const edit = held
-    ? `set runs: ${COMPARE_RUNS} or more, so a split this wide is less likely by chance`
+    ? `set trials: ${COMPARE_TRIALS} or more, so a split this wide is less likely by chance`
     : !gap
-      ? `set runs: ${needed}, where the same rates would rule out ${margin} points either way`
+      ? `set trials: ${needed}, where the same rates would rule out ${margin} points either way`
       : needed
-        ? `set runs: ${needed}, where a difference this size would hold`
-        : `a difference this size doesn't hold even at runs: ${RUNS_TO_HOLD_MAX}`
+        ? `set trials: ${needed}, where a difference this size would hold`
+        : `a difference this size doesn't hold even at trials: ${TRIALS_TO_HOLD_MAX}`
   const at = ctx.locate(entry, null)
   const these = others || also ? 'these differences' : 'this difference'
-  const per = `${fewest} per side; set runs:`
+  const per = `${fewest} per side; set trials:`
   const lead = held
-    ? `${per} ${COMPARE_RUNS} at ${location(at)}, so a split this wide is less likely by chance.`
+    ? `${per} ${COMPARE_TRIALS} at ${location(at)}, so a split this wide is less likely by chance.`
     : !gap
       ? `${per} ${needed} at ${location(at)} to rule out a difference.`
       : needed
         ? `${per} ${needed} at ${location(at)} to confirm ${these}.`
         : undefined
-  const brief = lead && `${lead}${briefLeans(armOf(variant), variant.measures)}`
+  const brief = lead && `${lead}${briefLeans(environmentOf(variant), variant.measures)}`
   return [
     ...apart,
     {
-      id: remarkId('too-few-tries', e.path, entry),
+      id: remarkId('too-few-trials', e.path, entry),
       evalId: e.path,
-      kind: 'too-few-tries',
+      kind: 'too-few-trials',
       severity: 'concern',
       text,
       ...(brief ? { brief } : {}),
@@ -362,7 +360,7 @@ function tooFewTries(e: EvalResult, entry: EvalEntry, ctx: RemarkContext): Candi
 }
 
 /**
- * too-few-tries on a family: its pooled lift is the result for its cases, so it's raised when
+ * too-few-trials on a family: its pooled lift is the result for its cases, so it's raised when
  * that lift doesn't hold (`insufficient` below `PAIRED_MIN` discordant pairs or cases, or within
  * noise) and either differs or rests on a small sample (`familySmallSample`). Many cases that all
  * agree are `insufficient` but settled, and raise nothing. A tie where every case on both sides
@@ -390,44 +388,44 @@ function pooledTooFewTries(e: EvalResult, entry: EvalEntry, ctx: RemarkContext):
     )
   })
   const apart = [...cantTellApart(e, entry, ctx, ties), ...looksDifferent(e, entry, ctx, looks)]
-  const [arm] = weak
-  if (!arm) return apart
-  const variant = cells.find((c) => c.key === arm.key)
+  const [environment] = weak
+  if (!environment) return apart
+  const variant = cells.find((c) => c.key === environment.key)
   const harnesses = new Set(cells.map((c) => c.harness)).size > 1
   const on = harnesses && variant ? ` on ${variant.harness}` : ''
   const others = weak.length - 1
   const more = others ? ` ${others} more ${others === 1 ? 'variant is' : 'variants are'} too.` : ''
-  const direction = arm.effect === 'same' ? 'the same' : arm.effect
-  const few = arm.verdict === 'insufficient'
-  const reach = Math.round(Math.max(-arm.interval.low, arm.interval.high) * 100)
+  const direction = environment.effect === 'same' ? 'the same' : environment.effect
+  const few = environment.verdict === 'insufficient'
+  const reach = Math.round(Math.max(-environment.interval.low, environment.interval.high) * 100)
   const why = few
-    ? `a paired lift needs ${PAIRED_MIN} cases that differ between the arms to hold`
-    : arm.effect === 'same'
+    ? `a paired lift needs ${PAIRED_MIN} cases that differ between the environments to hold`
+    : environment.effect === 'same'
       ? `it can't rule out a difference of up to ${reach} points`
       : "the difference doesn't hold"
-  const name = variant ? armOf(variant) : arm.key
-  const text = `The ${name} variant${on}, paired over ${arm.pairs} ${arm.pairs === 1 ? 'case' : 'cases'}: ${direction}, but ${why}.${shortLeans(arm.measures)}${more}`
+  const name = variant ? environmentOf(variant) : environment.key
+  const text = `The ${name} variant${on}, paired over ${environment.pairs} ${environment.pairs === 1 ? 'case' : 'cases'}: ${direction}, but ${why}.${shortLeans(environment.measures)}${more}`
   const at = ctx.locate(entry, null)
   const brief = few
-    ? `Too few cases differ between the arms for the paired lift to hold; add cases at ${location(at)} to confirm it.`
-    : `Over ${arm.pairs} cases the difference doesn't hold; add cases or set runs: ${COMPARE_RUNS} a case at ${location(at)} to confirm it.`
+    ? `Too few cases differ between the environments for the paired lift to hold; add cases at ${location(at)} to confirm it.`
+    : `Over ${environment.pairs} cases the difference doesn't hold; add cases or set trials: ${COMPARE_TRIALS} a case at ${location(at)} to confirm it.`
   return [
     ...apart,
     {
-      id: remarkId('too-few-tries', e.path, entry),
+      id: remarkId('too-few-trials', e.path, entry),
       evalId: e.path,
-      kind: 'too-few-tries',
+      kind: 'too-few-trials',
       severity: 'concern',
       text,
-      brief: `${brief}${briefLeans(name, arm.measures)}`,
-      evidence: [arm.path],
+      brief: `${brief}${briefLeans(name, environment.measures)}`,
+      evidence: [environment.path],
       fix: {
         at,
         edit: few
-          ? `add cases, so ${PAIRED_MIN} or more can differ between the arms`
-          : arm.effect === 'same'
-            ? `add cases, or set runs: ${COMPARE_RUNS} or more a case, so the paired interval narrows`
-            : `add cases, or set runs: ${COMPARE_RUNS} or more a case, so the difference can hold`,
+          ? `add cases, so ${PAIRED_MIN} or more can differ between the environments`
+          : environment.effect === 'same'
+            ? `add cases, or set trials: ${COMPARE_TRIALS} or more a case, so the paired interval narrows`
+            : `add cases, or set trials: ${COMPARE_TRIALS} or more a case, so the difference can hold`,
       },
     },
   ]
@@ -440,7 +438,7 @@ const recordCheck = (entry: EvalEntry, cellKey: string, label: string) =>
 /**
  * check-never-fails (suggestion): in every cell of the eval, a check passed this run with no fail,
  * and its streak (`check_streaks`) on the default branch is at least `NEVER_FAILS_RUNS` recorded
- * runs and `NEVER_FAILS_TRIES` tries on the same setup; on a variant, it passed on both sides.
+ * runs and `NEVER_FAILS_TRIALS` trials on the same setup; on a variant, it passed on both sides.
  */
 function checkNeverFails(
   e: EvalResult,
@@ -453,7 +451,7 @@ function checkNeverFails(
   const labels = [
     ...new Set(all.flatMap((u) => u.cells.flatMap((c) => c.checks.map((k) => k.label)))),
   ]
-  const found: Array<{ label: string; runs: number; tries: number; paths: string[] }> = []
+  const found: Array<{ label: string; runs: number; trials: number; paths: string[] }> = []
   for (const label of labels) {
     let runs = Number.POSITIVE_INFINITY
     let total = Number.POSITIVE_INFINITY
@@ -468,15 +466,15 @@ function checkNeverFails(
           if (k.outcome.failed || k.outcome.errored || !k.outcome.passed) return false
           if (cell.vs && recordCheck(entry, cell.key, label)?.verdict !== 'both-pass') return false
           const s = history.streak(u.id, cell.key, label, ctx.comparable(entry, cell.key))
-          if (!s || s.runs < NEVER_FAILS_RUNS || s.tries < NEVER_FAILS_TRIES) return false
+          if (!s || s.runs < NEVER_FAILS_RUNS || s.trials < NEVER_FAILS_TRIALS) return false
           runs = Math.min(runs, s.runs)
-          total = Math.min(total, s.tries)
+          total = Math.min(total, s.trials)
           paths.push(k.path)
           return true
         })
       )
     })
-    if (ok && paths.length) found.push({ label, runs, tries: total, paths })
+    if (ok && paths.length) found.push({ label, runs, trials: total, paths })
   }
   const [first] = found
   const entry = entries(all[0]?.id ?? '')
@@ -485,7 +483,7 @@ function checkNeverFails(
   const more = found.length > 1 ? ` (and ${found.length - 1} more)` : ''
   const text = compare
     ? `"${first.label}"${more} passed with and without the change in each of the last ${first.runs} recorded runs, so it doesn't show a difference.`
-    : `"${first.label}"${more} passed every try in the last ${first.runs} recorded runs (${first.tries} tries), so it never tells a good result from a bad one.`
+    : `"${first.label}"${more} passed every trial in the last ${first.runs} recorded runs (${first.trials} trials), so it never tells a good result from a bad one.`
   return [
     {
       id: remarkId('check-never-fails', e.path, entry),
@@ -505,8 +503,8 @@ function checkNeverFails(
 }
 
 /**
- * flaky-check (concern): the cell is `flaky` in `flaky_cells` (at least `FLAKY_MIN_ATTEMPTS`
- * counted tries over comparable runs, not from infrastructure), and the check both passed and
+ * flaky-check (concern): the cell is `flaky` in `flaky_cells` (at least `FLAKY_MIN_TRIALS`
+ * counted trials over comparable runs, not from infrastructure), and the check both passed and
  * failed in at least `FLAKY_RUNS` of the cell's newest `FLAKY_WINDOW` runs on the same setup.
  */
 function flakyCheck(
@@ -527,7 +525,7 @@ function flakyCheck(
       for (const k of cell.checks) {
         if (k.outcome.status !== 'ran' || found.some((f) => f.label === k.label)) continue
         const window = history.window(u.id, cell.key, k.label, fingerprint)
-        if (window.mixed >= FLAKY_RUNS && window.pass + window.fail >= FLAKY_MIN_ATTEMPTS) {
+        if (window.mixed >= FLAKY_RUNS && window.pass + window.fail >= FLAKY_MIN_TRIALS) {
           found.push({ label: k.label, window, path: k.path, entry })
         }
       }
@@ -543,11 +541,11 @@ function flakyCheck(
       evalId: e.path,
       kind: 'flaky-check',
       severity: 'concern',
-      text: `"${first.label}"${more} passed ${w.pass} of ${tries(w.pass + w.fail)} over ${w.runs} runs with nothing changed, so one try can pass or fail it.`,
+      text: `"${first.label}"${more} passed ${w.pass} of ${trials(w.pass + w.fail)} over ${w.runs} runs with nothing changed, so one trial can pass or fail it.`,
       evidence: found.map((f) => f.path),
       fix: {
         at: ctx.locate(first.entry, first.label),
-        edit: `make "${first.label}" check something every good try does, or raise runs so one try doesn't decide it`,
+        edit: `make "${first.label}" check something every good trial does, or raise trials so one trial doesn't decide it`,
       },
     },
   ]
@@ -571,20 +569,20 @@ const slow = (ms: number | null) => ms === null || ms >= SLOW_MCP_MS
 
 /**
  * slow-mcp-start (concern): a stdio MCP server took `SLOW_MCP_MS` or more to answer `initialize`,
- * or never answered, on some turn. One per server, over the eval's attempts. A harness that starts
+ * or never answered, on some turn. One per server, over the eval's trials. A harness that starts
  * its servers once a session records them on its first turn only, so the turns counted are the
  * ones that recorded the server.
  */
 function slowMcpStart(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext): Candidate[] {
   const cellPaths = new Map<string, string>()
   for (const u of units(e)) for (const c of u.cells) cellPaths.set(`${u.id}\0${c.key}`, c.path)
-  const attempts: Array<{ entry: EvalEntry; attempt: AttemptRecord }> = entries.flatMap((entry) =>
-    entry.attempts.map((attempt) => ({ entry, attempt })),
+  const trials: Array<{ entry: EvalEntry; trial: TrialRecord }> = entries.flatMap((entry) =>
+    entry.trials.map((trial) => ({ entry, trial })),
   )
   const servers = [
     ...new Set(
-      attempts.flatMap(({ attempt }) =>
-        attempt.turns.flatMap((t) => (t.mcpStartup ?? []).map((m) => m.server)),
+      trials.flatMap(({ trial }) =>
+        trial.turns.flatMap((t) => (t.mcpStartup ?? []).map((m) => m.server)),
       ),
     ),
   ]
@@ -592,15 +590,15 @@ function slowMcpStart(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext): 
   for (const server of servers) {
     type Hit = {
       entry: EvalEntry
-      attempt: AttemptRecord
+      trial: TrialRecord
       ms: number[]
       never: boolean
       turns: number
       slowTurns: number
     }
     const recorded: Hit[] = []
-    for (const { entry, attempt } of attempts) {
-      const turns = attempt.turns
+    for (const { entry, trial } of trials) {
+      const turns = trial.turns
         .map((t) => (t.mcpStartup ?? []).filter((m) => m.server === server))
         .filter((starts) => starts.length > 0)
       if (!turns.length) continue
@@ -608,7 +606,7 @@ function slowMcpStart(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext): 
       const starts = turns.flat()
       recorded.push({
         entry,
-        attempt,
+        trial,
         ms: starts.flatMap((m) => (m.ms !== null && m.ms >= SLOW_MCP_MS ? [m.ms] : [])),
         never: starts.some((m) => m.ms === null),
         turns: turns.length,
@@ -630,16 +628,16 @@ function slowMcpStart(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext): 
           ? ` on each of ${worst.turns} turns`
           : ` on ${worst.slowTurns} of ${worst.turns} turns`
         : ''
-    const ofTries = recorded.length > 1 ? `, in ${hits.length} of ${recorded.length} tries` : ''
+    const ofTrials = recorded.length > 1 ? `, in ${hits.length} of ${recorded.length} trials` : ''
     const name = server.includes(':') ? server.slice(0, server.indexOf(':')) : server
     out.push({
       id: remarkId('slow-mcp-start', e.path, first.entry, server),
       evalId: e.path,
       kind: 'slow-mcp-start',
       severity: 'concern',
-      text: `${capital(what)}${turns}${ofTries}.`,
+      text: `${capital(what)}${turns}${ofTrials}.`,
       evidence: hits.map(
-        (h) => `${cellPaths.get(`${h.entry.id}\0${h.attempt.cell}`) ?? h.entry.id}#${h.attempt.n}`,
+        (h) => `${cellPaths.get(`${h.entry.id}\0${h.trial.cell}`) ?? h.entry.id}#${h.trial.n}`,
       ),
       fix: {
         at: ctx.locate(first.entry, name),
@@ -659,15 +657,15 @@ function slowMcpStart(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext): 
 const CONNECTION_ERROR =
   /\b(?:ENETUNREACH|EHOSTUNREACH|ECONNREFUSED|EAI_AGAIN|ENOTFOUND)\b|network is unreachable|no route to host|connection refused|could not resolve host|temporary failure in name resolution|name or service not known|could not translate host name|getaddrinfo/i
 
-/** The record's text an attempt failed with: its error, failed assertions and turns. */
-const failureText = (a: AttemptRecord) => [
+/** The record's text a trial failed with: its error, failed assertions and turns. */
+const failureText = (a: TrialRecord) => [
   a.error?.message ?? '',
   ...(a.assertions ?? []).filter((x) => x.status !== 'pass').map((x) => x.message ?? ''),
   ...a.turns.flatMap((t) => [t.text, t.error ?? '']),
 ]
 
 /**
- * proxy-only-egress (concern): an attempt under `proxy` failed with a connection error, and the
+ * proxy-only-egress (concern): a trial under `proxy` failed with a connection error, and the
  * gateway neither refused nor failed to resolve anything, so the connection never reached it: a raw TCP or UDP client (SSH, a
  * database driver), or one that ignores `HTTPS_PROXY`. One per eval.
  */
@@ -675,20 +673,20 @@ function proxyOnlyEgress(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext
   const cellPaths = new Map<string, string>()
   for (const u of units(e)) for (const c of u.cells) cellPaths.set(`${u.id}\0${c.key}`, c.path)
   const hits = entries.flatMap((entry) =>
-    entry.attempts.flatMap((attempt) => {
-      if (attempt.outcome !== 'fail' && attempt.outcome !== 'infra_error') return []
-      const egress = attempt.egress
+    entry.trials.flatMap((trial) => {
+      if (trial.outcome !== 'fail' && trial.outcome !== 'infra_error') return []
+      const egress = trial.egress
       if (egress?.policy !== 'proxy' || !egress.recorded) return []
       if (egress.blocked.length || egress.unresolved.length) return []
-      const error = failureText(attempt)
+      const error = failureText(trial)
         .map((t) => CONNECTION_ERROR.exec(t)?.[0])
         .find(Boolean)
-      return error ? [{ entry, attempt, error }] : []
+      return error ? [{ entry, trial, error }] : []
     }),
   )
   const [first] = hits
   if (!first) return []
-  const ofTries = hits.length > 1 ? ` (${hits.length} tries)` : ''
+  const ofTrials = hits.length > 1 ? ` (${hits.length} trials)` : ''
   const at = ctx.locate(first.entry, null)
   return [
     {
@@ -696,10 +694,10 @@ function proxyOnlyEgress(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext
       evalId: e.path,
       kind: 'proxy-only-egress',
       severity: 'concern',
-      text: `It failed with "${first.error}"${ofTries} and nothing reached the egress gateway: under egress 'proxy' only HTTP(S) through the gateway leaves the sandbox, so raw TCP, UDP, SSH and database connections fail.`,
+      text: `It failed with "${first.error}"${ofTrials} and nothing reached the egress gateway: under egress 'proxy' only HTTP(S) through the gateway leaves the sandbox, so raw TCP, UDP, SSH and database connections fail.`,
       brief: `Only HTTP(S) leaves under egress 'proxy'; set egress: 'allow-all' at ${location(at)} for raw TCP or UDP.`,
       evidence: hits.map(
-        (h) => `${cellPaths.get(`${h.entry.id}\0${h.attempt.cell}`) ?? h.entry.id}#${h.attempt.n}`,
+        (h) => `${cellPaths.get(`${h.entry.id}\0${h.trial.cell}`) ?? h.entry.id}#${h.trial.n}`,
       ),
       fix: {
         at,
@@ -718,8 +716,8 @@ function setupProcessSecret(e: EvalResult, entries: EvalEntry[], ctx: RemarkCont
   const cellPaths = new Map<string, string>()
   for (const u of units(e)) for (const c of u.cells) cellPaths.set(`${u.id}\0${c.key}`, c.path)
   const hits = entries.flatMap((entry) =>
-    entry.attempts.flatMap((attempt) =>
-      attempt.setupProcesses?.length ? [{ entry, attempt, processes: attempt.setupProcesses }] : [],
+    entry.trials.flatMap((trial) =>
+      trial.setupProcesses?.length ? [{ entry, trial, processes: trial.setupProcesses }] : [],
     ),
   )
   const [first] = hits
@@ -727,7 +725,7 @@ function setupProcessSecret(e: EvalResult, entries: EvalEntry[], ctx: RemarkCont
   const secrets = [...new Set(hits.flatMap((h) => h.processes.flatMap((p) => p.secrets)))]
   const commands = [...new Set(hits.flatMap((h) => h.processes.map((p) => p.command)))]
   const more = commands.length > 1 ? ` (and ${commands.length - 1} more)` : ''
-  const ofTries = hits.length > 1 ? ` in ${hits.length} tries` : ''
+  const ofTrials = hits.length > 1 ? ` in ${hits.length} trials` : ''
   const [secret = ''] = secrets
   const list = secrets.join(', ')
   const which = secrets.length > 1 ? "to: 'checks' secrets" : "a to: 'checks' secret"
@@ -738,9 +736,9 @@ function setupProcessSecret(e: EvalResult, entries: EvalEntry[], ctx: RemarkCont
       evalId: e.path,
       kind: 'setup-process-secret',
       severity: 'concern',
-      text: `Setup left "${clip(commands[0] ?? '', 80)}"${more} running with ${list}, ${which} without hosts, in ${its} environment${ofTries}, so the agent can read the real value from ${those}.`,
+      text: `Setup left "${clip(commands[0] ?? '', 80)}"${more} running with ${list}, ${which} without hosts, in ${its} environment${ofTrials}, so the agent can read the real value from ${those}.`,
       evidence: hits.map(
-        (h) => `${cellPaths.get(`${h.entry.id}\0${h.attempt.cell}`) ?? h.entry.id}#${h.attempt.n}`,
+        (h) => `${cellPaths.get(`${h.entry.id}\0${h.trial.cell}`) ?? h.entry.id}#${h.trial.n}`,
       ),
       fix: {
         at: ctx.locate(first.entry, secret),
@@ -759,15 +757,15 @@ function setupTunnelClosed(e: EvalResult, entries: EvalEntry[], ctx: RemarkConte
   const cellPaths = new Map<string, string>()
   for (const u of units(e)) for (const c of u.cells) cellPaths.set(`${u.id}\0${c.key}`, c.path)
   const hits = entries.flatMap((entry) =>
-    entry.attempts.flatMap((attempt) => {
-      const closed = attempt.egress?.blocked.filter((b) => b.closed) ?? []
-      return closed.length ? [{ entry, attempt, closed }] : []
+    entry.trials.flatMap((trial) => {
+      const closed = trial.egress?.blocked.filter((b) => b.closed) ?? []
+      return closed.length ? [{ entry, trial, closed }] : []
     }),
   )
   const [first] = hits
   if (!first) return []
   const hosts = [...new Set(hits.flatMap((h) => h.closed.map((b) => `${b.host}:${b.port}`)))]
-  const ofTries = hits.length > 1 ? ` in ${hits.length} tries` : ''
+  const ofTrials = hits.length > 1 ? ` in ${hits.length} trials` : ''
   const list = hosts.join(', ')
   return [
     {
@@ -775,9 +773,9 @@ function setupTunnelClosed(e: EvalResult, entries: EvalEntry[], ctx: RemarkConte
       evalId: e.path,
       kind: 'setup-tunnel-closed',
       severity: 'concern',
-      text: `Setup left a connection open to ${list}${ofTries}, which the agent's egress refuses, so reeval closed it when the agent started: a process setup started was still using it.`,
+      text: `Setup left a connection open to ${list}${ofTrials}, which the agent's egress refuses, so reeval closed it when the agent started: a process setup started was still using it.`,
       evidence: hits.map(
-        (h) => `${cellPaths.get(`${h.entry.id}\0${h.attempt.cell}`) ?? h.entry.id}#${h.attempt.n}`,
+        (h) => `${cellPaths.get(`${h.entry.id}\0${h.trial.cell}`) ?? h.entry.id}#${h.trial.n}`,
       ),
       fix: {
         at: ctx.locate(first.entry, 'setup'),
@@ -788,25 +786,25 @@ function setupTunnelClosed(e: EvalResult, entries: EvalEntry[], ctx: RemarkConte
 }
 
 /**
- * snapshot-too-large (concern): an attempt's workspace was over its snapshot form's cap, without
+ * snapshot-too-large (concern): a trial's workspace was over its snapshot form's cap, without
  * its dependency and cache directories, so reeval took no snapshot of it. One per eval.
  */
 function snapshotTooLarge(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext): Candidate[] {
   const cellPaths = new Map<string, string>()
   for (const u of units(e)) for (const c of u.cells) cellPaths.set(`${u.id}\0${c.key}`, c.path)
   const hits = entries.flatMap((entry) =>
-    entry.attempts.flatMap((attempt) => {
-      const over = attempt.snapshots?.find((s) => s.skipped?.cause === 'size')
-      return over ? [{ entry, attempt, over }] : []
+    entry.trials.flatMap((trial) => {
+      const over = trial.snapshots?.find((s) => s.skipped?.cause === 'size')
+      return over ? [{ entry, trial, over }] : []
     }),
   )
   const [first] = hits
   if (!first) return []
   const tried = entries.reduce(
-    (n, entry) => n + entry.attempts.filter((a) => a.snapshots?.length).length,
+    (n, entry) => n + entry.trials.filter((a) => a.snapshots?.length).length,
     0,
   )
-  const ofTries = tried > 1 ? ` in ${hits.length} of ${tried} tries` : ''
+  const ofTrials = tried > 1 ? ` in ${hits.length} of ${tried} trials` : ''
   const larger =
     first.over.form === 'dir' ? ', set snapshot: { compress: true } for the larger cap' : ''
   return [
@@ -815,9 +813,9 @@ function snapshotTooLarge(e: EvalResult, entries: EvalEntry[], ctx: RemarkContex
       evalId: e.path,
       kind: 'snapshot-too-large',
       severity: 'concern',
-      text: `reeval took no ${first.over.name} snapshot${ofTries}: ${first.over.skipped?.message}.`,
+      text: `reeval took no ${first.over.name} snapshot${ofTrials}: ${first.over.skipped?.message}.`,
       evidence: hits.map(
-        (h) => `${cellPaths.get(`${h.entry.id}\0${h.attempt.cell}`) ?? h.entry.id}#${h.attempt.n}`,
+        (h) => `${cellPaths.get(`${h.entry.id}\0${h.trial.cell}`) ?? h.entry.id}#${h.trial.n}`,
       ),
       fix: {
         at: ctx.locate(first.entry, null),
@@ -829,24 +827,24 @@ function snapshotTooLarge(e: EvalResult, entries: EvalEntry[], ctx: RemarkContex
 
 /**
  * observe-throws: an eval whose target only reports (`capability()`) whose body threw in more than
- * half its counted tries. Graders run only after a body that returned, so a
- * graded attempt's failure is its score, not a throw. Such an eval fails the run only on run and infra errors, so those
- * tries record the eval's error, not what the agent did. One per eval.
+ * half its counted trials. Graders run only after a body that returned, so a
+ * graded trial's failure is its score, not a throw. Such an eval fails the run only on run and infra errors, so those
+ * trials record the eval's error, not what the agent did. One per eval.
  */
 function observeThrows(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext): Candidate[] {
   if (entries.some((entry) => blocks(entry.target))) return []
   const cellPaths = new Map<string, string>()
   for (const u of units(e)) for (const c of u.cells) cellPaths.set(`${u.id}\0${c.key}`, c.path)
   const counted = entries.flatMap((entry) =>
-    entry.attempts
+    entry.trials
       .filter((a) => a.outcome === 'pass' || a.outcome === 'fail')
-      .map((attempt) => ({ entry, attempt })),
+      .map((trial) => ({ entry, trial })),
   )
   const threw = counted.filter(
-    ({ attempt }) =>
-      attempt.error?.kind === 'assertion' &&
-      attempt.grades === undefined &&
-      !(attempt.assertions ?? []).some((x) => x.status !== 'pass'),
+    ({ trial }) =>
+      trial.error?.kind === 'assertion' &&
+      trial.grades === undefined &&
+      !(trial.assertions ?? []).some((x) => x.status !== 'pass'),
   )
   const [first] = threw
   if (!first || threw.length * 2 <= counted.length) return []
@@ -856,13 +854,13 @@ function observeThrows(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext):
       evalId: e.path,
       kind: 'observe-throws',
       severity: 'concern',
-      text: `${threw.length} of ${counted.length} tries threw, so the eval recorded its own error, not what the agent did: ${clip(first.attempt.error?.message ?? '', 120)}`,
+      text: `${threw.length} of ${counted.length} trials threw, so the eval recorded its own error, not what the agent did: ${clip(first.trial.error?.message ?? '', 120)}`,
       evidence: threw.map(
-        (h) => `${cellPaths.get(`${h.entry.id}\0${h.attempt.cell}`) ?? h.entry.id}#${h.attempt.n}`,
+        (h) => `${cellPaths.get(`${h.entry.id}\0${h.trial.cell}`) ?? h.entry.id}#${h.trial.n}`,
       ),
       fix: {
         at: ctx.locate(first.entry, null),
-        edit: 'fix what the body throws, or check what can fail with a grader, so a miss scores the attempt instead of ending it',
+        edit: 'fix what the body throws, or check what can fail with a grader, so a miss scores the trial instead of ending it',
       },
     },
   ]

@@ -9,18 +9,18 @@ import sys
 from pathlib import Path
 
 SAMPLE = """
-from reeval_python import AttemptContext, SyncAttemptContext, evaluate
+from reeval_python import TrialContext, SyncTrialContext, evaluate
 
 
 @evaluate("sync")
-def sync_body(c: SyncAttemptContext) -> None:
+def sync_body(c: SyncTrialContext) -> None:
     result = c.exec("npm test")
     assert result.exit_code == 0
     assert c.read_file("ready.txt") == "ready"
 
 
 @evaluate("async")
-async def async_body(c: AttemptContext) -> None:
+async def async_body(c: TrialContext) -> None:
     result = await c.exec("npm test")
     assert result.ok
     c.write_file("x", "y")  # never awaited
@@ -58,11 +58,11 @@ def test_pyright_finds_a_missing_await_and_an_unknown_field(tmp_path: Path) -> N
 MISUSE = """
 from datetime import timedelta
 
-from reeval_python import AttemptContext, Case, SyncAttemptContext, evaluate
+from reeval_python import TrialContext, Case, SyncTrialContext, evaluate
 
 
-@evaluate("ok", {"runs": 2, "timeout": timedelta(minutes=5), "judge": {"max_concurrent": 2}})
-async def ok(c: AttemptContext) -> None:
+@evaluate("ok", {"trials": 2, "timeout": timedelta(minutes=5), "judge": {"max_concurrent": 2}})
+async def ok(c: TrialContext) -> None:
     assert await c.read_file("x") == "y"
 
 
@@ -71,39 +71,39 @@ class Counted(Case):
 
 
 @evaluate("cases", {"cases": [Counted(key="1", n=1)]})
-def ok_each(c: SyncAttemptContext, case: Counted) -> None: ...
+def ok_each(c: SyncTrialContext, case: Counted) -> None: ...
 
 
 @evaluate("wrong context")  # flagged
-async def wrong_context(c: SyncAttemptContext) -> None: ...
+async def wrong_context(c: SyncTrialContext) -> None: ...
 
 
 @evaluate("sync generator")  # flagged
-def sync_generator(c: SyncAttemptContext):
+def sync_generator(c: SyncTrialContext):
     yield
 
 
 @evaluate("async generator")  # flagged
-async def async_generator(c: AttemptContext):
+async def async_generator(c: TrialContext):
     yield
 
 
 @evaluate("returns a value")  # flagged
-def returns_value(c: SyncAttemptContext) -> bool:
+def returns_value(c: SyncTrialContext) -> bool:
     return True
 
 
 @evaluate("wrong cases", {"cases": [Case(key="1")]})  # flagged
-async def wrong_each(c: SyncAttemptContext, case: Case) -> None: ...
+async def wrong_each(c: SyncTrialContext, case: Case) -> None: ...
 
 
 @evaluate("misspelled option", {"runz": 3})  # flagged
-def misspelled(c: SyncAttemptContext) -> None:
+def misspelled(c: SyncTrialContext) -> None:
     c.exec("npm test", retries="2")  # flagged
 
 
 @evaluate("misspelled judge option", {"judge": {"threshold": 0.5}})  # flagged
-def misspelled_judge(c: SyncAttemptContext) -> None: ...
+def misspelled_judge(c: SyncTrialContext) -> None: ...
 """
 
 

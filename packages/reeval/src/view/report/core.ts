@@ -20,10 +20,10 @@ export {
   usdFigure,
 } from './format.ts'
 export {
-  type AttemptIdMap,
-  attemptAnchor,
-  attemptAnchorId,
-  attemptIds,
+  type TrialIdMap,
+  trialAnchor,
+  trialAnchorId,
+  trialIds,
   idOf,
   selectedEvals,
 } from './ids.ts'
@@ -42,8 +42,8 @@ export {
   verdictLabel,
 } from './labels.ts'
 export {
-  attemptHref,
-  attemptRef,
+  trialHref,
+  trialRef,
   captureHref,
   evalAnchorHref,
   gfmAnchor,

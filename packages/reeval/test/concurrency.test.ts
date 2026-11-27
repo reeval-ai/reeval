@@ -24,19 +24,19 @@ describe('scheduler', () => {
 
   test('grants up to each limit, and the next waiter when a lease is released', () => {
     const { s, granted } = setup()
-    for (const id of ['a', 'b', 'c']) s.request({ id, owner: '1', limits: { attempts: 2 } })
+    for (const id of ['a', 'b', 'c']) s.request({ id, owner: '1', limits: { trials: 2 } })
     assert.deepEqual(granted, ['a', 'b'])
     assert.equal(s.waiting, 1)
     s.release('a')
     assert.deepEqual(granted, ['a', 'b', 'c'])
-    assert.equal(s.inUse('attempts'), 2)
+    assert.equal(s.inUse('trials'), 2)
   })
 
-  test("a provider cap holds back only that provider's attempts", () => {
+  test("a provider cap holds back only that provider's trials", () => {
     const { s, granted } = setup()
-    s.request({ id: 'd1', owner: '1', limits: { attempts: 3, 'sandbox:docker': 1 } })
-    s.request({ id: 'd2', owner: '1', limits: { attempts: 3, 'sandbox:docker': 1 } })
-    s.request({ id: 'f1', owner: '1', limits: { attempts: 3 } })
+    s.request({ id: 'd1', owner: '1', limits: { trials: 3, 'sandbox:docker': 1 } })
+    s.request({ id: 'd2', owner: '1', limits: { trials: 3, 'sandbox:docker': 1 } })
+    s.request({ id: 'f1', owner: '1', limits: { trials: 3 } })
     assert.deepEqual(granted, ['d1', 'f1'])
     s.release('d1')
     assert.deepEqual(granted, ['d1', 'f1', 'd2'])
@@ -51,7 +51,7 @@ describe('scheduler', () => {
           s.request({
             id: `${e}#${n}.${cell}`,
             owner: '1',
-            limits: { attempts: 1 },
+            limits: { trials: 1 },
             rank: rank(e, n, cell, e === 'a' ? 0 : 1),
           })
         }
@@ -73,9 +73,9 @@ describe('scheduler', () => {
 
   test("a worker's leases and waiting requests go when it does", () => {
     const { s, granted } = setup()
-    s.request({ id: 'a', owner: '1', limits: { attempts: 1 } })
-    s.request({ id: 'b', owner: '1', limits: { attempts: 1 } })
-    s.request({ id: 'c', owner: '2', limits: { attempts: 1 } })
+    s.request({ id: 'a', owner: '1', limits: { trials: 1 } })
+    s.request({ id: 'b', owner: '1', limits: { trials: 1 } })
+    s.request({ id: 'c', owner: '2', limits: { trials: 1 } })
     s.releaseOwner('1')
     assert.deepEqual(granted, ['a', 'c'])
     assert.equal(s.waiting, 0)
@@ -121,7 +121,7 @@ export const traced = async (name: string, fn: () => Promise<unknown>) => {
 }
 `
 
-/** Each attempt sends one turn to the fake agent, which takes `delayMs`. */
+/** Each trial sends one turn to the fake agent, which takes `delayMs`. */
 const tracedEval = (name: string, options = '{}') => {
   const opts =
     options === '{}' ? '' : `${options.replace(/^\{/, '').replace(/\}$/, '').trim()},\n  `
@@ -129,7 +129,7 @@ const tracedEval = (name: string, options = '{}') => {
 import { traced } from './trace.ts'
 export default defineEval({
   ${opts}async task(c) {
-    await traced(\`${name} \${c.attempt.cell.harness}#\${c.attempt.n}\`, () => c.send('go'))
+    await traced(\`${name} \${c.trial.cell.harness}#\${c.trial.n}\`, () => c.send('go'))
   },
 })
 `
@@ -161,7 +161,7 @@ function maxSpanOverlap(spans: { start: number; end: number }[]): number {
   return most
 }
 
-/** The most attempts that were between their start and end at the same moment. */
+/** The most trials that were between their start and end at the same moment. */
 function maxOverlap(trace: Trace[]): number {
   let running = 0
   let most = 0
@@ -181,7 +181,7 @@ const wall = (trace: Trace[]) =>
   Math.max(...trace.map((t) => t.at)) - Math.min(...trace.map((t) => t.at))
 
 describe('concurrency', () => {
-  test('attempt windows overlap when parallel and do not when stacked', () => {
+  test('trial windows overlap when parallel and do not when stacked', () => {
     assert.equal(
       maxSpanOverlap([
         { start: 0, end: 1000 },
@@ -202,7 +202,7 @@ describe('concurrency', () => {
     )
   })
 
-  test("the estimate runs a capped sandbox's attempts only as many at once as it allows", async () => {
+  test("the estimate runs a capped sandbox's trials only as many at once as it allows", async () => {
     const p = await project('conc-estimate-cap', {
       'reeval.config.ts': `import { defineConfig } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
@@ -211,7 +211,7 @@ import { docker } from 'reeval/sandbox'
 export default defineConfig({ agents: fakeAgent(), sandbox: docker({ maxConcurrent: 2 }) })
 `,
       'evals/a.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ runs: 6, async task() {} })
+export default defineEval({ trials: 6, async task() {} })
 `,
     })
     const r = await runCli(p.dir, ['run', '--dry-run', '--concurrency', '4'])
@@ -219,12 +219,12 @@ export default defineEval({ runs: 6, async task() {} })
     assert.match(r.stdout, /^ {2}➜ {2}Est\. Time: .*\(concurrency: 4, 2 at once\)/m)
   })
 
-  test('--concurrency caps attempts across files, and the first slots go to every eval', async () => {
+  test('--concurrency caps trials across files, and the first slots go to every eval', async () => {
     const p = await project('conc-cap', {
       'reeval.config.ts': fakeConfig({ harness: '{ delayMs: 800 }' }),
       'evals/trace.ts': TRACE,
-      'evals/a.eval.ts': tracedEval('a', '{ runs: 3 }'),
-      'evals/b.eval.ts': tracedEval('b', '{ runs: 3 }'),
+      'evals/a.eval.ts': tracedEval('a', '{ trials: 3 }'),
+      'evals/b.eval.ts': tracedEval('b', '{ trials: 3 }'),
     })
     const r = await runCli(p.dir, ['run', '--concurrency', '4'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -245,11 +245,11 @@ export default defineEval({ runs: 6, async task() {} })
       run.evals.map((e) => e.id),
       ['a', 'b'],
     )
-    // A queued attempt that counted its wait would take about the whole run. Where starting a
+    // A queued trial that counted its wait would take about the whole run. Where starting a
     // sandbox is slow (Windows), one round alone passes 3 s, so the bound is the run's span.
     const bound = Math.max(3000, wall(trace))
-    for (const a of run.evals.flatMap((e) => e.attempts)) {
-      assert.ok(a.durationMs < bound, `attempt ${a.id} took ${a.durationMs}ms, queue time included`)
+    for (const a of run.evals.flatMap((e) => e.trials)) {
+      assert.ok(a.durationMs < bound, `trial ${a.id} took ${a.durationMs}ms, queue time included`)
     }
   })
 
@@ -257,7 +257,7 @@ export default defineEval({ runs: 6, async task() {} })
     const p = await project('conc-sources', {
       'reeval.config.ts': fakeConfig({ harness: '{ delayMs: 400 }', extra: 'concurrency: 2,' }),
       'evals/trace.ts': TRACE,
-      'evals/a.eval.ts': tracedEval('a', '{ runs: 4 }'),
+      'evals/a.eval.ts': tracedEval('a', '{ trials: 4 }'),
     })
     const overlapWith = async (args: string[], env: NodeJS.ProcessEnv = {}) => {
       const tracePath = join(p.dir, 'trace.jsonl')
@@ -317,10 +317,10 @@ export default defineConfig({
 import { judge } from 'reeval/graders'
 import { traced } from './trace.ts'
 export default defineEval({
-  runs: 5,
+  trials: 5,
   graders: [judge('ok?', { inputs: { diff: true } })],
   async task(c) {
-    await traced(\`a#\${c.attempt.n}\`, () => c.send('go'))
+    await traced(\`a#\${c.trial.n}\`, () => c.send('go'))
   },
 })
 `,
@@ -339,7 +339,7 @@ export default defineEval({
 
   test('at concurrency 1, runs go round-robin across evals with their cells together', async () => {
     const p = await project('conc-order', {
-      'reeval.config.ts': fakeConfig({ extra: 'runs: 2,' }),
+      'reeval.config.ts': fakeConfig({ extra: 'trials: 2,' }),
       'evals/trace.ts': TRACE,
       'evals/a.eval.ts': tracedEval(
         'a',
@@ -364,23 +364,23 @@ export default defineEval({
     const p = await project('conc-queue-time', {
       'reeval.config.ts': fakeConfig({ harness: '{ delayMs: 1200 }' }),
       'evals/trace.ts': TRACE,
-      'evals/a.eval.ts': tracedEval('a', "{ runs: 4, timeout: '3s' }"),
+      'evals/a.eval.ts': tracedEval('a', "{ trials: 4, timeout: '3s' }"),
     })
     const r = await runCli(p.dir, ['run', '--concurrency', '1', '--output-logs', 'full'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    const attempts = readRun(p.dir).run.evals.flatMap((e) => e.attempts)
+    const trials = readRun(p.dir).run.evals.flatMap((e) => e.trials)
     // The fourth waited 3.6 s or more, so passing under its 3 s timeout means the wait didn't count.
     assert.deepEqual(
-      attempts.map((a) => a.outcome),
+      trials.map((a) => a.outcome),
       ['pass', 'pass', 'pass', 'pass'],
     )
     // All four queue before the first starts, so a duration that counted the wait would span the
-    // first attempt's turn to the fourth's end. Counted from its own start, the fourth's spans only
-    // its own sandbox and turn: shorter by three whole attempts, however slow the machine.
+    // first trial's turn to the fourth's end. Counted from its own start, the fourth's spans only
+    // its own sandbox and turn: shorter by three whole trials, however slow the machine.
     const trace = readTrace(p.dir)
     const at = (name: string, event: string) =>
       (trace.find((t) => t.name === name && t.event === event) as Trace).at
-    const fourth = attempts.find((a) => a.n === 4) as (typeof attempts)[number]
+    const fourth = trials.find((a) => a.n === 4) as (typeof trials)[number]
     const span = at('a fake#4', 'end') - at('a fake#1', 'start')
     assert.ok(
       fourth.durationMs < span,
@@ -389,43 +389,43 @@ export default defineEval({
     assert.match(r.stdout, /\[eval#4 fake\] ▶/)
   })
 
-  test('timeouts under concurrency fail every attempt and destroy every sandbox', async () => {
+  test('timeouts under concurrency fail every trial and destroy every sandbox', async () => {
     const p = await project('conc-timeout', {
       'reeval.config.ts': fakeConfig({ harness: '{ delayMs: 60_000 }' }),
       'evals/trace.ts': TRACE,
-      'evals/a.eval.ts': tracedEval('a', "{ runs: 4, timeout: '1s' }"),
+      'evals/a.eval.ts': tracedEval('a', "{ trials: 4, timeout: '1s' }"),
     })
     // Hang detector only: Windows CI has spent ~25s on sandbox startup while the
-    // four 1s timeouts still overlapped. Parallelism is the attempt windows below.
+    // four 1s timeouts still overlapped. Parallelism is the trial windows below.
     const r = await runCli(p.dir, ['run', '--concurrency', '4'], { timeoutMs: 120_000 })
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    const attempts = readRun(p.dir).run.evals.flatMap((e) => e.attempts)
+    const trials = readRun(p.dir).run.evals.flatMap((e) => e.trials)
     assert.deepEqual(
-      attempts.map((a) => a.error?.kind),
+      trials.map((a) => a.error?.kind),
       ['timeout', 'timeout', 'timeout', 'timeout'],
     )
     assert.deepEqual(liveSandboxes(p), [])
     // startedAt + durationMs exclude queue time. A host budget (15s) fails on a
     // slow runner; four serial 1s timeouts still make span ≈ sum(durationMs).
-    const windows = attempts.map((a) => {
+    const windows = trials.map((a) => {
       assert.ok(a.startedAt, `${a.id} never started`)
       const start = Date.parse(a.startedAt)
       return { start, end: start + a.durationMs }
     })
-    assert.equal(maxSpanOverlap(windows), 4, 'all four attempts were in flight')
+    assert.equal(maxSpanOverlap(windows), 4, 'all four trials were in flight')
     const span = Math.max(...windows.map((w) => w.end)) - Math.min(...windows.map((w) => w.start))
-    const total = attempts.reduce((sum, a) => sum + a.durationMs, 0)
-    assert.ok(span < total * 0.75, `attempt span ${span}ms is no better than serial ${total}ms`)
+    const total = trials.reduce((sum, a) => sum + a.durationMs, 0)
+    assert.ok(span < total * 0.75, `trial span ${span}ms is no better than serial ${total}ms`)
   })
 
-  test('Ctrl-C cancels running attempts, skips queued ones and destroys every sandbox', {
+  test('Ctrl-C cancels running trials, skips queued ones and destroys every sandbox', {
     skip: noSignals,
   }, async () => {
     const p = await project('conc-sigint', {
       'reeval.config.ts': fakeConfig({ harness: '{ delayMs: 60_000 }' }),
       'evals/trace.ts': TRACE,
-      'evals/a.eval.ts': tracedEval('a', '{ runs: 3 }'),
-      'evals/b.eval.ts': tracedEval('b', '{ runs: 3 }'),
+      'evals/a.eval.ts': tracedEval('a', '{ trials: 3 }'),
+      'evals/b.eval.ts': tracedEval('b', '{ trials: 3 }'),
     })
     const r = await runCli(p.dir, ['run', '--concurrency', '3', '--output-logs', 'full'], {
       onOutput: (stdout, pid) => {
@@ -437,7 +437,7 @@ export default defineEval({
     assert.equal(r.code, 130, r.stdout + r.stderr)
     const { run } = readRun(p.dir)
     assert.equal(run.status, 'interrupted')
-    const outcomes = run.evals.flatMap((e) => e.attempts).map((a) => a.error?.kind ?? a.outcome)
+    const outcomes = run.evals.flatMap((e) => e.trials).map((a) => a.error?.kind ?? a.outcome)
     assert.deepEqual(outcomes.filter((o) => o === 'aborted').length, 3, outcomes.join(', '))
     assert.deepEqual(outcomes.filter((o) => o === 'skipped').length, 3, outcomes.join(', '))
     assert.equal(maxOverlap(readTrace(p.dir)), 3)

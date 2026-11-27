@@ -1,5 +1,5 @@
-profile pr (auto: CI is set) · 2 evals · 2 cells · 2 attempts
+profile pr (auto: CI is set) · 2 evals · 2 cells · 2 trials
 hint: 2 evals can't fail CI (compared, inherits): their targets only report; set target: regression() (or capability(1, { blocking: true })) in the eval or the config to fail on a miss
-compared  a/plain/fake  control  gated any  ×1  compare off (profile pr)
-inherits  a/base/fake   control  gated any  ×1  files README.md
+compared  a/plain/fake  baseline  gated any  ×1  compare off (profile pr)
+inherits  a/base/fake   baseline  gated any  ×1  files README.md
 excluded: —

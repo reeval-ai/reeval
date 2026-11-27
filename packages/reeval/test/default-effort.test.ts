@@ -279,19 +279,19 @@ describe("Cursor's model catalog at plan time", () => {
   })
 
   test('names the eval and cell that fail, and returns each model’s effort', () => {
-    const attempt = (harness: ReturnType<typeof cursor>) => ({
-      attempt: { name: 'fixes the bug', groups: ['api'], harness },
+    const trial = (harness: ReturnType<typeof cursor>) => ({
+      trial: { name: 'fixes the bug', groups: ['api'], harness },
     })
     assert.throws(
       () =>
-        checkCursorCatalog([attempt(cursor({ model: 'composer-2.5', effort: 'medium' }))], CATALOG),
+        checkCursorCatalog([trial(cursor({ model: 'composer-2.5', effort: 'medium' }))], CATALOG),
       (e) =>
         e instanceof UsageError &&
         e.message.startsWith('eval api › fixes the bug on cursor:composer-2.5[effort=medium]: '),
     )
     assert.deepEqual(
       checkCursorCatalog(
-        [attempt(cursor({ model: 'composer-2.5' })), attempt(cursor({ model: 'gpt-5.6-luna' }))],
+        [trial(cursor({ model: 'composer-2.5' })), trial(cursor({ model: 'gpt-5.6-luna' }))],
         CATALOG,
       ),
       {
@@ -314,7 +314,7 @@ describe("Cursor's model catalog at plan time", () => {
         }) as typeof fetch
       const old = CATALOG.filter((m) => m.id !== 'gpt-5.6-luna')
       const luna = [
-        { attempt: { name: 'e', groups: [], harness: cursor({ model: 'gpt-5.6-luna' }) } },
+        { trial: { name: 'e', groups: [], harness: cursor({ model: 'gpt-5.6-luna' }) } },
       ]
       const key = `key-${Date.now()}`
       const hash = createHash('sha256').update(key).digest('hex').slice(0, 16)

@@ -1,4 +1,4 @@
-import type { AttemptResources } from '../types.ts'
+import type { TrialResources } from '../types.ts'
 
 /** Bytes in binary units, as container limits are given: `512 MiB`, `3.8 GiB`. */
 export function formatMemory(n: number): string {
@@ -9,8 +9,8 @@ export function formatMemory(n: number): string {
 
 const cores = (n: number) => n.toFixed(2)
 
-/** What the attempt ran on: `docker 2 vCPU 4.0 GiB`, `boat small 2 vCPU 3.8 GiB`. */
-export function machineLabel(machine: AttemptResources['machine']): string {
+/** What the trial ran on: `docker 2 vCPU 4.0 GiB`, `boat small 2 vCPU 3.8 GiB`. */
+export function machineLabel(machine: TrialResources['machine']): string {
   return [
     machine.sandbox,
     machine.size,
@@ -22,12 +22,12 @@ export function machineLabel(machine: AttemptResources['machine']): string {
 }
 
 /**
- * A run's attempts' resources, one part per machine: how many attempts measured, their CPU time
+ * A run's trials' resources, one part per machine: how many trials measured, their CPU time
  * added up, their average cores over the time they ran, and the highest peak cores and memory of
- * any one. Null when no attempt has readings.
+ * any one. Null when no trial has readings.
  */
-export function runResourcesLine(all: ReadonlyArray<AttemptResources | undefined>): string | null {
-  const byMachine = new Map<string, AttemptResources[]>()
+export function runResourcesLine(all: ReadonlyArray<TrialResources | undefined>): string | null {
+  const byMachine = new Map<string, TrialResources[]>()
   for (const r of all) {
     if (!r?.usage) continue
     const label = machineLabel(r.machine)
@@ -44,7 +44,7 @@ export function runResourcesLine(all: ReadonlyArray<AttemptResources | undefined
         u.peakMemoryBytes === undefined ? [] : [u.peakMemoryBytes],
       )
       return [
-        `${label}: ${usage.length} attempt${usage.length === 1 ? '' : 's'}`,
+        `${label}: ${usage.length} trial${usage.length === 1 ? '' : 's'}`,
         `CPU ${cpu.toFixed(1)} s (avg ${cores(ms ? cpu / (ms / 1000) : 0)}${peaks.length ? `, peak ${cores(Math.max(...peaks))}` : ''} cores)`,
         memory.length ? `memory peak ${formatMemory(Math.max(...memory))}` : undefined,
         usage.some((u) => u.partial)
@@ -57,8 +57,8 @@ export function runResourcesLine(all: ReadonlyArray<AttemptResources | undefined
     .join('; ')
 }
 
-/** One attempt's resources on one line, for its debug trace. */
-export function resourcesLine(r: AttemptResources): string {
+/** One trial's resources on one line, for its debug trace. */
+export function resourcesLine(r: TrialResources): string {
   const on = `${machineLabel(r.machine)} (${r.scope})`
   const u = r.usage
   if (!u) return `${on} · no readings`

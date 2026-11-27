@@ -1,9 +1,9 @@
-// Every docker (or podman) command an attempt runs, into its trace (`-vv`, and trace.ndjson). Imported for its
-// side effect by the modules that drive Docker; commands outside an attempt aren't traced.
+// Every docker (or podman) command a trial runs, into its trace (`-vv`, and trace.ndjson). Imported for its
+// side effect by the modules that drive Docker; commands outside a trial aren't traced.
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { onDockerCommand } from '@reeval/sandbox-docker'
 import { redactSecrets } from '../redact.ts'
-import { attemptDebug } from './attempt.ts'
+import { trialDebug } from './trial.ts'
 
 const word = (arg: string) =>
   /^[\w@%+=:,./-]+$/.test(arg) ? arg : `'${arg.replaceAll("'", `'\\''`)}'`
@@ -14,7 +14,7 @@ const quiet = new AsyncLocalStorage<true>()
 export const untraced = <T>(fn: () => Promise<T>): Promise<T> => quiet.run(true, fn)
 
 onDockerCommand((command) => {
-  const debug = attemptDebug()
+  const debug = trialDebug()
   if (!debug || quiet.getStore()) return
   const line = [command.bin, ...command.args].map(word).join(' ')
   const result = command.error ? `failed: ${command.error}` : `exit ${command.exitCode}`

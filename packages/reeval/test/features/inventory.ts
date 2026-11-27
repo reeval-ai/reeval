@@ -80,26 +80,26 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'matrix.harness-runs',
     area: 'Config and selection',
-    name: '`harnesses` lists × `runs`, and `--runs`; unset, a compare runs 4 a side and anything else once, a compare over cases included',
+    name: '`harnesses` lists × `runs`, and `--trials`; unset, a compare runs 4 a side and anything else once, a compare over cases included',
     plan: [
       'matrix/default',
-      'matrix/runs-override',
-      'runs-default/default',
-      'runs-default/runs-flag',
-      'runs-default/config-runs',
-      'runs-default/profile-defaults',
-      'runs-default/profile-limit',
-      'runs-default/compare-off',
+      'matrix/trials-override',
+      'trials-default/default',
+      'trials-default/trials-flag',
+      'trials-default/config-trials',
+      'trials-default/profile-defaults',
+      'trials-default/profile-limit',
+      'trials-default/compare-off',
     ],
     unit: ['reeval/test/unit.test.ts', 'reeval/test/options.test.ts'],
   },
   {
     id: 'runs.best-of',
     area: 'Config and selection',
-    name: '`runs: { bestOf }`: each cell stops once a majority of its attempts agree, gates on that majority and marks the attempts it added or skipped; refused on a compare and when not odd and 3 or more',
+    name: '`trials: { bestOf }`: each cell stops once a majority of its trials agree, gates on that majority and marks the trials it added or skipped; refused on a compare and when not odd and 3 or more',
     plan: [
       'best-of/default',
-      'best-of/runs-override',
+      'best-of/trials-override',
       'best-of/limited',
       'best-of/profile-defaults',
       'best-of/yaml',
@@ -130,15 +130,15 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'compare',
     area: 'Config and selection',
-    name: '`compare`: control, variants, lift and `minLift`',
-    plan: ['compare/control-and-variants', 'compare/independent'],
+    name: '`compare`: baseline, variants, lift and `minLift`',
+    plan: ['compare/baseline-and-variants', 'compare/independent'],
     fixtures: ['compare/independent'],
     unit: ['reeval/test/options.test.ts', 'reeval/test/results.test.ts'],
   },
   {
     id: 'target.default',
     area: 'Config and selection',
-    name: 'No `target` is `capability()`: pass@k over the attempts, and a miss fails the eval but never the run',
+    name: 'No `target` is `capability()`: pass@k over the trials, and a miss fails the eval but never the run',
     plan: ['targets/targets'],
     fixtures: ['run/target-default', 'output/study'],
     unit: ['reeval/test/output.test.ts'],
@@ -154,7 +154,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'where',
     area: 'Config and selection',
-    name: "`where`: which case and environment pairs of an eval with `cases` run, decided at plan time from environment `traits` (and the harness when it reads it), listed in `--dry-run` and the record's `excluded`; with `compare`, the control decides for every variant",
+    name: "`where`: which case and environment pairs of an eval with `cases` run, decided at plan time from environment `traits` (and the harness when it reads it), listed in `--dry-run` and the record's `excluded`; with `compare`, the baseline decides for every variant",
     plan: ['where/where'],
     fixtures: ['run/where'],
     unit: ['reeval/test/refusals.test.ts'],
@@ -204,16 +204,16 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/options.test.ts'],
   },
   {
-    id: 'compare.control',
+    id: 'compare.baseline',
     area: 'Config and selection',
-    name: '`compare.control`: the control cell, which replaces an inherited `environments`',
+    name: '`compare.baseline`: the baseline cell, which replaces an inherited `environments`',
     plan: [
-      'compare/control',
-      'compare/control-off',
-      'environments/control-over-config',
-      'environments/empty-control',
+      'compare/baseline',
+      'compare/baseline-off',
+      'environments/baseline-over-config',
+      'environments/empty-baseline',
     ],
-    fixtures: ['compare/control-empty'],
+    fixtures: ['compare/baseline-empty'],
     unit: ['reeval/test/options.test.ts'],
   },
   {
@@ -255,17 +255,17 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/studio.test.ts', 'reeval/test/view-boundary.test.ts'],
   },
   {
-    id: 'questions.attempt',
+    id: 'questions.trial',
     area: 'Config and selection',
-    name: '`questions` without `across`: asked of each attempt as it ends, free text or `choices`, in `evals[].attempts[].answers`',
-    plan: ['compare/questions-attempts', 'compare/questions-one-harness'],
-    fixtures: ['compare/question-attempt'],
+    name: '`questions` without `across`: asked of each trial as it ends, free text or `choices`, in `evals[].trials[].answers`',
+    plan: ['compare/questions-trials', 'compare/questions-one-harness'],
+    fixtures: ['compare/question-trial'],
     unit: ['reeval/test/compare-questions.test.ts', 'reeval/test/options.test.ts'],
   },
   {
     id: 'target',
     area: 'Config and selection',
-    name: "`target`: `regression(threshold)` over every attempt (pass^k), `capability(threshold, { blocking })` over any (pass@k); an attempt passes at the threshold, a compare's control only reports, and each eval records its target and prints and records its mean score, pass@k and pass^k",
+    name: "`target`: `regression(threshold)` over every trial (pass^k), `capability(threshold, { blocking })` over any (pass@k); a trial passes at the threshold, a compare's baseline only reports, and each eval records its target and prints and records its mean score, pass@k and pass^k",
     plan: ['targets/targets', 'best-of/default'],
     fixtures: ['run/target-regression', 'run/target-capability'],
     unit: [
@@ -417,13 +417,13 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'profiles.compare-off',
     area: 'Config and selection',
-    name: '`limit.compare: false`, or `maxVariants` leaving none: the lone control gates like an eval without compare',
-    plan: ['compare/off-study', 'compare/zero-variants', 'compare/control-off'],
+    name: '`limit.compare: false`, or `maxVariants` leaving none: the lone baseline gates like an eval without compare',
+    plan: ['compare/off-study', 'compare/zero-variants', 'compare/baseline-off'],
   },
   {
     id: 'profiles.limit-harness-drops-compare',
     area: 'Config and selection',
-    name: '`limit.harnesses` leaving none of `compare.harnesses`: the compare is off and each control gates like an eval without compare',
+    name: '`limit.harnesses` leaving none of `compare.harnesses`: the compare is off and each baseline gates like an eval without compare',
     plan: ['compare/harness-scoped-dropped', 'compare/harness-scoped-dropped-pinned'],
   },
   {
@@ -443,7 +443,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'run.bundle',
     area: 'Config and selection',
-    name: "`reeval bundle` and `reeval run --bundle`: the dry run's plan and `inputs` as one `.tar.gz` with a `manifest.json` (reeval version, arguments, the git commit, branch, dirty flag, diff hash, remote and author, each file's sha256, the `.env` files' variable names and the secret names, never values or `node_modules`), rooted at the git repository when the project reads outside itself; run from it, the files are checked against the manifest, the lockfile installed and the plan and inputs compared before any attempt, naming each missing or differing file, and the run's record and run id take the bundled git state and author; with `--resume <run>` it moves that run's staging, scratch record and event stream from the current directory's `.reeval/` into the extracted project and continues it",
+    name: "`reeval bundle` and `reeval run --bundle`: the dry run's plan and `inputs` as one `.tar.gz` with a `manifest.json` (reeval version, arguments, the git commit, branch, dirty flag, diff hash, remote and author, each file's sha256, the `.env` files' variable names and the secret names, never values or `node_modules`), rooted at the git repository when the project reads outside itself; run from it, the files are checked against the manifest, the lockfile installed and the plan and inputs compared before any trial, naming each missing or differing file, and the run's record and run id take the bundled git state and author; with `--resume <run>` it moves that run's staging, scratch record and event stream from the current directory's `.reeval/` into the extracted project and continues it",
     unit: ['reeval/test/bundle.test.ts', 'reeval/test/cli.test.ts', 'reeval/test/schema.test.ts'],
   },
   {
@@ -497,13 +497,13 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'export',
     area: 'Records and studio',
-    name: "`reeval export [run]`: the run as its history archive zip (default `<run>.zip`), or with `--format atif` each attempt's ATIF trajectory as `atif.json` in the attempt's folder (default under `<run>.atif/`); an unknown format is refused with exit 2",
+    name: "`reeval export [run]`: the run as its history archive zip (default `<run>.zip`), or with `--format atif` each trial's ATIF trajectory as `atif.json` in the trial's folder (default under `<run>.atif/`); an unknown format is refused with exit 2",
     unit: ['reeval/test/atif.test.ts'],
   },
   {
     id: 'config.exports',
     area: 'Records and studio',
-    name: "`exports: ['atif']` in the config writes each attempt's `atif.json` beside its trajectory as the run ends, listed as `files.atif` and kept in the history with the trajectory; an unknown format or a value that isn't a list is refused",
+    name: "`exports: ['atif']` in the config writes each trial's `atif.json` beside its trajectory as the run ends, listed as `files.atif` and kept in the history with the trajectory; an unknown format or a value that isn't a list is refused",
     unit: ['reeval/test/atif.test.ts', 'reeval/test/refusals.test.ts'],
   },
   {
@@ -533,7 +533,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'cloud.download',
     area: 'Config and selection',
-    name: "`reeval attach --download <url>` and `reeval run --cloud --download`: once a cloud run ends, its files (records, attempt files and debug data) are downloaded with the bearer token and unpacked as a run here leaves them, from the project root: `.reeval/runs`, `.reeval/debug` and, for a recorded run, the project's own history folder (from its config and the profile, `--profile` on attach), where `reeval show`, `history`, `compare`, `query` and the studio read them; a file already there with other content stops it with exit 2 before anything is written, an entry anywhere else (another history folder included) or a link outside a snapshot with exit 3, a run with no files or no debug data says so; any other stream, a run on this machine, or `--profile` without `--download` is exit 2",
+    name: "`reeval attach --download <url>` and `reeval run --cloud --download`: once a cloud run ends, its files (records, trial files and debug data) are downloaded with the bearer token and unpacked as a run here leaves them, from the project root: `.reeval/runs`, `.reeval/debug` and, for a recorded run, the project's own history folder (from its config and the profile, `--profile` on attach), where `reeval show`, `history`, `compare`, `query` and the studio read them; a file already there with other content stops it with exit 2 before anything is written, an entry anywhere else (another history folder included) or a link outside a snapshot with exit 3, a run with no files or no debug data says so; any other stream, a run on this machine, or `--profile` without `--download` is exit 2",
     unit: ['reeval/test/cloud-run.test.ts', 'reeval/test/cli.test.ts'],
   },
   {
@@ -549,13 +549,13 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'cloud.resume',
     area: 'Config and selection',
-    name: "`reeval run --cloud --resume <run>`, by the cloud run's id or its event stream URL, or `--resume <run>` where the config or profile (`--profile` picks it) runs in the cloud and this machine has no such run or downloaded it from a cloud run (by its whole id, or a prefix only this run matches): with no config, the platform resumes the run with the project as it was uploaded (said once it has) and it's followed as `--cloud` follows a run, its exit code only from the resumed run's own output, else its status, `--download` (into the run's own profile's history, replacing an earlier download's files of the same cloud run outside the history folder) and the output flags included; a run still stopping is asked again as `Retry-After` says for up to 5 minutes (then exit 3), a complete run, one the platform can't resume or refuses, filters, `--runs`, `--tag`, `--trait`, `--retry-errors` and no run are exit 2, an unreachable platform exit 3; a run this machine ran continues here, under its saved profile, and `--local` continues a downloaded one here, which makes it this machine's (a later download refuses to write over it)",
+    name: "`reeval run --cloud --resume <run>`, by the cloud run's id or its event stream URL, or `--resume <run>` where the config or profile (`--profile` picks it) runs in the cloud and this machine has no such run or downloaded it from a cloud run (by its whole id, or a prefix only this run matches): with no config, the platform resumes the run with the project as it was uploaded (said once it has) and it's followed as `--cloud` follows a run, its exit code only from the resumed run's own output, else its status, `--download` (into the run's own profile's history, replacing an earlier download's files of the same cloud run outside the history folder) and the output flags included; a run still stopping is asked again as `Retry-After` says for up to 5 minutes (then exit 3), a complete run, one the platform can't resume or refuses, filters, `--trials`, `--tag`, `--trait`, `--retry-errors` and no run are exit 2, an unreachable platform exit 3; a run this machine ran continues here, under its saved profile, and `--local` continues a downloaded one here, which makes it this machine's (a later download refuses to write over it)",
     unit: ['reeval/test/cloud-run.test.ts', 'reeval/test/cli.test.ts'],
   },
   {
     id: 'plan.cost',
     area: 'Config and selection',
-    name: "`reeval run --dry-run`'s cost estimate: token and USD ranges from each cell's past tokens, else a typical attempt's, with judge calls, priced from models.dev (cached a day, a failure for an hour) under a `REEVAL_PRICES` file, saying what the dollars cover when a model has no price, tokens only without prices; the JSON plan's `cost` has each cell's part",
+    name: "`reeval run --dry-run`'s cost estimate: token and USD ranges from each cell's past tokens, else a typical trial's, with judge calls, priced from models.dev (cached a day, a failure for an hour) under a `REEVAL_PRICES` file, saying what the dollars cover when a model has no price, tokens only without prices; the JSON plan's `cost` has each cell's part",
     plan: [
       'cost/no-history',
       'cost/history',
@@ -568,14 +568,14 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'budget',
     area: 'Config and selection',
-    name: '`budget.attempts`, `budget.duration` and `--force`',
+    name: '`budget.trials`, `budget.duration` and `--force`',
     plan: ['profiles/pr-in-ci'],
     unit: ['reeval/test/options.test.ts'],
   },
   {
     id: 'record.spans',
     area: 'Records and studio',
-    name: "The run's trace, `spans.jsonl`: each machine and container, each attempt on its lease",
+    name: "The run's trace, `spans.jsonl`: each machine and container, each trial on its lease",
     unit: [
       'reeval/test/spans.test.ts',
       'reeval/test/machine-pool.test.ts',
@@ -586,7 +586,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'otel.export',
     area: 'Records and studio',
-    name: "OpenTelemetry export: each attempt's agent trace from the `OTEL_*` variables, and reeval's own spans as they end, log records and host metrics from `REEVAL_OTEL_*`, over OTLP/HTTP protobuf or JSON",
+    name: "OpenTelemetry export: each trial's agent trace from the `OTEL_*` variables, and reeval's own spans as they end, log records and host metrics from `REEVAL_OTEL_*`, over OTLP/HTTP protobuf or JSON",
     unit: [
       'reeval/test/agent-spans.test.ts',
       'reeval/test/otlp.test.ts',
@@ -625,7 +625,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'selection.declared-skip',
     area: 'Config and selection',
-    name: "A declared skip marked in the record (`evals[].skip`), told apart from an attempt that hasn't run yet by resume, show, query and the studio",
+    name: "A declared skip marked in the record (`evals[].skip`), told apart from a trial that hasn't run yet by resume, show, query and the studio",
     fixtures: ['python-sdk/declared-skip'],
     unit: [
       'reeval/test/engine-node.test.ts',
@@ -636,7 +636,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'selection.traits',
     area: 'Config and selection',
-    name: "Traits: `--trait key=value` and a profile's `limit.traits` narrow the planned cells after `where` and the cascade by their environment's traits (with `compare`, the control's), listed in `--dry-run` apart from `where`'s pairs; a key no environment defines is refused",
+    name: "Traits: `--trait key=value` and a profile's `limit.traits` narrow the planned cells after `where` and the cascade by their environment's traits (with `compare`, the baseline's), listed in `--dry-run` apart from `where`'s pairs; a key no environment defines is refused",
     plan: ['where/trait', 'where/trait-list', 'where/trait-none', 'where/limit-traits'],
     fixtures: ['run/trait'],
     unit: [
@@ -655,7 +655,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'selection.filters',
     area: 'Config and selection',
-    name: 'Filters (path and eval id: exact, segment prefix and glob; `--cell` for a cell key or attempt id; the kinds narrow each other; a part is a path only when it names an eval file or is on disk, and a path matches at a path-segment boundary; a whole variant cell brings its control); no match exits 2',
+    name: 'Filters (path and eval id: exact, segment prefix and glob; `--cell` for a cell key or trial id; the kinds narrow each other; a part is a path only when it names an eval file or is on disk, and a path matches at a path-segment boundary; a whole variant cell brings its baseline); no match exits 2',
     plan: [
       'compare/mixed-filter',
       'selection/group-and-eval-filter',
@@ -1077,9 +1077,9 @@ export const inventory: InventoryFeature[] = [
     plan: [
       'environments/images',
       'environments/extend-replace',
-      'environments/control-over-config',
+      'environments/baseline-over-config',
       'environments/inherit-config',
-      'environments/empty-control',
+      'environments/empty-baseline',
     ],
     unit: ['reeval/test/options.test.ts', 'reeval/test/unit.test.ts'],
   },
@@ -1185,7 +1185,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'tart.sandbox',
     area: 'Sandbox',
-    name: "`tart({ … })`: a macOS VM per attempt on Apple Silicon, under `egress: 'allow-all'`, at most two at once",
+    name: "`tart({ … })`: a macOS VM per trial on Apple Silicon, under `egress: 'allow-all'`, at most two at once",
     fixtures: ['ui/serve-tart-own-port'],
     plan: ['tart/two-vms'],
     unit: [
@@ -1219,7 +1219,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'tart.baked-images',
     area: 'Sandbox',
-    name: "`tart()` harness images: preflight and `reeval image build` boot the base once, install pnpm and the harness's CLI, and save `reeval-sandbox-<harness>-<adapter version>-…` (moved by the base's digest or a local VM's disk, the SSH user, the bootstrap recipe and the adapter's patch); attempts clone it and skip the install; a failed or canceled bake leaves no VM behind, the next bake deletes a killed one's, `--force` bakes anew and `reeval clean --images` deletes baked images",
+    name: "`tart()` harness images: preflight and `reeval image build` boot the base once, install pnpm and the harness's CLI, and save `reeval-sandbox-<harness>-<adapter version>-…` (moved by the base's digest or a local VM's disk, the SSH user, the bootstrap recipe and the adapter's patch); trials clone it and skip the install; a failed or canceled bake leaves no VM behind, the next bake deletes a killed one's, `--force` bakes anew and `reeval clean --images` deletes baked images",
     fixtures: ['sandbox/tart-baked-harness'],
     unit: [
       'reeval/test/tart.test.ts',
@@ -1253,7 +1253,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'boat.sandbox',
     area: 'Sandbox',
-    name: "`boat()` and `createBoat({ apiKey, prefix })`: a boat.dev VM per attempt over SSH (to the VM's own address on port 22, else Boat's public endpoint), on every real harness, the attempt in a container of its `docker()` image or reeval's image for its harness, built once into a saved snapshot",
+    name: "`boat()` and `createBoat({ apiKey, prefix })`: a boat.dev VM per trial over SSH (to the VM's own address on port 22, else Boat's public endpoint), on every real harness, the trial in a container of its `docker()` image or reeval's image for its harness, built once into a saved snapshot",
     fixtures: ['sandbox/boat-session', 'sandbox/boat-brokered', 'sandbox/boat-serve'],
     plan: ['providers/boat'],
     unit: [
@@ -1274,7 +1274,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'boat.pool',
     area: 'Sandbox',
-    name: "`boat({ reuse, attemptsPerMachine })`: the run's machine pool, shared by every eval file's attempts, starting machines within Boat's limits, which the pools of every machine size and image on one account share (a 429 holds every start on the account for its `Retry-After`, then retries, and a pool that needs a machine when the account has none to spare has the machine idle longest in another pool removed), handing a finished attempt's machine to the next with its slot reset, running up to `attemptsPerMachine` attempts at once on a machine, each in its own container, and deleting every machine when the run ends",
+    name: "`boat({ reuse, trialsPerMachine })`: the run's machine pool, shared by every eval file's trials, starting machines within Boat's limits, which the pools of every machine size and image on one account share (a 429 holds every start on the account for its `Retry-After`, then retries, and a pool that needs a machine when the account has none to spare has the machine idle longest in another pool removed), handing a finished trial's machine to the next with its slot reset, running up to `trialsPerMachine` trials at once on a machine, each in its own container, and deleting every machine when the run ends",
     fixtures: ['sandbox/boat-pool-reuse', 'sandbox/boat-shared-machine'],
     plan: ['providers/boat-pooled'],
     unit: [
@@ -1290,7 +1290,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'boat.image',
     area: 'Sandbox',
-    name: "`docker({ image, from, dockerfile, install })` on `boat()`: preflight builds the recipe's image once into a Boat saved snapshot named by its content key, reused by later runs, and each attempt runs in a container of the image on a VM started from the snapshot, where every egress policy is enforced and attempts sharing a machine each have their own network; the record names the snapshot and image in `sandboxBase`",
+    name: "`docker({ image, from, dockerfile, install })` on `boat()`: preflight builds the recipe's image once into a Boat saved snapshot named by its content key, reused by later runs, and each trial runs in a container of the image on a VM started from the snapshot, where every egress policy is enforced and trials sharing a machine each have their own network; the record names the snapshot and image in `sandboxBase`",
     fixtures: ['sandbox/boat-image'],
     plan: ['providers/config-provider'],
     unit: [
@@ -1303,7 +1303,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'daytona.sandbox',
     area: 'Sandbox',
-    name: "`daytona()` and `createDaytona({ apiKey, prefix })`: a Daytona sandbox of `size` per attempt, started from a snapshot of reeval's image for the harness, over Daytona's SSH gateway with a token per machine, under `allow-all`, labeled with the run and deleted when it ends, with a TTL past the attempt in case it never is; its machine pool is `boat()`'s (`reuse`, `attemptsPerMachine`, a 429 holding every start for its `Retry-After`), capped by `maxConcurrent` alone",
+    name: "`daytona()` and `createDaytona({ apiKey, prefix })`: a Daytona sandbox of `size` per trial, started from a snapshot of reeval's image for the harness, over Daytona's SSH gateway with a token per machine, under `allow-all`, labeled with the run and deleted when it ends, with a TTL past the trial in case it never is; its machine pool is `boat()`'s (`reuse`, `trialsPerMachine`, a 429 holding every start for its `Retry-After`), capped by `maxConcurrent` alone",
     fixtures: [
       'sandbox/daytona-session',
       'sandbox/daytona-resources',
@@ -1331,7 +1331,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'cloud.sandbox',
     area: 'Sandbox',
-    name: "`cloud({ size, reuse, attemptsPerMachine, maxConcurrent })` (internal, `reeval/internal/vm`): a VM per attempt from the VM service at `REEVAL_VM_URL`, on `boat()`'s pool, each attempt in a container of reeval's image for its harness, built on the VM as it starts (or the recipe's, under `cloud.image`), labeled, deleted when it ends, and recorded as `cloud` with no message, record field or log naming the upstream",
+    name: "`cloud({ size, reuse, trialsPerMachine, maxConcurrent })` (internal, `reeval/internal/vm`): a VM per trial from the VM service at `REEVAL_VM_URL`, on `boat()`'s pool, each trial in a container of reeval's image for its harness, built on the VM as it starts (or the recipe's, under `cloud.image`), labeled, deleted when it ends, and recorded as `cloud` with no message, record field or log naming the upstream",
     fixtures: ['sandbox/cloud-session', 'sandbox/cloud-shared-machine'],
     plan: ['environments/cloud'],
     unit: [
@@ -1344,7 +1344,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'cloud.image',
     area: 'Sandbox',
-    name: "`cloud({ image, from, install })` (internal): each attempt in a container of the recipe's image in its VM's Docker, which pulls or builds it as `docker()` does locally, under any egress policy",
+    name: "`cloud({ image, from, install })` (internal): each trial in a container of the recipe's image in its VM's Docker, which pulls or builds it as `docker()` does locally, under any egress policy",
     fixtures: ['sandbox/cloud-image'],
     plan: ['environments/cloud'],
     unit: ['reeval/test/machine-image.test.ts', 'reeval/test/refusals.test.ts'],
@@ -1352,7 +1352,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'cloud.fan-out',
     area: 'Sandbox',
-    name: "A cloud run places each `docker()` attempt on a VM of its own: the same container (recipe, `root`, `capabilities`, limits within the VM's share per slot) in the VM's Docker, reeval's image for the harness when there's no recipe, a plugin's `build` in a layer of the VM's image, the cell keeping its `docker` id",
+    name: "A cloud run places each `docker()` trial on a VM of its own: the same container (recipe, `root`, `capabilities`, limits within the VM's share per slot) in the VM's Docker, reeval's image for the harness when there's no recipe, a plugin's `build` in a layer of the VM's image, the cell keeping its `docker` id",
     fixtures: ['sandbox/cloud-fan-out', 'sandbox/cloud-plugin-build'],
     plan: ['cloud/docker-placed', 'cloud/docker-here'],
     unit: [
@@ -1364,7 +1364,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'sandbox.vm-identity',
     area: 'Sandbox',
-    name: "A VM attempt's record names its VM (`resources.machine.id` and `name`: Boat's or Daytona's sandbox, Tart's VM), and `REEVAL_SANDBOX_LABELS` adds labels to reeval's own on every VM `boat()` and `daytona()` create, refused before any starts when a provider would refuse them",
+    name: "A VM trial's record names its VM (`resources.machine.id` and `name`: Boat's or Daytona's sandbox, Tart's VM), and `REEVAL_SANDBOX_LABELS` adds labels to reeval's own on every VM `boat()` and `daytona()` create, refused before any starts when a provider would refuse them",
     fixtures: [
       'sandbox/boat-session',
       'sandbox/boat-resources',
@@ -1376,7 +1376,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'tart.images',
     area: 'Sandbox',
-    name: "`tart()` images: `reeval run` refuses one `tart list` doesn't show (exit 2, its size and `tart pull`), `reeval image build` pulls them with progress once the disk has room and runs no Docker, each attempt records the digest it cloned (`vmImage`), and `:latest` or no tag warns",
+    name: "`tart()` images: `reeval run` refuses one `tart list` doesn't show (exit 2, its size and `tart pull`), `reeval image build` pulls them with progress once the disk has room and runs no Docker, each trial records the digest it cloned (`vmImage`), and `:latest` or no tag warns",
     fixtures: ['sandbox/tart-clones-image'],
     plan: ['tart/two-vms'],
     unit: [
@@ -1427,14 +1427,14 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'docker.oom-is-infra',
     area: 'Sandbox',
-    name: 'An OOM kill during an attempt is an infra error',
+    name: 'An OOM kill during a trial is an infra error',
     fixtures: ['sandbox/oom-is-infra'],
     unit: ['sandbox-docker/test/confinement.test.ts'],
   },
   {
     id: 'sandbox.resources',
     area: 'Sandbox',
-    name: "Each attempt's `resources`: the container's or VM's vCPUs and memory (a macOS VM's from `sysctl`), and the CPU (average, p95 and peak cores), peak memory, a container's cgroup `memory.peak` and CPU throttling, and a VM's disk it used, in `reeval show` and `reeval query attempt_resources`",
+    name: "Each trial's `resources`: the container's or VM's vCPUs and memory (a macOS VM's from `sysctl`), and the CPU (average, p95 and peak cores), peak memory, a container's cgroup `memory.peak` and CPU throttling, and a VM's disk it used, in `reeval show` and `reeval query trial_resources`",
     fixtures: ['sandbox/resources', 'sandbox/boat-resources'],
     unit: ['reeval/test/resources.test.ts'],
   },
@@ -1453,7 +1453,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'sandbox.prepare',
     area: 'Sandbox',
-    name: 'Preflight: every sandbox prepared before any attempt; a failure fails only its cells, or stops the run from the config',
+    name: 'Preflight: every sandbox prepared before any trial; a failure fails only its cells, or stops the run from the config',
     unit: ['reeval/test/docker.test.ts'],
   },
   {
@@ -1501,7 +1501,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'egress',
     area: 'Sandbox',
-    name: "`egress`: allowlist or deny-all, enforced in Docker and recorded per attempt; `--dry-run` and `reeval doctor` show each environment's policy",
+    name: "`egress`: allowlist or deny-all, enforced in Docker and recorded per trial; `--dry-run` and `reeval doctor` show each environment's policy",
     fixtures: [
       'egress/allowed-host-reachable',
       'egress/blocked-host-recorded',
@@ -1573,14 +1573,14 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'brokering.refused-request',
     area: 'Sandbox',
-    name: "A request carrying the harness's brokered key off its endpoints: a 403 from the gateway, a `blocked` entry in the attempt's `egress` and a warning on the terminal",
+    name: "A request carrying the harness's brokered key off its endpoints: a 403 from the gateway, a `blocked` entry in the trial's `egress` and a warning on the terminal",
     fixtures: ['egress/brokered-request-refused'],
     unit: ['sandbox-docker/test/proxy.test.ts', 'reeval/test/ui.test.ts'],
   },
   {
     id: 'harness.auth-hint',
     area: 'Harnesses',
-    name: 'A refused harness key names its variable and how to fix it, and makes the attempt an infra error',
+    name: 'A refused harness key names its variable and how to fix it, and makes the trial an infra error',
     fixtures: ['harness/rejected-key-is-infra'],
     unit: [
       'reeval/test/unit.test.ts',
@@ -1591,14 +1591,14 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'harness.provider-stop',
     area: 'Harnesses',
-    name: 'A turn the model provider stopped (credit, quota, rate limit, overload) makes the attempt an infra error, with its cause in `error.provider`',
+    name: 'A turn the model provider stopped (credit, quota, rate limit, overload) makes the trial an infra error, with its cause in `error.provider`',
     fixtures: ['harness/provider-stop-is-infra'],
     unit: ['reeval/test/gateway.test.ts'],
   },
   {
     id: 'harness.unread-turn-error',
     area: 'Harnesses',
-    name: 'A turn that ends with an error the body never reads (`turn.status`) makes the attempt an infra error, even when its checks pass, and leaves it out of compare questions',
+    name: 'A turn that ends with an error the body never reads (`turn.status`) makes the trial an infra error, even when its checks pass, and leaves it out of compare questions',
     fixtures: ['harness/unread-turn-error-is-infra'],
     unit: ['reeval/test/turn-status.test.ts', 'reeval/test/results.test.ts'],
   },
@@ -2011,10 +2011,10 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'judge.decide',
     area: 'Judges and matchers',
-    name: "`c.decide({ model, state, questions })`: the AI SDK's `experimental_decide` on the call's model, else `decide.model`, else `analysis.model`, through the config's `gateway` list, with the attempt's signal and `decide.timeout`; `c.state()` builds the judge's inputs as a masked JSON part and `c.part()` a capture's image part; the state and questions are masked before they're sent and the answers before they're kept, each call is a line of the attempt's decisions.jsonl, kept with its other evidence, and a `decision` line in trajectory.jsonl before the next turn's prompt, left out of an ATIF export; `decide.model`'s key is checked before the run, its tokens and cost are the attempt's `decisionUse`, never the agent's, and graders read them as `c.decisions`; `reeval/testing`'s `fakeDecisionModel` answers without a provider; the attempt protocol's `decide` op",
+    name: "`c.decide({ model, state, questions })`: the AI SDK's `experimental_decide` on the call's model, else `decide.model`, else `analysis.model`, through the config's `gateway` list, with the trial's signal and `decide.timeout`; `c.state()` builds the judge's inputs as a masked JSON part and `c.part()` a capture's image part; the state and questions are masked before they're sent and the answers before they're kept, each call is a line of the trial's decisions.jsonl, kept with its other evidence, and a `decision` line in trajectory.jsonl before the next turn's prompt, left out of an ATIF export; `decide.model`'s key is checked before the run, its tokens and cost are the trial's `decisionUse`, never the agent's, and graders read them as `c.decisions`; `reeval/testing`'s `fakeDecisionModel` answers without a provider; the trial protocol's `decide` op",
     fixtures: ['judge/decide'],
     unit: [
-      'reeval/test/attempt-host.test.ts',
+      'reeval/test/trial-host.test.ts',
       'reeval/test/refusals.test.ts',
       'reeval/test/decide.test.ts',
       'reeval/test/atif.test.ts',
@@ -2023,7 +2023,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'judge.decide-outage',
     area: 'Judges and matchers',
-    name: "`c.decide()` the provider never answered, after the AI SDK's retries, or that ran past `decide.timeout`, makes the attempt an infra error naming the model and `decide.model`, even when the task catches it, and its `decision` line records the error; one the attempt's own timeout cuts off records it too",
+    name: "`c.decide()` the provider never answered, after the AI SDK's retries, or that ran past `decide.timeout`, makes the trial an infra error naming the model and `decide.model`, even when the task catches it, and its `decision` line records the error; one the trial's own timeout cuts off records it too",
     fixtures: ['judge/decide-outage'],
     unit: ['reeval/test/decide.test.ts'],
   },
@@ -2106,49 +2106,49 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'history.observe',
     area: 'Records and studio',
-    name: "Observed values: `c.observe(name, value)` records a JSON fact per attempt (the last value per name, masked, of any size, with the sha256 of its masked JSON), tallied per cell in the output, shown to a judge or question that asks for them, shifted in `reeval compare`, on the studio's attempt and eval pages, in the `attempt_values` view and the analysis, and never gates",
+    name: "Observed values: `c.observe(name, value)` records a JSON fact per trial (the last value per name, masked, of any size, with the sha256 of its masked JSON), tallied per cell in the output, shown to a judge or question that asks for them, shifted in `reeval compare`, on the studio's trial and eval pages, in the `trial_values` view and the analysis, and never gates",
     fixtures: ['history/observe', 'history/observe-whole', 'judge/input-observations'],
     unit: ['reeval/test/observe.test.ts'],
   },
   {
     id: 'history.execs',
     area: 'Records and studio',
-    name: "Each foreground `c.exec(command, { label })` in the attempt's `execs.jsonl`, in call order: its command, label, exit code, masked stdout and stderr (head and tail past 128 KiB) and the turn it came after, which its `checks` entry keeps too; `label` with `background` refused",
+    name: "Each foreground `c.exec(command, { label })` in the trial's `execs.jsonl`, in call order: its command, label, exit code, masked stdout and stderr (head and tail past 128 KiB) and the turn it came after, which its `checks` entry keeps too; `label` with `background` refused",
     fixtures: ['history/execs'],
     unit: ['reeval/test/refusals.test.ts', 'reeval/test/kept-workspace.test.ts'],
   },
   {
     id: 'history.kept-workspace',
     area: 'Records and studio',
-    name: "The final workspace kept whole: every file git doesn't ignore, but dependency and cache directories, masked, a file the secret scan still finds something in dropped and named, as `workspace.tar.gz` with `workspace.json` listing each file's sha256, in the attempt's directory, the history and its archives (an `s3()` store keeps it apart from the runs a pull downloads), streamed and never read whole, on reeval's image or BusyBox's tools, at most 200 MiB uncompressed and 100 MiB compressed per attempt and 5 GiB per run (an attempt past either keeps none, `workspace.skipped` says why and the run's output names it); `readStoredAttempt` reads it back with the attempt's execs, observations and captures",
+    name: "The final workspace kept whole: every file git doesn't ignore, but dependency and cache directories, masked, a file the secret scan still finds something in dropped and named, as `workspace.tar.gz` with `workspace.json` listing each file's sha256, in the trial's directory, the history and its archives (an `s3()` store keeps it apart from the runs a pull downloads), streamed and never read whole, on reeval's image or BusyBox's tools, at most 200 MiB uncompressed and 100 MiB compressed per trial and 5 GiB per run (a trial past either keeps none, `workspace.skipped` says why and the run's output names it); `readStoredTrial` reads it back with the trial's execs, observations and captures",
     fixtures: ['history/kept-workspace'],
     unit: ['reeval/test/kept-workspace.test.ts'],
   },
   {
     id: 'history.eval-error',
     area: 'Records and studio',
-    name: "The task's failure: a task that throws (an `EvalError`'s reason and JSON meta, or any other error's message and class) records the attempt's `failure` with the turn it threw after and its masked stack, shown under the attempt's result, in `failing_attempts.reason` and the `failure_meta` view, and passed on by a language runner",
+    name: "The task's failure: a task that throws (an `EvalError`'s reason and JSON meta, or any other error's message and class) records the trial's `failure` with the turn it threw after and its masked stack, shown under the trial's result, in `failing_trials.reason` and the `failure_meta` view, and passed on by a language runner",
     fixtures: ['history/eval-error'],
     unit: ['reeval/test/eval-error.test.ts'],
   },
   {
     id: 'grade.code-graders',
     area: 'Judges and matchers',
-    name: "`defineGrader` code graders in `defineEval({ graders })`, typed against `cases`: once the task returns, each reads the attempt's case, turns, execs, observations, captures and kept files within its `files` (masked) and its `data`, all at once, with none after a throw, timeout, cancel or infra error; each attempt records `grades` (grade, score, weight, fingerprint, what it read) and its `score`, and passes only at 1",
+    name: "`defineGrader` code graders in `defineEval({ graders })`, typed against `cases`: once the task returns, each reads the trial's case, turns, execs, observations, captures and kept files within its `files` (masked) and its `data`, all at once, with none after a throw, timeout, cancel or infra error; each trial records `grades` (grade, score, weight, fingerprint, what it read) and its `score`, and passes only at 1",
     fixtures: ['grade/code-graders'],
     unit: ['reeval/test/grade.test.ts', 'reeval/test/refusals.test.ts'],
   },
   {
     id: 'grade.score',
     area: 'Judges and matchers',
-    name: "The attempt's score: the scored grades' mean weighted by `weight` (0 records only, a grade with no score too), 0 when a `required` grader scored under 1 or errored, and `defineGraders` groups sharing one `grade` call",
+    name: "The trial's score: the scored grades' mean weighted by `weight` (0 records only, a grade with no score too), 0 when a `required` grader scored under 1 or errored, and `defineGraders` groups sharing one `grade` call",
     fixtures: ['grade/score'],
     unit: ['reeval/test/grade.test.ts'],
   },
   {
     id: 'grade.builtins',
     area: 'Judges and matchers',
-    name: "`reeval/graders`' built-in graders, named `<kind>:<main argument>`, over the stored attempt and workspace alone: skills, tools, MCP servers, commands, web searches and fetches, written files, the final diff, kept files, `c.exec` exit codes, usage limits, recorded usage, page captures and observations, each a natural pass (1 or 0) or a recorded grade, with `weight`, `required` and `score` as options and a code version in its fingerprint; `reeval/graders/match`'s plain functions share the matchers' logic",
+    name: "`reeval/graders`' built-in graders, named `<kind>:<main argument>`, over the stored trial and workspace alone: skills, tools, MCP servers, commands, web searches and fetches, written files, the final diff, kept files, `c.exec` exit codes, usage limits, recorded usage, page captures and observations, each a natural pass (1 or 0) or a recorded grade, with `weight`, `required` and `score` as options and a code version in its fingerprint; `reeval/graders/match`'s plain functions share the matchers' logic",
     fixtures: [
       'grade/builtin-trajectory',
       'grade/builtin-workspace',
@@ -2169,28 +2169,28 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'grade.sandboxed',
     area: 'Judges and matchers',
-    name: "A grader's `env` (`docker()`, `podman()` or `fakeSandbox()`): a fresh sandbox from an image preflight prepares, `egress` deny-all by default, its `files` copied in from the kept workspace, as `c.sandbox` (`exec`, `readFile`, `writeFile`), torn down after; it takes a slot of the run's concurrency, and one that doesn't start ends the attempt `infra_error`; its recipe and image id fingerprint the grade",
+    name: "A grader's `env` (`docker()`, `podman()` or `fakeSandbox()`): a fresh sandbox from an image preflight prepares, `egress` deny-all by default, its `files` copied in from the kept workspace, as `c.sandbox` (`exec`, `readFile`, `writeFile`), torn down after; it takes a slot of the run's concurrency, and one that doesn't start ends the trial `infra_error`; its recipe and image id fingerprint the grade",
     fixtures: ['grade/sandboxed'],
     unit: ['reeval/test/grade.test.ts'],
   },
   {
     id: 'grade.judge',
     area: 'Judges and matchers',
-    name: "Judge graders, `judge(question, options)` from `reeval/graders` or `defineGrader`'s `judge` spec: reeval's judge answers the question about the stored attempt (the judge inputs, drawn from its turns, execs, observations, captures and kept workspace, masked) once per model, its grade the answer or one per model; a yes/no question scores 1 for yes, `answers` score by their `score` map (the mean over models, digested apart) or record only; `kind: 'judge'` grades record each model's answer",
+    name: "Judge graders, `judge(question, options)` from `reeval/graders` or `defineGrader`'s `judge` spec: reeval's judge answers the question about the stored trial (the judge inputs, drawn from its turns, execs, observations, captures and kept workspace, masked) once per model, its grade the answer or one per model; a yes/no question scores 1 for yes, `answers` score by their `score` map (the mean over models, digested apart) or record only; `kind: 'judge'` grades record each model's answer",
     fixtures: ['grade/judge-boolean', 'grade/judge-labels', 'grade/judge-builtins'],
     unit: ['reeval/test/grade-judge.test.ts', 'reeval/test/refusals.test.ts'],
   },
   {
     id: 'grade.judge-outage',
     area: 'Judges and matchers',
-    name: "A judge grader whose provider failed the call after the judge's retries (a 5xx, 408, 409, 429 or a network error, as the AI SDK marks retryable) or that ran past its `timeout` ends the attempt `infra_error`, naming the grader and the model, masked, with no grade, so `--retry-errors` runs it again; a refusal, a malformed answer or another 4xx stays the grade's error, scored 0; `reeval regrade` keeps the stored grade and fails",
+    name: "A judge grader whose provider failed the call after the judge's retries (a 5xx, 408, 409, 429 or a network error, as the AI SDK marks retryable) or that ran past its `timeout` ends the trial `infra_error`, naming the grader and the model, masked, with no grade, so `--retry-errors` runs it again; a refusal, a malformed answer or another 4xx stays the grade's error, scored 0; `reeval regrade` keeps the stored grade and fails",
     fixtures: ['grade/judge-outage'],
     unit: ['reeval/test/grade-judge.test.ts', 'reeval/test/regrade.test.ts'],
   },
   {
     id: 'grade.judge-reference',
     area: 'Judges and matchers',
-    name: "A judge grader's `reference`: text, `file(…)` or `directory(…)`, or a function of the case returning one, shown only to the judge, whole or as a diff against the attempt's files (`inputs.reference`), its content digest a part of the fingerprint",
+    name: "A judge grader's `reference`: text, `file(…)` or `directory(…)`, or a function of the case returning one, shown only to the judge, whole or as a diff against the trial's files (`inputs.reference`), its content digest a part of the fingerprint",
     fixtures: ['grade/judge-reference'],
     unit: ['reeval/test/grade-judge.test.ts'],
   },
@@ -2239,7 +2239,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'history.artifacts',
     area: 'Records and studio',
-    name: "`history.artifacts` and `reeval record --artifacts`: `'failures'` keeps each failed attempt's files, whatever its eval did",
+    name: "`history.artifacts` and `reeval record --artifacts`: `'failures'` keeps each failed trial's files, whatever its eval did",
     fixtures: ['history/artifacts-failures'],
     unit: ['reeval/test/history.test.ts'],
   },
@@ -2294,7 +2294,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'history.debug',
     area: 'Records and studio',
-    name: "`history.debug`: each attempt's `requests.ndjson` (`'requests'`) or all its debug data (`'all'`) uploads with the run to a remote store under a `debug/` prefix of its own, rescanned for secrets (a finding leaves the file out and names it in `record.debug.dropped`), staged so `reeval sync` still uploads it after `.reeval/debug` is pruned; refused on `local()`. `reeval sync --debug <run>` downloads one run's back into `.reeval/debug/<run>`, hash-checked; a pull never does",
+    name: "`history.debug`: each trial's `requests.ndjson` (`'requests'`) or all its debug data (`'all'`) uploads with the run to a remote store under a `debug/` prefix of its own, rescanned for secrets (a finding leaves the file out and names it in `record.debug.dropped`), staged so `reeval sync` still uploads it after `.reeval/debug` is pruned; refused on `local()`. `reeval sync --debug <run>` downloads one run's back into `.reeval/debug/<run>`, hash-checked; a pull never does",
     unit: ['reeval/test/store.test.ts', 'reeval/test/store-minio.test.ts'],
   },
   {
@@ -2337,13 +2337,13 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'history.regrade',
     area: 'Records and studio',
-    name: "`reeval regrade`: recorded attempts graded again with today's graders, selected by eval, `--tag`, `--grader`, `--since` or `--at`; a plan per grader (keep, re-score, recompute, compute, keep old grade, or skip with inputs missing) with `--dry-run` and `--yes`; one regrade file per run in `<run>/regrades/`, which `history`, `show` and `compare` apply (`↻`, `--original`, `show --regrades`, `grader changed`)",
+    name: "`reeval regrade`: recorded trials graded again with today's graders, selected by eval, `--tag`, `--grader`, `--since` or `--at`; a plan per grader (keep, re-score, recompute, compute, keep old grade, or skip with inputs missing) with `--dry-run` and `--yes`; one regrade file per run in `<run>/regrades/`, which `history`, `show` and `compare` apply (`↻`, `--original`, `show --regrades`, `grader changed`)",
     unit: ['reeval/test/regrade.test.ts', 'reeval/test/corpus.test.ts'],
   },
   {
     id: 'history.trace',
     area: 'Records and studio',
-    name: "`reeval show --trace`: a run's timeline as Chrome Trace Event JSON for Perfetto, attempts in lanes by overlap with their setup, turns, tool calls, checks and judge, from any record",
+    name: "`reeval show --trace`: a run's timeline as Chrome Trace Event JSON for Perfetto, trials in lanes by overlap with their setup, turns, tool calls, checks and judge, from any record",
     unit: ['reeval/test/trace.test.ts', 'reeval/test/corpus.test.ts'],
   },
   {
@@ -2360,7 +2360,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'history.snapshots',
     area: 'Records and studio',
-    name: "`snapshot` (default on): each attempt's final workspace, and with `'turns'` one after each send, in its directory in `.reeval/runs` as a directory or with `compress` a tar.gz, without dependency and cache directories, masked, capped and pruned with debug data",
+    name: "`snapshot` (default on): each trial's final workspace, and with `'turns'` one after each send, in its directory in `.reeval/runs` as a directory or with `compress` a tar.gz, without dependency and cache directories, masked, capped and pruned with debug data",
     fixtures: ['run/snapshots', 'run/snapshot-turns'],
     unit: ['reeval/test/snapshots.test.ts', 'reeval/test/remarks.test.ts'],
   },
@@ -2408,20 +2408,20 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'mcp.debugging',
     area: 'Records and studio',
-    name: "`reeval mcp` for debugging a failed run: `failures` (each failed attempt's checks, judge scores, error, check logs and trajectory tail, and whether its cell failed before) and `history` listing scratch runs, with a note, when nothing is recorded",
+    name: "`reeval mcp` for debugging a failed run: `failures` (each failed trial's checks, judge scores, error, check logs and trajectory tail, and whether its cell failed before) and `history` listing scratch runs, with a note, when nothing is recorded",
     unit: ['reeval/test/mcp.test.ts'],
   },
   {
     id: 'summary.study-mark',
     area: 'Records and studio',
-    name: 'An eval whose target only reports reads `report only` in the tally and `reeval compare` when its attempts miss, never ✓ beside 0/n; one whose cells are all ungated, from an older record, reads `not gated` (○) in `reeval history`, never `pass`',
+    name: 'An eval whose target only reports reads `report only` in the tally and `reeval compare` when its trials miss, never ✓ beside 0/n; one whose cells are all ungated, from an older record, reads `not gated` (○) in `reeval history`, never `pass`',
     fixtures: ['output/study'],
     unit: ['reeval/test/engine.test.ts'],
   },
   {
     id: 'query.facts',
     area: 'Records and studio',
-    name: "`reeval query` facts views: `effort`, `factor_effects` (controlled, pooled over runs and across one run's evals, observed, not measured), `skill_reads` and `tool_calls`, `attempt_context`",
+    name: "`reeval query` facts views: `effort`, `factor_effects` (controlled, pooled over runs and across one run's evals, observed, not measured), `skill_reads` and `tool_calls`, `trial_context`",
     unit: ['reeval/test/analysis.test.ts', 'reeval/test/query.test.ts'],
   },
   {
@@ -2454,13 +2454,13 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'effort.time-split',
     area: 'Records and studio',
-    name: "Where each turn's and attempt's agent time went (`timeSplit`: model calls, tool calls, waiting on background jobs, other), the egress gateway's `model-call` trajectory events, and tool durations inferred from the next event, in summary.md, the run's effort table, `reeval compare -v` and `reeval query effort`",
+    name: "Where each turn's and trial's agent time went (`timeSplit`: model calls, tool calls, waiting on background jobs, other), the egress gateway's `model-call` trajectory events, and tool durations inferred from the next event, in summary.md, the run's effort table, `reeval compare -v` and `reeval query effort`",
     unit: ['reeval/test/timeline.test.ts', 'sandbox-docker/test/proxy.test.ts'],
   },
   {
     id: 'effort.llm-calls',
     area: 'Records and studio',
-    name: "Each attempt's LLM round-trips (`activity.llmCalls`): the gateway's `main` model calls, else the steps of a harness whose steps are model calls, null where neither counts them, in `reeval query` (`attempts.llm_calls`, `effort`), the effort table, `reeval compare -v` and the studio's attempt rows",
+    name: "Each trial's LLM round-trips (`activity.llmCalls`): the gateway's `main` model calls, else the steps of a harness whose steps are model calls, null where neither counts them, in `reeval query` (`trials.llm_calls`, `effort`), the effort table, `reeval compare -v` and the studio's trial rows",
     unit: [
       'reeval/test/replay-model-calls.test.ts',
       'reeval/test/analysis.test.ts',
@@ -2480,7 +2480,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'record.cost',
     area: 'Records and studio',
-    name: "Each turn's, attempt's, judge call's, cell's and run's cost: what Claude Code, pi or OpenRouter reported, else an estimate at the served model's list price marked `estimated` with its source, none for an unlisted model (a total counts it `unpriced`), on the `Done in` line, in summary.md, `reeval compare`, `reeval query effort` and the studio",
+    name: "Each turn's, trial's, judge call's, cell's and run's cost: what Claude Code, pi or OpenRouter reported, else an estimate at the served model's list price marked `estimated` with its source, none for an unlisted model (a total counts it `unpriced`), on the `Done in` line, in summary.md, `reeval compare`, `reeval query effort` and the studio",
     fixtures: ['run/cost'],
     unit: ['reeval/test/cost.test.ts', 'harness-pi/test/stream.test.ts'],
   },
@@ -2508,13 +2508,13 @@ export const inventory: InventoryFeature[] = [
       'compare/verdicts-some-cases',
       'compare/cases',
       'compare/study',
-      'runs-default/profile-limit-capped',
+      'trials-default/profile-limit-capped',
     ],
   },
   {
     id: 'contrasts',
     area: 'Records and studio',
-    name: 'Contrasts: every arm side by side (checks, effort) in the run output, `reeval show` and `summary.md`; each pair of arms on one harness in `reeval query contrasts` and the digest',
+    name: 'Contrasts: every environment side by side (checks, effort) in the run output, `reeval show` and `summary.md`; each pair of environments on one harness in `reeval query contrasts` and the digest',
     unit: ['reeval/test/analysis.test.ts'],
   },
   {
@@ -2526,13 +2526,13 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'summary.labels',
     area: 'Records and studio',
-    name: 'Labels and names: an older record\u2019s judges and `toSucceed` checks by their label in judge rates, `reeval show` and `summary.md` (a long script on one line), tokens as `430k vs 1,094k` everywhere, and a compare\u2019s control named by its environment in the digest',
+    name: 'Labels and names: an older record\u2019s judges and `toSucceed` checks by their label in judge rates, `reeval show` and `summary.md` (a long script on one line), tokens as `430k vs 1,094k` everywhere, and a compare\u2019s baseline named by its environment in the digest',
     unit: ['reeval/test/analysis.test.ts'],
   },
   {
     id: 'summary.run-report',
     area: 'Records and studio',
-    name: 'The `RunReport` behind `summary.md`, written beside it as `report.json` and read back by `readableRunReport` (`reeval/view/report`), its attempts cited by their stable key, and rendered by `reeval/renderer/markdown`',
+    name: 'The `RunReport` behind `summary.md`, written beside it as `report.json` and read back by `readableRunReport` (`reeval/view/report`), its trials cited by their stable key, and rendered by `reeval/renderer/markdown`',
     unit: [
       'reeval/test/run-report.test.ts',
       'reeval/test/summary.test.ts',
@@ -2543,43 +2543,43 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'summary.report-facts',
     area: 'Records and studio',
-    name: "Each attempt's facts in the `RunReport` (`attemptFacts` in `reeval/view`: tool calls by class, skills used by source, context files read), counted from its kept trajectory as `reeval query`'s `tool_calls`, `skill_uses` and `context_reads` count them, absent where the trajectory wasn't kept, and a skill discovery's sources",
+    name: "Each trial's facts in the `RunReport` (`trialFacts` in `reeval/view`: tool calls by class, skills used by source, context files read), counted from its kept trajectory as `reeval query`'s `tool_calls`, `skill_uses` and `context_reads` count them, absent where the trajectory wasn't kept, and a skill discovery's sources",
     unit: ['reeval/test/report-facts.test.ts'],
   },
   {
     id: 'query.context-use',
     area: 'Records and studio',
-    name: 'Tool calls classed as context, dependency, web, verify or workspace (`context_use`), the declared files each attempt opened (`skill_files`), and the digest\u2019s `context-use` fact',
+    name: 'Tool calls classed as context, dependency, web, verify or workspace (`context_use`), the declared files each trial opened (`skill_files`), and the digest\u2019s `context-use` fact',
     unit: ['reeval/test/query.test.ts', 'reeval/test/analysis.test.ts'],
   },
   {
     id: 'query.check-rates',
     area: 'Records and studio',
-    name: 'Each labeled check\u2019s pass rate per cell, control and variant alike (`check_rates`)',
+    name: 'Each labeled check\u2019s pass rate per cell, baseline and variant alike (`check_rates`)',
     unit: ['reeval/test/query.test.ts'],
   },
   {
     id: 'query.check-streaks',
     area: 'Records and studio',
-    name: 'Each check\u2019s streak of clean recorded runs per cell, setup and branch (`check_streaks`)',
+    name: 'Each check\u2019s streak of clean recorded trials per cell, setup and branch (`check_streaks`)',
     unit: ['reeval/test/query.test.ts'],
   },
   {
     id: 'remarks',
     area: 'CLI and runner',
-    name: 'Remarks at the end of `reeval run` and in `reeval show`, from fixed thresholds: concerns only (at most 3), suggestions with `-v`, each once per eval version except `slow-mcp-start` and `too-few-tries`, kept in `<run>/remarks.json` (copied by `reeval record`)',
+    name: 'Remarks at the end of `reeval run` and in `reeval show`, from fixed thresholds: concerns only (at most 3), suggestions with `-v`, each once per eval version except `slow-mcp-start` and `too-few-trials`, kept in `<run>/remarks.json` (copied by `reeval record`)',
     unit: ['reeval/test/remarks.test.ts'],
   },
   {
-    id: 'remarks.too-few-tries',
+    id: 'remarks.too-few-trials',
     area: 'CLI and runner',
-    name: "Remark `too-few-tries`: a variant whose difference from its baseline doesn't hold (its interval spans 0), or that rests on a small sample, with the runs that would make it hold",
+    name: "Remark `too-few-trials`: a variant whose difference from its baseline doesn't hold (its interval spans 0), or that rests on a small sample, with the runs that would make it hold",
     unit: ['reeval/test/remarks.test.ts'],
   },
   {
     id: 'remarks.cant-tell-apart',
     area: 'CLI and runner',
-    name: 'Remark `cant-tell-apart`: a variant and its baseline both passed every run with every other measure the same (make the task harder), or both failed every run (check the eval), which no number of runs separates; a measure that only leans raises `too-few-tries` with the runs that would confirm it',
+    name: 'Remark `cant-tell-apart`: a variant and its baseline both passed every trial with every other measure the same (make the task harder), or both failed every run (check the eval), which no number of runs separates; a measure that only leans raises `too-few-trials` with the runs that would confirm it',
     unit: ['reeval/test/remarks.test.ts'],
   },
   {
@@ -2609,19 +2609,19 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'summary.judge-keys',
     area: 'Records and studio',
-    name: 'Standing per-key judge pass rate on the studio eval page, with lift per key when both sides have enough counted attempts',
+    name: 'Standing per-key judge pass rate on the studio eval page, with lift per key when both sides have enough counted trials',
     unit: ['reeval/test/studio.test.ts', 'reeval/test/view-boundary.test.ts'],
   },
   {
     id: 'summary.judge-score',
     area: 'Records and studio',
-    name: 'Studio attempt rows show each judge as fail 0.78/0.80 (or the minimum plus a count)',
+    name: 'Studio trial rows show each judge as fail 0.78/0.80 (or the minimum plus a count)',
     unit: ['reeval/test/studio.test.ts', 'reeval/test/view-boundary.test.ts'],
   },
   {
     id: 'summary.usage',
     area: 'Records and studio',
-    name: 'Token usage on each attempt and a per-cell sum of counted attempts, in the studio',
+    name: 'Token usage on each trial and a per-cell sum of counted trials, in the studio',
     unit: ['reeval/test/studio.test.ts', 'reeval/test/view-boundary.test.ts'],
   },
   {
@@ -2729,12 +2729,12 @@ export const inventory: InventoryFeature[] = [
       'reeval/test/report-split.test.ts',
       'reeval/test/view-boundary.test.ts',
     ],
-    real: ["e2e › the studio's report: both runs, linking every attempt's trajectory"],
+    real: ["e2e › the studio's report: both runs, linking every trial's trajectory"],
   },
   {
     id: 'studio.live',
     area: 'Records and studio',
-    name: "Runs in progress: `reeval run`'s `.reeval/staging/<run>/live.json`, attempts filling in, `stopped` for a killed run, and the record replacing it",
+    name: "Runs in progress: `reeval run`'s `.reeval/staging/<run>/live.json`, trials filling in, `stopped` for a killed run, and the record replacing it",
     unit: ['reeval/test/live.test.ts'],
   },
   {
@@ -2755,7 +2755,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'harness.start-timeout',
     area: 'CLI and runner',
-    name: "A harness session that doesn't become ready within `startTimeout` (default 90s), or whose start failed transiently (Cursor's model catalog unreachable), is retried once, then an infra error; its sandbox goes and the other attempts carry on",
+    name: "A harness session that doesn't become ready within `startTimeout` (default 90s), or whose start failed transiently (Cursor's model catalog unreachable), is retried once, then an infra error; its sandbox goes and the other trials carry on",
     unit: [
       'reeval/test/engine.test.ts',
       'reeval/test/unit.test.ts',
@@ -2765,7 +2765,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'engine.failures',
     area: 'CLI and runner',
-    name: 'A worker that dies, throws or runs out of memory fails its attempts; a CLI that crashes or is killed takes its workers and sandboxes with it',
+    name: 'A worker that dies, throws or runs out of memory fails its trials; a CLI that crashes or is killed takes its workers and sandboxes with it',
     unit: ['reeval/test/engine.test.ts'],
   },
   {
@@ -2795,7 +2795,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'output.status-list',
     area: 'CLI and runner',
-    name: "`reeval run`'s per-eval status list: one line a passing eval, a line for each way one failed (harnesses, each failed check as `✗` with the runs or arms it failed on, errors, a family's cases), a compare's table of arms, `Worth knowing:` for its remarks in one short line each (`-v` the whole sentence), and on an interactive terminal an Ink list you browse with the arrow keys, → again for the full detail",
+    name: "`reeval run`'s per-eval status list: one line a passing eval, a line for each way one failed (harnesses, each failed check as `✗` with the runs or environments it failed on, errors, a family's cases), a compare's table of environments, `Worth knowing:` for its remarks in one short line each (`-v` the whole sentence), and on an interactive terminal an Ink list you browse with the arrow keys, → again for the full detail",
     unit: ['reeval/test/status.test.ts', 'reeval/test/ink-list.test.ts', 'reeval/test/ui.test.ts'],
   },
   {
@@ -2820,27 +2820,27 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'output.tally',
     area: 'CLI and runner',
-    name: 'The tally (`2 on target · 5 below`, infra errors, canceled attempts and skips apart) and the no-model hint',
+    name: 'The tally (`2 on target · 5 below`, infra errors, canceled trials and skips apart) and the no-model hint',
     fixtures: ['output/infra-error'],
     unit: ['reeval/test/output.test.ts', 'reeval/test/suite.test.ts'],
   },
   {
     id: 'output.run-errors',
     area: 'CLI and runner',
-    name: 'An error outside any attempt: printed first, `N run error` in the tally, `errors` in the record, and `outcome: fail` with exit 1',
+    name: 'An error outside any trial: printed first, `N run error` in the tally, `errors` in the record, and `outcome: fail` with exit 1',
     fixtures: ['output/run-error'],
     unit: ['reeval/test/engine.test.ts'],
   },
   {
     id: 'output.family-cases',
     area: 'CLI and runner',
-    name: "An eval with cases' block reads every case: its columns, pooled arms and summed compare questions",
+    name: "An eval with cases' block reads every case: its columns, pooled environments and summed compare questions",
     unit: ['reeval/test/suite.test.ts'],
   },
   {
     id: 'verbose',
     area: 'CLI and runner',
-    name: '`-v`/`--verbose`: the timestamped per-attempt phase trace (plan, image, container, environment, brokering, turns and tool calls, checks, judge, gateway requests, teardown)',
+    name: '`-v`/`--verbose`: the timestamped per-trial phase trace (plan, image, container, environment, brokering, turns and tool calls, checks, judge, gateway requests, teardown)',
     unit: [
       'reeval/test/debug.test.ts',
       'reeval/test/docker.test.ts',
@@ -2887,7 +2887,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'run.events',
     area: 'CLI and runner',
-    name: "`reeval run`'s event stream (`.reeval/events/<run>.ndjson`, or `--events-file <file>` and `--events-url <url>`), followed by `reeval attach [run|file|url]` (on a terminal, the interactive list: q or Ctrl-D detaches, x twice cancels a run on this host); on a terminal `reeval run` runs its engine in the background and follows it, Ctrl-D leaving it going, and `reeval run -d` starts it there and exits, with heartbeat lines that show a quiet run as stalled, then lost, and, every `REEVAL_EVENTS_HEARTBEAT` (30s, from 1s to 10m) from the files' start to a `done` beat as they end, name the attempts in progress, each with its pooled machine, and the machines the run holds (the stream's POSTs tried again on failure), and a `run-end` that names where a recorded run's record, files and archive landed (a remote store's local copy included); `reeval clean` prunes the streams",
+    name: "`reeval run`'s event stream (`.reeval/events/<run>.ndjson`, or `--events-file <file>` and `--events-url <url>`), followed by `reeval attach [run|file|url]` (on a terminal, the interactive list: q or Ctrl-D detaches, x twice cancels a run on this host); on a terminal `reeval run` runs its engine in the background and follows it, Ctrl-D leaving it going, and `reeval run -d` starts it there and exits, with heartbeat lines that show a quiet run as stalled, then lost, and, every `REEVAL_EVENTS_HEARTBEAT` (30s, from 1s to 10m) from the files' start to a `done` beat as they end, name the trials in progress, each with its pooled machine, and the machines the run holds (the stream's POSTs tried again on failure), and a `run-end` that names where a recorded run's record, files and archive landed (a remote store's local copy included); `reeval clean` prunes the streams",
     fixtures: ['output/events', 'sandbox/boat-heartbeat'],
     unit: [
       'reeval/test/events.test.ts',
@@ -2910,7 +2910,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'run.retry-errors',
     area: 'CLI and runner',
-    name: "`reeval run --retry-errors [<ref>]`: run a finished run's infra-errored attempts again into the same run",
+    name: "`reeval run --retry-errors [<ref>]`: run a finished run's infra-errored trials again into the same run",
     fixtures: ['run/retry-errors'],
     plan: ['resume/retry-errors'],
     unit: ['reeval/test/resume.test.ts'],
@@ -2940,7 +2940,7 @@ export const inventory: InventoryFeature[] = [
     id: 'sdk.python',
     area: 'CLI and runner',
     name: 'Python eval authoring SDK (conformance goldens and fake run)',
-    fixtures: ['python-sdk/hello', 'python-sdk/attempt-isolation', 'python-sdk/caught-asserts'],
+    fixtures: ['python-sdk/hello', 'python-sdk/trial-isolation', 'python-sdk/caught-asserts'],
     plan: ['python/hello', 'python/dataclass-future', 'builtin-graders/builtin-graders'],
     unit: ['reeval/test/python-sdk.test.ts'],
   },

@@ -11,7 +11,7 @@ export type ToolClass = 'context' | 'dependency' | 'web' | 'verify' | 'workspace
 
 export const TOOL_CLASSES: ToolClass[] = ['context', 'dependency', 'web', 'verify', 'workspace']
 
-/** What an attempt's environment declared, and the commands its checks ran. */
+/** What a trial's environment declared, and the commands its checks ran. */
 export type ClassContext = {
   /** Skill names its environment placed. */
   skills: string[]
@@ -324,7 +324,7 @@ export function skillsWritten(tool: string, target: string): string[] {
  * The skills one tool call used, by source: the placed ones as {@link skillsUsed} finds them,
  * then any other a dedicated load named, any `skills/<name>/SKILL.md` it read (in one of `dirs`,
  * each agent's skill directories, or elsewhere) and any file under one of `found`, the skills the
- * attempt's context had in those directories. A path under some other `skills/<name>` isn't a
+ * trial's context had in those directories. A path under some other `skills/<name>` isn't a
  * skill: `skills/r0/contract-probe` is a directory of skills, not a skill named `r0`. Nor is a
  * file the call writes, or a skill an agent CLI ships with (`BUILTIN_SKILL_DIRS`).
  */

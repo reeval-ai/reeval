@@ -1,7 +1,7 @@
 REEVAL v0.16.1  dry run
 
   ➜  Run:       20261029T144346Z_77bb468_elliot-hesp_72sn
-                (resumed, 3 attempts done, 2 errors to retry)
+                (resumed, 3 trials done, 2 errors to retry)
   ➜  Config:    ../reeval.config.ts
   ➜  Profile:   pr (auto: CI is set)
   ➜  Agents:    cursor:composer-2.5 (effort: not checked)
@@ -10,7 +10,7 @@ REEVAL v0.16.1  dry run
   ➜  Sandboxes: docker, fake
   ➜  Judge:     typesafe-ai/jev-1.14.0
   ➜  Scope:     1 eval file · 1 eval (1 skipped) · 4 cells ·
-                3–20 attempts (budget: 15 ✗, 30m)
+                3–20 trials (budget: 15 ✗, 30m)
   ➜  Est. Time: ~1m 54s (concurrency: 8) · ~15m 10s (serial)
 
 eval  agents  runs

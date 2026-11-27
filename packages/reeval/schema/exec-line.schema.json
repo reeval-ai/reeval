@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "Generated from ExecLine in src/history/types.ts by `pnpm schema:update`; don't edit. One line of an attempt's execs.jsonl, each c.exec's result, in its run's directory.",
+  "$comment": "Generated from ExecLine in src/history/types.ts by `pnpm schema:update`; don't edit. One line of a trial's execs.jsonl, each c.exec's result, in its run's directory.",
   "title": "ExecLine",
   "$ref": "#/$defs/ExecLine",
   "$defs": {
     "ExecLine": {
-      "description": "A line of an attempt's `execs.jsonl`: one foreground `c.exec`, its output masked.",
+      "description": "A line of a trial's `execs.jsonl`: one foreground `c.exec`, its output masked.",
       "type": "object",
       "properties": {
         "command": {

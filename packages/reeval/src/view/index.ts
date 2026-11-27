@@ -4,7 +4,7 @@
 export { caseEntries, familyOf } from '../history/cases.ts'
 export type {
   ArtifactRef,
-  AttemptRecord,
+  TrialRecord,
   CellRecord,
   EvalEntry,
   FamilyLift,
@@ -31,7 +31,7 @@ export type {
 export * from './analysis.ts'
 export * from './api.ts'
 export * from './capture.ts'
-export { type AttemptFacts, attemptFacts } from './classify.ts'
+export { type TrialFacts, trialFacts } from './classify.ts'
 export * from './compare.ts'
 export * from './cost.ts'
 export * from './debug.ts'

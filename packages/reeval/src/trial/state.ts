@@ -1,0 +1,243 @@
+import type { HarnessSession } from '@reeval/agents'
+import { parseDuration } from '../config.ts'
+import type { ResolvedEnvironment } from '../environment/resolve.ts'
+import type { PlannedTrial } from '../options.ts'
+import { redactFields } from '../redact.ts'
+import type { Sandbox } from '../sandbox/index.ts'
+import { sandboxKind } from '../sandbox/kinds.ts'
+import type { BrokerPhases } from '../sandbox/phases.ts'
+import type { ResourceMeter } from '../sandbox/resources.ts'
+import type { PreparedHost } from '../sandbox/tart-hosts.ts'
+import { childSpan } from '../trace/spans.ts'
+import type {
+  TrialContext,
+  BackgroundHandle,
+  CaptureOptions,
+  EnvVars,
+  EvalRecord,
+  HarnessDescriptor,
+  JudgeOptions,
+  ResolvedSnapshot,
+  SandboxBase,
+  TokenUsage,
+  Turn,
+  TurnRecord,
+} from '../types.ts'
+import type { ProgressUpdate } from '../ui/events.ts'
+import type { McpStartupLog } from './mcp-startup.ts'
+
+/** Extra time a trial gets, outside its eval timeout, when its image may need building. */
+const SETUP_BUDGET_MS = 20 * 60_000
+
+/** One planned trial with what its eval resolved: the input to every phase of the trial. */
+export type TrialSpec = PlannedTrial & {
+  name: string
+  groups: string[]
+  timeoutMs: number
+  env: EnvVars
+  judge: JudgeOptions
+  capture: CaptureOptions
+  snapshot: ResolvedSnapshot
+  /** Which level set each option; unset means the config or its default. */
+  sources: Partial<Record<string, string>>
+  /** What the profile's limit changed. */
+  notes: string[]
+}
+
+/**
+ * One trial as it runs. Each phase (environment, session, turns, checks and judge, record)
+ * reads it and adds to it; the record is what gets written at the end, whatever happened.
+ */
+export type Trial = {
+  readonly spec: TrialSpec
+  readonly record: EvalRecord
+  readonly turns: Turn[]
+  readonly report: (update: ProgressUpdate) => void
+  /** Counts `fn`'s time in `phase`, as a span named for the phase (or `span`) in the run's trace. */
+  readonly timed: <T>(
+    phase: keyof EvalRecord['timings'],
+    fn: () => Promise<T>,
+    span?: string,
+  ) => Promise<T>
+  /** The test's signal while the environment is prepared; after that, the eval's timer too. */
+  signal: AbortSignal
+  /** Once the environment is resolved. */
+  env?: ResolvedEnvironment
+  /** The image the Docker sandbox starts from, once prepared. */
+  image?: string
+  /** The hosts of `tart({ hosts })` preflight kept, once prepared. */
+  hosts?: readonly PreparedHost[]
+  /** The saved image a VM sandbox's trial runs in, once prepared. */
+  base?: SandboxBase
+  /** As soon as it exists, so teardown can remove it even when the start fails later. */
+  sandbox?: Sandbox
+  /** Reads what the sandbox uses, from its start until teardown. */
+  meter?: ResourceMeter
+  session?: HarnessSession
+  phases?: BrokerPhases
+  /**
+   * Starts the sandbox and session on the first call that needs them (`who` names it in the
+   * debug trace); every later or concurrent call shares that one start.
+   */
+  start: (who: string) => Promise<[Sandbox, HarnessSession]>
+  /** Refuses starts from now on and waits for one in flight, so teardown sees its sandbox. */
+  endStarts: () => Promise<void>
+  /** The eval's body has returned and teardown has begun. */
+  readonly ended: boolean
+  /**
+   * The start's failure, an MCP server's that never answered `initialize`, or a `c.decide()`
+   * call's (its provider's, or a model the run has no key for), which fails the trial whatever
+   * the eval's body made of it.
+   */
+  infraFailure?: { error: unknown }
+  /** The MCP timer's log, once the session starts with a stdio MCP server. */
+  mcpStartup?: McpStartupLog
+  /** `c.capture()` names already used in this trial. */
+  captureNames: Set<string>
+  /** Background processes from `c.exec({ background })` / `c.serve`; teardown kills leftovers. */
+  backgrounds: BackgroundHandle[]
+  /** PNG bytes keyed by capture name; written as sidecars next to the staging JSON. */
+  artifactBlobs: Map<string, Buffer>
+  /** Each capture's `<name>.capture.json`, redacted, keyed by capture name; written beside its PNG. */
+  capturePages: Map<string, string>
+  /** Each capture instruction's screenshot, by its artifact name: written beside the captures, never sent to a judge. */
+  stepBlobs: Map<string, Buffer>
+  /** Where the trial's snapshots are written, beside its staging record. */
+  readonly snapshotDir: string
+  /** The tokens of each step the harness reported, by turn record; never written. */
+  turnSteps: Map<TurnRecord, TokenUsage[]>
+  /**
+   * Set when the eval body reads `turn.status`. Unhandled mid-turn errors stay counted only then.
+   */
+  turnStatusRead: boolean
+  /**
+   * The turn in flight, or the one the eval's timeout cut off: its index, and how many model calls
+   * the sandbox had seen when it began.
+   */
+  turnCalls?: { turn: number; before: number }
+}
+
+/** Lets the language-runner host find the live Trial from the body's `TrialContext`. */
+const trialByContext = new WeakMap<TrialContext, Trial>()
+
+export function bindTrialContext(c: TrialContext, a: Trial): void {
+  trialByContext.set(c, a)
+}
+
+export function trialForContext(c: TrialContext): Trial | undefined {
+  return trialByContext.get(c)
+}
+
+export function createTrial(
+  spec: TrialSpec,
+  signal: AbortSignal,
+  progress: (update: ProgressUpdate & { at: number }) => void,
+  start: (a: Trial, who: string) => Promise<[Sandbox, HarnessSession]>,
+  snapshotDir: string,
+): Trial {
+  const record: EvalRecord = {
+    startedAt: new Date().toISOString(),
+    outcome: 'pass',
+    error: null,
+    turns: [],
+    diff: null,
+    checks: [],
+    judgements: [],
+    timings: { setupMs: 0, agentMs: 0, diffMs: 0, checksMs: 0, judgeMs: 0 },
+  }
+  let starting: Promise<[Sandbox, HarnessSession]> | undefined
+  let ended = false
+  const a: Trial = {
+    spec,
+    record,
+    turns: [],
+    start(who) {
+      if (!starting && ended) {
+        return Promise.reject(new Error(`${who} came after the eval's body returned`))
+      }
+      starting ??= start(a, who).catch((error: unknown) => {
+        a.infraFailure = { error }
+        throw error
+      })
+      return starting
+    },
+    async endStarts() {
+      ended = true
+      await starting?.catch(() => {})
+    },
+    get ended() {
+      return ended
+    },
+    // The terminal draws a check's command and a warning as they come.
+    report: (update) => progress({ at: Date.now(), ...redactFields(update, ['kind']) }),
+    async timed(phase, fn, name) {
+      const start = performance.now()
+      const span = childSpan(name ?? phase.replace(/Ms$/, ''))
+      try {
+        return await fn()
+      } catch (error) {
+        span.end(error)
+        throw error
+      } finally {
+        span.end()
+        record.timings[phase] += Math.round(performance.now() - start)
+      }
+    },
+    signal,
+    captureNames: new Set(),
+    backgrounds: [],
+    artifactBlobs: new Map(),
+    capturePages: new Map(),
+    stepBlobs: new Map(),
+    snapshotDir,
+    turnSteps: new Map(),
+    turnStatusRead: false,
+  }
+  return a
+}
+
+/** How long a harness session may take to become ready, unless its `startTimeout` says. */
+export const DEFAULT_START_TIMEOUT = '90s'
+
+export const startTimeoutMs = (harness: HarnessDescriptor): number =>
+  parseDuration(harness.startTimeout ?? DEFAULT_START_TIMEOUT)
+
+/**
+ * Setup steps and the harness's start (once retried) run outside the eval timeout, so the
+ * trial's own limit makes room for them.
+ */
+export function setupAllowance(planned: PlannedTrial): number {
+  const layers = planned.environment.layers
+  const steps = layers.flatMap((l) => l.spec.setup ?? [])
+  const setupMs = steps.reduce(
+    (ms, step) => ms + parseDuration((typeof step === 'string' ? undefined : step.timeout) ?? '5m'),
+    0,
+  )
+  const { sandbox } = planned
+  const building = sandboxKind(sandbox).buildsAtStart(sandbox)
+  return setupMs + (building ? SETUP_BUDGET_MS : 0) + 2 * startTimeoutMs(planned.harness)
+}
+
+/** The eval's timer, paused while the sandbox and its setup steps start. */
+export function evalTimer(ms: number) {
+  const controller = new AbortController()
+  let left = ms
+  let since = Date.now()
+  let timer: NodeJS.Timeout | undefined
+  const fire = () =>
+    controller.abort(new DOMException(`Eval timed out after ${ms / 1000}s`, 'TimeoutError'))
+  const start = () => {
+    since = Date.now()
+    timer = setTimeout(fire, Math.max(0, left))
+  }
+  start()
+  return {
+    signal: controller.signal,
+    pause() {
+      clearTimeout(timer)
+      left -= Date.now() - since
+    },
+    resume: start,
+    clear: () => clearTimeout(timer),
+  }
+}

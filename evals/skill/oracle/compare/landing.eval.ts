@@ -7,7 +7,7 @@ const design = plain.extendEnvironment('design', ({ skill }) => ({
 }))
 
 export default defineEval({
-  compare: { control: plain, variants: [design] },
+  compare: { baseline: plain, variants: [design] },
   questions: [
     {
       question: 'Which landing page follows the design guidelines more closely?',
@@ -15,7 +15,7 @@ export default defineEval({
       artifacts: ['home'],
     },
   ],
-  runs: 2,
+  trials: 2,
   graders: [hasFile('index.html', /Acme Notes/, { name: 'writes-index-html' })],
   task: async (c) => {
     await c.send('Build a one-page landing site for Acme Notes in index.html. No dependencies.')

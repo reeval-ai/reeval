@@ -44,7 +44,7 @@ const SCHEMA_EXPORTS: readonly string[] = [
   'runReportSchema',
   'looseRunReportSchema',
   'readableRunReport',
-  'attemptRefSchema',
+  'trialRefSchema',
   'countSchema',
   'deltaSchema',
   'figureSchema',

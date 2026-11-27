@@ -2,48 +2,48 @@ import type { EvalEntry, RunRecord } from '../../history/types.ts'
 import { sha256Hex } from '../../sha256.ts'
 import { slugify } from '../../slug.ts'
 
-export type AttemptIdMap = ReadonlyMap<string, string>
+export type TrialIdMap = ReadonlyMap<string, string>
 
 /**
- * Stable short IDs `A1..AN` for every attempt that started (`seq !== null`),
+ * Stable short IDs `A1..AN` for every trial that started (`seq !== null`),
  * ordered by `seq` across the (optionally filtered) evals. Every block cites
  * through this map.
  */
-export function attemptIds(
+export function trialIds(
   record: Pick<RunRecord, 'evals'>,
   evalKeys?: ReadonlySet<string>,
-): AttemptIdMap {
-  const attempts = record.evals
+): TrialIdMap {
+  const trials = record.evals
     .filter((e) => !evalKeys || evalKeys.has(e.key))
-    .flatMap((e) => e.attempts.map((a) => ({ eval: e, attempt: a })))
-    .filter((row) => row.attempt.seq !== null)
-    .sort((a, b) => (a.attempt.seq as number) - (b.attempt.seq as number))
+    .flatMap((e) => e.trials.map((a) => ({ eval: e, trial: a })))
+    .filter((row) => row.trial.seq !== null)
+    .sort((a, b) => (a.trial.seq as number) - (b.trial.seq as number))
 
   const map = new Map<string, string>()
   let n = 1
-  for (const row of attempts) {
-    map.set(row.attempt.key, `A${n++}`)
+  for (const row of trials) {
+    map.set(row.trial.key, `A${n++}`)
   }
   return map
 }
 
-/** The short ID for an attempt key, or null when it never started. */
-export function idOf(ids: AttemptIdMap, attemptKey: string): string | null {
-  return ids.get(attemptKey) ?? null
+/** The short ID for a trial key, or null when it never started. */
+export function idOf(ids: TrialIdMap, trialKey: string): string | null {
+  return ids.get(trialKey) ?? null
 }
 
 /**
- * The HTML id of an attempt's row in the attempt index, from its stable key, so a link to it holds
- * in any report of the run: `attempt-` and a slug of the key, with a hash of the whole key that
+ * The HTML id of a trial's row in the trial index, from its stable key, so a link to it holds
+ * in any report of the run: `trial-` and a slug of the key, with a hash of the whole key that
  * keeps two keys whose slugs match apart.
  */
-export function attemptAnchorId(key: string): string {
-  return `attempt-${slugify(key, 60) || 'key'}-${sha256Hex(key).slice(0, 8)}`
+export function trialAnchorId(key: string): string {
+  return `trial-${slugify(key, 60) || 'key'}-${sha256Hex(key).slice(0, 8)}`
 }
 
-/** Anchor fragment for an attempt: `#` and its `attemptAnchorId`. */
-export function attemptAnchor(key: string): string {
-  return `#${attemptAnchorId(key)}`
+/** Anchor fragment for a trial: `#` and its `trialAnchorId`. */
+export function trialAnchor(key: string): string {
+  return `#${trialAnchorId(key)}`
 }
 
 /** Eval entries in report order, optionally filtered by `options.evals`. */

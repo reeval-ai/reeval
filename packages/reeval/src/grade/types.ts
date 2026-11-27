@@ -33,7 +33,7 @@ export type GraderTurn = Pick<
   cost?: CostUsd
 }
 
-/** A `c.capture()` the attempt made, as a grader reads it. */
+/** A `c.capture()` the trial made, as a grader reads it. */
 export type GraderArtifact = { name: string; png: Buffer; capture?: ArtifactRef['capture'] }
 
 /** A `data` file's content, or a `directory()`'s files' by path. */
@@ -52,31 +52,31 @@ export type GraderSandbox = {
 }
 
 /**
- * What a grader reads: the attempt as it ended, from the attempt's record. It can't send a turn
+ * What a grader reads: the trial as it ended, from the trial's record. It can't send a turn
  * or run a command.
  */
 export type GraderContext<C = unknown> = {
-  /** The attempt's case; `{ key: '' }` for an eval without `cases`. */
+  /** The trial's case; `{ key: '' }` for an eval without `cases`. */
   case: Case<C>
   /** Each `c.send` turn, with its trajectory, masked. */
   turns: readonly GraderTurn[]
   /** Each foreground `c.exec`, in call order, masked. */
   execs: readonly ExecLine[]
-  /** The final diff's files: every workspace path the attempt changed, however it changed it. */
+  /** The final diff's files: every workspace path the trial changed, however it changed it. */
   changedFiles: readonly FileChange[]
-  /** The skills the attempt's environment placed, by name. */
+  /** The skills the trial's environment placed, by name. */
   skills: readonly string[]
-  /** The last `c.observe(name, value)` value; throws when the attempt made none by that name. */
+  /** The last `c.observe(name, value)` value; throws when the trial made none by that name. */
   observation(name: string): JSONValue
   observation(name: string, options: { optional: true }): JSONValue | undefined
-  /** A capture's PNG; throws when the attempt has none by that name. */
+  /** A capture's PNG; throws when the trial has none by that name. */
   artifact(name: string): Promise<GraderArtifact>
   /**
-   * A file of the workspace the attempt kept, masked. Throws for a path outside the grader's
-   * `files`, or one the attempt didn't keep.
+   * A file of the workspace the trial kept, masked. Throws for a path outside the grader's
+   * `files`, or one the trial didn't keep.
    */
   readFile(path: string): Promise<string>
-  /** The attempt's `c.decide()` calls, in call order, as they were recorded (masked). */
+  /** The trial's `c.decide()` calls, in call order, as they were recorded (masked). */
   decisions: readonly DecisionRecord[]
   /** The grader's `data` files, read from the host. */
   data: GraderData
@@ -91,13 +91,13 @@ export type GraderContext<C = unknown> = {
 
 /** What `defineGrader` takes. */
 export type GraderSpec<C = unknown, G extends JSONValue = JSONValue> = {
-  /** Grades the attempt: the value it returns is the grade, which must be JSON. */
+  /** Grades the trial: the value it returns is the grade, which must be JSON. */
   grade: (c: GraderContext<C>) => G | Promise<G>
   /** The grade's score in [0, 1]. Without it a boolean grade scores 1 or 0, and any other none. */
   score?: (grade: G) => number
-  /** Its share of the attempt's score. Default 1; 0 records only. */
+  /** Its share of the trial's score. Default 1; 0 records only. */
   weight?: number
-  /** A score under 1 (or an error) makes the attempt's score 0. Default false. */
+  /** A score under 1 (or an error) makes the trial's score 0. Default false. */
   required?: boolean
   /** Gitignore-style globs of the kept workspace files `c.readFile` may read. Default none. */
   files?: string[]
@@ -119,13 +119,13 @@ export type GraderSpec<C = unknown, G extends JSONValue = JSONValue> = {
 /** A judge grader's gold answer: text, a `file()`, or files by path from `directory()`. */
 export type JudgeReference = string | HostFile | Record<string, HostFile>
 
-/** What a judge grader shows the judge, read from the stored attempt. */
+/** What a judge grader shows the judge, read from the stored trial. */
 export type JudgeGraderInputs = JudgeInputs & {
   /** `'all'`: every turn under `turns`, each with its task, output and trajectory. Default `'last'`. */
   turns?: 'last' | 'all'
   /**
    * How the judge sees `reference`: `'whole'` (the default) shows each reference file in full,
-   * `'diff'` a unified diff from each to the attempt's file at its path. Text shows whole.
+   * `'diff'` a unified diff from each to the trial's file at its path. Text shows whole.
    */
   reference?: 'whole' | 'diff'
 }
@@ -137,7 +137,7 @@ export type JudgeSpec<C = unknown> = {
   answers?: readonly string[]
   /** What the judge sees; at least one input. */
   inputs: JudgeGraderInputs
-  /** Shown only to the judge, read on the host; per case as a function of the attempt's case. */
+  /** Shown only to the judge, read on the host; per case as a function of the trial's case. */
   reference?: JudgeReference | ((item: Case<C>) => JudgeReference)
   /** The judge's model; the eval's or config's `judge.model` by default. */
   model?: JudgeModel
@@ -153,9 +153,9 @@ export type JudgeGraderSpec<C = unknown> = {
    * without it); with several models, the mean of theirs. Without it, answers have no score.
    */
   score?: Record<string, number>
-  /** Its share of the attempt's score. Default 1; 0 records only. */
+  /** Its share of the trial's score. Default 1; 0 records only. */
   weight?: number
-  /** A score under 1 (or an error) makes the attempt's score 0. Default false. */
+  /** A score under 1 (or an error) makes the trial's score 0. Default false. */
   required?: boolean
   /** Bump to mark a change the judge spec and reference don't show. */
   revision?: number

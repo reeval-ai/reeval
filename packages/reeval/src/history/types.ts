@@ -1,10 +1,10 @@
 import type {
   AssertionRecord,
-  AttemptAnswer,
-  AttemptError,
-  AttemptFailure,
-  AttemptImage,
-  AttemptResources,
+  TrialAnswer,
+  TrialError,
+  TrialFailure,
+  TrialImage,
+  TrialResources,
   CaptureStep,
   Cell,
   CellGate,
@@ -45,7 +45,7 @@ import type {
 import type { CellEffort } from '../view/effort.ts'
 
 /**
- * One path the attempt's workspace diff changed. Optional line counts come from
+ * One path the trial's workspace diff changed. Optional line counts come from
  * `splitPatch` on the uncapped patch at record time; older records omit them.
  */
 export type ChangedFile = FileChange & {
@@ -56,7 +56,7 @@ export type ChangedFile = FileChange & {
 }
 
 /** Bumped only for a change that can't be additive, with a migration in `MIGRATIONS` (src/view/record.ts). */
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 export type ArtifactLevel = 'all' | 'evidence' | 'failures' | 'none'
 export type RecordMode = 'manual' | 'ci' | 'always'
@@ -66,14 +66,14 @@ export type ExportFormat = 'atif'
 export type FileRef = { path: string; sha256: string; bytes: number }
 
 export type RunDebug = {
-  /** `requests`: each attempt's `requests.ndjson`; `all`: its `debug.log` and `trace.ndjson` too. */
+  /** `requests`: each trial's `requests.ndjson`; `all`: its `debug.log` and `trace.ndjson` too. */
   level: 'requests' | 'all'
   files: FileRef[]
   /** Files left out because the secret scan found something in them, with what it found. */
   dropped?: Array<{ path: string; note: string }>
 }
 
-/** A generic attempt file from `c.capture()`. */
+/** A generic trial file from `c.capture()`. */
 export type ArtifactRef = FileRef & {
   name: string
   mediaType: 'image/png'
@@ -163,14 +163,14 @@ export type JudgmentRecord = {
   /**
    * `<index>:<sha256(question) prefix>`: the same question at the same place in the evaluation, so a
    * verdict can be followed across runs (and an edited question starts a new series). `<index>`
-   * is the call's place among the attempt's judge calls, counting calls that failed,
+   * is the call's place among the trial's judge calls, counting calls that failed,
    * whichever finishes first.
    */
   key: string
   /** The label an older reeval's judge call set; optional on older records. */
   label?: string
   /**
-   * The `toPass` assertion label of an older reeval that consumed this verdict, when the attempt
+   * The `toPass` assertion label of an older reeval that consumed this verdict, when the trial
    * linked them; optional on older records.
    */
   assertion?: string
@@ -180,7 +180,7 @@ export type JudgmentRecord = {
   artifacts?: JudgeArtifactRef[]
 }
 
-export type AttemptFiles = {
+export type TrialFiles = {
   /** Each environment setup step's command, exit code, duration, and output. */
   setupLog?: FileRef
   trajectory?: FileRef
@@ -188,7 +188,7 @@ export type AttemptFiles = {
   rawTrajectory?: FileRef
   diff?: FileRef
   judgeInput?: FileRef
-  /** The attempt as a Harbor ATIF trajectory, with the config's `exports: ['atif']`. */
+  /** The trial as a Harbor ATIF trajectory, with the config's `exports: ['atif']`. */
   atif?: FileRef
   /**
    * PNGs from `c.capture()`, under the `artifacts/<name>.png` path, then the page as each of its
@@ -199,13 +199,13 @@ export type AttemptFiles = {
   execs?: FileRef
   /** `decisions.jsonl`: each `c.decide` call, one `DecisionRecord` per call in call order. */
   decisions?: FileRef
-  /** `workspace.tar.gz`: the final workspace, gzipped (see `AttemptRecord.workspace`). */
+  /** `workspace.tar.gz`: the final workspace, gzipped (see `TrialRecord.workspace`). */
   workspace?: FileRef
   /** `workspace.json`: the `WorkspaceManifest` of `workspace`. */
   workspaceManifest?: FileRef
 }
 
-/** A line of an attempt's `execs.jsonl`: one foreground `c.exec`, its output masked. */
+/** A line of a trial's `execs.jsonl`: one foreground `c.exec`, its output masked. */
 export type ExecLine = {
   command: string
   /** The `label` it was given. */
@@ -225,11 +225,11 @@ export type ExecLine = {
   tries?: ExecTry[]
 }
 
-/** An attempt's kept workspace and its manifest, in its directory. */
+/** A trial's kept workspace and its manifest, in its directory. */
 export const WORKSPACE_ARCHIVE = 'workspace.tar.gz'
 export const WORKSPACE_MANIFEST = 'workspace.json'
 /**
- * The most an attempt keeps beside its record: its kept workspace, compressed, and its observed
+ * The most a trial keeps beside its record: its kept workspace, compressed, and its observed
  * values too large to stay in the record.
  */
 export const WORKSPACE_LIMIT = 100 * 2 ** 20
@@ -237,10 +237,10 @@ export const WORKSPACE_LIMIT = 100 * 2 ** 20
 export const WORKSPACE_RAW_LIMIT = 200 * 2 ** 20
 /** The most an observed value's masked JSON may be and stay in the record; a larger one is a file. */
 export const OBSERVATION_INLINE = 4096
-/** The most a run's kept workspaces may add up to; an attempt past it keeps none. */
+/** The most a run's kept workspaces may add up to; a trial past it keeps none. */
 export const RUN_WORKSPACE_LIMIT = 5 * 2 ** 30
 
-/** An attempt's `workspace.json`: each entry of its `workspace.tar.gz`, as kept. */
+/** A trial's `workspace.json`: each entry of its `workspace.tar.gz`, as kept. */
 export type WorkspaceManifest = {
   schemaVersion: 1
   /** Regular files and symbolic links, sorted by path. */
@@ -262,7 +262,7 @@ export type WorkspaceFile = {
 
 export type ContextFile = { path: string; sha256: string }
 
-/** An upstream provider behind a gateway, and how many of the attempt's calls it served. */
+/** An upstream provider behind a gateway, and how many of the trial's calls it served. */
 export type UpstreamCount = { provider: string; calls: number }
 
 /**
@@ -277,10 +277,10 @@ export type SecretWarning = {
   reason: 'host_not_allowed' | 'plain_http'
 }
 
-/** An infra error an attempt ended with before it ran again, and when that try started. */
-export type AttemptRetry = { error: AttemptError; at: string | null }
+/** An infra error a trial ended with before it ran again, and when that try started. */
+export type TrialRetry = { error: TrialError; at: string | null }
 
-export type AttemptRecord = {
+export type TrialRecord = {
   /**
    * `<eval key> # <cell key>#<n>`, or `<eval key> [<case>] # <cell key>#<n>` on an eval with
    * `cases`: unique in the run.
@@ -295,33 +295,33 @@ export type AttemptRecord = {
   /** Run number within the cell, from 1. */
   n: number
   /**
-   * In a `runs: { bestOf }` cell: `added` when it ran past the majority's first attempts (the
+   * In a `trials: { bestOf }` cell: `added` when it ran past the majority's first trials (the
    * earlier ones split, or an infra error left them short), `skipped` when it didn't run because
-   * the earlier ones already had a majority. Unset on the attempts that always run.
+   * the earlier ones already had a majority. Unset on the trials that always run.
    */
   bestOf?: 'added' | 'skipped'
-  /** Start order across the run, from 1; null for attempts that never started. */
+  /** Start order across the run, from 1; null for trials that never started. */
   seq: number | null
   startedAt: string | null
   /** The image the container started from, in `stack.images`; null when the sandbox doesn't start from an image. */
   imageId: string | null
   /**
-   * The image a `tart()` attempt's VM was cloned from, with the digest Tart had for it. Absent in
-   * other sandboxes, and in attempts that didn't reach their sandbox.
+   * The image a `tart()` trial's VM was cloned from, with the digest Tart had for it. Absent in
+   * other sandboxes, and in trials that didn't reach their sandbox.
    */
   vmImage?: VmImage
   /**
-   * The saved image an attempt on `boat()` ran in: the snapshot its VM started from and the image
-   * its container ran. Absent in other sandboxes, and in attempts that didn't reach their sandbox.
+   * The saved image a trial on `boat()` ran in: the snapshot its VM started from and the image
+   * its container ran. Absent in other sandboxes, and in trials that didn't reach their sandbox.
    */
   sandboxBase?: SandboxBase
   /**
-   * The container or VM the attempt ran on and the CPU, memory and disk it used there, measured
+   * The container or VM the trial ran on and the CPU, memory and disk it used there, measured
    * out of the agent's reach: a container's from a sibling container, a VM's as root
-   * (`AttemptResources`). Absent on the fake sandbox, which runs on the host, and in attempts that
+   * (`TrialResources`). Absent on the fake sandbox, which runs on the host, and in trials that
    * didn't reach their sandbox.
    */
-  resources?: AttemptResources
+  resources?: TrialResources
   /** Names of the variables and secrets set in the sandbox, and the brokered ones; never values. */
   env: { vars: string[]; secrets: string[]; brokered: string[] }
   /** Skills, rules, and MCP config visible to the agent in its sandbox, by content hash. */
@@ -329,7 +329,7 @@ export type AttemptRecord = {
   /** The egress policy and, when the sandbox records it, the hosts contacted and refused; null if it never ran. */
   egress: EgressRecord | null
   /**
-   * Each brokered secret whose placeholder the attempt sent where its value isn't swapped in, once
+   * Each brokered secret whose placeholder the trial sent where its value isn't swapped in, once
    * per host and reason; absent when there's none. The egress gateway reads a request's headers,
    * path and query for it, on a connection it decrypts or plain HTTP.
    */
@@ -375,15 +375,15 @@ export type AttemptRecord = {
    */
   servedEffort: string | null
   outcome: Outcome
-  error: AttemptError | null
+  error: TrialError | null
   /**
-   * What the eval's task threw that failed the attempt (`kind: 'task'`): an `EvalError`'s
+   * What the eval's task threw that failed the trial (`kind: 'task'`): an `EvalError`'s
    * `reason` and `meta`, or another error's message as `reason` with its class in `name`; `turn`
    * is how many turns it had sent then, and `stack` the error's stack. `error` is the same
    * failure, as `assertion`. Absent when the task didn't throw, or what it threw was a failed
    * `expect` of an older reeval, a timeout, a cancel or an infra error.
    */
-  failure?: AttemptFailure
+  failure?: TrialFailure
   /**
    * True when the eval body read `turn.status` (so a mid-turn error was intentional). False when a
    * turn errored and the body never inspected status. Absent on older records; the report then
@@ -471,7 +471,7 @@ export type AttemptRecord = {
    * has one.
    */
   timeSplit?: TimeSplit
-  /** Tokens across the attempt's turns; null when the harness reported none. */
+  /** Tokens across the trial's turns; null when the harness reported none. */
   usage: TokenUsage | null
   /**
    * The subagents the agent spawned, in spawn order. Their events are in `trajectory.jsonl`,
@@ -489,13 +489,13 @@ export type AttemptRecord = {
    */
   captureUse?: { model: string; moves: number; usage: TokenUsage | null }
   /**
-   * What the attempt's `c.decide()` calls used, apart from the agent's `usage` and `cost`. The
+   * What the trial's `c.decide()` calls used, apart from the agent's `usage` and `cost`. The
    * calls are `files.decisions`, and each is a `decision` line in trajectory.jsonl too.
    */
   decisionUse?: DecisionUseSpend
   timings: PhaseTimings
   /**
-   * Counts from the trajectory, so the attempt's activity is available without reading the trajectory. `webSearches` includes refused searches.
+   * Counts from the trajectory, so the trial's activity is available without reading the trajectory. `webSearches` includes refused searches.
    * `fileEdits` counts edit tool calls, so a shell edit isn't one; `changedFiles` has what the workspace diff shows changed.
    * `reasoningMs` is null when some turn's reasoning time is unknown, so a 0 is always a measurement.
    */
@@ -512,7 +512,7 @@ export type AttemptRecord = {
      * The trajectory's `file-edit` events: calls to the agent's file-editing tools, a Claude Code
      * subagent's included. A file the agent changed from the shell, or through a subagent whose
      * calls its harness doesn't stream (Cursor's `task`, Codex's `spawn_agent`), isn't counted:
-     * `changedFiles`, from the workspace diff, has every file the attempt changed.
+     * `changedFiles`, from the workspace diff, has every file the trial changed.
      */
     fileEdits: number
     /** Every `web-search` event, including refused ones. Null when a turn with none couldn't report them (`unreported`). */
@@ -535,12 +535,12 @@ export type AttemptRecord = {
    */
   startRetries?: StartRetry[]
   /**
-   * The infra errors this attempt ended with before `reeval run --retry-errors` or `--resume` ran
+   * The infra errors this trial ended with before `reeval run --retry-errors` or `--resume` ran
    * it again, oldest first: each `{ error, at }`, `at` being when that try started (null when it
-   * never did). The attempt's own `outcome` and `error` are its last try's. Absent when it never
+   * never did). The trial's own `outcome` and `error` are its last try's. Absent when it never
    * ran again.
    */
-  retries?: AttemptRetry[]
+  retries?: TrialRetry[]
   /**
    * Processes the setup steps left running in a Docker sandbox with a `to: 'checks'` secret
    * without `hosts` in their environment, so they hold its real value while the agent works and
@@ -551,7 +551,7 @@ export type AttemptRecord = {
    */
   setupProcesses?: SetupProcess[]
   /**
-   * Copies of the attempt's workspace in its directory in `.reeval/runs` on the machine that ran
+   * Copies of the trial's workspace in its directory in `.reeval/runs` on the machine that ran
    * it (never in the history folder), in the order taken: `turn-<n>` after each `c.send` with
    * `snapshot: 'turns'`, then `final` after the checks. Each has its form, path and size, its
    * file count, the directories left out by name, the files whose secret-looking values were
@@ -560,18 +560,18 @@ export type AttemptRecord = {
    */
   snapshots?: Snapshot[]
   /**
-   * The workspace as the attempt left it, after its checks: every file git doesn't ignore, but
+   * The workspace as the trial left it, after its checks: every file git doesn't ignore, but
    * those under a directory left out by name, in `files.workspace` with its manifest in
    * `files.workspaceManifest`, secret-looking values masked. Its file count and compressed size,
    * the directories left out, the files masked and those left out for holding a secret, or why it
-   * wasn't kept. Absent when the attempt started no sandbox or was cut short first.
+   * wasn't kept. Absent when the trial started no sandbox or was cut short first.
    */
   workspace?: KeptWorkspace
   /**
    * Each `c.serve` call that listened, in call order: `{ command, port, portEnv, detected,
    * address, readyMs }`. `port` is where it listens; `detected` is true when that isn't the
    * `PORT` it was given (`portEnv`), so reeval took the one port that started listening after
-   * the command did. Absent when the attempt served nothing.
+   * the command did. Absent when the trial served nothing.
    */
   serves?: ServeRecord[]
   /**
@@ -600,16 +600,16 @@ export type AttemptRecord = {
    * uncapped patch at record time; `lockfile` marks dependency lockfiles excluded from line totals.
    */
   changedFiles: ChangedFile[]
-  files: AttemptFiles
+  files: TrialFiles
   /**
-   * The eval's questions asked of this attempt on its own (those without `across`), in question
+   * The eval's questions asked of this trial on its own (those without `across`), in question
    * order; unset without any. They annotate: `outcome` never depends on them. Asked once the
-   * attempt ends, when it ran to a pass or a fail. Each answer's `input` is `questions/<n>.json`
-   * in the attempt's directory, `<n>` the question's place in the eval's `questions`.
+   * trial ends, when it ran to a pass or a fail. Each answer's `input` is `questions/<n>.json`
+   * in the trial's directory, `<n>` the question's place in the eval's `questions`.
    */
-  answers?: AttemptAnswer[]
+  answers?: TrialAnswer[]
   /**
-   * Each `c.observe(name, value)` the attempt made, one per name in first-call order with its last
+   * Each `c.observe(name, value)` the trial made, one per name in first-call order with its last
    * value; unset without any. They annotate: `outcome` never depends on them.
    */
   observations?: Observation[]
@@ -620,7 +620,7 @@ export type AttemptRecord = {
    */
   grades?: GradeRecord[]
   /**
-   * The id of the newest `reeval regrade` that changed this attempt's grades, score or outcome,
+   * The id of the newest `reeval regrade` that changed this trial's grades, score or outcome,
    * which the fields here read as; unset when none did. Readers set it; `reeval regrade` never
    * rewrites the record.
    */
@@ -635,16 +635,16 @@ export type AttemptRecord = {
 }
 
 /**
- * How a cell's or an eval's counted attempts scored, each null when none counted. With `cases`,
+ * How a cell's or an eval's counted trials scored, each null when none counted. With `cases`,
  * a cell's are the means of its cases', and an eval's are the means of its target's cells' (the
  * variants on a compare, else every cell).
  */
 export type ScoreSummary = {
-  /** The attempts' mean score. */
+  /** The trials' mean score. */
   meanScore: number | null
-  /** pass@k: 1 when an attempt passed, else 0. */
+  /** pass@k: 1 when a trial passed, else 0. */
   passAtK: number | null
-  /** pass^k: 1 when every attempt passed, else 0. */
+  /** pass^k: 1 when every trial passed, else 0. */
   passHatK: number | null
 }
 
@@ -702,12 +702,12 @@ export type EvalEntry = {
    * eval with neither `todo` nor `skip` hasn't run yet. Unset on records from before it.
    */
   skip?: true
-  /** pass@1, pass / (pass + fail), over the gated cells' attempts; infra errors and skips excluded. */
+  /** pass@1, pass / (pass + fail), over the gated cells' trials; infra errors and skips excluded. */
   passRate: number | null
   cells: CellRecord[]
-  attempts: AttemptRecord[]
+  trials: TrialRecord[]
   /**
-   * The eval's pairwise questions (those with `across`), answered after its attempts by votes,
+   * The eval's pairwise questions (those with `across`), answered after its trials by votes,
    * one per question; unset without any. They annotate: `outcome` and `passRate` never depend on them. Each vote
    * may include a short `reason` (capped). `reeval explain` includes each answer in the digest
    * (rates by cut, votes, ties, a failed call, and a sample of reasons). Each answer's `input` is
@@ -726,20 +726,20 @@ export type EvalEntry = {
    */
   excluded?: ExcludedPair[]
   /**
-   * An eval with `cases`: each case that has attempts in this run, in list order, with its own
-   * cells. `cells` and `attempts` are over every case. Unset without cases.
+   * An eval with `cases`: each case that has trials in this run, in list order, with its own
+   * cells. `cells` and `trials` are over every case. Unset without cases.
    */
   cases?: CaseRecord[]
-  /** With `cases`: how many the list has, `cases` holding those with attempts in this run. */
+  /** With `cases`: how many the list has, `cases` holding those with trials in this run. */
   caseCount?: number
   /**
-   * With `cases` and `compare`: each variant cell against its control, paired by case. Its
+   * With `cases` and `compare`: each variant cell against its baseline, paired by case. Its
    * `minLift` gates the lift's lower bound, and a lift below it fails the variant cell.
    */
   lifts?: FamilyLift[]
 }
 
-/** One case of an eval with `cases`, and how its attempts went. */
+/** One case of an eval with `cases`, and how its trials went. */
 export type CaseRecord = {
   /** The case's key: `nextjs` for the case keyed `nextjs`. */
   key: string
@@ -764,14 +764,14 @@ export type CaseRecord = {
   outcome: Outcome
   /** `family` when a cell's `{ passRate }` gate gates the mean over the cases, not this case. */
   verdict?: 'family'
-  /** pass@1 over its gated cells' attempts. */
+  /** pass@1 over its gated cells' trials. */
   passRate: number | null
   fingerprint: string
-  /** Its own cells: their attempts are those with this `case`. */
+  /** Its own cells: their trials are those with this `case`. */
   cells: CellRecord[]
   /** The environments (and harnesses) `where` left this case out of; unset when none. */
   excluded?: ExcludedPair[]
-  /** The eval's pairwise questions, answered over this case's attempts; unset without any. */
+  /** The eval's pairwise questions, answered over this case's trials; unset without any. */
   answers?: CompareAnswer[]
 }
 
@@ -781,9 +781,9 @@ export type FamilyInterval = {
   hi: number
   level: 0.95
   /**
-   * `wilson` or `newcombe-paired`: one counted attempt a case and side, so each case is one
+   * `wilson` or `newcombe-paired`: one counted trial a case and side, so each case is one
    * Bernoulli trial (or pair). `t-cases`: several, so a t interval over the cases' mean scores, with
-   * attempts within a case never counted as independent.
+   * trials within a case never counted as independent.
    */
   method: 'wilson' | 'newcombe-paired' | 't-cases'
 }
@@ -792,12 +792,12 @@ export type FamilyInterval = {
 export type FamilyRate = {
   /** The cell's key, the same in every case. */
   cell: string
-  /** Cases with at least one counted attempt in this cell. */
+  /** Cases with at least one counted trial in this cell. */
   cases: number
-  /** Passes and counted attempts over those cases. */
+  /** Passes and counted trials over those cases. */
   pass: number
   counted: number
-  /** The mean of the cases' mean scores; at one pass/fail attempt a case, `pass / counted`. */
+  /** The mean of the cases' mean scores; at one pass/fail trial a case, `pass / counted`. */
   rate: number
   interval: FamilyInterval
   /** The cell's `{ passRate }` gate: with cases it gates `rate`, not each case's score. */
@@ -811,7 +811,7 @@ export type CellRate = Omit<FamilyRate, 'cell'>
 
 /**
  * `lift` / `drop`: the interval excludes 0. `noise`: it doesn't. `insufficient`: fewer than 6
- * discordant pairs (one attempt a case) or 6 paired cases (several), where no test can decide.
+ * discordant pairs (one trial a case) or 6 paired cases (several), where no test can decide.
  */
 export type FamilyVerdict = 'lift' | 'drop' | 'noise' | 'insufficient'
 
@@ -819,7 +819,7 @@ export type FamilyVerdict = 'lift' | 'drop' | 'noise' | 'insufficient'
 export type FamilyEffortMetric = {
   /** Cases with a value on both sides. */
   pairs: number
-  /** The median over cases of the variant's per-case median, over the control's; null at 0. */
+  /** The median over cases of the variant's per-case median, over the baseline's; null at 0. */
   ratio: number | null
   /** Wilcoxon signed-rank over the per-case differences; null when every difference is 0. */
   p: number | null
@@ -830,31 +830,31 @@ export type FamilyEffortMetric = {
   verdict: 'fewer' | 'more' | 'noise' | 'insufficient'
 }
 
-/** The variant's effort against the control's, paired by case. */
+/** The variant's effort against the baseline's, paired by case. */
 export type FamilyEffort = {
   tools: FamilyEffortMetric
   agentMs: FamilyEffortMetric
-  /** Over the cases where every counted attempt reported usage; omitted when none did. */
+  /** Over the cases where every counted trial reported usage; omitted when none did. */
   tokens?: FamilyEffortMetric
 }
 
-/** A variant cell against its control over an eval's cases, paired by case. */
+/** A variant cell against its baseline over an eval's cases, paired by case. */
 export type FamilyLift = {
   /** The variant cell's key. */
   variant: string
-  /** The control cell's key. */
+  /** The baseline cell's key. */
   vs: string
-  /** Cases with counted attempts on both sides. */
+  /** Cases with counted trials on both sides. */
   pairs: number
   /** The mean of the paired cases' mean scores on each side. */
   variantRate: number
-  controlRate: number
-  /** Set at one attempt a case and side: pairs where only one side passed. */
-  discordant?: { variantOnly: number; controlOnly: number }
-  /** Variant minus control, from -1 to 1. */
+  baselineRate: number
+  /** Set at one trial a case and side: pairs where only one side passed. */
+  discordant?: { variantOnly: number; baselineOnly: number }
+  /** Variant minus baseline, from -1 to 1. */
   points: number
   interval: FamilyInterval
-  /** McNemar's exact p (one attempt a case), else Wilcoxon signed-rank over the cases. */
+  /** McNemar's exact p (one trial a case), else Wilcoxon signed-rank over the cases. */
   p: number | null
   /** The interval spans 0. */
   withinNoise: boolean
@@ -881,7 +881,7 @@ export type FamilyRecord = {
   /** Cases in the list. */
   cases: number
   /**
-   * Cases with an attempt that ran (not skipped) in this run; fewer when a filter or tag left
+   * Cases with a trial that ran (not skipped) in this run; fewer when a filter or tag left
    * some out, or an interrupted run or a filtered resume hasn't run them yet.
    */
   ran: number
@@ -901,18 +901,18 @@ export type FamilyRecord = {
   outcome: 'pass' | 'fail'
 }
 
-/** A variant cell's mean score against the control's, on the same harness and sandbox. */
+/** A variant cell's mean score against the baseline's, on the same harness and sandbox. */
 export type Lift = {
-  /** The control cell's key. */
+  /** The baseline cell's key. */
   vs: string
-  /** Passes out of counted attempts (passes and fails) on each side. */
-  control: { pass: number; counted: number }
+  /** Passes out of counted trials (passes and fails) on each side. */
+  baseline: { pass: number; counted: number }
   variant: { pass: number; counted: number }
-  /** The variant's mean score minus the control's, from -1 to 1. */
+  /** The variant's mean score minus the baseline's, from -1 to 1. */
   points: number
   /** 95% interval on the difference, by Newcombe's hybrid score method from two Wilson intervals. */
   interval: { lo: number; hi: number; level: 0.95; method: 'newcombe-wilson' }
-  /** The interval spans 0: the attempts can't tell the variant from the control. */
+  /** The interval spans 0: the trials can't tell the variant from the baseline. */
   withinNoise: boolean
   /** Set when the compare has a `minLift`; the cell fails when `interval.lo` is below it. */
   minLift?: number
@@ -930,7 +930,7 @@ export type FingerprintParts = {
   agentCli: string | null
   /** Over the judge's model, threshold and version. */
   judge: string
-  /** Over the attempt's context files. */
+  /** Over the trial's context files. */
   context: string
   /** The gateway its model calls went through; unset on `direct`, each provider's own key. */
   gateway?: string
@@ -940,13 +940,13 @@ export type FingerprintParts = {
    */
   gate?: string
   /**
-   * The score each attempt passes at under a `regression()` or `capability()` target; unset at 1
+   * The score each trial passes at under a `regression()` or `capability()` target; unset at 1
    * and under an older record's `metric`, whose threshold is its gate's.
    */
   threshold?: string
 }
 
-/** One harness and environment of an evaluation, and how its attempts went. */
+/** One harness and environment of an evaluation, and how its trials went. */
 export type CellRecord = Cell & {
   /** `sha256` of `fingerprintParts`; results are comparable only when it matches. */
   fingerprint: string
@@ -970,18 +970,18 @@ export type CellRecord = Cell & {
    * own default. Fast is not this.
    */
   effort: string | null
-  /** How the attempts decide the cell's outcome; `'none'` when they don't fail the run. */
+  /** How the trials decide the cell's outcome; `'none'` when they don't fail the run. */
   gate: CellGate
-  /** Environment keys the variant replaced on the control's (or a child on its parent's). */
+  /** Environment keys the variant replaced on the baseline's (or a child on its parent's). */
   overrides: string[]
   /**
-   * Set by `runs: { bestOf }`: the cell stopped once a majority of this many attempts agreed, and
-   * gates on that majority. `runs` still counts every planned attempt, the skipped ones included.
+   * Set by `trials: { bestOf }`: the cell stopped once a majority of this many trials agreed, and
+   * gates on that majority. `trials` still counts every planned trial, the skipped ones included.
    */
   bestOf?: number
-  /** The cell's attempts' agent and judge costs added up; unset where none has one. */
+  /** The cell's trials' agent and judge costs added up; unset where none has one. */
   cost?: { agent?: CostTotal; judge?: CostTotal }
-  runs: number
+  trials: number
   pass: number
   fail: number
   infraError: number
@@ -991,7 +991,7 @@ export type CellRecord = Cell & {
   /** Filled from `pass` and `fail` in records from before it. */
   scores?: ScoreSummary
   /**
-   * By `gate`. `'all'` (pass^k: every counted attempt passes) matches `{ passRate: 1 }`, `'any'`
+   * By `gate`. `'all'` (pass^k: every counted trial passes) matches `{ passRate: 1 }`, `'any'`
    * is pass@k, and `{ passRate }` a mean score threshold (a pass@1 one under `bestOf`). Infra
    * only when nothing counted; `'none'` reports the worst outcome. A variant below its `minLift`
    * fails too.
@@ -1005,49 +1005,49 @@ export type CellRecord = Cell & {
    */
   rate?: CellRate
   /**
-   * Each assertion, by label, seen in any attempt of the evaluation, over this cell's counted
-   * attempts; on a variant cell, the control's beside it. Unset when no attempt recorded any.
+   * Each assertion, by label, seen in any trial of the evaluation, over this cell's counted
+   * trials; on a variant cell, the baseline's beside it. Unset when no trial recorded any.
    */
   checks?: CellCheck[]
   /**
-   * Distinct first-turn prompts this cell's attempts sent (`sha256` of the prompt text). Optional
+   * Distinct first-turn prompts this cell's trials sent (`sha256` of the prompt text). Optional
    * on older records; readers compare `turns[0].prompt` when absent.
    */
   prompts?: Array<{ sha256: string; at?: string }>
 }
 
-/** How often one check passed: a counted attempt that never reached it counts it `notRun`. */
+/** How often one check passed: a counted trial that never reached it counts it `notRun`. */
 export type CheckTally = {
   pass: number
   fail: number
   error: number
   notRun: number
-  /** Attempts that recorded `not_applicable` for this check; never in the pass/fail denominator. */
+  /** Trials that recorded `not_applicable` for this check; never in the pass/fail denominator. */
   notApplicable: number
 }
 
 /**
- * One check over a cell's counted attempts. `verdict` (variant cells) is `discriminates` when
+ * One check over a cell's counted trials. `verdict` (variant cells) is `discriminates` when
  * every answered instance passes on one side and fails on the other, `both-pass` when every
  * answered instance passes on both sides, `both-fail` when every answered instance fails on both
  * sides, or `mixed` otherwise. It is absent when either side has no pass or fail.
  */
 export type CellCheck = CheckTally & {
   label: string
-  control?: CheckTally
+  baseline?: CheckTally
   verdict?: CheckVerdict
 }
 
 export type CheckVerdict = 'discriminates' | 'both-pass' | 'both-fail' | 'mixed'
 
-/** Counts attempts, except `evals`. */
+/** Counts trials, except `evals`. */
 export type RunSummary = {
   evals: number
-  attempts: number
+  trials: number
   pass: number
-  /** Every failed attempt, including `notGated` ones. */
+  /** Every failed trial, including `notGated` ones. */
   fail: number
-  /** Failed attempts in ungated cells (controls, by default), which don't fail the run. */
+  /** Failed trials in ungated cells (baselines, by default), which don't fail the run. */
   notGated: number
   infraError: number
   skipped: number
@@ -1057,7 +1057,7 @@ export type RunSummary = {
   gated?: { pass: number; fail: number }
   /** Ungated-cell pass/fail split; optional on older records. */
   ungated?: { pass: number; fail: number }
-  /** Attempts an unhandled turn error moved out of pass or fail; optional on older records. */
+  /** Trials an unhandled turn error moved out of pass or fail; optional on older records. */
   reclassified?: number
 }
 
@@ -1069,7 +1069,7 @@ export type Cost = {
   /** The same totals split as each turn reports them. */
   usage: TokenUsage | null
   source: 'reported' | 'unreported'
-  /** The attempts' costs added up; unset when none has one. */
+  /** The trials' costs added up; unset when none has one. */
   agentUsd?: CostTotal
   /** The judge calls' costs added up; unset when none has one. */
   judgeUsd?: CostTotal
@@ -1077,11 +1077,11 @@ export type Cost = {
 
 /**
  * The `reeval run` settings that shaped a run's plan, as it was first started. A resume keeps
- * them, so it finishes the attempts the run planned.
+ * them, so it finishes the trials the run planned.
  */
 export type RunInvocation = {
-  /** `--runs`; unset when each cell ran its own `runs`. */
-  runs?: number
+  /** `--trials`; unset when each cell ran its own `trials`. */
+  trials?: number
   /** The profile the run was sized with; unset when it had none. */
   profile?: string
   /** `--concurrency` or `REEVAL_CONCURRENCY`; unset when the config or the machine sized it. */
@@ -1106,7 +1106,7 @@ export type RunRecord = {
   schemaVersion: typeof SCHEMA_VERSION
   /** Also the file name: `<UTC start>_<short sha>_<author or ci>`. */
   runId: string
-  /** `budget` when `budget.duration` stopped new attempts from starting. */
+  /** `budget` when `budget.duration` stopped new trials from starting. */
   status: 'complete' | 'interrupted' | 'budget'
   startedAt: string
   endedAt: string
@@ -1121,7 +1121,7 @@ export type RunRecord = {
   git: GitInfo | null
   /**
    * The run's trace, `spans.jsonl`: what ran where and when, one OpenTelemetry-shaped span per line
-   * (`RunSpan`): the run, its image builds, each machine and container, and each attempt with its
+   * (`RunSpan`): the run, its image builds, each machine and container, and each trial with its
    * lease and phases. Absent in records from before reeval wrote one.
    */
   spans?: FileRef
@@ -1141,15 +1141,15 @@ export type RunRecord = {
       harness?: string[]
       environment?: string
       sandbox?: string
-      /** With `bestOf`, the most attempts a cell runs. */
-      runs?: number
-      /** Set by `defaults.runs: { bestOf }`. */
+      /** With `bestOf`, the most trials a cell runs. */
+      trials?: number
+      /** Set by `defaults.trials: { bestOf }`. */
       bestOf?: number
       timeout?: string | number
       env?: string[]
     }
     limit: {
-      runs?: number
+      trials?: number
       compare?: false | { maxVariants: number }
       harness?: string[]
       traits?: Record<string, string | string[]>
@@ -1164,29 +1164,29 @@ export type RunRecord = {
   plan: {
     evals: number
     cells: number
-    attempts: number
+    trials: number
     estimateMs: number
     sandboxWarnings: SandboxWarning[]
   }
-  budget: { attempts?: number; duration?: string | number } | null
+  budget: { trials?: number; duration?: string | number } | null
   /**
-   * The run's settings. `sandbox` is the id of each sandbox the planned attempts ran on, after the
+   * The run's settings. `sandbox` is the id of each sandbox the planned trials ran on, after the
    * profile's defaults, joined with `, `.
    */
   config: {
     sandbox: string
     environment: string | null
     /**
-     * The config's `runs` (with `bestOf`, the most a cell runs); 1 when it sets none, though a
+     * The config's `trials` (with `bestOf`, the most a cell runs); 1 when it sets none, though a
      * compare's cells then run 4 each.
      */
-    runs: number
-    /** Set by the config's `runs: { bestOf }`. */
+    trials: number
+    /** Set by the config's `trials: { bestOf }`. */
     bestOf?: number
     judgeModel: string | null
     threshold: number
     timeoutMs: number
-    /** Attempts that ran at once; not part of `configHash`, since it doesn't change results. */
+    /** Trials that ran at once; not part of `configHash`, since it doesn't change results. */
     concurrency: number
     configHash: string
   }
@@ -1194,7 +1194,7 @@ export type RunRecord = {
   /** Which artifacts sit next to this record. Refs to files that weren't kept are removed. */
   artifacts: ArtifactLevel
   /**
-   * The attempts' debug data uploaded with the run to its store (`history.debug`), each file by
+   * The trials' debug data uploaded with the run to its store (`history.debug`), each file by
    * its path in `.reeval/debug/<run>/` (`<eval>/<cell>/<n>/requests.ndjson`); absent when none was.
    */
   debug?: RunDebug
@@ -1202,23 +1202,23 @@ export type RunRecord = {
   summary: RunSummary
   evals: EvalEntry[]
   /**
-   * Every attempt's `secretWarnings`, each with the attempt's `key` as `attemptId`; absent when
+   * Every trial's `secretWarnings`, each with the trial's `key` as `trialId`; absent when
    * there's none.
    */
-  secretWarnings?: Array<SecretWarning & { attemptId: string }>
+  secretWarnings?: Array<SecretWarning & { trialId: string }>
   /**
    * In records from before an eval with `cases` was one entry, each eval with `cases` that ran.
    * Never written now; reading such a record folds it into its eval.
    */
   families?: FamilyRecord[]
   /**
-   * These are redacted errors outside any attempt: an evaluation file that didn't load, a rejection
-   * or throw no attempt awaited, or a worker that died. Any one fails the run. Unset when there
+   * These are redacted errors outside any trial: an evaluation file that didn't load, a rejection
+   * or throw no trial awaited, or a worker that died. Any one fails the run. Unset when there
    * were none.
    */
   errors?: string[]
   /**
-   * Each `reeval regrade` of the run, oldest first, which its attempts read as; unset when it has
+   * Each `reeval regrade` of the run, oldest first, which its trials read as; unset when it has
    * none, or when it's read with `--original`. Readers set it from the run's `regrades/` folder.
    */
   regrades?: RegradeNote[]
@@ -1228,18 +1228,18 @@ export type RunRecord = {
 export type RegradeNote = {
   id: string
   at: string
-  /** The keys of the attempts it changed. */
-  attempts: string[]
+  /** The keys of the trials it changed. */
+  trials: string[]
 }
 
 /**
- * What one `reeval regrade` changed in one run: the attempts whose grades it changed, each with
+ * What one `reeval regrade` changed in one run: the trials whose grades it changed, each with
  * its new grades, score and outcome, which readers put in place of the recorded ones. The record
  * itself is never rewritten.
  */
 export type RegradeRecord = {
   kind: 'reeval-regrade'
-  schemaVersion: 1
+  schemaVersion: 2
   /** Also the file name in the run's `regrades/` folder: `<UTC time>_<random>`. */
   id: string
   /** The id of the run it regrades. */
@@ -1251,12 +1251,12 @@ export type RegradeRecord = {
   git: { sha: string; dirty: boolean } | null
   /** `--grader`: the only graders it ran; unset when it ran every grader that changed. */
   graders?: string[]
-  attempts: RegradedAttempt[]
+  trials: RegradedTrial[]
 }
 
-/** One attempt as a regrade left it. */
-export type RegradedAttempt = {
-  /** The attempt's `key` in the run record. */
+/** One trial as a regrade left it. */
+export type RegradedTrial = {
+  /** The trial's `key` in the run record. */
   key: string
   /**
    * Every grade it reads with now, in the eval's order, a grade not regraded as it was. A reader
@@ -1267,13 +1267,13 @@ export type RegradedAttempt = {
   score: number
   outcome: 'pass' | 'fail'
   /** Why it fails now: its score under the run's target; null when it passes. */
-  error: AttemptError | null
+  error: TrialError | null
   /** What happened to each grader on it. */
   actions: RegradeAction[]
 }
 
 /**
- * What a regrade did with one grader on one attempt: `kept` it (unchanged, or not selected),
+ * What a regrade did with one grader on one trial: `kept` it (unchanged, or not selected),
  * `rescored` its stored grade (its score, weight or required changed), `recomputed` it (its
  * fingerprint changed: `changed` names the parts), ran a `new` grader, left one the eval no
  * longer has (`not-found`), kept one whose inputs the run didn't keep (`inputs-missing`, with
@@ -1303,8 +1303,8 @@ export type Stack = {
   language?: { name: string; version?: string }
   os: string
   arch: string
-  /** Every image an attempt started from. `id` is content-addressed; `repoDigests` exist only after the image is pushed. */
-  images: Array<AttemptImage & { repoDigests: string[] }>
+  /** Every image a trial started from. `id` is content-addressed; `repoDigests` exist only after the image is pushed. */
+  images: Array<TrialImage & { repoDigests: string[] }>
   /** Exact versions of the packages that run and grade the agent. */
   packages: Record<string, string>
   /**
@@ -1351,7 +1351,7 @@ export type Stack = {
     /** The config's default judge inputs, every key resolved. Unset when the config names none: each judge grader names its own. */
     state?: ResolvedJudgeStateOptions
   }
-  /** Union of every attempt's context files. */
+  /** Union of every trial's context files. */
   context: ContextFile[]
   /** What evaluation fingerprints hash; fingerprints from different scopes aren't comparable. */
   fingerprintScope: string[]
@@ -1385,7 +1385,7 @@ export type HistoryCell = Pick<
   | 'gate'
   | 'fingerprint'
   | 'fingerprintParts'
-  | 'runs'
+  | 'trials'
   | 'pass'
   | 'fail'
   | 'infraError'
@@ -1396,9 +1396,9 @@ export type HistoryCell = Pick<
   | 'bestOf'
 > & {
   lift?: { vs: string; points: number; lo: number; hi: number; withinNoise: boolean }
-  /** Median tool calls, agent time and tokens over the counted attempts; null when none counted. */
+  /** Median tool calls, agent time and tokens over the counted trials; null when none counted. */
   effort: CellEffort | null
-  /** Of `fail`, the attempts the run's interrupt canceled (`error.kind: 'aborted'`); unset when none. */
+  /** Of `fail`, the trials the run's interrupt canceled (`error.kind: 'aborted'`); unset when none. */
   canceled?: number
 }
 
@@ -1426,14 +1426,14 @@ export type RunScope = {
   /** The profile's name; null without one. */
   profile: string | null
   /**
-   * The run was narrowed: `invocation` has filters, `--tag`, `--trait` or `--runs`. An eval left
+   * The run was narrowed: `invocation` has filters, `--tag`, `--trait` or `--trials`. An eval left
    * out by `.only` doesn't set it, since the record's `skip` doesn't tell `.only` from `.skip`.
    */
   subset: boolean
   /**
    * The hex `sha256` of the profile's `name`, `defaults` (its `timeout` in milliseconds) and
-   * `limit`, the invocation's `runs`, `filters`, `tags` and `traits`, the config's `environment`,
-   * `runs`, `bestOf`, `judgeModel`, `threshold` and `timeoutMs`, and `stack.fingerprintScope`, as
+   * `limit`, the invocation's `trials`, `filters`, `tags` and `traits`, the config's `environment`,
+   * `trials`, `bestOf`, `judgeModel`, `threshold` and `timeoutMs`, and `stack.fingerprintScope`, as
    * canonical JSON with a version, `v: 1`, which any change to these inputs or their
    * canonicalization bumps, so a newer reeval's keys never silently match an older one's.
    * Nothing that follows the evals that ran: not `config.sandbox`, the harnesses or the
@@ -1495,26 +1495,26 @@ export type HistoryEntry = {
       Pick<FamilyRate, 'cell' | 'rate'> & Required<Pick<FamilyRate, 'passRate' | 'outcome'>>
     >
     /**
-     * Each grader its attempts were graded with, by name: a digest of its fingerprint, score
-     * function, weight and required. Unset when no attempt was graded.
+     * Each grader its trials were graded with, by name: a digest of its fingerprint, score
+     * function, weight and required. Unset when no trial was graded.
      */
     graders?: Record<string, string>
-    /** A regrade changed one of its attempts' grades. */
+    /** A regrade changed one of its trials' grades. */
     regraded?: true
   }>
-  /** The run's errors outside any attempt; unset when there were none. */
+  /** The run's errors outside any trial; unset when there were none. */
   errors?: string[]
 }
 
 /**
- * A subagent an attempt's agent spawned (`subagents[]`). `toolCalls` and `fileEdits` count its
+ * A subagent a trial's agent spawned (`subagents[]`). `toolCalls` and `fileEdits` count its
  * events in the trajectory; null when its harness doesn't report them (`events: 'none'`).
  * `prompt` and `finalMessage` are cut at 8 KB.
  */
 export type SubagentRecord = {
   /** The spawn call's `toolCallId`, which the subagent's trajectory events carry as `subagent`. */
   id: string
-  /** 1, 2, … in spawn order across the attempt. */
+  /** 1, 2, … in spawn order across the trial. */
   n: number
   /** The index of the turn that spawned it. */
   turn: number

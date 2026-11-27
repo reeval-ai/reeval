@@ -20,7 +20,7 @@ else
 fi`
 
 // Leaves the failing run the agent is asked about in .reeval/. The flaky fixture passes about
-// half its attempts, so it may take more than one run to fail.
+// half its trials, so it may take more than one run to fail.
 const seedFailingRun = `for i in 1 2 3; do
   node_modules/.bin/reeval run --ui plain > /dev/null 2>&1 || exit 0
 done
@@ -33,7 +33,7 @@ exit 1`
  * run per commit (scripts/seed-history.mjs); any other starts from its fixture and its failing run.
  */
 export function brokenProject(fixture: string, history?: { base: string }) {
-  const control = defineEnvironment(fixture, ({ directory, file }) => ({
+  const baseline = defineEnvironment(fixture, ({ directory, file }) => ({
     files: {
       ...directory(`./fixtures/${history?.base ?? fixture}`),
       ...(history ? { '~/.dogfood-seed.mjs': file('./scripts/seed-history.mjs') } : {}),
@@ -47,7 +47,7 @@ export function brokenProject(fixture: string, history?: { base: string }) {
         : { run: seedFailingRun, timeout: '3m' },
     ],
   }))
-  const variant = control.extendEnvironment(`${fixture}-with-mcp`, ({ mcp }) => ({
+  const variant = baseline.extendEnvironment(`${fixture}-with-mcp`, ({ mcp }) => ({
     mcp: {
       // reeval mcp reads the config of the directory it starts in, which the harness picks.
       reeval: mcp.stdio('sh', [
@@ -56,5 +56,5 @@ export function brokenProject(fixture: string, history?: { base: string }) {
       ]),
     },
   }))
-  return { control, variant }
+  return { baseline, variant }
 }

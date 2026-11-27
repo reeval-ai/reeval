@@ -1,8 +1,8 @@
-import { type AttemptContext, defineGrader } from 'reeval'
+import { type TrialContext, defineGrader } from 'reeval'
 import { execOf } from 'reeval/graders/match'
 
 /** A labeled command before the turn (the build is not there yet), then one after it with output past the 128 KiB cap. */
-export async function runExecs(c: AttemptContext): Promise<void> {
+export async function runExecs(c: TrialContext): Promise<void> {
   await c.exec('test -f out.txt', { label: 'before' })
   await c.send('build it')
   await c.exec('cat out.txt; head -c 200000 /dev/zero | tr "\\0" a; echo; echo warn >&2', {

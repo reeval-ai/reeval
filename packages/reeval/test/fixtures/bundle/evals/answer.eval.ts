@@ -7,7 +7,7 @@ const answer = readFileSync(new URL('../data/answer.txt', import.meta.url), 'utf
 
 export default defineEval({
   // Set only where a test asks for a plan that differs from the bundle's.
-  runs: process.env.BUNDLE_SECOND_EVAL ? 2 : 1,
+  trials: process.env.BUNDLE_SECOND_EVAL ? 2 : 1,
   graders: [defineGrader('answers-42', { grade: () => answer === '42' })],
   async task(c) {
     const turn = await c.send(task)

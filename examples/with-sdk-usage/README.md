@@ -28,7 +28,7 @@ runs the same eval on Claude Code, with a real judge, and `--profile <name>` on 
 one profile you need.
 
 **What to look at:** a `forecast()` that calls `client.weather` without retrying scores 0 on
-`check-client`, which is required, so the attempt scores 0 whatever the judge says. Its grade in
+`check-client`, which is required, so the trial scores 0 whatever the judge says. Its grade in
 the run record, under `.reeval/runs/`, says why:
 
 ```json

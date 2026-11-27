@@ -2,7 +2,7 @@ import { defineEval } from 'reeval'
 import { observed } from 'reeval/graders'
 import { agentSaw, vm } from './env.ts'
 
-// The machine's first attempt finds it new and its second finds it reset, so either finds
+// The machine's first trial finds it new and its second finds it reset, so either finds
 // nothing left; the row's record check holds the one that ran second to it.
 export default defineEval({
   environment: vm,
@@ -15,6 +15,6 @@ export default defineEval({
     ),
   ],
   task: async (c) => {
-    c.observe('agent-saw', agentSaw(await c.send('what did the last attempt leave?')))
+    c.observe('agent-saw', agentSaw(await c.send('what did the last trial leave?')))
   },
 })

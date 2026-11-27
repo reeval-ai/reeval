@@ -7,12 +7,12 @@ const withSkill = defineEnvironment('with-skill', ({ skill }) => ({
 }))
 
 // Cases on one cell: a row per case, the failing one with its checks. Cases with a change: the
-// case outer, its arms inner, and the cases pooled into one effect.
+// case outer, its environments inner, and the cases pooled into one effect.
 
 export default defineEval({
   target: capability(),
   cases: [{ key: 'Ada' }, { key: 'Grace' }, { key: 'Linus' }, { key: 'Edsger' }],
-  compare: { control: plain, variants: [withSkill] },
+  compare: { baseline: plain, variants: [withSkill] },
   graders: [succeeded('house greeting')],
   task: async (c, { key: name }) => {
     await c.send(`Write greet.js that greets ${name} in our house style.`)

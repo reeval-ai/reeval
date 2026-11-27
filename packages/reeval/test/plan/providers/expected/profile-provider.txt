@@ -1,3 +1,3 @@
-profile daytona (--profile) · 1 evals · 1 cells · 1 attempts
-the-default-sandbox  fake/-/docker:node:24-bookworm  control  gated any  ×1  sandbox: docker:node:24-bookworm on daytona({ size: 'large' }) · egress "allow-all"
+profile daytona (--profile) · 1 evals · 1 cells · 1 trials
+the-default-sandbox  fake/-/docker:node:24-bookworm  baseline  gated any  ×1  sandbox: docker:node:24-bookworm on daytona({ size: 'large' }) · egress "allow-all"
 excluded: —

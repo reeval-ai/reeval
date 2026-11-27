@@ -1,9 +1,9 @@
-# Evals: the attempt API, judges and matchers
+# Evals: the trial API, judges and matchers
 
 ## Contents
 
 - Cases: `cases`, `where`, and `target`
-- The attempt: `c.send`, `c.exec`, `c.serve`, files
+- The trial: `c.send`, `c.exec`, `c.serve`, files
 - The judge: inputs, input size, errors
 - Trustworthy evals
 - Matchers
@@ -15,9 +15,9 @@
 - `defineEval({ cases: [...], task: async (c, item) => … })` runs one eval over a list: one pass
   rate over the cases and, with `compare`, one lift paired by case, which `minLift` gates (not
   each case's). Prefer it to separate evals when the cases are one population: six cases at
-  `runs: 1` can reach a lift verdict where each case alone is within noise. Fewer than six
+  `trials: 1` can reach a lift verdict where each case alone is within noise. Fewer than six
   discordant cases shows only a direction (`insufficient` in `reeval query case_lift`), so
-  aim for six cases or more; the plan hints when there are fewer. No `runs: { bestOf }` beside it.
+  aim for six cases or more; the plan hints when there are fewer. No `trials: { bestOf }` beside it.
   A failing case fails the eval, and the result prints the mean over the cases; under
   `regression()` it fails the run too. It is one eval: one row in `--dry-run` and the run output (a
   case table under it when it fails, or with `-v`), one entry in the record with its cases
@@ -27,29 +27,29 @@
   'users' }]`; `Case<T>` is `{ key: string } & T`). Keys are unique, at most 80 characters, with
   no surrounding whitespace, `#` or `›`. `cases` and `where` go on `defineEval`, not the config.
 - Porting `evaluate.each`: write `defineEval({ cases: items, ...opts, task })` with the old option names made plural (`agents`, `environments`,
-  `compare.control`). Give each item the `key` that `%s` or `$id` held; a changed key starts
+  `compare.baseline`). Give each item the `key` that `%s` or `$id` held; a changed key starts
   that case's history again.
 - `where: ({ case, environment, harness }) => boolean` (TypeScript only) picks which case runs
   on which environment, at plan time, from each environment's `traits` (`defineEnvironment('next',
   { traits: { stack: 'next' } })`; never shown to the agent). Reading a trait no environment
-  defines is an error; with `compare` it sees the control, and its answer holds for the variants.
+  defines is an error; with `compare` it sees the baseline, and its answer holds for the variants.
   `--dry-run` notes `excluded on vite-app: q2`, the run's case table shows `–` there, and each case's record keeps its own in
   `excluded`. A cell left with no cases is an error: drop that environment instead.
 - `where` says which pairs fit, the same every run; to run only some environments today, use
   `reeval run --trait stack=next` (repeat to AND) or a profile's
-  `limit: { traits: { stack: ['next', 'vite'] } }`. Both narrow after `where`, by the control's
+  `limit: { traits: { stack: ['next', 'vite'] } }`. Both narrow after `where`, by the baseline's
   traits under `compare`, and `--dry-run` notes `--trait stack=next leaves out vite-app`. Never
   read a flag or a variable in `where` to do this.
 - `defineEval({ task })` with the default `target: capability()` records what agents do (with
   `c.observe` and checks) and fails the run only on run or infra errors. Its result prints the
   mean score, which no target gates on.
   `compare.minLift` is an error beside it. `regression(0.8)` gates
-  every attempt (pass^k) and `capability(1, { blocking: true })` one attempt (pass@k); without
+  every trial (pass^k) and `capability(1, { blocking: true })` one trial (pass@k); without
   `blocking`, a capability miss doesn't fail the run. A compare's target gates its variants only.
   A comment on an eval describes the current check (why a canary fails, which path it reads),
   not what used to be true or which product a prompt was ported from.
 
-## The attempt: `c.send`, `c.exec`, `c.serve`, files
+## The trial: `c.send`, `c.exec`, `c.serve`, files
 
 - `await c.send(prompt)` runs one agent turn and returns a `Turn` (`text`, `status`, `diff`,
   `trajectory`). Call it again for multi-turn; a judge's `inputs: { turns: 'all' }` shows every
@@ -73,11 +73,11 @@
   (and the judge) would count them as the agent's. The sandbox and session start on the first
   call that needs them (`c.send`, `c.exec`, `c.readFile`, `c.writeFile`, `c.serve`,
   `c.capture`), so a check before any turn sees what the environment set up.
-  `c.attempt.cell.role` is
-  `'control'` or `'variant'`.
-- `c.observe(name, value)` records a JSON value about the attempt (which ORM it installed, how many
+  `c.trial.cell.role` is
+  `'baseline'` or `'variant'`.
+- `c.observe(name, value)` records a JSON value about the trial (which ORM it installed, how many
   files it touched) that affects the score only through a grader that reads it; the run output tallies it per cell and
-  `reeval query attempt_values` lists it. Judges and questions see it only with
+  `reeval query trial_values` lists it. Judges and questions see it only with
   `observations: true` (or a list of names). Use it for what you want to count, and
   `observed(name, predicate)` from `reeval/graders` for what must hold.
 
@@ -118,7 +118,7 @@
   grader turns on, uncut, and knows no model's limit: a provider error refusing it keeps the
   provider's wording and adds one line with the input's estimated size, biggest files and the
   inputs that were on, largest first; narrow one, e.g. `{ diff: ['src/'] }`.
-- A judge grader whose provider fails after its retries, or that times out, ends the attempt
+- A judge grader whose provider fails after its retries, or that times out, ends the trial
   `infra_error`, which `--retry-errors` runs again; one the model refuses, or answers malformed,
   scores 0 with its `error`, and the other graders still run.
 
@@ -167,7 +167,7 @@ npx reeval run --profile canary           # the graders you meant miss
   oracle, with its key, to check that a question passes good work.
 - `fakeSandbox()` isn't the oracle's sandbox: it runs on the host, brokers nothing and enforces no
   egress. It's for trying reeval and testing configs without Docker.
-- An eval that sets its own `agents` and `pin: ['agents']` keeps it (the plan notes `agents set by the eval`), and a non-blocking cell's (a default `capability()` eval's, a control's) failed checks don't change the
+- An eval that sets its own `agents` and `pin: ['agents']` keeps it (the plan notes `agents set by the eval`), and a non-blocking cell's (a default `capability()` eval's, a baseline's) failed checks don't change the
   exit code: its row in the result block shows its count (`plain  0 of 4`).
 
 Keep grading out of the
@@ -204,7 +204,7 @@ container as the same user, which suits AX evals but isn't a sealed verifier; a 
   (a directory matches everything under it) and RegExps work. `wrote` counts the paths the
   agent's write and edit tool calls touched. Gitignored files don't appear in the diff, so use
   `hasFile()` to check them.
-- The task fails the attempt when it throws: a plain `assert`, an `EvalError`, a dead sandbox or
+- The task fails the trial when it throws: a plain `assert`, an `EvalError`, a dead sandbox or
   a timeout ends it there.
 - **Name each requirement** with a grader's `name` option:
   `hasFile('greet.js', /export/, { name: 'exports greet' })`. Changing a name changes the eval's

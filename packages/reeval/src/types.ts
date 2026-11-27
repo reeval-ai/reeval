@@ -154,7 +154,7 @@ export type CaptureOptions = {
   browser?: boolean
   /**
    * Vision model for `instructions`. Cascades like `question`. Default is `analysis.model`, else
-   * the attempt's judge model, whichever is first a language model; never Jev.
+   * the trial's judge model, whichever is first a language model; never Jev.
    */
   model?: string
 }
@@ -168,7 +168,7 @@ export type BackgroundHandle = {
 export type ServeHandle = BackgroundHandle & { port: number }
 
 /**
- * What `c.capture()` returns: the PNG is also in the attempt record under `artifacts/`, and the
+ * What `c.capture()` returns: the PNG is also in the trial record under `artifacts/`, and the
  * page facts in `artifacts/<name>.capture.json` beside it.
  */
 export type Capture = CapturePage & {
@@ -179,7 +179,7 @@ export type Capture = CapturePage & {
   path: string
   /** What the author asked, including `'full-page'`. */
   viewport: Viewport
-  /** `artifacts/<name>.png` under the attempt directory. */
+  /** `artifacts/<name>.png` under the trial directory. */
   file: { path: string; sha256: string; bytes: number }
 }
 
@@ -249,7 +249,7 @@ export type CapturePageFile = {
  * default `name` is derived from the path. `wait` and `instructions` are call-only.
  */
 export type CaptureCall = {
-  /** The `artifacts/<name>.png` file name: 1 to 100 of `a-z`, `0-9`, `_` and `-`, starting with a letter or digit. Unique within the attempt. */
+  /** The `artifacts/<name>.png` file name: 1 to 100 of `a-z`, `0-9`, `_` and `-`, starting with a letter or digit. Unique within the trial. */
   name?: string
   path?: string
   viewport?: Viewport
@@ -285,7 +285,7 @@ export type TimeSplit = {
 
 /**
  * Costs added up: `basis` is `reported` only when every part was. `unpriced` counts the parts
- * (attempts, or judge calls) that used tokens but have no cost, which `usd` leaves out.
+ * (trials, or judge calls) that used tokens but have no cost, which `usd` leaves out.
  */
 export type CostTotal = CostUsd & { unpriced?: number }
 
@@ -354,7 +354,7 @@ export type JudgeState =
 /** A capture this judge call sent as a file part. Bytes live in the `artifacts/<name>.png` file. */
 export type JudgeArtifactRef = {
   name: string
-  /** The `artifacts/<name>.png` path under the attempt directory. */
+  /** The `artifacts/<name>.png` path under the trial directory. */
   path: string
   sha256: string
   bytes: number
@@ -501,7 +501,7 @@ type JudgeFailure = Omit<
  * What an eval's body gets. The sandbox and the agent session start on the first call that needs
  * them (`send`, `exec`, `readFile`, `writeFile`, `serve` or `capture`), once however many ask.
  */
-export type AttemptContext = {
+export type TrialContext = {
   /** Sends the next turn of this eval's agent session. */
   send(prompt: string): Promise<Turn>
   /**
@@ -537,7 +537,7 @@ export type AttemptContext = {
    */
   writeFile(path: string, contents: string | Uint8Array): Promise<void>
   /**
-   * Records a fact about the attempt under `name`, such as what the agent installed. It never
+   * Records a fact about the trial under `name`, such as what the agent installed. It never
    * affects the outcome. Calling it again with a name replaces its value. The value is JSON, and
    * is masked like the rest of the record.
    */
@@ -545,9 +545,9 @@ export type AttemptContext = {
   /**
    * Asks a decision model the `questions` about `state`, for the task to act on: the AI SDK's
    * `experimental_decide` on the call's `model`, else `decide.model`, else `analysis.model`, with
-   * the attempt's signal. State and questions are masked first, and the call is recorded in the
+   * the trial's signal. State and questions are masked first, and the call is recorded in the
    * trajectory; it's never graded, and its tokens never count as the agent's. A provider failure,
-   * after the AI SDK's retries, fails the attempt as an infrastructure error.
+   * after the AI SDK's retries, fails the trial as an infrastructure error.
    */
   decide<const QUESTIONS extends Record<string, Experimental_DecisionQuestion>>(
     call: DecideCall<QUESTIONS>,
@@ -563,10 +563,10 @@ export type AttemptContext = {
   readonly turns: readonly Turn[]
   /** Aborted on timeout or Ctrl-C. */
   readonly signal: AbortSignal
-  /** Which cell of the matrix this attempt is, and its run number (from 1). */
-  readonly attempt: { id: string; cell: Cell; n: number }
+  /** Which cell of the matrix this trial is, and its run number (from 1). */
+  readonly trial: { id: string; cell: Cell; n: number }
 }
-export type EvalFn = (c: AttemptContext) => Promise<void>
+export type EvalFn = (c: TrialContext) => Promise<void>
 
 /** `c.decide()`'s call: `experimental_decide`'s options, with reeval's model and state. */
 export type DecideCall<QUESTIONS extends Record<string, Experimental_DecisionQuestion>> = {
@@ -597,13 +597,13 @@ export type StateInputs = Pick<
 
 /**
  * One case of an eval with `cases`: an object whose `key` names it in the output and the record,
- * its attempts `<eval>#<key>`. The key is 1–80 characters, with no surrounding whitespace, `#`,
+ * its trials `<eval>#<key>`. The key is 1–80 characters, with no surrounding whitespace, `#`,
  * `›` or control characters, and unique within the eval.
  */
 export type Case<T = unknown> = { key: string } & T
 
-/** The body of an eval with `cases`: the attempt and its case. */
-export type CaseFn<T> = (c: AttemptContext, item: Case<T>) => Promise<void>
+/** The body of an eval with `cases`: the trial and its case. */
+export type CaseFn<T> = (c: TrialContext, item: Case<T>) => Promise<void>
 
 /**
  * One eval over several inputs: each case runs the body with every cell and run, and the cases
@@ -614,7 +614,7 @@ export type CaseOptions<T> = {
   cases: readonly Case<T>[]
   /**
    * Which case and environment pairs run, decided at plan time. It sees each environment's
-   * `traits`, and with `compare` the control, whose answer holds for every variant. Reading
+   * `traits`, and with `compare` the baseline, whose answer holds for every variant. Reading
    * `harness` decides each harness on its own. The pairs it leaves out are listed in `--dry-run`
    * and the record's `excluded`.
    */
@@ -626,7 +626,7 @@ export type Traits = Readonly<Record<string, string | readonly string[]>>
 
 /**
  * One `--trait key=value`, or one key of a profile's `limit.traits`: a cell matches when its
- * control's trait equals one of `values` or, for a list trait, contains one. Every filter must
+ * baseline's trait equals one of `values` or, for a list trait, contains one. Every filter must
  * match.
  */
 export type TraitFilter = {
@@ -677,17 +677,17 @@ export type FakeHarnessDescriptor = {
   ignoreAbort?: boolean
   /**
    * Each turn's recorded agent time, exactly, whatever the wall clock says: a test can compare
-   * agent time without scheduling jitter, which four runs a side can tell apart.
+   * agent time without scheduling jitter, which four trials a side can tell apart.
    */
   turnMs?: number
   /** Throw before the first turn starts, to simulate an infra failure. */
   failWith?: string
-  /** The first this many session starts of an attempt never become ready, even when aborted (`true`: every one). */
+  /** The first this many session starts of a trial never become ready, even when aborted (`true`: every one). */
   startHangs?: number | true
   /**
    * A shell command the fake agent runs as its session starts, once per sandbox, as a real
    * adapter's bootstrap installs its CLI: `tart()` bakes it into the image it clones, as it does a
-   * real harness's, so an attempt there finds it done.
+   * real harness's, so a trial there finds it done.
    */
   bootstrap?: string
   /** A reasoning block at the start of every turn. */
@@ -733,7 +733,7 @@ export type FakeHarnessDescriptor = {
   }>
   /** Files and message used instead when the environment gives the agent a skill. */
   withSkill?: { files?: Record<string, string>; text?: string }
-  /** Chance (0–1) that an attempt writes no files and says so, for flaky pass rates. */
+  /** Chance (0–1) that a trial writes no files and says so, for flaky pass rates. */
   flakeRate?: number
   /** US dollars the fake agent says every turn cost, as a harness that reports its cost does; 0 reports none. */
   costUsd?: number
@@ -750,11 +750,11 @@ export type FakeHarnessDescriptor = {
    * `files`. `exec` runs as the agent: with the sandbox's own variables, none of the checks'.
    */
   script?: FakeScriptStep[][]
-  /** The most attempts on this harness kind at once, across the run. */
+  /** The most trials on this harness kind at once, across the run. */
   maxConcurrent?: number
   /**
    * How long the harness's session may take to become ready (its bootstrap and first session)
-   * before the attempt is an infra error, after one retry; default 90s.
+   * before the trial is an infra error, after one retry; default 90s.
    */
   startTimeout?: Duration
   /**
@@ -793,9 +793,9 @@ export type FakeHarnessDescriptor = {
  * (`'<server>/<tool>'`) starts the environment's stdio MCP server in the sandbox, as an agent
  * would, and calls the tool with no arguments; it's reported as `mcp__<server>__<tool>`.
  * `error` ends the turn there with status `error` and that message, as a provider error would; one
- * worded as a provider's credit, quota or rate limit makes the attempt an infra error.
+ * worded as a provider's credit, quota or rate limit makes the trial an infra error.
  * `refuseKey` ends it as the model API rejecting the key in that variable would, which makes the
- * attempt an infra error.
+ * trial an infra error.
  */
 export type FakeScriptStep =
   | { exec: string }
@@ -829,11 +829,11 @@ export type CursorHarnessDescriptor = Pick<HarnessOptions, 'instructions'> & {
   effort?: string
   /** Cell id; defaults to `cursor:<model>`, or `cursor:<model>[effort=<value>]` when `effort` is set. */
   id?: string
-  /** The most Cursor attempts at once, across the run, e.g. for the account's rate limits. */
+  /** The most Cursor trials at once, across the run, e.g. for the account's rate limits. */
   maxConcurrent?: number
   /**
    * How long the harness's session may take to become ready (its bootstrap and first session)
-   * before the attempt is an infra error, after one retry; default 90s.
+   * before the trial is an infra error, after one retry; default 90s.
    */
   startTimeout?: Duration
 }
@@ -860,11 +860,11 @@ export type ClaudeCodeHarnessDescriptor = Pick<
   effort?: ClaudeCodeEffort
   /** Cell id; defaults to `claude-code:<model>`, or `claude-code:<model>[effort=<value>]` when `effort` is set. */
   id?: string
-  /** The most Claude Code attempts at once, across the run, e.g. for the account's rate limits. */
+  /** The most Claude Code trials at once, across the run, e.g. for the account's rate limits. */
   maxConcurrent?: number
   /**
    * How long the harness's session may take to become ready (its bootstrap and first session)
-   * before the attempt is an infra error, after one retry; default 90s.
+   * before the trial is an infra error, after one retry; default 90s.
    */
   startTimeout?: Duration
 }
@@ -885,11 +885,11 @@ export type AntigravityHarnessDescriptor = Pick<HarnessOptions, 'instructions'> 
   effort?: string
   /** Cell id; defaults to `antigravity:<model>`, or `antigravity:<model>[effort=<value>]` when `effort` is set. */
   id?: string
-  /** The most Antigravity attempts at once, across the run, e.g. for the key's rate limits. */
+  /** The most Antigravity trials at once, across the run, e.g. for the key's rate limits. */
   maxConcurrent?: number
   /**
    * How long the harness's session may take to become ready (its bootstrap and first session)
-   * before the attempt is an infra error, after one retry; default 90s.
+   * before the trial is an infra error, after one retry; default 90s.
    */
   startTimeout?: Duration
 }
@@ -920,11 +920,11 @@ export type OpenCodeHarnessDescriptor = Pick<
   effort?: string
   /** Cell id; defaults to `opencode:<model>`, or `opencode:<model>[effort=<value>]` when `effort` is set. */
   id?: string
-  /** The most OpenCode attempts at once, across the run, e.g. for the key's rate limits. */
+  /** The most OpenCode trials at once, across the run, e.g. for the key's rate limits. */
   maxConcurrent?: number
   /**
    * How long the harness's session may take to become ready (its bootstrap and first session)
-   * before the attempt is an infra error, after one retry; default 90s.
+   * before the trial is an infra error, after one retry; default 90s.
    */
   startTimeout?: Duration
 }
@@ -951,11 +951,11 @@ export type GooseHarnessDescriptor = Pick<HarnessOptions, 'instructions'> & {
   effort?: string
   /** Cell id; defaults to `goose:<model>`, or `goose:<model>[effort=<value>]` when `effort` is set. */
   id?: string
-  /** The most Goose attempts at once, across the run, e.g. for the key's rate limits. */
+  /** The most Goose trials at once, across the run, e.g. for the key's rate limits. */
   maxConcurrent?: number
   /**
    * How long the harness's session may take to become ready (its bootstrap and first session)
-   * before the attempt is an infra error, after one retry; default 90s.
+   * before the trial is an infra error, after one retry; default 90s.
    */
   startTimeout?: Duration
 }
@@ -986,11 +986,11 @@ export type PiHarnessDescriptor = Pick<
   effort?: string
   /** Cell id; defaults to `pi:<model>`, or `pi:<model>[effort=<value>]` when `effort` is set. */
   id?: string
-  /** The most pi attempts at once, across the run, e.g. for the key's rate limits. */
+  /** The most pi trials at once, across the run, e.g. for the key's rate limits. */
   maxConcurrent?: number
   /**
    * How long the harness's session may take to become ready (its bootstrap and first session)
-   * before the attempt is an infra error, after one retry; default 90s.
+   * before the trial is an infra error, after one retry; default 90s.
    */
   startTimeout?: Duration
 }
@@ -1014,11 +1014,11 @@ export type CodexHarnessDescriptor = Pick<HarnessOptions, 'instructions' | 'syst
   effort?: string
   /** Cell id; defaults to `codex:<model>`, or `codex:<model>[effort=<value>]` when `effort` is set. */
   id?: string
-  /** The most Codex attempts at once, across the run, e.g. for the key's rate limits. */
+  /** The most Codex trials at once, across the run, e.g. for the key's rate limits. */
   maxConcurrent?: number
   /**
    * How long the harness's session may take to become ready (its bootstrap and first session)
-   * before the attempt is an infra error, after one retry; default 90s.
+   * before the trial is an infra error, after one retry; default 90s.
    */
   startTimeout?: Duration
 }
@@ -1049,11 +1049,11 @@ export type FxHarnessDescriptor = Pick<HarnessOptions, 'instructions'> & {
   effort?: string
   /** Cell id; defaults to `fx:<model>`, or `fx:<model>[effort=<value>]` when `effort` is set. */
   id?: string
-  /** The most fx attempts at once, across the run, e.g. for the key's rate limits. */
+  /** The most fx trials at once, across the run, e.g. for the key's rate limits. */
   maxConcurrent?: number
   /**
    * How long the harness's session may take to become ready (its bootstrap and first session)
-   * before the attempt is an infra error, after one retry; default 90s.
+   * before the trial is an infra error, after one retry; default 90s.
    */
   startTimeout?: Duration
 }
@@ -1077,11 +1077,11 @@ export type GrokBuildHarnessDescriptor = Pick<HarnessOptions, 'instructions'> & 
   effort?: string
   /** Cell id; defaults to `grok-build:<model>`, or `grok-build:<model>[effort=<value>]` when `effort` is set. */
   id?: string
-  /** The most Grok Build attempts at once, across the run, e.g. for the key's rate limits. */
+  /** The most Grok Build trials at once, across the run, e.g. for the key's rate limits. */
   maxConcurrent?: number
   /**
    * How long the harness's session may take to become ready (its bootstrap and first session)
-   * before the attempt is an infra error, after one retry; default 90s.
+   * before the trial is an infra error, after one retry; default 90s.
    */
   startTimeout?: Duration
 }
@@ -1172,7 +1172,7 @@ export type AgentHarnessDescriptor =
   | CodexHarnessDescriptor
   | FxHarnessDescriptor
   | GrokBuildHarnessDescriptor
-/** The agent an attempt runs: a real harness, or the fake one. */
+/** The agent a trial runs: a real harness, or the fake one. */
 export type HarnessDescriptor = FakeHarnessDescriptor | AgentHarnessDescriptor
 
 /** A temp directory on the host instead of a container, made by `fakeSandbox()`. */
@@ -1182,7 +1182,7 @@ export type FakeSandboxDescriptor = {
   id?: string
   /** Parent directory for the per-eval workspace (defaults to the OS temp dir). */
   dir?: string
-  /** The most attempts on this sandbox kind at once, across the run. */
+  /** The most trials on this sandbox kind at once, across the run. */
   maxConcurrent?: number
 }
 /** A local Docker container, made by `docker()`, or a Podman one, made by `podman()`. */
@@ -1232,13 +1232,13 @@ export type DockerSandboxDescriptor = {
   /** Processes and threads at once. Default 1024. */
   pids?: number
 }
-/** A macOS VM on this Mac, cloned from `image` for each attempt by Tart, made by `tart()`. */
+/** A macOS VM on this Mac, cloned from `image` for each trial by Tart, made by `tart()`. */
 export type TartSandboxDescriptor = {
   kind: 'tart'
   /** Cell id; defaults to `tart:<image>`, the image's last path segment. */
   id?: string
   /**
-   * The VM each attempt clones: an OCI image such as
+   * The VM each trial clones: an OCI image such as
    * `ghcr.io/cirruslabs/macos-sequoia-base:latest`, or a local VM's name. Tart must have it
    * before the run: `reeval image build` (or `tart pull`) pulls it, and `reeval run` refuses one
    * `tart list` doesn't show.
@@ -1311,7 +1311,7 @@ export type BoatSandboxDescriptor = {
   /**
    * An image that already has the harness baked in, pulled from its registry on a build VM.
    * Preflight builds the image (reeval's for the harness, with none of `image`, `from`,
-   * `dockerfile` or `install`) once into a Boat saved snapshot, and each attempt runs in a
+   * `dockerfile` or `install`) once into a Boat saved snapshot, and each trial runs in a
    * container of it on a VM started from the snapshot.
    */
   image?: string
@@ -1324,18 +1324,18 @@ export type BoatSandboxDescriptor = {
   dockerfile?: string
   /** Baked onto the sandbox image in one build container: in order, no secrets, no workspace. */
   install?: InstallStep[]
-  /** The most attempts on Boat at once, across the run: machines times `attemptsPerMachine`. */
+  /** The most trials on Boat at once, across the run: machines times `trialsPerMachine`. */
   maxConcurrent?: number
   /**
-   * A machine takes another of the run's attempts once one ends, in a new container, instead of
-   * being deleted. Default false, one attempt per slot.
+   * A machine takes another of the run's trials once one ends, in a new container, instead of
+   * being deleted. Default false, one trial per slot.
    */
   reuse?: boolean
   /**
-   * The attempts one machine runs at once, each in a container of its own with its own workspace,
+   * The trials one machine runs at once, each in a container of its own with its own workspace,
    * home, network and egress gateway. Default 1.
    */
-  attemptsPerMachine?: number
+  trialsPerMachine?: number
 }
 /**
  * A Daytona sandbox size, one of Daytona's default snapshots: `small` is 1 vCPU and 1 GiB,
@@ -1381,24 +1381,24 @@ export type DaytonaSandboxDescriptor = {
   install?: InstallStep[]
   /** The sandbox size. Default `medium`. */
   size?: DaytonaSize
-  /** The most attempts on Daytona at once, across the run: machines times `attemptsPerMachine`. */
+  /** The most trials on Daytona at once, across the run: machines times `trialsPerMachine`. */
   maxConcurrent?: number
   /**
-   * A machine takes another of the run's attempts once one ends, instead of being deleted: its
+   * A machine takes another of the run's trials once one ends, instead of being deleted: its
    * user's processes, cron jobs and files are removed and its home put back as the snapshot had
-   * it. Default false, one attempt per slot.
+   * it. Default false, one trial per slot.
    */
   reuse?: boolean
   /**
-   * The attempts one machine runs at once, each as a user of its own with its own home (which
+   * The trials one machine runs at once, each as a user of its own with its own home (which
    * each sees at `/home/reeval`), workspace and egress gateway. Default 1. A harness whose bridge
    * takes a fixed port in the machine (Claude Code, OpenCode, Goose, fx, Grok Build) runs one per
    * machine.
    */
-  attemptsPerMachine?: number
+  trialsPerMachine?: number
 }
 /**
- * boat.dev machines that run each attempt's sandbox, made by `boat()` from
+ * boat.dev machines that run each trial's sandbox, made by `boat()` from
  * `reeval/provider/boat`.
  */
 export type BoatProviderDescriptor = {
@@ -1413,23 +1413,23 @@ export type BoatProviderDescriptor = {
   /** The machine size. Default `small`. */
   type?: BoatMachineType
   /**
-   * The most attempts on Boat at once, across the run: machines times `attemptsPerMachine`.
+   * The most trials on Boat at once, across the run: machines times `trialsPerMachine`.
    * The sandbox's `maxConcurrent` when unset.
    */
   maxConcurrent?: number
   /**
-   * A machine takes another of the run's attempts once one ends, instead of being deleted.
-   * Default false, one attempt per slot.
+   * A machine takes another of the run's trials once one ends, instead of being deleted.
+   * Default false, one trial per slot.
    */
   reuse?: boolean
   /**
-   * The attempts one machine runs at once, each in a container with a network of its own.
+   * The trials one machine runs at once, each in a container with a network of its own.
    * Default 1.
    */
-  attemptsPerMachine?: number
+  trialsPerMachine?: number
 }
 /**
- * Daytona sandboxes that run each attempt's sandbox, made by `daytona()` from
+ * Daytona sandboxes that run each trial's sandbox, made by `daytona()` from
  * `reeval/provider/daytona`.
  */
 export type DaytonaProviderDescriptor = {
@@ -1444,26 +1444,26 @@ export type DaytonaProviderDescriptor = {
   /** The sandbox size. Default `medium`. */
   size?: DaytonaSize
   /**
-   * The most attempts on Daytona at once, across the run: machines times `attemptsPerMachine`.
+   * The most trials on Daytona at once, across the run: machines times `trialsPerMachine`.
    * The sandbox's `maxConcurrent` when unset.
    */
   maxConcurrent?: number
   /**
-   * A machine takes another of the run's attempts once one ends, instead of being deleted, as
-   * `boat({ reuse })` does. Default false, one attempt per slot.
+   * A machine takes another of the run's trials once one ends, instead of being deleted, as
+   * `boat({ reuse })` does. Default false, one trial per slot.
    */
   reuse?: boolean
   /**
-   * The attempts one machine runs at once, as `boat({ attemptsPerMachine })` does. Default 1.
+   * The trials one machine runs at once, as `boat({ trialsPerMachine })` does. Default 1.
    */
-  attemptsPerMachine?: number
+  trialsPerMachine?: number
 }
 /** The machines a run's sandboxes run on, made by `boat()` or `daytona()`. */
 export type ProviderDescriptor = BoatProviderDescriptor | DaytonaProviderDescriptor
 /** A cloud VM's size: `small` is 2 vCPUs and 4 GB. @internal */
 export type CloudMachineSize = 'small' | 'medium' | 'large' | 'xlarge'
 /**
- * A VM per attempt from reeval's own VM service, made by `cloud()` from `reeval/internal/vm`.
+ * A VM per trial from reeval's own VM service, made by `cloud()` from `reeval/internal/vm`.
  *
  * @internal Not part of reeval's public API.
  */
@@ -1478,9 +1478,9 @@ export type CloudSandboxDescriptor = {
   size?: CloudMachineSize
   /**
    * An image that already has the harness baked in, pulled from its registry. With any of
-   * `image`, `from`, `dockerfile` or `install`, each attempt runs in a container of the recipe's
-   * image, which each VM pulls or builds as `docker()` does locally as its first attempt starts:
-   * without `reuse`, that's every attempt.
+   * `image`, `from`, `dockerfile` or `install`, each trial runs in a container of the recipe's
+   * image, which each VM pulls or builds as `docker()` does locally as its first trial starts:
+   * without `reuse`, that's every trial.
    */
   image?: string
   /** A Debian or Ubuntu based toolchain image; reeval bakes Node and the harness on top. */
@@ -1489,33 +1489,33 @@ export type CloudSandboxDescriptor = {
   dockerfile?: string
   /** Baked onto the sandbox image in one build container: in order, no secrets, no workspace. */
   install?: InstallStep[]
-  /** Run the agent, setup steps and checks as root in the attempt's container, as `docker({ root })` does. */
+  /** Run the agent, setup steps and checks as root in the trial's container, as `docker({ root })` does. */
   root?: boolean
-  /** Linux capabilities the attempt's container adds back, as `docker({ capabilities })` does. */
+  /** Linux capabilities the trial's container adds back, as `docker({ capabilities })` does. */
   capabilities?: string[]
   /**
-   * The attempt's container's memory, as `docker({ memory })` sets it; the VM's share per slot when
-   * unset. More than that share fails the attempt.
+   * The trial's container's memory, as `docker({ memory })` sets it; the VM's share per slot when
+   * unset. More than that share fails the trial.
    */
   memory?: string | number
   /** Swap on top of `memory`, as `docker({ swap })` sets it. */
   swap?: string | number
-  /** CPUs the attempt's container may use; the VM's share per slot when unset. */
+  /** CPUs the trial's container may use; the VM's share per slot when unset. */
   cpus?: number
-  /** Processes and threads at once in the attempt's container. Default 1024. */
+  /** Processes and threads at once in the trial's container. Default 1024. */
   pids?: number
-  /** The most attempts on cloud VMs at once, across the run: machines times `attemptsPerMachine`. */
+  /** The most trials on cloud VMs at once, across the run: machines times `trialsPerMachine`. */
   maxConcurrent?: number
   /**
-   * A machine takes another of the run's attempts once one ends, instead of being deleted, as
-   * `boat({ reuse })` does. Default false, one attempt per slot.
+   * A machine takes another of the run's trials once one ends, instead of being deleted, as
+   * `boat({ reuse })` does. Default false, one trial per slot.
    */
   reuse?: boolean
   /**
-   * The attempts one machine runs at once, each in a container of its own, as
-   * `boat({ attemptsPerMachine })` does. Default 1.
+   * The trials one machine runs at once, each in a container of its own, as
+   * `boat({ trialsPerMachine })` does. Default 1.
    */
-  attemptsPerMachine?: number
+  trialsPerMachine?: number
 }
 /** A sandbox an eval, environment, profile or config sets. */
 export type DeclaredSandbox =
@@ -1524,7 +1524,7 @@ export type DeclaredSandbox =
   | TartSandboxDescriptor
   | CloudSandboxDescriptor
 
-/** Where an attempt runs: its declared sandbox, or the one `place()` made of it on the run's provider. */
+/** Where a trial runs: its declared sandbox, or the one `place()` made of it on the run's provider. */
 export type SandboxDescriptor = DeclaredSandbox | BoatSandboxDescriptor | DaytonaSandboxDescriptor
 
 /**
@@ -1540,7 +1540,7 @@ export type Secret = {
   /** `agent` (default): the container's environment. `checks`: only `c.exec` and `setup` steps. */
   to?: 'agent' | 'checks'
   /**
-   * Brokers the secret: the sandbox gets a per-attempt placeholder, and the Docker egress gateway
+   * Brokers the secret: the sandbox gets a per-trial placeholder, and the Docker egress gateway
    * swaps in the real value only on HTTPS requests to these hosts (`*.example.com` for subdomains).
    */
   hosts?: string[]
@@ -1566,7 +1566,7 @@ export type EnvValue = string | Secret
 /** Environment variables by name. */
 export type EnvVars = Record<string, EnvValue>
 
-/** A file on the host, read when an attempt starts. Made by the `file` helper. */
+/** A file on the host, read when a trial starts. Made by the `file` helper. */
 export type HostFile = {
   kind: 'file'
   /** Its path on the host, absolute or relative to the directory of the file it's written in. */
@@ -1676,7 +1676,7 @@ export type InstallStep =
       timeout?: Duration
     }
 /**
- * Runs in every attempt before the agent starts, with secrets, outside the eval timeout: a shell
+ * Runs in every trial before the agent starts, with secrets, outside the eval timeout: a shell
  * command, or `{ run, timeout?, cwd? }`.
  */
 export type SetupStep =
@@ -1695,18 +1695,18 @@ export type SetupStep =
  * default), anywhere including raw TCP and UDP around the gateway (`'allow-all'`), nowhere
  * (`'deny-all'`), or only the listed hosts (`'*.example.com'` matches subdomains). Under a
  * restricted policy the harness's own hosts, brokered secrets' `hosts` and MCP servers' hosts are
- * allowed too; any other request gets a refusal, and the attempt goes on.
+ * allowed too; any other request gets a refusal, and the trial goes on.
  */
 export type EgressPolicy = 'proxy' | 'allow-all' | 'deny-all' | { allow: readonly string[] }
 
 /**
- * An egress policy per phase of the attempt: `setup` covers its files and setup steps, `agent`
+ * An egress policy per phase of the trial: `setup` covers its files and setup steps, `agent`
  * the harness's start, every turn and every check after them. A phase it leaves unset keeps the
  * policy it inherits.
  */
 export type PhasedEgress = { setup?: EgressPolicy; agent?: EgressPolicy }
 
-/** One policy for the whole attempt, or one per phase. */
+/** One policy for the whole trial, or one per phase. */
 export type Egress = EgressPolicy | PhasedEgress
 
 /**
@@ -1737,7 +1737,7 @@ export type GitHelper = (
 /** What an eval runs in: the declarative, phased spec of one environment. */
 export type EnvironmentSpec = {
   /**
-   * Where the attempt runs: `docker()` or `fakeSandbox()`. A child's `extend` / `extendEnvironment`
+   * Where the trial runs: `docker()` or `fakeSandbox()`. A child's `extend` / `extendEnvironment`
    * replaces the parent's entirely when it sets one; install is not merged onto the parent image.
    */
   sandbox?: DeclaredSandbox
@@ -1761,7 +1761,7 @@ export type EnvironmentSpec = {
   files?: Record<string, string | HostFile>
   /** Project rules, written where the harness's agent reads them: `AGENTS.md`, or `CLAUDE.md` for Claude Code. */
   rules?: string | HostFile
-  /** Shell commands run in every attempt before the agent starts; a child's run after its parent's. */
+  /** Shell commands run in every trial before the agent starts; a child's run after its parent's. */
   setup?: SetupStep[]
   /** Skills placed for the agent. */
   skills?: SkillSource[]
@@ -1895,7 +1895,7 @@ export type Environment = {
   /**
    * A child environment layered on this one; wherever it sets a key this one has, it wins.
    * `sandbox` is replaced entirely when the child sets one; when the child omits it, the
-   * parent's sandbox is kept. This is how two `compare` arms share setup: `compare` itself
+   * parent's sandbox is kept. This is how two `compare` environments share setup: `compare` itself
    * never layers.
    */
   extendEnvironment(name: string, spec: EnvironmentInput): Environment
@@ -2006,7 +2006,7 @@ export type EnvironmentsOption =
   | ((inherited: Environment[]) => Environment | Environment[])
 
 /**
- * The control and each variant run as their own environments, with the same prompt and checks.
+ * The baseline and each variant run as their own environments, with the same prompt and checks.
  * `compare` does not layer them. Share setup first with `environment.extend` / `extendEnvironment`.
  * `false` is not a value here: a profile turns compare off with `limit.compare`.
  */
@@ -2015,7 +2015,7 @@ export type CompareOptions<E = Environment> = {
    * The environment each variant is measured against. Not layered under the variants, and it
    * replaces any `environments` the eval inherits.
    */
-  control: E
+  baseline: E
   /** Other environments, each planned and run as itself. */
   variants: E[]
   /**
@@ -2023,14 +2023,14 @@ export type CompareOptions<E = Environment> = {
    * blocking `target`.
    */
   minLift?: number
-  /** Agents (ids or descriptors) to compare on; the others run the control only. */
+  /** Agents (ids or descriptors) to compare on; the others run the baseline only. */
   agents?: Array<string | HarnessDescriptor>
 }
 
 /**
- * A question a language model answers after the attempts: its text, or the text and its options.
- * With `across`, it picks between two attempts that differ only in that factor, in both orders;
- * without it, it's asked of each attempt on its own. Without a model, the cascaded
+ * A question a language model answers after the trials: its text, or the text and its options.
+ * With `across`, it picks between two trials that differ only in that factor, in both orders;
+ * without it, it's asked of each trial on its own. Without a model, the cascaded
  * `question.model` answers, else `analysis.model`, else the judge's when it's a language model.
  * It's shown only the inputs it turns on, at least one.
  */
@@ -2043,10 +2043,10 @@ export type QuestionFields = QuestionInputs & {
   model?: string
   /**
    * The factor it varies when pairing, or both: `'environment'` holds the harness,
-   * `'harness'` holds the environment. Unset, it's asked of each attempt on its own.
+   * `'harness'` holds the environment. Unset, it's asked of each trial on its own.
    */
   across?: PairFactor | PairFactor[]
-  /** The answers a question asked of each attempt picks from, with a short reason. */
+  /** The answers a question asked of each trial picks from, with a short reason. */
   choices?: string[]
   /**
    * `'all'`: every turn under `turns`, each with its task, output and (with `trajectory`)
@@ -2056,12 +2056,12 @@ export type QuestionFields = QuestionInputs & {
 }
 
 /**
- * What a question is shown of each attempt: a judge's inputs but `contents` (the attempts'
+ * What a question is shown of each trial: a judge's inputs but `contents` (the trials'
  * workspaces are gone when questions are asked). Every input is off unless the question turns it
  * on, and a question turns on at least one.
  */
 export type QuestionInputs = {
-  /** The prompts the attempt was sent, once for both sides when they match. */
+  /** The prompts the trial was sent, once for both sides when they match. */
   task?: boolean
   /** The final message: the agent's own account of its work. */
   output?: boolean
@@ -2083,7 +2083,7 @@ export type QuestionInputs = {
   checks?: boolean | string[]
   /** `c.observe()` values, by name; a list shows only those names. */
   observations?: boolean | string[]
-  /** Each attempt's own captures, by name; `true` sends all of them. */
+  /** Each trial's own captures, by name; `true` sends all of them. */
   artifacts?: true | string[]
 }
 
@@ -2111,14 +2111,14 @@ export type QuestionOptions = {
 
 /**
  * A question as planned: its text, the model it names itself, if any, the factors it varies when
- * it's pairwise, its choices, and the inputs it's shown of each attempt.
+ * it's pairwise, its choices, and the inputs it's shown of each trial.
  */
 export type PlannedQuestion = {
   /** Its place in the eval's `questions`, from 1, kept when a profile drops one before it. */
   n: number
   question: string
   model?: string
-  /** Set on a pairwise question; unset, it's asked of each attempt. */
+  /** Set on a pairwise question; unset, it's asked of each trial. */
   across?: PairFactor | PairFactor[]
   choices?: string[]
   /** The inputs it turns on, besides `artifacts`. */
@@ -2132,17 +2132,17 @@ export type PairFactor = 'environment' | 'agent'
 /** Which pairs a vote is over: two environments on one harness, or two harnesses on one environment. */
 export type CompareCut = 'within' | 'across'
 
-/** One judgment of one pair of attempts, in one order. */
+/** One judgment of one pair of trials, in one order. */
 export type PairVote = {
   question: string
   cut: CompareCut
-  /** Set on a within-harness pair: the harness both arms ran on. */
+  /** Set on a within-harness pair: the harness both environments ran on. */
   harness?: string
-  /** Set on a cross-harness pair: the arm (environment) both harnesses ran. */
-  arm?: string
-  /** The run number both attempts share, from 1. */
+  /** Set on a cross-harness pair: the environment both harnesses ran. */
+  environment?: string
+  /** The run number both trials share, from 1. */
   run: number
-  /** The two sides by name: arms within a harness, harness ids across. */
+  /** The two sides by name: environments within a harness, harness ids across. */
   a: string
   b: string
   /** `a`, `b` or `'tie'`, mapped back from the blinded labels. */
@@ -2154,9 +2154,9 @@ export type PairVote = {
   /** The captures each named side showed, by name; set when the question sends `artifacts`. */
   artifacts?: { a: string[]; b: string[] }
   /**
-   * `AttemptRecord.key` of side `a`, then `b` (stable cite across runs). Optional on older votes.
+   * `TrialRecord.key` of side `a`, then `b` (stable cite across runs). Optional on older votes.
    */
-  attempts?: [string, string]
+  trials?: [string, string]
 }
 
 /** A pairwise question's answer: every vote, and each side's wins over decided votes per cut. */
@@ -2195,7 +2195,7 @@ export type QuestionScreenshot =
 export type QuestionCall = {
   cut: CompareCut
   harness?: string
-  arm?: string
+  environment?: string
   run: number
   /** The two sides by name, as on the votes. */
   a: string
@@ -2221,14 +2221,14 @@ export type QuestionInput = {
   calls: QuestionCall[]
 }
 
-/** A question asked of one attempt on its own, and the model's answer. Never gates. */
-export type AttemptAnswer = {
+/** A question asked of one trial on its own, and the model's answer. Never gates. */
+export type TrialAnswer = {
   question: string
   /** `'provider/model'`, or `fake` for `fakeAnalysis()`. */
   model: string
   /** The model id the provider says served the call, when it reports one. */
   resolvedModel?: string
-  /** What the attempt showed, every key resolved. */
+  /** What the trial showed, every key resolved. */
   stateOptions: ResolvedQuestionStateOptions
   /** The captures it sent, as asked: `true` for all, or their names. */
   artifacts?: true | string[]
@@ -2240,12 +2240,12 @@ export type AttemptAnswer = {
   text: string
   /** Why there's no answer: the model call failed. Outcomes never change. */
   error?: string
-  /** `questions/<n>.json` under the attempt's directory: what the model was sent. */
+  /** `questions/<n>.json` under the trial's directory: what the model was sent. */
   input?: FileRef
 }
 
-/** An attempt's `questions/<n>.json`: the call a question asked of it made. */
-export type AttemptQuestionInput = {
+/** A trial's `questions/<n>.json`: the call a question asked of it made. */
+export type TrialQuestionInput = {
   question: string
   model: string
   stateOptions: ResolvedQuestionStateOptions
@@ -2260,23 +2260,23 @@ export type AttemptQuestionInput = {
 }
 
 /** An option a profile's `limit` can narrow, and `pin` can protect. */
-export type PinnableKey = 'agents' | 'runs' | 'compare'
+export type PinnableKey = 'agents' | 'trials' | 'compare'
 
 /**
- * The eval's rule over its attempts' scores: whether it passes, and whether it can fail the run.
- * `regression` passes when every attempt scores at least `threshold` (pass^k); `capability` when
+ * The eval's rule over its trials' scores: whether it passes, and whether it can fail the run.
+ * `regression` passes when every trial scores at least `threshold` (pass^k); `capability` when
  * one does (pass@k), and fails the run only with `blocking`. Made by `regression()` and
- * `capability()`; an attempt passes when its score is at least the threshold.
+ * `capability()`; a trial passes when its score is at least the threshold.
  */
 export type Target =
   | {
       kind: 'regression'
-      /** The score, from 0 to 1, every attempt must reach. */
+      /** The score, from 0 to 1, every trial must reach. */
       threshold: number
     }
   | {
       kind: 'capability'
-      /** The score, from 0 to 1, one attempt must reach. */
+      /** The score, from 0 to 1, one trial must reach. */
       threshold: number
       /** Whether a miss fails the run. */
       blocking: boolean
@@ -2290,20 +2290,20 @@ export type RecordedTarget =
   | Target
   | {
       kind: 'metric'
-      /** The mean score, from 0 to 1, the attempts had to reach; unset only reported. */
+      /** The mean score, from 0 to 1, the trials had to reach; unset only reported. */
       threshold?: number
     }
 
 /**
- * A cell's gate: `'all'` when every counted attempt must pass, `'any'` when one must,
- * `{ passRate }` when its pass share must reach that (a `runs: { bestOf }` cell; in an
+ * A cell's gate: `'all'` when every counted trial must pass, `'any'` when one must,
+ * `{ passRate }` when its pass share must reach that (a `trials: { bestOf }` cell; in an
  * older record, its mean score), or `'none'` when its failures don't decide the eval (a compare's
- * control, or in an older record a cell whose target couldn't block). Whether a failed cell
+ * baseline, or in an older record a cell whose target couldn't block). Whether a failed cell
  * fails the run is its target's.
  */
 export type CellGate = 'all' | 'any' | 'none' | { passRate: number }
 
-/** A compare object: `control` and `variants`. Same as `CompareOptions`. */
+/** A compare object: `baseline` and `variants`. Same as `CompareOptions`. */
 export type CompareSpec<E = Environment> = CompareOptions<E>
 
 type OddDigit = '1' | '3' | '5' | '7' | '9'
@@ -2321,10 +2321,10 @@ export type OddAtLeast3<N extends number> = number extends N
       : 'an odd whole number of 3 or more, e.g. 3 or 5'
 
 /**
- * Attempts per cell: a fixed count, or `{ bestOf }`, an odd number of 3 or more, which stops a
- * cell once one side (pass or fail) has a majority: `{ bestOf: 5 }` runs 3 to 5 attempts.
+ * Trials per cell: a fixed count, or `{ bestOf }`, an odd number of 3 or more, which stops a
+ * cell once one side (pass or fail) has a majority: `{ bestOf: 5 }` runs 3 to 5 trials.
  */
-export type Runs<N extends number = number> = number | { bestOf: OddAtLeast3<N> }
+export type Trials<N extends number = number> = number | { bestOf: OddAtLeast3<N> }
 
 /** Options other than `environments` and `compare`, which are exclusive of each other. */
 type EvalOptionFields<N extends number = number> = {
@@ -2336,16 +2336,16 @@ type EvalOptionFields<N extends number = number> = {
    */
   sandbox?: DeclaredSandbox
   /**
-   * Attempts per cell: a number, or `{ bestOf: n }` (odd, 3 or more), which stops each cell once
-   * a majority of its `n` attempts agree and gates it on that majority; not on a compared eval.
+   * Trials per cell: a number, or `{ bestOf: n }` (odd, 3 or more), which stops each cell once
+   * a majority of its `n` trials agree and gates it on that majority; not on a compared eval.
    * Unset at every level, a compare with variants runs 4 a side, the fewest whose lift can reach
    * a verdict, and anything else runs once, a case of an eval with `cases` included.
    */
-  runs?: Runs<N>
+  trials?: Trials<N>
   /**
-   * Whether the eval passes and can fail the run, over its attempts' scores: `regression()` or
+   * Whether the eval passes and can fail the run, over its trials' scores: `regression()` or
    * `capability()`; default `capability()`, which only reports. On a compare it
-   * applies to the variants, and the control only reports.
+   * applies to the variants, and the baseline only reports.
    */
   target?: Target
   /** Variables and secrets for the sandbox, merged by name down the cascade. */
@@ -2362,16 +2362,16 @@ type EvalOptionFields<N extends number = number> = {
   /** The model every question that names none of its own is answered by, down the cascade. */
   question?: QuestionOptions
   /**
-   * What a language model is asked about the attempts, always a list; they never change pass,
-   * fail or the exit code. A question with `across` picks between pairs of attempts once they all
-   * end; one without is asked of each attempt as it ends. Replaces the inherited list, so `[]`
+   * What a language model is asked about the trials, always a list; they never change pass,
+   * fail or the exit code. A question with `across` picks between pairs of trials once they all
+   * end; one without is asked of each trial as it ends. Replaces the inherited list, so `[]`
    * asks none.
    */
   questions?: Question[]
-  /** Per attempt. */
+  /** Per trial. */
   timeout?: Duration
   /**
-   * When each attempt's workspace is copied into its directory in `.reeval/runs`: `true` after
+   * When each trial's workspace is copied into its directory in `.reeval/runs`: `true` after
    * the checks, `'turns'` after each `c.send` too, `false` never. Default `true`.
    */
   snapshot?: SnapshotOption
@@ -2408,7 +2408,7 @@ export type EvalSource = {
 
 /**
  * `compare: false` is not an option here: a profile's `limit.compare: false` strips variants.
- * A compare names every arm, so an inherited `environments` is not applied, and the same object
+ * A compare names every environment, so an inherited `environments` is not applied, and the same object
  * can't set both.
  */
 type EnvironmentOrCompare<E, Envs> =
@@ -2421,9 +2421,9 @@ type EnvironmentOrCompare<E, Envs> =
       compare?: never
     }
   | {
-      /** Forbidden beside `compare`, whose `control` names what the eval runs in. */
+      /** Forbidden beside `compare`, whose `baseline` names what the eval runs in. */
       environments?: never
-      /** Environments to run side by side; `control` is what each variant is measured against. */
+      /** Environments to run side by side; `baseline` is what each variant is measured against. */
       compare: CompareSpec<E>
     }
 
@@ -2440,9 +2440,9 @@ type SpecEnvironment =
       compare?: never
     }
   | {
-      /** Forbidden beside `compare`, whose `control` names what the eval runs in. */
+      /** Forbidden beside `compare`, whose `baseline` names what the eval runs in. */
       environment?: never
-      /** Environments to run side by side; `control` is what each variant is measured against. */
+      /** Environments to run side by side; `baseline` is what each variant is measured against. */
       compare: CompareSpec
     }
 
@@ -2453,20 +2453,20 @@ type SpecFields<N extends number> = EvalOptionFields<N> &
     skip?: boolean | string
   }
 
-/** What `defineEval` takes: the eval's options and its task, one attempt's body. */
+/** What `defineEval` takes: the eval's options and its task, one trial's body. */
 export type EvalSpec<N extends number = number> = SpecFields<N> & {
-  /** The eval's body, run once per attempt. */
+  /** The eval's body, run once per trial. */
   task: EvalFn
-  /** What grades each attempt once the task returns: `defineGrader` graders, each by its name. */
+  /** What grades each trial once the task returns: `defineGrader` graders, each by its name. */
   graders?: GraderList
 }
 
-/** What `defineEval` takes with `cases`: the task takes the attempt and its case. */
+/** What `defineEval` takes with `cases`: the task takes the trial and its case. */
 export type CaseEvalSpec<T, N extends number = number> = SpecFields<N> &
   CaseOptions<T> & {
-    /** The eval's body, run once per attempt of each case. */
+    /** The eval's body, run once per trial of each case. */
     task: CaseFn<T>
-    /** What grades each attempt once the task returns; each grader reads the attempt's case. */
+    /** What grades each trial once the task returns; each grader reads the trial's case. */
     graders?: GraderList<NoInfer<T>>
   }
 
@@ -2607,12 +2607,12 @@ export type HistoryConfig = {
    */
   store?: HistoryStoreDescriptor
   /**
-   * Artifacts recorded next to each run: every attempt's, failed attempts' only (the default), or
-   * none. The setup log and each `c.exec` log are an attempt's artifacts too.
+   * Artifacts recorded next to each run: every trial's, failed trials' only (the default), or
+   * none. The setup log and each `c.exec` log are a trial's artifacts too.
    */
   artifacts?: ArtifactLevel
   /**
-   * Each attempt's debug data uploaded with the run to a remote store: none (the default), its
+   * Each trial's debug data uploaded with the run to a remote store: none (the default), its
    * gateway requests (`requests.ndjson`, which holds prompts and responses), or all of it
    * (`debug.log` and `trace.ndjson` too). Rescanned for secrets first; `local()` takes `'none'` only.
    */
@@ -2639,11 +2639,11 @@ export type HistoryConfigData = Omit<HistoryConfig, 'store'> & {
   store?: HistoryStoreDescriptor
 }
 
-/** Run-level caps. `attempts` is checked against the plan; `duration` while running. */
+/** Run-level caps. `trials` is checked against the plan; `duration` while running. */
 export type Budget = {
-  /** The most attempts the plan may have. */
-  attempts?: number
-  /** How long the run may go on, from the first attempt's start. */
+  /** The most trials the plan may have. */
+  trials?: number
+  /** How long the run may go on, from the first trial's start. */
   duration?: Duration
 }
 
@@ -2655,9 +2655,9 @@ export type ProfileDefaults = {
   sandbox?: DeclaredSandbox
   /** What every eval runs in when it names no environment: one, or a list (a cell each). */
   environments?: Environment | Environment[]
-  /** Attempts per cell: a number, or `{ bestOf: n }` (odd, 3 or more). */
-  runs?: Runs
-  /** Whether each eval passes and can fail the run, over its attempts' scores. */
+  /** Trials per cell: a number, or `{ bestOf: n }` (odd, 3 or more). */
+  trials?: Trials
+  /** Whether each eval passes and can fail the run, over its trials' scores. */
   target?: Target
   /** Variables and secrets for the sandbox, merged by name over the config's. */
   env?: EnvVars
@@ -2665,13 +2665,13 @@ export type ProfileDefaults = {
   egress?: Egress
   /** Defaults for judge graders, merged field by field over the config's. */
   judge?: ConfigJudgeOptions
-  /** Per attempt. */
+  /** Per trial. */
   timeout?: Duration
   /** Screenshot defaults for `c.capture()`, shallow-merged over the config's. */
   capture?: CaptureOptions
   /** Defaults for every question, merged over the config's. */
   question?: QuestionOptions
-  /** When each attempt's workspace is copied; merged over the config's. */
+  /** When each trial's workspace is copied; merged over the config's. */
   snapshot?: SnapshotOption
   /**
    * `reeval/graders`' built-ins every eval grades with, their options data: merged by name over
@@ -2682,14 +2682,14 @@ export type ProfileDefaults = {
 
 /** Over every eval, and it can only narrow; `pin` on a group or eval skips it. */
 export type ProfileLimit = {
-  /** The most runs per cell. */
-  runs?: number
-  /** `false` runs the control only; `{ maxVariants }` keeps the first n variants. */
+  /** The most trials per cell. */
+  trials?: number
+  /** `false` runs the baseline only; `{ maxVariants }` keeps the first n variants. */
   compare?: false | { maxVariants: number }
   /** Agent ids to allow; evals left with none are skipped. */
   agents?: string[]
   /**
-   * Cells to run, by their environment's traits (with `compare`, the control's): each key's trait
+   * Cells to run, by their environment's traits (with `compare`, the baseline's): each key's trait
    * must equal the value, or one of a list's, or for a list trait contain it. Evals left with no
    * cell are skipped.
    */
@@ -2734,38 +2734,38 @@ export type FakeAnalysisModel = {
    */
   vote?: FakePick | ((pair: BlindPair) => FakePick) | { error: string }
   /**
-   * How it answers questions asked of each attempt: a fixed answer, a function of the attempt as
+   * How it answers questions asked of each trial: a fixed answer, a function of the trial as
    * the model sees it, or `{ error }` to fail every call. An answer may be `{ choice?, text? }`.
    * Default the first of the question's `choices`, with the text `fake answer`.
    */
-  answer?: FakeAnswer | ((attempt: BlindAttempt) => FakeAnswer) | { error: string }
+  answer?: FakeAnswer | ((trial: BlindTrial) => FakeAnswer) | { error: string }
 }
 
-/** A blinded label's pick: the attempt shown first (`A`), second (`B`), or neither. */
+/** A blinded label's pick: the trial shown first (`A`), second (`B`), or neither. */
 export type FakeVote = 'A' | 'B' | 'tie'
 
 /** A fake pairwise pick, optionally with a reason. */
 export type FakePick = FakeVote | { winner: FakeVote; reason?: string }
 
-/** A fake per-attempt answer: its text, or a choice and its reason. */
+/** A fake per-trial answer: its text, or a choice and its reason. */
 export type FakeAnswer = string | { choice?: string; text?: string }
 
 /** What a pairwise question's model is shown: the prompt, and the two sides in slot order. */
 export type BlindPair = { question: string; prompt: string; a: BlindSide; b: BlindSide }
 
-/** What a per-attempt question's model is shown: the prompt, its choices, and the attempt. */
-export type BlindAttempt = {
+/** What a per-trial question's model is shown: the prompt, its choices, and the trial. */
+export type BlindTrial = {
   question: string
   prompt: string
   choices?: string[]
-  attempt: BlindSide
+  trial: BlindSide
 }
 
 /** A turn of one side, with the inputs its question turned on. */
 export type BlindTurn = { task?: string; output?: string; trajectory?: string }
 
 /**
- * One side of a blinded pair, or the attempt a per-attempt question is asked of: only the inputs
+ * One side of a blinded pair, or the trial a per-trial question is asked of: only the inputs
  * its question turned on. With `turns: 'all'`, `task`, `output` and `trajectory` are
  * under `turns`; a task both sides of a pair share is the pair's prompt's, not either side's.
  */
@@ -2821,12 +2821,12 @@ export type ReevalConfig = {
    */
   environments?: Environment | Environment[]
   /**
-   * Attempts per cell: a number, or `{ bestOf: n }` (odd, 3 or more); unset, a compare with
+   * Trials per cell: a number, or `{ bestOf: n }` (odd, 3 or more); unset, a compare with
    * variants runs 4 a side and anything else once.
    */
-  runs?: Runs
+  trials?: Trials
   /**
-   * Whether each eval passes and can fail the run, over its attempts' scores; default
+   * Whether each eval passes and can fail the run, over its trials' scores; default
    * `capability()`, which only reports.
    */
   target?: Target
@@ -2836,7 +2836,7 @@ export type ReevalConfig = {
   egress?: Egress
   /** Defaults for judge graders, merged field by field down the cascade. */
   judge?: ConfigJudgeOptions
-  /** Per attempt; default `'15m'`. */
+  /** Per trial; default `'15m'`. */
   timeout?: Duration
   /**
    * `reeval/graders`' built-ins every eval grades with, their options data, under each eval's
@@ -2848,26 +2848,26 @@ export type ReevalConfig = {
    * binary when `c.capture()` runs; it does not change this object.
    */
   capture?: CaptureOptions
-  /** Defaults for every question: the model that answers it and what it's shown of each attempt. Merged down the cascade. */
+  /** Defaults for every question: the model that answers it and what it's shown of each trial. Merged down the cascade. */
   question?: QuestionOptions
   /** The decision model `c.decide()` calls when the call names none. */
   decide?: DecideConfig
   /**
-   * When each attempt's workspace is copied into its directory in `.reeval/runs`: `true` after
+   * When each trial's workspace is copied into its directory in `.reeval/runs`: `true` after
    * the checks, `'turns'` after each `c.send` too, `false` never. Default `true`.
    */
   snapshot?: SnapshotOption
-  /** How many attempts run at once. `--concurrency` and `REEVAL_CONCURRENCY` override it. */
+  /** How many trials run at once. `--concurrency` and `REEVAL_CONCURRENCY` override it. */
   concurrency?: number
   /** When runs are copied into the history folder: `reeval record` only, in CI, or on every run. */
   record?: RecordMode
   /**
-   * Formats each attempt with a trajectory is also written in as its run ends, beside its
+   * Formats each trial with a trajectory is also written in as its run ends, beside its
    * trajectory: `'atif'` writes `atif.json`, a Harbor ATIF trajectory. `reeval export --format`
    * writes the same files for a run afterwards.
    */
   exports?: ExportFormat[]
-  /** Where recorded runs are kept, and which attempts keep their artifacts there. */
+  /** Where recorded runs are kept, and which trials keep their artifacts there. */
   history?: HistoryConfig
   /** Caps on a run; a profile's `budget` is merged over it. */
   budget?: Budget
@@ -2882,7 +2882,7 @@ export type ReevalConfig = {
   secrets?: { unbrokered?: 'warn' | 'error' }
   /**
    * Local debug data in `.reeval/debug`: how many runs to keep (default 20), and how many MB of raw
-   * trace each attempt buffers for trace.ndjson (default 8; the oldest entries go first).
+   * trace each trial buffers for trace.ndjson (default 8; the oldest entries go first).
    */
   debug?: { keep?: number; traceBufferMb?: number }
   /** `reeval explain`, and questions without a model of their own. */
@@ -2899,7 +2899,7 @@ export type ReevalConfig = {
    */
   cloud?: boolean
   /**
-   * The machines every attempt's sandbox runs on: `boat()` or `daytona()`, a container of the
+   * The machines every trial's sandbox runs on: `boat()` or `daytona()`, a container of the
    * sandbox's image on each. This machine when unset. A profile's `provider` replaces it.
    */
   provider?: ProviderDescriptor
@@ -2940,7 +2940,7 @@ export type FakeAnalysisData = {
   output?: unknown
   /** How it answers pairwise questions: a fixed pick, or `{ error }` to fail every call. */
   vote?: FakePick | { error: string }
-  /** How it answers questions asked of each attempt: a fixed answer, or `{ error }` to fail every call. */
+  /** How it answers questions asked of each trial: a fixed answer, or `{ error }` to fail every call. */
   answer?: FakeAnswer | { error: string }
 }
 
@@ -2989,7 +2989,7 @@ export type ReevalConfigData = Omit<
 > & {
   /** `reeval/graders`' built-ins as data, which every eval grades with under its own. */
   graders?: BuiltinGraderData[]
-  /** Where recorded runs are kept, and which attempts keep their artifacts there. */
+  /** Where recorded runs are kept, and which trials keep their artifacts there. */
   history?: HistoryConfigData
   /**
    * What every eval runs in when it names no environment and has no compare: one, or a list (a
@@ -3086,7 +3086,7 @@ export type ResolvedConfig = {
   /** Empty when the config names none. */
   environments: Environment[]
   /** Unset leaves each eval its default: 4 for a compare with variants, otherwise 1. */
-  runs: Runs | undefined
+  trials: Trials | undefined
   /** Unset means `capability()`. */
   target: Target | undefined
   env: EnvVars
@@ -3126,7 +3126,7 @@ export type ResolvedConfig = {
   /** Whether the config sets `gateway`, so the plan shows where each cell resolved. */
   gatewaySet: boolean
   cloud: boolean
-  /** The machines every attempt's sandbox runs on; this machine when unset. */
+  /** The machines every trial's sandbox runs on; this machine when unset. */
   provider?: ProviderDescriptor
 }
 
@@ -3134,7 +3134,7 @@ export type Outcome = 'pass' | 'fail' | 'infra_error' | 'skipped'
 export type ErrorKind = 'assertion' | 'timeout' | 'aborted' | 'infra' | 'judge'
 
 /**
- * The sandbox an attempt needed that couldn't be prepared before the run, on each attempt that
+ * The sandbox a trial needed that couldn't be prepared before the run, on each trial that
  * needed it: its provider's stage (Docker's `image`, `from`, `dockerfile`, `harness` or
  * `install`, or `workspace` for a git workspace, whose `ref` is `repo#ref:path`), what was being
  * made, the class (`config`, `transient` after the retries, or `resource`), a named cause
@@ -3150,16 +3150,16 @@ export type PrepareFailureRecord = {
 }
 
 /**
- * The sandbox ran out of a resource during the attempt: `oom` is the kernel killing `kills`
- * processes at its memory limit. The attempt is then an infra error, whatever its checks said.
+ * The sandbox ran out of a resource during the trial: `oom` is the kernel killing `kills`
+ * processes at its memory limit. The trial is then an infra error, whatever its checks said.
  */
 export type ResourceFailureRecord = { cause: 'oom'; kills: number }
 
 /**
- * Why an attempt failed; `prepare` when its sandbox couldn't be prepared, `resource` when it ran
+ * Why a trial failed; `prepare` when its sandbox couldn't be prepared, `resource` when it ran
  * out of one, `provider` when the model provider stopped a turn.
  */
-export type AttemptError = {
+export type TrialError = {
   kind: ErrorKind
   message: string
   prepare?: PrepareFailureRecord
@@ -3173,10 +3173,10 @@ export type AttemptError = {
 }
 
 /**
- * What the eval's task threw that failed the attempt: an `EvalError`, or any other error. Not a
+ * What the eval's task threw that failed the trial: an `EvalError`, or any other error. Not a
  * timeout, a cancel or an infra error.
  */
-export type AttemptFailure = {
+export type TrialFailure = {
   kind: 'task'
   /** The `EvalError`'s reason, or the error's message: one line, cut at 200 characters, masked. */
   reason: string
@@ -3184,7 +3184,7 @@ export type AttemptFailure = {
   meta?: { [key: string]: JSONValue }
   /** The class of an error that isn't an `EvalError`, such as `TypeError`; absent for an `EvalError`. */
   name?: string
-  /** How many turns the attempt had sent when the task threw: 0 before the first. */
+  /** How many turns the trial had sent when the task threw: 0 before the first. */
   turn: number
   /** The error's stack, masked, its paths relative to the project; absent when it had none. */
   stack?: string
@@ -3223,7 +3223,7 @@ export type TurnRecord = Pick<
  * One start of a stdio MCP server during a turn (`turns[].mcpStartup`, in start order), timed by
  * reeval's MCP timer, which every stdio server runs through. An agent CLI that starts one process
  * per turn starts its servers on every turn; a CLI that keeps a session starts them on the first
- * turn only. A server that doesn't answer within 60s fails the attempt as an infra
+ * turn only. A server that doesn't answer within 60s fails the trial as an infra
  * error naming it; one whose client closes it first doesn't. `mcpStartup` is absent when the
  * environment has no stdio MCP server, or the sandbox has no `node` to run the timer.
  */
@@ -3246,11 +3246,11 @@ export type PhaseTimings = {
   judgeMs: number
 }
 
-export type CellRole = 'control' | 'variant'
+export type CellRole = 'baseline' | 'variant'
 
 /**
  * A cell of an evaluation combines a harness, an environment (`-` when none is set), and that
- * environment's sandbox id. With `compare`, the control is `compare.control` and each variant is
+ * environment's sandbox id. With `compare`, the baseline is `compare.baseline` and each variant is
  * that environment on its own, including its sandbox.
  */
 export type Cell = {
@@ -3273,9 +3273,9 @@ export type Cell = {
    */
   sandbox: string
   /**
-   * `variant` on a compare's variant cell, else `control`: the compare's control, or any cell of
+   * `variant` on a compare's variant cell, else `baseline`: the compare's baseline, or any cell of
    * an eval without `compare`, each environment of an `environments` grid included. A variant's
-   * lift is against the `control` cell on its harness and sandbox.
+   * lift is against the `baseline` cell on its harness and sandbox.
    */
   role: CellRole
   /** The variant's name, for variant cells. */
@@ -3284,7 +3284,7 @@ export type Cell = {
   traits?: Traits
 }
 
-/** A plugin as an attempt placed it. */
+/** A plugin as a trial placed it. */
 export type PluginRecord = {
   /** The manifest's `name`. */
   name: string
@@ -3358,7 +3358,7 @@ export type EnvironmentRecord = {
   /** Optional secrets whose host variable was unset, so they weren't injected. */
   unset: string[]
   /**
-   * The policy the attempt's agent phase ran under (the harness's start, its turns and the checks),
+   * The policy the trial's agent phase ran under (the harness's start, its turns and the checks),
    * from the options and the environment; in the digest unless `proxy`.
    */
   egress: EgressPolicy
@@ -3384,7 +3384,7 @@ export type EnvironmentRecord = {
 }
 
 /**
- * An attempt's network traffic. `allowed` is every host a restricted policy let through, its own
+ * A trial's network traffic. `allowed` is every host a restricted policy let through, its own
  * and the automatic ones; null under `proxy` and `allow-all`. `recorded` is false when the sandbox
  * can't see the traffic, and then `contacted`, `blocked` and `unresolved` are empty. Bytes are
  * counted between the sandbox and the egress gateway, TLS included. `expectedBlocked` are refused
@@ -3456,8 +3456,8 @@ export type EgressRecord = {
   }>
 }
 
-/** The image an attempt's container started from, and how reeval made it. */
-export type AttemptImage = {
+/** The image a trial's container started from, and how reeval made it. */
+export type TrialImage = {
   ref: string
   /** Content-addressed image id (`sha256:…`). */
   id: string
@@ -3476,15 +3476,15 @@ export type AttemptImage = {
 }
 
 /**
- * The saved image a VM sandbox's attempt ran in: the provider's snapshot its VM started from, and
- * the image in it that the attempt's container ran, built from the sandbox's image recipe.
+ * The saved image a VM sandbox's trial ran in: the provider's snapshot its VM started from, and
+ * the image in it that the trial's container ran, built from the sandbox's image recipe.
  */
 export type SandboxBase = {
   /** Who keeps the snapshot: `boat`. */
   provider: 'boat'
   /** The snapshot's name. */
   snapshot: string
-  /** The image in the snapshot the attempt's container ran. */
+  /** The image in the snapshot the trial's container ran. */
   image: string
   /** The recipe's content key, which names both. */
   key: string
@@ -3494,7 +3494,7 @@ export type SandboxBase = {
   built: boolean
 }
 
-/** The image a `tart()` attempt's VM was cloned from. */
+/** The image a `tart()` trial's VM was cloned from. */
 export type VmImage = {
   /** The image as `tart({ image })` names it. */
   ref: string
@@ -3503,22 +3503,22 @@ export type VmImage = {
 }
 
 /**
- * What an attempt's sandbox gave it and what it used, measured from when the sandbox started
+ * What a trial's sandbox gave it and what it used, measured from when the sandbox started
  * until teardown. A value the sandbox can't measure is left out, never estimated.
  */
-export type AttemptResources = {
+export type TrialResources = {
   /**
-   * `container`: the container's own cgroup, so only the attempt's processes count (Docker,
+   * `container`: the container's own cgroup, so only the trial's processes count (Docker,
    * Podman). `machine`: the whole VM, its system processes included (`boat()`, `daytona()`,
    * `tart()`).
    */
   scope: 'container' | 'machine'
   /**
-   * The VM ran other attempts at the same time (`attemptsPerMachine` above 1), so its
-   * whole-VM usage isn't this attempt's: `usage` is left out.
+   * The VM ran other trials at the same time (`trialsPerMachine` above 1), so its
+   * whole-VM usage isn't this trial's: `usage` is left out.
    */
   shared?: true
-  /** What the attempt ran on. */
+  /** What the trial ran on. */
   machine: {
     /** The sandbox's provider: `docker`, `podman`, `boat`, `daytona` or `tart`. */
     sandbox: string
@@ -3532,12 +3532,12 @@ export type AttemptResources = {
     /** The name reeval gave the VM, where the provider keeps one apart from its id. */
     name?: string
     /**
-     * CPUs the attempt could use: the container's CPU quota (a `daytona()` sandbox's too), else the
+     * CPUs the trial could use: the container's CPU quota (a `daytona()` sandbox's too), else the
      * CPUs the VM has (a macOS VM's `sysctl hw.ncpu`).
      */
     vcpus?: number
     /**
-     * Memory the attempt could use, in bytes: the container's limit (a `daytona()` sandbox's too),
+     * Memory the trial could use, in bytes: the container's limit (a `daytona()` sandbox's too),
      * else the VM's total (a macOS VM's `sysctl hw.memsize`).
      */
     memoryBytes?: number
@@ -3546,7 +3546,7 @@ export type AttemptResources = {
   usage?: {
     /** Milliseconds between the first reading and the last. */
     durationMs: number
-    /** Milliseconds between readings while the attempt ran. */
+    /** Milliseconds between readings while the trial ran. */
     sampleMs: number
     /** CPU time over `durationMs`, in seconds: user and system, every CPU added up. */
     cpuSeconds: number
@@ -3661,7 +3661,7 @@ export type AssertionRecord = {
   /**
    * `error`: the matcher couldn't answer (a subject it can't read, an event the harness doesn't
    * report). `not_applicable`: `expect.skip` (or a language runner's equivalent); never fails the
-   * attempt and leaves the check's pass/fail denominator.
+   * trial and leaves the check's pass/fail denominator.
    */
   status: 'pass' | 'fail' | 'error' | 'not_applicable'
   /**
@@ -3697,18 +3697,18 @@ export type Observation = {
    * `file` instead.
    */
   value: JSONValue
-  /** How many turns the attempt had sent when the value was given: 0 before the first. */
+  /** How many turns the trial had sent when the value was given: 0 before the first. */
   turn: number
   /** sha256 of `value`'s JSON as recorded, masked. Absent on older records. */
   sha256?: string
   /**
-   * `observations/<n>.json` in the attempt's directory: the value's masked JSON, where it's over
-   * 4 KiB. It counts toward the attempt's 100 MiB beside its record.
+   * `observations/<n>.json` in the trial's directory: the value's masked JSON, where it's over
+   * 4 KiB. It counts toward the trial's 100 MiB beside its record.
    */
   file?: FileRef
 }
 
-/** One grader's result on an attempt, from a grader in the eval's `graders`. */
+/** One grader's result on a trial, from a grader in the eval's `graders`. */
 export type GradeRecord = {
   /** The grader's name, unique in its eval: a built-in's is `<kind>:<main argument>` unless it's given one. */
   grader: string
@@ -3726,16 +3726,16 @@ export type GradeRecord = {
    * for a grade that has no score, which is recorded only.
    */
   score: number | null
-  /** Its share of the attempt's score; 0 records only. */
+  /** Its share of the trial's score; 0 records only. */
   weight: number
-  /** Whether a score under 1 (or an error) makes the attempt's score 0. */
+  /** Whether a score under 1 (or an error) makes the trial's score 0. */
   required: boolean
   /** Why it has no grade: `grade` threw or timed out, or its grade or score wasn't valid. */
   error?: string
   fingerprint: GradeFingerprint
   /** sha256 of the `score` function and the local modules of the file it's defined in; unset without one. */
   scoreDigest?: string
-  /** What the grader read from the attempt, by content hash, in first-read order. */
+  /** What the grader read from the trial, by content hash, in first-read order. */
   reads: GradeReads
   /** A judge grader's call to each model, and its reference; unset for any other. */
   judge?: JudgeGrade
@@ -3773,7 +3773,7 @@ export type JudgeGradeCall = {
   retries?: JudgeRetry[]
 }
 
-/** What makes two grades of the same attempt comparable: equal digests, the same grade. */
+/** What makes two grades of the same trial comparable: equal digests, the same grade. */
 export type GradeFingerprint = {
   /** sha256 over the other parts. */
   digest: string
@@ -3829,9 +3829,9 @@ export type BuiltinGraderData = {
   args?: JSONValue[]
   /** In place of `<kind>:<main argument>`, to tell two of one kind apart in one eval. */
   name?: string
-  /** Its share of the attempt's score. Default 1; 0 records only. */
+  /** Its share of the trial's score. Default 1; 0 records only. */
   weight?: number
-  /** A failed natural pass (or an error) makes the attempt's score 0. Default false. */
+  /** A failed natural pass (or an error) makes the trial's score 0. Default false. */
   required?: boolean
 }
 
@@ -3848,21 +3848,21 @@ export type PlannedGrader = {
   recordsOnly?: true
 }
 
-/** The attempt's observations, captures and kept files a grader read, by content hash. */
+/** The trial's observations, captures and kept files a grader read, by content hash. */
 export type GradeReads = {
   observations?: Array<{ name: string; sha256: string }>
   artifacts?: Array<{ name: string; sha256: string }>
   files?: Array<{ path: string; sha256: string }>
 }
 
-/** Full per-attempt payload, written to disk by the worker. */
+/** Full per-trial payload, written to disk by the worker. */
 export type EvalRecord = {
-  /** When the worker began the attempt (its scheduler lease), for start order across the run. */
+  /** When the worker began the trial (its scheduler lease), for start order across the run. */
   startedAt?: string
   outcome: Exclude<Outcome, 'skipped'>
-  error: AttemptError | null
-  /** See `AttemptRecord.failure`. */
-  failure?: AttemptFailure
+  error: TrialError | null
+  /** See `TrialRecord.failure`. */
+  failure?: TrialFailure
   /**
    * True when the eval body read `turn.status` (so a mid-turn error was intentional). False when a
    * turn errored and the body never inspected status. Absent on older records.
@@ -3874,9 +3874,9 @@ export type EvalRecord = {
   /** Each foreground `c.exec`: its last try's output, and `durationMs` over all its tries. */
   checks: Array<
     { command: string; durationMs: number } & ExecResult & {
-        /** See `AttemptRecord.checks`. */
+        /** See `TrialRecord.checks`. */
         label?: string
-        /** See `AttemptRecord.checks`. */
+        /** See `TrialRecord.checks`. */
         turn?: number
         /** The `retries` it was given, when more than 0. */
         retries?: number
@@ -3886,15 +3886,15 @@ export type EvalRecord = {
   >
   /** An older reeval's `expect` and `expect.require` matcher calls that settled, in call order; unset with none. */
   assertions?: AssertionRecord[]
-  /** See `AttemptRecord.observations`. */
+  /** See `TrialRecord.observations`. */
   observations?: Observation[]
-  /** See `AttemptRecord.grades`. */
+  /** See `TrialRecord.grades`. */
   grades?: GradeRecord[]
-  /** See `AttemptRecord.score`. */
+  /** See `TrialRecord.score`. */
   score?: number
   /**
    * An older reeval's `c.judge()` verdicts, in call order, with `retries` when transient provider
-   * errors were retried on the way to the verdict. `call` is the call's place among the attempt's
+   * errors were retried on the way to the verdict. `call` is the call's place among the trial's
    * `c.judge()` calls, failed ones included, which its judgment key is numbered by.
    */
   judgements: Array<
@@ -3916,33 +3916,33 @@ export type EvalRecord = {
   /** What each `c.judge()` call of an older reeval saw, in call order, including calls that errored. */
   judgeInputs?: JudgeInput[]
   environment?: EnvironmentRecord
-  image?: AttemptImage | null
-  /** See `AttemptRecord.vmImage`. */
+  image?: TrialImage | null
+  /** See `TrialRecord.vmImage`. */
   vmImage?: VmImage
-  /** See `AttemptRecord.sandboxBase`. */
+  /** See `TrialRecord.sandboxBase`. */
   sandboxBase?: SandboxBase
-  /** See `AttemptRecord.resources`. */
-  resources?: AttemptResources
+  /** See `TrialRecord.resources`. */
+  resources?: TrialResources
   /** Names of the variables and secrets set in the sandbox, and of the brokered secrets among them. */
   env?: { vars: string[]; secrets: string[]; brokered: string[] }
   /** The environment's setup steps as they ran, output redacted later. */
   setup?: Array<{ run: string; exitCode: number | null; durationMs: number; output: string }>
-  /** See `AttemptRecord.setupProcesses`. */
+  /** See `TrialRecord.setupProcesses`. */
   setupProcesses?: SetupProcess[]
-  /** See `AttemptRecord.serves`. */
+  /** See `TrialRecord.serves`. */
   serves?: ServeRecord[]
   egress?: EgressRecord
-  /** See `AttemptRecord.servedModels`. */
+  /** See `TrialRecord.servedModels`. */
   servedModels?: string[] | null
-  /** See `AttemptRecord.askedModels`. */
+  /** See `TrialRecord.askedModels`. */
   askedModels?: string[]
-  /** See `AttemptRecord.upstreams`. */
+  /** See `TrialRecord.upstreams`. */
   upstreams?: Array<{ provider: string; calls: number }>
-  /** See `AttemptRecord.reportedCostUsd`. */
+  /** See `TrialRecord.reportedCostUsd`. */
   reportedCostUsd?: number
-  /** See `AttemptRecord.secretWarnings`. */
+  /** See `TrialRecord.secretWarnings`. */
   secretWarnings?: SecretWarning[]
-  /** See `AttemptRecord.timeSplit`. */
+  /** See `TrialRecord.timeSplit`. */
   timeSplit?: TimeSplit
   /**
    * PNGs from `c.capture()`. Bytes live in a sidecar next to this JSON
@@ -3965,17 +3965,17 @@ export type EvalRecord = {
    * `decision` lines, never into the history record.
    */
   decisions?: DecisionRecord[]
-  /** See `AttemptRecord.snapshots`. */
+  /** See `TrialRecord.snapshots`. */
   snapshots?: Snapshot[]
   /**
-   * See `AttemptRecord.workspace`. Its archive and manifest wait in a sidecar next to this JSON
+   * See `TrialRecord.workspace`. Its archive and manifest wait in a sidecar next to this JSON
    * (`<stem>.workspace/`), and `sha256` is the archive's.
    */
   workspace?: KeptWorkspace & { sha256?: string }
 }
 
 /**
- * The workspace as the attempt left it, kept whole in its directory as `workspace.tar.gz`, with
+ * The workspace as the trial left it, kept whole in its directory as `workspace.tar.gz`, with
  * `workspace.json` listing each file's hash, or why it wasn't.
  */
 export type KeptWorkspace = {
@@ -3993,7 +3993,7 @@ export type KeptWorkspace = {
    */
   dropped: string[]
   /**
-   * Why it wasn't kept: `size` when it was over 200 MiB uncompressed, or with the attempt's large
+   * Why it wasn't kept: `size` when it was over 200 MiB uncompressed, or with the trial's large
    * observed values over 100 MiB compressed, or the run's kept workspaces passed 5 GiB; `error`
    * when the sandbox couldn't archive it; null when it was.
    */
@@ -4001,7 +4001,7 @@ export type KeptWorkspace = {
 }
 
 /**
- * A copy of the attempt's workspace, taken in the sandbox (never recorded into the history
+ * A copy of the trial's workspace, taken in the sandbox (never recorded into the history
  * folder), or why it wasn't.
  */
 export type Snapshot = {
@@ -4089,7 +4089,7 @@ export type CaptureStep = {
   ended: 'final' | 'done' | 'stopped'
 }
 
-/** Attempt-level capture vision spend; not harness usage. */
+/** Trial-level capture vision spend; not harness usage. */
 export type CaptureUseSpend = {
   model: string
   moves: number
@@ -4098,7 +4098,7 @@ export type CaptureUseSpend = {
 
 /**
  * A file part of a decision's state as it's recorded: its bytes' hash and size instead of the
- * bytes, and the capture it is, when it's one of the attempt's.
+ * bytes, and the capture it is, when it's one of the trial's.
  */
 export type DecisionFileRecord = {
   type: 'file'
@@ -4136,7 +4136,7 @@ export type DecisionRecord = {
   resolvedModel?: string
   /** The gateway from the config's `gateway` list the call went through; unset for a model object. */
   gateway?: GatewayName
-  /** How many turns the attempt had sent when it was asked: 0 before the first. */
+  /** How many turns the trial had sent when it was asked: 0 before the first. */
   turn: number
   startedAt: string
   durationMs: number
@@ -4156,7 +4156,7 @@ export type DecisionRecord = {
   error?: string
 }
 
-/** What an attempt's `c.decide()` calls used: never the agent's `usage` or cost. */
+/** What a trial's `c.decide()` calls used: never the agent's `usage` or cost. */
 export type DecisionUseSpend = {
   calls: number
   usage: TokenUsage | null
@@ -4164,13 +4164,13 @@ export type DecisionUseSpend = {
   costUsd?: number
 }
 
-/** Which environment ran as the control, so the studio can show it. */
+/** Which environment ran as the baseline, so the studio can show it. */
 export type EvalCompareMeta = {
-  /** The control's environment name. */
+  /** The baseline's environment name. */
   baseline: string
   /**
-   * Not written, since a compare names its control. A record that has it ran the eval's cascaded
-   * environment (`'environment'`) or an empty one named `baseline` (`'empty'`) as the control.
+   * Not written, since a compare names its baseline. A record that has it ran the eval's cascaded
+   * environment (`'environment'`) or an empty one named `baseline` (`'empty'`) as the baseline.
    */
   from?: 'environment' | 'empty'
 }
@@ -4182,17 +4182,17 @@ export type EvalPlan = {
   variants: { run: number; of: number } | null
   /** Set when the eval compares variant cells. */
   compare?: EvalCompareMeta
-  /** The eval's questions, answered after its attempts; unset without any, or when a profile dropped them all. */
+  /** The eval's questions, answered after its trials; unset without any, or when a profile dropped them all. */
   questions?: PlannedQuestion[]
-  /** Attempts per cell; with `bestOf`, the most a cell runs. */
-  runs: number
-  /** Set by `runs: { bestOf }`: each cell stops once a majority of this many attempts agree. */
+  /** Trials per cell; with `bestOf`, the most a cell runs. */
+  trials: number
+  /** Set by `trials: { bestOf }`: each cell stops once a majority of this many trials agree. */
   bestOf?: number
   /** The eval's target, the default `capability()` included; unset in records from before targets. */
   target?: RecordedTarget
   /** In records from before targets, the eval's gate when it set one. Never written now. */
   gate?: 'all' | 'observe' | { passRate: number }
-  attempts: number
+  totalTrials: number
   /** The case and environment pairs `where` left out of this case; unset when none. */
   excluded?: ExcludedPair[]
   /**
@@ -4209,11 +4209,11 @@ export type EvalPlan = {
   warnings: string[]
   /** Its sandbox runs as root, with capabilities added back or with host devices; empty for a skipped eval. */
   sandboxWarnings: SandboxWarning[]
-  /** Secrets any of its attempts brokers, as `NAME → host, host`. */
+  /** Secrets any of its trials brokers, as `NAME → host, host`. */
   brokered: string[]
-  /** Each distinct egress policy its attempts run under, by environment and harness. */
+  /** Each distinct egress policy its trials run under, by environment and harness. */
   egress: PlanEgress[]
-  /** Each distinct git workspace its attempts start from, as `repo#ref:path`. */
+  /** Each distinct git workspace its trials start from, as `repo#ref:path`. */
   workspaces: string[]
   /** Resolved camera defaults when any field is set. */
   capture?: CaptureOptions
@@ -4258,13 +4258,13 @@ export type PlanEgress = {
 }
 
 /**
- * An attempt's egress: the agent phase's policy (the harness's start, its turns and the checks),
+ * A trial's egress: the agent phase's policy (the harness's start, its turns and the checks),
  * and `setup`'s when the setup phase (files and setup steps) runs under another.
  */
 export type PlannedEgress = PlannedPhaseEgress & { setup?: PlannedPhaseEgress }
 
-/** Set when an attempt is registered, so the reporter has it even for skipped attempts. */
-export type AttemptMeta = {
+/** Set when a trial is registered, so the reporter has it even for skipped trials. */
+export type TrialMeta = {
   name: string
   groups: string[]
   tags: string[]
@@ -4280,29 +4280,29 @@ export type AttemptMeta = {
   sandbox: SandboxDescriptor
   /** The levels that set its sandbox and harness: `reeval.config.ts`, `profiles.pr.defaults`, `group("net")` or `evaluate("x")`; with `pluginBuilds`, the environment its plugin builds come from (`environment review in evals/review.eval.ts`). */
   setBy: { sandbox: string; harness: string; pluginBuilds?: string }
-  /** How its cell's attempts decide the cell's outcome; `'none'` when they don't fail the run. */
+  /** How its cell's trials decide the cell's outcome; `'none'` when they don't fail the run. */
   gate: CellGate
   /**
-   * The eval's target, which its attempts pass at the threshold of; unset in records from before
+   * The eval's target, which its trials pass at the threshold of; unset in records from before
    * targets.
    */
   target?: RecordedTarget
-  /** Set on variant attempts whose compare has a `minLift`. */
+  /** Set on variant trials whose compare has a `minLift`. */
   minLift?: number
   /**
-   * Set by `runs: { bestOf }`: past the majority's first attempts, this one runs only when the
-   * cell's earlier attempts haven't reached a majority.
+   * Set by `trials: { bestOf }`: past the majority's first trials, this one runs only when the
+   * cell's earlier trials haven't reached a majority.
    */
   bestOf?: number
-  /** The secrets this attempt brokers, as `NAME → host, host`. */
+  /** The secrets this trial brokers, as `NAME → host, host`. */
   brokered: string[]
   /**
    * The host variables its secrets read, by name: the CLI's own process masks their values on
-   * screen, since the attempt's worker is the only other process that knows them.
+   * screen, since the trial's worker is the only other process that knows them.
    */
   secretVars: string[]
   egress: PlannedEgress
-  /** The git repository its workspace starts as, which the CLI fetches before any attempt. */
+  /** The git repository its workspace starts as, which the CLI fetches before any trial. */
   workspace?: GitWorkspace
   /** The paths its environment's `files` write, layered and sorted; unset when there are none. */
   files?: string[]
@@ -4318,7 +4318,7 @@ export type AttemptMeta = {
    */
   inputs?: LocalInput[]
   plan: EvalPlan
-  /** Why this attempt does not run, e.g. it already completed in a resumed run. */
+  /** Why this trial does not run, e.g. it already completed in a resumed run. */
   skip?: string
   /** Set when the eval is a case of an eval with `cases`. */
   family?: FamilyMeta
@@ -4326,7 +4326,7 @@ export type AttemptMeta = {
   gateway?: ResolvedGateway
   /**
    * Its judge's `'provider/model'`, as the config, profile, groups and eval set it, and the
-   * gateway its calls go through, so the run checks the judge's key before any attempt starts.
+   * gateway its calls go through, so the run checks the judge's key before any trial starts.
    * Unset for a fake judge, a model object, or none.
    */
   judge?: { model: string; gateway?: GatewayName }
@@ -4355,7 +4355,7 @@ export type EvalMeta = {
   outcome: EvalRecord['outcome']
   errorKind: ErrorKind | null
   /** What the task threw, without its stack. */
-  failure?: Omit<AttemptFailure, 'stack'>
+  failure?: Omit<TrialFailure, 'stack'>
   judgements: Array<Pick<Verdict, 'verdict' | 'score' | 'threshold'> & { question: string }>
   /** Each turn that ended in an error, as `turn 2 error: <message>`, so a failure shows why. */
   turnErrors?: string[]
@@ -4369,31 +4369,31 @@ export type RunContext = {
   runId: string
   stagingDir: string
   config: ResolvedConfig
-  /** `reeval run --runs n`: overrides every level. */
-  runs?: number
+  /** `reeval run --trials n`: overrides every level. */
+  trials?: number
   /** `reeval run --tag` and the profile's tags: each is a tag, or `!tag` to exclude; all must hold. */
   tags: string[]
   /** `reeval run --trait`: the cells to run, by their environment's traits; all must hold. */
   traits?: TraitFilter[]
-  /** `reeval run --cell`: only attempts on these cell keys or `cell#n` ids. */
+  /** `reeval run --cell`: only trials on these cell keys or `cell#n` ids. */
   cells?: string[]
-  /** How many attempts run at once, across the run. */
+  /** How many trials run at once, across the run. */
   concurrency: number
   profile: ResolvedProfile | null
-  /** `-v` (1) or `-vv` (2) streams the attempts' debug lines; 0 only writes debug.log. */
+  /** `-v` (1) or `-vv` (2) streams the trials' debug lines; 0 only writes debug.log. */
   verbosity?: 0 | 1 | 2
   /** The config file, relative to the current directory, for the debug trace; unset without one. */
   configFile?: string
-  /** Attempt keys already finished when this run was resumed; workers register them as skip. */
+  /** Trial keys already finished when this run was resumed; workers register them as skip. */
   completed?: string[]
   /**
    * What Cursor's model catalog says of each planned Cursor model's effort, as preflight read it
    * for the run's key; unset before then, or without a key.
    */
   cursorEfforts?: CursorEfforts
-  /** Where the attempts' sandboxes run: `cloud` on a cloud run's own machines; here when unset. */
+  /** Where the trials' sandboxes run: `cloud` on a cloud run's own machines; here when unset. */
   placement?: 'cloud'
-  /** `reeval run --dry-run --json`: each attempt lists the host files it reads in `inputs`. */
+  /** `reeval run --dry-run --json`: each trial lists the host files it reads in `inputs`. */
   inputs?: boolean
 }
 

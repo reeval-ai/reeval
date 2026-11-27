@@ -1,27 +1,27 @@
 // `c.observe(name, value)`: the values it keeps, what it refuses, and how they're tallied and
-// queried. The fixture `history/observe` checks the same from inside an attempt.
+// queried. The fixture `history/observe` checks the same from inside a trial.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, test } from 'node:test'
 import { validate } from '../scripts/schema/validate.ts'
-import { observedFileBytes, observer } from '../src/attempt/observe.ts'
-import type { Attempt } from '../src/attempt/state.ts'
-import { attemptInput } from '../src/compare/questions.ts'
+import { observedFileBytes, observer } from '../src/trial/observe.ts'
+import type { Trial } from '../src/trial/state.ts'
+import { trialInput } from '../src/compare/questions.ts'
 import { resolveQuestionState } from '../src/compare/state.ts'
-import type { AttemptRecord, FileRef } from '../src/history/types.ts'
+import type { TrialRecord, FileRef } from '../src/history/types.ts'
 import { sha256 } from '../src/ids.ts'
 import type { EvalRecord } from '../src/types.ts'
 import { observedLine, observedTallies } from '../src/view/observations.ts'
 import { fakeConfig, project, readRun, runCli } from './helpers.ts'
 
-function attempt(ended = false, signal = new AbortController().signal) {
+function trial(ended = false, signal = new AbortController().signal) {
   const a = { record: {} as EvalRecord, turns: [] as unknown[], ended, signal }
-  return { a, observe: observer(a as unknown as Attempt) }
+  return { a, observe: observer(a as unknown as Trial) }
 }
 
 describe('c.observe', () => {
   test('keeps the last value per name, in first-call order, with its turn', () => {
-    const { a, observe } = attempt()
+    const { a, observe } = trial()
     observe('orm', 'none')
     a.turns.push({})
     observe('deps', ['pg'])
@@ -32,29 +32,29 @@ describe('c.observe', () => {
     ])
   })
 
-  test('keeps a large value whole, masked, and counts it toward the attempt', () => {
-    const { a, observe } = attempt()
+  test('keeps a large value whole, masked, and counts it toward the trial', () => {
+    const { a, observe } = trial()
     const big = { log: 'x'.repeat(1_000_000), token: `ghp_${'a'.repeat(36)}` }
     observe('big', big)
     const [kept] = a.record.observations ?? []
     assert.deepEqual(kept?.value, { log: big.log, token: '[REDACTED]' })
-    assert.equal(observedFileBytes(a as unknown as Attempt), JSON.stringify(kept?.value).length)
+    assert.equal(observedFileBytes(a as unknown as Trial), JSON.stringify(kept?.value).length)
     observe('small', 1)
     observe('big', 'short now')
     assert.equal(
-      observedFileBytes(a as unknown as Attempt),
+      observedFileBytes(a as unknown as Trial),
       0,
       'only the last value per name counts',
     )
   })
 
-  test("refuses large values past the attempt's 100 MiB", () => {
-    const { a, observe } = attempt()
+  test("refuses large values past the trial's 100 MiB", () => {
+    const { a, observe } = trial()
     const half = 'x'.repeat(51 * 2 ** 20)
     observe('one', half)
     assert.throws(
       () => observe('two', half),
-      /c\.observe\("two"\) would keep 102\.0 MB of large observed values, over the attempt's 100\.0 MB: observe less, or a summary of it/,
+      /c\.observe\("two"\) would keep 102\.0 MB of large observed values, over the trial's 100\.0 MB: observe less, or a summary of it/,
     )
     assert.deepEqual(
       a.record.observations?.map((o) => o.name),
@@ -63,14 +63,14 @@ describe('c.observe', () => {
   })
 
   test('masks a secret-looking value', () => {
-    const { a, observe } = attempt()
+    const { a, observe } = trial()
     observe('env', { token: `ghp_${'a'.repeat(36)}` })
     assert.deepEqual(a.record.observations?.[0]?.value, { token: '[REDACTED]' })
   })
 
   test('masks a secret-looking name, and refuses another that masks to the same name', () => {
     const token = (c: string) => `ghp_${c.repeat(36)}`
-    const { a, observe } = attempt()
+    const { a, observe } = trial()
     observe(token('a'), 1)
     observe(token('a'), 2)
     observe(`count_${token('b')}`, 3)
@@ -93,7 +93,7 @@ describe('c.observe', () => {
   test('masks a number that is a secret', () => {
     process.env.REEVAL_T_SECRET_PIN = '98765432'
     try {
-      const { a, observe } = attempt()
+      const { a, observe } = trial()
       observe('pin', { pin: 98765432, n: 3 })
       assert.deepEqual(a.record.observations?.[0]?.value, { pin: '[REDACTED]', n: 3 })
     } finally {
@@ -102,7 +102,7 @@ describe('c.observe', () => {
   })
 
   test('refuses what it cannot record, naming why', () => {
-    const { observe } = attempt()
+    const { observe } = trial()
     const refused: Array<[string, unknown, RegExp]> = [
       ['has space', 1, /needs a name of 1 to 64 letters/],
       ['n', Number.NaN, /takes JSON: NaN isn't a finite number/],
@@ -122,18 +122,18 @@ describe('c.observe', () => {
     assert.throws(() => observe('n', deep as never), /takes JSON: it nests deeper than 64 levels/)
   })
 
-  test('refuses a call once the attempt timed out or was canceled', () => {
-    const { a, observe } = attempt(false, AbortSignal.abort())
-    assert.throws(() => observe('late', 1), /came after the attempt timed out or was canceled/)
+  test('refuses a call once the trial timed out or was canceled', () => {
+    const { a, observe } = trial(false, AbortSignal.abort())
+    assert.throws(() => observe('late', 1), /came after the trial timed out or was canceled/)
     assert.equal(a.record.observations, undefined)
   })
 
-  test('caps the names an attempt observes, and refuses a call after the body', () => {
-    const { observe } = attempt()
+  test('caps the names a trial observes, and refuses a call after the body', () => {
+    const { observe } = trial()
     for (let i = 0; i < 50; i++) observe(`n${i}`, i)
     observe('n0', 'again')
-    assert.throws(() => observe('n50', 1), /one name too many: an attempt observes at most 50/)
-    assert.throws(() => attempt(true).observe('late', 1), /came after the eval's body returned/)
+    assert.throws(() => observe('n50', 1), /one name too many: a trial observes at most 50/)
+    assert.throws(() => trial(true).observe('late', 1), /came after the eval's body returned/)
   })
 })
 
@@ -166,9 +166,9 @@ describe('observed tallies', () => {
       [
         ['orm', 'a', 'drizzle 2 · prisma 1'],
         ['orm', 'b', 'prisma 1'],
-        ['deps', 'a', 'pg 1 · drizzle-orm 1 · 1 attempt'],
-        ['n', 'a', 'median 4 · range 1–10 · 3 attempts'],
-        ['cfg', 'a', '1 value in reeval query attempt_values · 1 attempt'],
+        ['deps', 'a', 'pg 1 · drizzle-orm 1 · 1 trial'],
+        ['n', 'a', 'median 4 · range 1–10 · 3 trials'],
+        ['cfg', 'a', '1 value in reeval query trial_values · 1 trial'],
       ],
     )
   })
@@ -185,7 +185,7 @@ describe('observed tallies', () => {
         [
           [{ value: 'short', n: 1 }],
           1,
-          'short 1 · 1 value in reeval query attempt_values · 2 attempts',
+          'short 1 · 1 value in reeval query trial_values · 2 trials',
         ],
       ],
     )
@@ -205,18 +205,18 @@ describe('observed tallies', () => {
 })
 
 describe('observations in a run', () => {
-  test('recorded per attempt, tallied in the output and queryable, and never gating', async () => {
+  test('recorded per trial, tallied in the output and queryable, and never gating', async () => {
     const p = await project('observe-run', {
       'reeval.config.ts': fakeConfig(),
       'evals/a.eval.ts': `import assert from 'node:assert/strict'
 import { defineEval } from 'reeval'
 export default defineEval({
-  runs: 2,
+  trials: 2,
   async task(c) {
     await c.send('x')
-    c.observe('orm', c.attempt.n === 1 ? 'drizzle' : 'prisma')
-    c.observe('files', c.attempt.n)
-    assert.equal(c.attempt.n, 1, 'first run only')
+    c.observe('orm', c.trial.n === 1 ? 'drizzle' : 'prisma')
+    c.observe('files', c.trial.n)
+    assert.equal(c.trial.n, 1, 'first run only')
   },
 })
 `,
@@ -225,12 +225,12 @@ export default defineEval({
     assert.equal(r.code, 1, r.stdout + r.stderr)
     assert.match(
       r.stdout,
-      /Observed:\n +orm +drizzle 1 · prisma 1\n +files +median 1\.5 · range 1–2 · 2 attempts$/m,
+      /Observed:\n +orm +drizzle 1 · prisma 1\n +files +median 1\.5 · range 1–2 · 2 trials$/m,
     )
     const { run } = readRun(p.dir)
-    const attempts = run.evals[0]?.attempts ?? []
+    const trials = run.evals[0]?.trials ?? []
     assert.deepEqual(
-      attempts.map((a) => [a.outcome, a.observations?.map((o) => o.value)]),
+      trials.map((a) => [a.outcome, a.observations?.map((o) => o.value)]),
       [
         ['pass', ['drizzle', 1]],
         ['fail', ['prisma', 2]],
@@ -238,13 +238,13 @@ export default defineEval({
     )
     const q = await runCli(p.dir, [
       'query',
-      'SELECT attempt_id, outcome, name, kind, num, text, agent FROM attempt_values ORDER BY attempt_id, name',
+      'SELECT trial_id, outcome, name, kind, num, text, agent FROM trial_values ORDER BY trial_id, name',
       '--json',
     ])
     assert.equal(q.code, 0, q.stderr)
     assert.deepEqual(JSON.parse(q.stdout), [
       {
-        attempt_id: 'fake/fake/fake#1',
+        trial_id: 'fake/fake/fake#1',
         outcome: 'pass',
         name: 'files',
         kind: 'number',
@@ -253,7 +253,7 @@ export default defineEval({
         agent: 'fake',
       },
       {
-        attempt_id: 'fake/fake/fake#1',
+        trial_id: 'fake/fake/fake#1',
         outcome: 'pass',
         name: 'orm',
         kind: 'string',
@@ -262,7 +262,7 @@ export default defineEval({
         agent: 'fake',
       },
       {
-        attempt_id: 'fake/fake/fake#2',
+        trial_id: 'fake/fake/fake#2',
         outcome: 'fail',
         name: 'files',
         kind: 'number',
@@ -271,7 +271,7 @@ export default defineEval({
         agent: 'fake',
       },
       {
-        attempt_id: 'fake/fake/fake#2',
+        trial_id: 'fake/fake/fake#2',
         outcome: 'fail',
         name: 'orm',
         kind: 'string',
@@ -293,7 +293,7 @@ import { fakeSandbox } from 'reeval/sandbox'
 export default defineConfig({
   agents: fakeAgent(),
   environments: defineEnvironment('fake', { sandbox: fakeSandbox() }),
-  analysis: { model: fakeAnalysis({ answer: (q) => JSON.stringify(q.attempt.observations ?? null) }) },
+  analysis: { model: fakeAnalysis({ answer: (q) => JSON.stringify(q.trial.observations ?? null) }) },
 })
 `,
       'evals/a.eval.ts': `import { defineEval } from 'reeval'
@@ -326,16 +326,16 @@ export default defineEval({
       readFileSync(new URL('../schema/run-record.schema.json', import.meta.url), 'utf8'),
     )
     assert.deepEqual(validate(schema, run), [])
-    const attempt = run.evals[0]?.attempts[0]
+    const trial = run.evals[0]?.trials[0]
     assert.deepEqual(
-      attempt?.grades?.map((g) => [g.grader, (g.score ?? 0) >= 0.5]),
+      trial?.grades?.map((g) => [g.grader, (g.score ?? 0) >= 0.5]),
       [
         ['judge:picked drizzle?', true],
         ['judge:saw it without asking?', false],
       ],
     )
     assert.deepEqual(
-      attempt?.answers?.map((a) => [a.question, a.text]),
+      trial?.answers?.map((a) => [a.question, a.text]),
       [
         ['Which ORM?', JSON.stringify([{ name: 'orm', value: 'drizzle' }])],
         ['What did it say?', 'null'],
@@ -352,7 +352,7 @@ export default defineEval({
 })
 
 describe('a large observation in a run', () => {
-  let ran: Promise<{ dir: string; attempt: AttemptRecord; file: FileRef }> | undefined
+  let ran: Promise<{ dir: string; trial: TrialRecord; file: FileRef }> | undefined
   const large = () =>
     (ran ??= (async () => {
       const p = await project('observe-large', {
@@ -363,7 +363,7 @@ import { fakeSandbox } from 'reeval/sandbox'
 export default defineConfig({
   agents: fakeAgent(),
   environments: defineEnvironment('fake', { sandbox: fakeSandbox() }),
-  analysis: { model: fakeAnalysis({ answer: (q) => JSON.stringify(q.attempt.observations ?? null) }) },
+  analysis: { model: fakeAnalysis({ answer: (q) => JSON.stringify(q.trial.observations ?? null) }) },
 })
 `,
         'evals/a.eval.ts': `import { defineEval } from 'reeval'
@@ -378,25 +378,25 @@ export default defineEval({
       })
       const r = await runCli(p.dir)
       assert.equal(r.code, 0, r.stdout + r.stderr)
-      const attempt = readRun(p.dir).run.evals[0]?.attempts[0]
-      const file = attempt?.observations?.[0]?.file
-      assert.ok(attempt && file, 'kept in a file')
-      return { dir: p.dir, attempt, file }
+      const trial = readRun(p.dir).run.evals[0]?.trials[0]
+      const file = trial?.observations?.[0]?.file
+      assert.ok(trial && file, 'kept in a file')
+      return { dir: p.dir, trial, file }
     })())
 
   test('a question reads it whole', async () => {
-    const { attempt } = await large()
+    const { trial } = await large()
     // The recorded answer is capped; its start shows the question had the value, not null.
-    const text = attempt.answers?.[0]?.text ?? ''
+    const text = trial.answers?.[0]?.text ?? ''
     const shown = JSON.stringify([{ name: 'log', value: 'line\n'.repeat(1200) }])
     assert.ok(text.length > 100 && shown.startsWith(text.replace(/…$/, '')), text.slice(0, 60))
   })
 
-  test('attempt_values names its file, with no value', async () => {
+  test('trial_values names its file, with no value', async () => {
     const { dir, file } = await large()
     const q = await runCli(dir, [
       'query',
-      'SELECT name, value, kind, text, file_path FROM attempt_values',
+      'SELECT name, value, kind, text, file_path FROM trial_values',
       '--json',
     ])
     assert.equal(q.code, 0, q.stderr)
@@ -417,7 +417,7 @@ describe('a secret-looking observation name in a run', () => {
   export default defineConfig({
     agents: fakeAgent(),
     environments: defineEnvironment('fake', { sandbox: fakeSandbox() }),
-    analysis: { model: fakeAnalysis({ answer: (q) => JSON.stringify(q.attempt.observations ?? null) }) },
+    analysis: { model: fakeAnalysis({ answer: (q) => JSON.stringify(q.trial.observations ?? null) }) },
   })
   `,
       'evals/masked.eval.ts': `import assert from 'node:assert/strict'
@@ -443,13 +443,13 @@ import { judge } from 'reeval/graders'
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const { run } = readRun(p.dir)
-    const attempt = run.evals[0]?.attempts[0]
-    assert.deepEqual(attempt?.observations, [
+    const trial = run.evals[0]?.trials[0]
+    assert.deepEqual(trial?.observations, [
       { name: '[REDACTED]', value: 'kept', turn: 1, sha256: sha256('"kept"') },
     ])
-    assert.deepEqual(attempt?.answers?.[0]?.stateOptions.observations, ['[REDACTED]'])
+    assert.deepEqual(trial?.answers?.[0]?.stateOptions.observations, ['[REDACTED]'])
     assert.equal(
-      attempt?.answers?.[0]?.text,
+      trial?.answers?.[0]?.text,
       JSON.stringify([{ name: '[REDACTED]', value: 'kept' }]),
     )
     const record = JSON.stringify(run)
@@ -459,9 +459,9 @@ import { judge } from 'reeval/graders'
 
 describe('observations in a question cut to fit', () => {
   test('a long diff is cut before them', () => {
-    const attempt = {
+    const trial = {
       harness: 'fake',
-      arm: 'base',
+      environment: 'base',
       run: 1,
       diff: `diff --git a/a.ts b/a.ts\n${'+x\n'.repeat(5000)}`,
       checksPassed: true,
@@ -469,9 +469,9 @@ describe('observations in a question cut to fit', () => {
       id: 'fake#1',
     }
     const state = resolveQuestionState({ diff: true, observations: ['orm'] })
-    const { blind } = attemptInput('Which ORM?', attempt, 1000, { state })
+    const { blind } = trialInput('Which ORM?', trial, 1000, { state })
     assert.match(blind.prompt, /<observations>\norm = "drizzle"\n<\/observations>/)
-    assert.match(blind.prompt, /\[reeval: attempt cut at 4000 of \d+ characters\]/)
+    assert.match(blind.prompt, /\[reeval: trial cut at 4000 of \d+ characters\]/)
   })
 })
 
@@ -481,10 +481,10 @@ describe('observations in reeval compare', () => {
       'reeval.config.ts': fakeConfig(),
       'evals/a.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
-  runs: 2,
+  trials: 2,
   async task(c) {
     await c.send('x')
-    c.observe('orm', c.attempt.n === 1 ? 'drizzle' : (process.env.SECOND_ORM ?? 'drizzle'))
+    c.observe('orm', c.trial.n === 1 ? 'drizzle' : (process.env.SECOND_ORM ?? 'drizzle'))
     c.observe('steady', 1)
   },
 })

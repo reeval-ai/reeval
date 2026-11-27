@@ -28,14 +28,14 @@ one profile you need. Keep `.mcp.json` and `.cursor/mcp.json` at your project's 
 `reeval.config.ts`.
 
 **What to look at:** after the run, ask your agent "why did the last reeval run fail?". It calls
-the `failures` tool, which answers with each failed attempt, its failing command's log and the
+the `failures` tool, which answers with each failed trial, its failing command's log and the
 trajectory's tail (trimmed here):
 
 ```json
 {
   "runId": "20261126T080948Z_214e9d4_cursor-agent_mkja",
-  "summary": { "evals": 1, "attempts": 1, "pass": 0, "fail": 1, … },
-  "attempts": [
+  "summary": { "evals": 1, "trials": 1, "pass": 0, "fail": 1, … },
+  "trials": [
     {
       "eval": "with-reeval-mcp",
       "cell": "fake/math/fake",

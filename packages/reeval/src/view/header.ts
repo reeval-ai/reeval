@@ -1,5 +1,5 @@
 import type {
-  AttemptRecord,
+  TrialRecord,
   CellRecord,
   HistoryCell,
   HistoryEntry,
@@ -58,20 +58,20 @@ export function runHeader(record: RunRecord, recorded: boolean): HistoryEntry {
       passRate: e.passRate,
       ...(e.target ? { target: e.target } : {}),
       ...(e.scores ? { scores: e.scores } : {}),
-      cells: e.cells.map((c) => historyCell(e.attempts, c)),
-      ...gradersOf(e.attempts),
-      ...(e.attempts.some((a) => a.regraded) ? { regraded: true as const } : {}),
+      cells: e.cells.map((c) => historyCell(e.trials, c)),
+      ...gradersOf(e.trials),
+      ...(e.trials.some((a) => a.regraded) ? { regraded: true as const } : {}),
       ...(e.cases
         ? {
             cases: e.cases.map((k) => {
-              const attempts = e.attempts.filter((a) => a.case === k.key)
+              const trials = e.trials.filter((a) => a.case === k.key)
               return {
                 key: k.key,
                 outcome: k.outcome,
                 ...(k.verdict ? { verdict: k.verdict } : {}),
                 fingerprint: k.fingerprint,
                 ...(k.hash ? { hash: k.hash } : {}),
-                cells: k.cells.map((c) => historyCell(attempts, c)),
+                cells: k.cells.map((c) => historyCell(trials, c)),
               }
             }),
             caseCount: e.caseCount ?? e.cases.length,
@@ -96,9 +96,9 @@ export function runHeader(record: RunRecord, recorded: boolean): HistoryEntry {
   }
 }
 
-function gradersOf(attempts: readonly AttemptRecord[]): { graders?: Record<string, string> } {
+function gradersOf(trials: readonly TrialRecord[]): { graders?: Record<string, string> } {
   const graders: Record<string, string> = {}
-  for (const a of attempts) {
+  for (const a of trials) {
     for (const g of a.grades ?? []) {
       graders[g.grader] ??= [
         g.fingerprint.digest,
@@ -121,7 +121,7 @@ function gatedRates(cells: readonly CellRecord[]) {
   return gated.length ? { rates: gated } : {}
 }
 
-function historyCell(attempts: readonly AttemptRecord[], c: CellRecord): HistoryCell {
+function historyCell(trials: readonly TrialRecord[], c: CellRecord): HistoryCell {
   return {
     key: c.key,
     role: c.role,
@@ -133,7 +133,7 @@ function historyCell(attempts: readonly AttemptRecord[], c: CellRecord): History
     gate: c.gate,
     fingerprint: c.fingerprint,
     fingerprintParts: c.fingerprintParts,
-    runs: c.runs,
+    trials: c.trials,
     pass: c.pass,
     fail: c.fail,
     infraError: c.infraError,
@@ -142,8 +142,8 @@ function historyCell(attempts: readonly AttemptRecord[], c: CellRecord): History
     ...(c.scores ? { scores: c.scores } : {}),
     outcome: c.outcome,
     ...(c.bestOf !== undefined ? { bestOf: c.bestOf } : {}),
-    effort: cellEffort({ attempts: [...attempts] }, c.key),
-    ...canceledIn(attempts, c.key),
+    effort: cellEffort({ trials: [...trials] }, c.key),
+    ...canceledIn(trials, c.key),
     ...(c.lift
       ? {
           lift: {
@@ -158,9 +158,9 @@ function historyCell(attempts: readonly AttemptRecord[], c: CellRecord): History
   }
 }
 
-/** A cell's failed attempts that the run's interrupt canceled, when it has any. */
-function canceledIn(attempts: readonly AttemptRecord[], cell: string): { canceled?: number } {
-  const n = attempts.filter(
+/** A cell's failed trials that the run's interrupt canceled, when it has any. */
+function canceledIn(trials: readonly TrialRecord[], cell: string): { canceled?: number } {
+  const n = trials.filter(
     (a) => a.cell === cell && a.outcome === 'fail' && a.error?.kind === 'aborted',
   ).length
   return n ? { canceled: n } : {}

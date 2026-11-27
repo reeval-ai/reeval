@@ -1,4 +1,4 @@
-// reeval's built-in graders, `reeval/graders`: graders over what an attempt already records,
+// reeval's built-in graders, `reeval/graders`: graders over what a trial already records,
 // each grading with one of `reeval/graders/match`'s functions. A built-in's options are data, so
 // the config and another language declare one as `BuiltinGraderData`, and its fingerprint is its
 // kind, its arguments and its kind's version, which goes up when what the kind grades changes.
@@ -18,9 +18,9 @@ import type { Grader, GraderContext } from './types.ts'
 export type BuiltinOptions<G> = {
   /** In place of `<kind>:<main argument>`, to tell two of one kind apart in one eval. */
   name?: string
-  /** Its share of the attempt's score. Default 1; 0 records only. */
+  /** Its share of the trial's score. Default 1; 0 records only. */
   weight?: number
-  /** A failed natural pass (or an error) makes the attempt's score 0. Default false. */
+  /** A failed natural pass (or an error) makes the trial's score 0. Default false. */
   required?: boolean
   /** The grade's score in [0, 1], in place of 1 or 0 for its natural pass. */
   score?: (grade: G) => number
@@ -540,7 +540,7 @@ export function notInDiff(paths: match.PathMatch, options?: BuiltinOptions<strin
 
 /**
  * Whether the final workspace has `path`, with `content` in it when given (`has-file:<path>`).
- * The attempt keeps the file for it.
+ * The trial keeps the file for it.
  */
 export function hasFile(
   path: string,
@@ -578,7 +578,7 @@ export function withinLimits(
   return make('within-limits', [limits], options)
 }
 
-/** How many turns the attempt took (`turns`). Records it; scores with `score`. */
+/** How many turns the trial took (`turns`). Records it; scores with `score`. */
 export const turns = (options?: BuiltinOptions<number>): Grader => make('turns', [], options)
 
 /** The turns' tokens, or null when a harness reported none (`tokens`). Records it; scores with `score`. */

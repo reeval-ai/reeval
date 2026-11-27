@@ -1,7 +1,7 @@
 // reeval's side of the sandbox prepare contract (provider.ts), the same for every provider: check
 // each provider once, prepare every distinct environment the plan needs in parallel before any
-// attempt starts, retry transient failures, and cache each result for the run, failures too.
-// Attempts, in the engine's workers, only read the results (`preparedFor`).
+// trial starts, retry transient failures, and cache each result for the run, failures too.
+// Trials, in the engine's workers, only read the results (`preparedFor`).
 import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { RETRY_DELAYS } from '@reeval/sandbox-docker'
@@ -14,7 +14,7 @@ import {
   type SandboxProvider,
 } from './provider.ts'
 
-/** One attempt's need: its sandbox and harness, and the levels that set each. */
+/** One trial's need: its sandbox and harness, and the levels that set each. */
 export type PrepareUse = {
   harness: HarnessDescriptor
   sandbox: SandboxDescriptor
@@ -98,7 +98,7 @@ export function prepareTargets(
   return [...targets.values()]
 }
 
-/** A config-level environment that can't be prepared: the run stops before any attempt. */
+/** A config-level environment that can't be prepared: the run stops before any trial. */
 export class RunStopError extends Error {
   override name = 'RunStopError'
   readonly outcome: Extract<PrepareOutcome, { ok: false }>
@@ -234,7 +234,7 @@ type Entry =
 const preparedDir = (root: string) => join(root, '.reeval', 'cache', 'prepared')
 const preparedFile = (root: string, runId: string) => join(preparedDir(root), `${runId}.json`)
 
-/** Writes what the attempts start from, by provider and key, for the run's workers. */
+/** Writes what the trials start from, by provider and key, for the run's workers. */
 export function writePrepared(root: string, runId: string, outcomes: PrepareOutcome[]): void {
   const doc: Record<string, Record<string, Entry>> = {}
   for (const o of outcomes) {
@@ -259,7 +259,7 @@ export const removePrepared = (root: string, runId: string) =>
 const read = new Map<string, Record<string, Record<string, Entry>> | null>()
 
 /**
- * What an attempt starts from, as preflight prepared it: the handle, or the prepare failure its
+ * What a trial starts from, as preflight prepared it: the handle, or the prepare failure its
  * cells share, thrown as a {@link PrepareError}. Null when preflight didn't prepare this run.
  */
 export function preparedFor(
@@ -284,7 +284,7 @@ export function preparedFor(
     throw new PrepareError({
       ...entry.failure,
       setBy: entry.setBy,
-      message: `${entry.failure.message}\n(the sandbox ${entry.label}, set by ${entry.setBy.join(', ')}, failed to prepare before the run started; every attempt that needs it fails with this)`,
+      message: `${entry.failure.message}\n(the sandbox ${entry.label}, set by ${entry.setBy.join(', ')}, failed to prepare before the run started; every trial that needs it fails with this)`,
     })
   }
   return entry.handle

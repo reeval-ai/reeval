@@ -1,6 +1,6 @@
 import { defineEval } from 'reeval'
 import { base, skilled } from '../envs.ts'
 
-const compare = { control: base, variants: [skilled] }
+const compare = { baseline: base, variants: [skilled] }
 
-export default defineEval({ compare, runs: 3, task: async () => {} })
+export default defineEval({ compare, trials: 3, task: async () => {} })

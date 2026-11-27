@@ -1,11 +1,11 @@
 // For coding agents running `reeval run`: they read every line back into context, so after the
-// run header (the one every mode prints, without color) nothing prints while attempts run but
+// run header (the one every mode prints, without color) nothing prints while trials run but
 // what needs attention now (a sandbox that failed to prepare, a warning), and the run ends with
 // the same status list as CI, without color or tree glyphs.
 import { suiteResult } from '../view/suite.ts'
 import { colors } from './colors.ts'
 import type { OutputStream, ReevalEvent, Renderer } from './events.ts'
-import { attemptAxes, debugLines, progressLine } from './format.ts'
+import { trialAxes, debugLines, progressLine } from './format.ts'
 import { noticeLines, PrepareLines, planLines, startLine } from './header.ts'
 import { listLines } from './list.ts'
 import type { OutputOptions } from './mode.ts'
@@ -26,7 +26,7 @@ export class AgentRenderer implements Renderer {
   #prepare = new PrepareLines()
   readonly #o: AgentRendererOptions
   readonly #c = colors(false)
-  /** `[key]` prefixes for `-v` lines, from each attempt's start. */
+  /** `[key]` prefixes for `-v` lines, from each trial's start. */
   readonly #labels = new Map<string, string>()
   readonly #tags = new Tagger()
 
@@ -44,15 +44,15 @@ export class AgentRenderer implements Renderer {
         for (const line of planLines(this.#c, e, WIDTH)) this.#write(line)
         return
       case 'run-start':
-        // No attempt's logs print here, whatever --output-logs says.
+        // No trial's logs print here, whatever --output-logs says.
         this.#write(startLine(this.#c, { ...this.#o.output, outputLogs: 'none' }))
         return
       case 'collected':
         this.#tags.addFile(e.evals)
         return
       case 'eval-start': {
-        const tag = this.#tags.label(e.id, e.attempt?.n ?? 1)
-        this.#labels.set(e.key, `[${tag} ${attemptAxes(e.attempt, 'agent')}]`)
+        const tag = this.#tags.label(e.id, e.trial?.n ?? 1)
+        this.#labels.set(e.key, `[${tag} ${trialAxes(e.trial, 'agent')}]`)
         return
       }
       case 'debug': {

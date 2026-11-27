@@ -35,7 +35,7 @@
       "children": [
         {
           "type": "eval",
-          "name": "git and npm read at the attempt",
+          "name": "git and npm read at the trial",
           "mode": "run",
           "options": {},
           "body": "b1",

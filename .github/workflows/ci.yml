@@ -151,7 +151,7 @@ jobs:
               esac
               case $f in
                 packages/reeval/src/engine/* | \
-                packages/reeval/src/attempt/* | \
+                packages/reeval/src/trial/* | \
                 packages/reeval/src/capture/* | \
                 packages/reeval/src/sandbox/* | \
                 packages/reeval/src/harness/* | \
@@ -171,7 +171,7 @@ jobs:
                 packages/reeval/src/sandbox/* | \
                 packages/reeval/src/harness/* | \
                 packages/agents/* | \
-                packages/reeval/src/attempt/* | \
+                packages/reeval/src/trial/* | \
                 packages/reeval/src/capture/* | \
                 packages/reeval/src/egress.ts | \
                 packages/reeval/test/features/* | \

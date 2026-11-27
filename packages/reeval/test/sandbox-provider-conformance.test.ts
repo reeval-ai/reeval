@@ -1,5 +1,5 @@
 // The machine provider conformance suite: what every provider in MACHINE_PROVIDERS promises an
-// attempt, checked through its kind's `create` on the provider's fake backend, with the image
+// trial, checked through its kind's `create` on the provider's fake backend, with the image
 // preflight would have prepared. Its session runs
 // commands, files and reeval's own commands as the OS profile says; an aborted command dies in the
 // machine with everything it started, however it detached; a secret in a command's variables
@@ -13,7 +13,7 @@ import { createServer } from 'node:http'
 import { networkInterfaces, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
-import { parseProbe, probeScript } from '../src/attempt/serve.ts'
+import { parseProbe, probeScript } from '../src/trial/serve.ts'
 import { cloud } from '../src/internal-vm.ts'
 import { runLabels, runPrefix } from '../src/sandbox/boat.ts'
 import { CLOUD_PREFIX, VM_TOKEN, VM_URL } from '../src/sandbox/cloud.ts'
@@ -26,7 +26,7 @@ import type { PrepareContext, PreparedHandle } from '../src/sandbox/provider.ts'
 import { boatProvider, daytonaProvider, sandboxBase } from '../src/sandbox/providers.ts'
 import { vmPrefix } from '../src/sandbox/tart.ts'
 import { hasNetworkSession, type Sandbox } from '../src/sandbox/types.ts'
-import { openSpan, type SpanInput, setLocalSpanSink, withAttemptSpan } from '../src/trace/spans.ts'
+import { openSpan, type SpanInput, setLocalSpanSink, withTrialSpan } from '../src/trace/spans.ts'
 import { type FakeBoat, fakeBoat } from './support/boat.ts'
 import { type FakeDaytona, fakeDaytona } from './support/daytona.ts'
 import { fakeTart, holdLoopback } from './support/fake-tart.ts'
@@ -57,7 +57,7 @@ type Backend = {
   slowBoot(): () => void
   /** Runs a root shell script in the named machine, behind reeval's back, and returns its output. */
   inMachine?(name: string, script: string): string
-  /** What an attempt of run `runId` is created with beside the suite's options: what preflight prepared. */
+  /** What a trial of run `runId` is created with beside the suite's options: what preflight prepared. */
   prepared?(runId: string): Partial<SandboxOptions>
   /** Each slot of a shared machine is a user of its own on it, rather than a container of its own. */
   slotUsers?: boolean
@@ -238,7 +238,7 @@ const BACKENDS: Record<MachineKind, Backend> = {
       ),
     slowBoot: () => () => {},
     inMachine: inSshVm,
-    // A Daytona attempt finds its snapshot where preflight writes it for the run's workers.
+    // A Daytona trial finds its snapshot where preflight writes it for the run's workers.
     prepared(runId) {
       if (!daytonaRuns.has(runId) && daytonaHandle) {
         const key = daytonaProvider().key(daytona(), FAKE)
@@ -513,7 +513,7 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
         await until('the machine is gone', () => backend.machines(id).length === 0)
       })
 
-      test('cleanupRun removes a machine its attempt never destroyed', async () => {
+      test('cleanupRun removes a machine its trial never destroyed', async () => {
         const id = `${runId}-left`
         const left = await create(id)
         try {
@@ -525,16 +525,16 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
         }
       })
 
-      test("the run's trace has the machine, and puts the attempt on it", async () => {
+      test("the run's trace has the machine, and puts the trial on it", async () => {
         const spans: SpanInput[] = []
         setLocalSpanSink((span) => spans.push(span))
         try {
           const id = `${runId}-trace`
-          const attempt = openSpan('attempt')
-          const own = await withAttemptSpan(attempt, () => create(id))
+          const trial = openSpan('trial')
+          const own = await withTrialSpan(trial, () => create(id))
           await own.destroy()
-          attempt.end()
-          const on = spans.find((s) => s.spanId === attempt.spanId)?.attributes ?? {}
+          trial.end()
+          const on = spans.find((s) => s.spanId === trial.spanId)?.attributes ?? {}
           assert.equal(on['reeval.sandbox'], machine.kind)
           assert.equal(typeof on['host.id'], 'string')
           // The suite's other machines report to the same sink as they go.
@@ -544,8 +544,8 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
           const host = ours()
           assert.ok((host?.startMs ?? 0) <= (host?.endMs ?? 0))
           if (machine.pool) {
-            const lease = spans.find((s) => s.name === 'lease' && s.parentSpanId === attempt.spanId)
-            assert.equal(lease?.parentSpanId, attempt.spanId)
+            const lease = spans.find((s) => s.name === 'lease' && s.parentSpanId === trial.spanId)
+            assert.equal(lease?.parentSpanId, trial.spanId)
             assert.equal(lease?.links?.[0]?.spanId, host?.spanId)
             assert.equal(lease?.attributes['host.id'], on['host.id'])
             assert.equal(on['reeval.machine.slot'], 0)
@@ -555,18 +555,18 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
         }
       })
 
-      test('an attempt canceled while its machine boots leaves no machine', async () => {
+      test('a trial canceled while its machine boots leaves no machine', async () => {
         const id = `${runId}-canceled`
-        const attempt = new AbortController()
+        const trial = new AbortController()
         const undo = backend.slowBoot()
-        const booting = create(id, { signal: attempt.signal })
+        const booting = create(id, { signal: trial.signal })
         booting.catch(() => {})
         try {
           await until('the machine was asked for', () => backend.asked(id), 60_000)
         } finally {
           undo()
         }
-        attempt.abort(new Error('canceled'))
+        trial.abort(new Error('canceled'))
         const outcome = await booting.then(
           async (late) => {
             await late.destroy()
@@ -574,14 +574,14 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
           },
           () => 'rejected',
         )
-        assert.equal(outcome, 'rejected', 'the canceled attempt still got its sandbox')
+        assert.equal(outcome, 'rejected', 'the canceled trial still got its sandbox')
         await until('the canceled machine is gone', () => backend.machines(id).length === 0, 60_000)
       })
     })
 
     describe('pooled machines', { skip: !machine.pool && 'no pool' }, () => {
       const pooled = (o: object) => ({ ...backend.descriptor(), ...o }) as never
-      test('reuse: the next attempt gets the machine with nothing the last one left', async () => {
+      test('reuse: the next trial gets the machine with nothing the last one left', async () => {
         const id = `${runId}-reuse`
         const first = await kind.create(pooled({ reuse: true }), optionsFor(id))
         await first.exec(
@@ -596,7 +596,7 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
         await first.destroy()
         const second = await kind.create(pooled({ reuse: true }), optionsFor(id))
         try {
-          assert.equal(backend.machines(id).length, 1, 'the second attempt reused the machine')
+          assert.equal(backend.machines(id).length, 1, 'the second trial reused the machine')
           const left = await second.exec(
             'sleep 1; ls ~/left /tmp/left-$(id -un) /var/crash/left-$(id -un) /tmp/hopped-$(id -un) 2>/dev/null; pgrep -u "$(id -un)" -x -f "sleep 555111"; ipcs -m 2>/dev/null | awk -v u="$(id -un)" \'$3 == u\'; true',
           )
@@ -607,11 +607,11 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
         await until('the idle machine is gone', () => backend.machines(id).length === 0, 30_000)
       })
 
-      test('attemptsPerMachine: slots share a machine and see none of each other', async () => {
+      test('trialsPerMachine: slots share a machine and see none of each other', async () => {
         const id = `${runId}-shared`
         const [a, b] = await Promise.all([
-          kind.create(pooled({ attemptsPerMachine: 2 }), optionsFor(id)),
-          kind.create(pooled({ attemptsPerMachine: 2 }), optionsFor(id)),
+          kind.create(pooled({ trialsPerMachine: 2 }), optionsFor(id)),
+          kind.create(pooled({ trialsPerMachine: 2 }), optionsFor(id)),
         ])
         try {
           assert.equal(backend.machines(id).length, 1, 'both slots are on one machine')
@@ -658,11 +658,11 @@ for (const machine of MACHINE_PROVIDERS as readonly MachineProvider<MachineDescr
         await until('the shared machine is gone', () => backend.machines(id).length === 0, 30_000)
       })
 
-      test("attemptsPerMachine: one slot's kill leaves the other's command of the same number running", async () => {
+      test("trialsPerMachine: one slot's kill leaves the other's command of the same number running", async () => {
         const id = `${runId}-shared-kill`
         const [a, b] = await Promise.all([
-          kind.create(pooled({ attemptsPerMachine: 2 }), optionsFor(id)),
-          kind.create(pooled({ attemptsPerMachine: 2 }), optionsFor(id)),
+          kind.create(pooled({ trialsPerMachine: 2 }), optionsFor(id)),
+          kind.create(pooled({ trialsPerMachine: 2 }), optionsFor(id)),
         ])
         const [na, nb] = [token(), token()]
         const stop = new AbortController()

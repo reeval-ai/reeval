@@ -36,11 +36,11 @@ export const sha256 = (data: string | Uint8Array) => createHash('sha256').update
 export const recordFileName = (id: string) => `${sha256(id).slice(0, 16)}.json`
 
 /** `<cell key>#<n>`, e.g. `cursor:composer-2.5/with-skill/docker#2`. */
-export const attemptId = (cellKey: string, n: number) => `${cellKey}#${n}`
+export const trialId = (cellKey: string, n: number) => `${cellKey}#${n}`
 
-/** Unique per attempt across the run: the eval id and the attempt id. */
-export const attemptKey = (evalId: string, cellKey: string, n: number) =>
-  `${evalId} # ${attemptId(cellKey, n)}`
+/** Unique per trial across the run: the eval id and the trial id. */
+export const trialKey = (evalId: string, cellKey: string, n: number) =>
+  `${evalId} # ${trialId(cellKey, n)}`
 
 const CROCKFORD = '0123456789abcdefghjkmnpqrstvwxyz'
 

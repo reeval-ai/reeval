@@ -11,7 +11,7 @@ const app = defineEnvironment('app', {})
 const config = defineConfig({
   agents: fakeAgent(),
   environments: app,
-  profiles: { smoke: { limit: { agents: ['fake'] }, defaults: { runs: 1, agents: fakeAgent() } } },
+  profiles: { smoke: { limit: { agents: ['fake'] }, defaults: { trials: 1, agents: fakeAgent() } } },
 })
 const profiles: object | undefined = config.profiles
 void profiles
@@ -20,20 +20,20 @@ defineConfig(({ secret }) => ({ env: { KEY: secret.fromEnv('KEY') }, environment
 // Each sits beside a key the config has, as in a real config: a lone unknown key is refused
 // anyway, since every key is optional.
 // @ts-expect-error harnesses is agents
-defineConfig({ harnesses: fakeAgent(), runs: 1 })
+defineConfig({ harnesses: fakeAgent(), trials: 1 })
 // @ts-expect-error agent is agents
-defineConfig({ agent: fakeAgent(), runs: 1 })
+defineConfig({ agent: fakeAgent(), trials: 1 })
 // @ts-expect-error environment is environments
-defineConfig({ environment: app, runs: 1 })
+defineConfig({ environment: app, trials: 1 })
 // @ts-expect-error a misspelled key
-defineConfig({ agnets: fakeAgent(), runs: 1 })
+defineConfig({ agnets: fakeAgent(), trials: 1 })
 defineConfig({
   // @ts-expect-error limit.harnesses is limit.agents
-  profiles: { smoke: { limit: { harnesses: ['fake'], runs: 1 } } },
+  profiles: { smoke: { limit: { harnesses: ['fake'], trials: 1 } } },
 })
 defineConfig({
   // @ts-expect-error defaults.harnesses is defaults.agents
-  profiles: { smoke: { defaults: { harnesses: fakeAgent(), runs: 1 } } },
+  profiles: { smoke: { defaults: { harnesses: fakeAgent(), trials: 1 } } },
 })
 // @ts-expect-error the callback's config is checked too
-defineConfig(() => ({ harnesses: fakeAgent(), runs: 1 }))
+defineConfig(() => ({ harnesses: fakeAgent(), trials: 1 }))

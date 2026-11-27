@@ -4,131 +4,6 @@
   "title": "RunReport",
   "$ref": "#/$defs/RunReport",
   "$defs": {
-    "Arm": {
-      "type": "object",
-      "properties": {
-        "change": {
-          "type": ["string", "null"]
-        },
-        "environment": {
-          "type": "string"
-        },
-        "environmentDigest": {
-          "type": ["string", "null"]
-        },
-        "id": {
-          "type": "string"
-        },
-        "label": {
-          "type": "string"
-        },
-        "prompts": {
-          "description": "Distinct first-turn prompt hashes over the arm's attempts.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "role": {
-          "type": "string",
-          "enum": ["baseline", "variant"]
-        }
-      },
-      "required": ["change", "environment", "environmentDigest", "id", "label", "prompts", "role"]
-    },
-    "ArmRef": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "label": {
-          "type": "string"
-        }
-      },
-      "required": ["id", "label"]
-    },
-    "ArmRow": {
-      "type": "object",
-      "properties": {
-        "arm": {
-          "type": "string"
-        },
-        "interval": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Interval"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "lift": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Delta"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "measures": {
-          "type": "object",
-          "properties": {
-            "agentMs": {
-              "$ref": "#/$defs/MeasureVsBaseline"
-            },
-            "costUsd": {
-              "$ref": "#/$defs/MeasureVsBaseline"
-            },
-            "filesChanged": {
-              "$ref": "#/$defs/MeasureVsBaseline"
-            },
-            "linesAdded": {
-              "$ref": "#/$defs/MeasureVsBaseline"
-            },
-            "linesRemoved": {
-              "$ref": "#/$defs/MeasureVsBaseline"
-            },
-            "tokens": {
-              "$ref": "#/$defs/MeasureVsBaseline"
-            },
-            "toolCalls": {
-              "$ref": "#/$defs/MeasureVsBaseline"
-            },
-            "turns": {
-              "$ref": "#/$defs/MeasureVsBaseline"
-            }
-          },
-          "required": [
-            "agentMs",
-            "costUsd",
-            "filesChanged",
-            "linesAdded",
-            "linesRemoved",
-            "tokens",
-            "toolCalls",
-            "turns"
-          ]
-        },
-        "rate": {
-          "$ref": "#/$defs/Rate"
-        },
-        "verdict": {
-          "description": "Pass-rate certainty only; measure direction lives in measure cells.",
-          "type": "string",
-          "enum": ["baseline", "helped", "made-worse", "within-noise", "too-few-runs"]
-        },
-        "verdictScope": {
-          "description": "Always `pass-rate` for this column today.",
-          "type": "string",
-          "const": "pass-rate"
-        }
-      },
-      "required": ["arm", "interval", "lift", "measures", "rate", "verdict", "verdictScope"]
-    },
     "AssertionRow": {
       "type": "object",
       "properties": {
@@ -156,354 +31,6 @@
         }
       },
       "required": ["at", "cells", "label", "matcher", "total"]
-    },
-    "AttemptFacts": {
-      "description": "What one attempt's trajectory shows it did, counted from its classified tool calls.",
-      "type": "object",
-      "properties": {
-        "byClass": {
-          "type": "object",
-          "properties": {
-            "context": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "dependency": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "verify": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "web": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "workspace": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            }
-          },
-          "required": ["context", "dependency", "verify", "web", "workspace"]
-        },
-        "contextFiles": {
-          "description": "Each placed context file its calls read, directly or through a glob, in order of first read.",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "firstLine": {
-                "type": "integer",
-                "exclusiveMinimum": 0,
-                "maximum": 9007199254740991
-              },
-              "path": {
-                "type": "string"
-              },
-              "reads": {
-                "type": "integer",
-                "exclusiveMinimum": 0,
-                "maximum": 9007199254740991
-              }
-            },
-            "required": ["firstLine", "path", "reads"]
-          }
-        },
-        "skills": {
-          "description": "Each skill its calls used, by where it came from, in order of first use.",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "firstLine": {
-                "description": "The trajectory line of its first use, from 1.",
-                "type": "integer",
-                "exclusiveMinimum": 0,
-                "maximum": 9007199254740991
-              },
-              "reads": {
-                "description": "The calls that used it.",
-                "type": "integer",
-                "exclusiveMinimum": 0,
-                "maximum": 9007199254740991
-              },
-              "skill": {
-                "type": "string"
-              },
-              "source": {
-                "type": "string",
-                "enum": ["placed", "skill-dir", "elsewhere"]
-              }
-            },
-            "required": ["firstLine", "reads", "skill", "source"]
-          }
-        },
-        "toolCalls": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        }
-      },
-      "required": ["byClass", "contextFiles", "skills", "toolCalls"]
-    },
-    "AttemptIndexRow": {
-      "type": "object",
-      "properties": {
-        "agentMs": {
-          "$ref": "#/$defs/Figure"
-        },
-        "arm": {
-          "type": ["string", "null"]
-        },
-        "case": {
-          "type": ["string", "null"]
-        },
-        "diff": {
-          "description": "Lines exclude lockfiles; null counts print `not recorded`.",
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "added": {
-                  "anyOf": [
-                    {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "files": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 9007199254740991
-                },
-                "removed": {
-                  "anyOf": [
-                    {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "text": {
-                  "type": "string"
-                }
-              },
-              "required": ["added", "files", "removed", "text"]
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "evalId": {
-          "type": "string"
-        },
-        "facts": {
-          "description": "What its trajectory shows it did, from the report's `facts`; absent when the report had none for it, such as a passing attempt whose trajectory `evidence` didn't keep.",
-          "$ref": "#/$defs/AttemptFacts"
-        },
-        "failure": {
-          "description": "What its task threw (`AttemptRecord.failure`); absent when it threw nothing.",
-          "type": "object",
-          "properties": {
-            "meta": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string"
-                  },
-                  "value": {
-                    "type": "string"
-                  }
-                },
-                "required": ["key", "value"]
-              }
-            },
-            "name": {
-              "type": ["string", "null"]
-            },
-            "reason": {
-              "type": "string"
-            },
-            "stack": {
-              "type": ["string", "null"]
-            },
-            "turn": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            }
-          },
-          "required": ["meta", "name", "reason", "stack", "turn"]
-        },
-        "grades": {
-          "description": "Each of the attempt's grades, in the eval's order; absent when no grader ran.",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "error": {
-                "type": ["string", "null"]
-              },
-              "grade": {
-                "type": ["string", "null"]
-              },
-              "grader": {
-                "type": "string"
-              },
-              "kind": {
-                "type": "string",
-                "enum": ["code", "judge", "builtin"]
-              },
-              "required": {
-                "type": "boolean"
-              },
-              "score": {
-                "anyOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "weight": {
-                "type": "number",
-                "minimum": 0
-              }
-            },
-            "required": ["error", "grade", "grader", "kind", "required", "score", "weight"]
-          }
-        },
-        "harness": {
-          "type": "string"
-        },
-        "href": {
-          "description": "The target every `AttemptRef` to this attempt uses.",
-          "type": "string"
-        },
-        "id": {
-          "type": "string"
-        },
-        "key": {
-          "description": "`AttemptRecord.key`.",
-          "type": "string"
-        },
-        "links": {
-          "type": "object",
-          "properties": {
-            "captures": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "href": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  }
-                },
-                "required": ["href", "name"]
-              }
-            },
-            "diff": {
-              "type": ["string", "null"]
-            },
-            "questions": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "trajectory": {
-              "type": ["string", "null"]
-            }
-          },
-          "required": ["captures", "diff", "questions", "trajectory"]
-        },
-        "llmCalls": {
-          "description": "Its model calls (`activity.llmCalls`); absent in reports from before reeval counted them.",
-          "$ref": "#/$defs/Figure"
-        },
-        "outcome": {
-          "type": "string",
-          "enum": ["pass", "fail", "infra_error", "canceled"]
-        },
-        "reclassified": {
-          "type": "boolean"
-        },
-        "score": {
-          "description": "`AttemptRecord.score`; absent when it has none.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "tokens": {
-          "$ref": "#/$defs/Figure"
-        },
-        "toolCalls": {
-          "$ref": "#/$defs/Figure"
-        },
-        "turnError": {
-          "type": ["string", "null"]
-        }
-      },
-      "required": [
-        "agentMs",
-        "arm",
-        "case",
-        "diff",
-        "evalId",
-        "harness",
-        "href",
-        "id",
-        "key",
-        "links",
-        "outcome",
-        "reclassified",
-        "tokens",
-        "toolCalls",
-        "turnError"
-      ]
-    },
-    "AttemptRef": {
-      "description": "`href` is the citation target (Section 2.10).",
-      "type": "object",
-      "properties": {
-        "href": {
-          "type": "string"
-        },
-        "id": {
-          "description": "The display label, `A1..AN`, numbered over the evals the report covers.",
-          "type": "string"
-        },
-        "key": {
-          "description": "The attempt's `AttemptRecord.key`, the same in every report of its run.",
-          "type": "string"
-        }
-      },
-      "required": ["href", "id", "key"]
     },
     "BehaviorRow": {
       "type": "object",
@@ -567,10 +94,10 @@
           "items": {
             "type": "object",
             "properties": {
-              "arm": {
+              "case": {
                 "type": ["string", "null"]
               },
-              "case": {
+              "environment": {
                 "type": ["string", "null"]
               },
               "harness": {
@@ -583,7 +110,7 @@
                 }
               }
             },
-            "required": ["arm", "case", "harness", "shots"]
+            "required": ["case", "environment", "harness", "shots"]
           }
         }
       },
@@ -592,9 +119,6 @@
     "CaptureShot": {
       "type": "object",
       "properties": {
-        "attempt": {
-          "$ref": "#/$defs/AttemptRef"
-        },
         "consoleErrors": {
           "type": ["number", "null"]
         },
@@ -613,9 +137,12 @@
         },
         "status": {
           "type": ["number", "null"]
+        },
+        "trial": {
+          "$ref": "#/$defs/TrialRef"
         }
       },
-      "required": ["attempt", "consoleErrors", "href", "meta", "name", "pageErrors", "status"]
+      "required": ["consoleErrors", "href", "meta", "name", "pageErrors", "status", "trial"]
     },
     "ChangeRow": {
       "type": "object",
@@ -752,14 +279,6 @@
           "items": {
             "type": "object",
             "properties": {
-              "arm": {
-                "type": ["string", "null"]
-              },
-              "attempts": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 9007199254740991
-              },
               "counts": {
                 "type": "object",
                 "propertyNames": {
@@ -771,6 +290,9 @@
                   "maximum": 9007199254740991
                 }
               },
+              "environment": {
+                "type": ["string", "null"]
+              },
               "harness": {
                 "type": "string"
               },
@@ -779,13 +301,50 @@
               },
               "text": {
                 "type": "string"
+              },
+              "trials": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
               }
             },
-            "required": ["arm", "attempts", "counts", "harness", "prompt", "text"]
+            "required": ["counts", "environment", "harness", "prompt", "text", "trials"]
           }
         }
       },
       "required": ["noPick", "options", "passByPick", "question", "rows"]
+    },
+    "CompareEnvironment": {
+      "type": "object",
+      "properties": {
+        "change": {
+          "type": ["string", "null"]
+        },
+        "environment": {
+          "type": "string"
+        },
+        "environmentDigest": {
+          "type": ["string", "null"]
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "prompts": {
+          "description": "Distinct first-turn prompt hashes over the environment's trials.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "role": {
+          "type": "string",
+          "enum": ["baseline", "variant"]
+        }
+      },
+      "required": ["change", "environment", "environmentDigest", "id", "label", "prompts", "role"]
     },
     "ContrastRow": {
       "type": "object",
@@ -832,7 +391,7 @@
         },
         "verdict": {
           "type": "string",
-          "enum": ["helped", "made-worse", "within-noise", "too-few-runs", "fewer", "more"]
+          "enum": ["helped", "made-worse", "within-noise", "too-few-trials", "fewer", "more"]
         },
         "verdictScope": {
           "description": "`pass-rate` when the contrast is on pass rate; else the measure's own direction.",
@@ -907,7 +466,7 @@
           }
         },
         "sources": {
-          "description": "For a skill, the attempts that found it by where the skill they checked came from, its first use in the report's `facts`: one source an attempt, so the counts sum to at most `found`. An attempt counts in none when it has no facts, when its passing `toHaveCalledSkill` had a label of its own (which doesn't name the skill), when the check that found it was a `not.`, or when the matcher passed on a call the facts leave out (a failed call, or a file under `skills/<name>/` that isn't its `SKILL.md`). Empty without facts.",
+          "description": "For a skill, the trials that found it by where the skill they checked came from, its first use in the report's `facts`: one source a trial, so the counts sum to at most `found`. An trial counts in none when it has no facts, when its passing `toHaveCalledSkill` had a label of its own (which doesn't name the skill), when the check that found it was a `not.`, or when the matcher passed on a call the facts leave out (a failed call, or a file under `skills/<name>/` that isn't its `SKILL.md`). Empty without facts.",
           "type": "array",
           "items": {
             "type": "object",
@@ -934,7 +493,7 @@
     "EffortPivotRow": {
       "type": "object",
       "properties": {
-        "arm": {
+        "environment": {
           "type": "string"
         },
         "harness": {
@@ -984,14 +543,107 @@
           "$ref": "#/$defs/Rate"
         }
       },
-      "required": ["arm", "harness", "measures", "rate"]
+      "required": ["environment", "harness", "measures", "rate"]
+    },
+    "EnvironmentRef": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "label"]
+    },
+    "EnvironmentRow": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "type": "string"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interval"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lift": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Delta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "measures": {
+          "type": "object",
+          "properties": {
+            "agentMs": {
+              "$ref": "#/$defs/MeasureVsBaseline"
+            },
+            "costUsd": {
+              "$ref": "#/$defs/MeasureVsBaseline"
+            },
+            "filesChanged": {
+              "$ref": "#/$defs/MeasureVsBaseline"
+            },
+            "linesAdded": {
+              "$ref": "#/$defs/MeasureVsBaseline"
+            },
+            "linesRemoved": {
+              "$ref": "#/$defs/MeasureVsBaseline"
+            },
+            "tokens": {
+              "$ref": "#/$defs/MeasureVsBaseline"
+            },
+            "toolCalls": {
+              "$ref": "#/$defs/MeasureVsBaseline"
+            },
+            "turns": {
+              "$ref": "#/$defs/MeasureVsBaseline"
+            }
+          },
+          "required": [
+            "agentMs",
+            "costUsd",
+            "filesChanged",
+            "linesAdded",
+            "linesRemoved",
+            "tokens",
+            "toolCalls",
+            "turns"
+          ]
+        },
+        "rate": {
+          "$ref": "#/$defs/Rate"
+        },
+        "verdict": {
+          "description": "Pass-rate certainty only; measure direction lives in measure cells.",
+          "type": "string",
+          "enum": ["baseline", "helped", "made-worse", "within-noise", "too-few-trials"]
+        },
+        "verdictScope": {
+          "description": "Always `pass-rate` for this column today.",
+          "type": "string",
+          "const": "pass-rate"
+        }
+      },
+      "required": ["environment", "interval", "lift", "measures", "rate", "verdict", "verdictScope"]
     },
     "EvalHeadline": {
       "type": "object",
       "properties": {
         "fairness": {
           "type": "string",
-          "enum": ["clear", "within-noise", "too-few-runs"]
+          "enum": ["clear", "within-noise", "too-few-trials"]
         },
         "foot": {
           "description": "Sample size, harness count, interval, and floor, as sentences.",
@@ -1035,7 +687,7 @@
           }
         },
         "design": {
-          "description": "`3 prompts, 4 coding harnesses, 3 arms, 36 attempts`.",
+          "description": "`3 prompts, 4 coding harnesses, 3 environments, 36 trials`.",
           "type": "string"
         },
         "discovery": {
@@ -1187,7 +839,7 @@
                 "type": "string"
               },
               "design": {
-                "description": "`3 arms × 4 coding harnesses`.",
+                "description": "`3 environments × 4 coding harnesses`.",
                 "type": "string"
               },
               "evalId": {
@@ -1223,14 +875,8 @@
         "at": {
           "type": ["string", "null"]
         },
-        "attempts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/AttemptRef"
-          }
-        },
         "count": {
-          "description": "Members of the eval's counted attempts.",
+          "description": "Members of the eval's counted trials.",
           "$ref": "#/$defs/Count"
         },
         "kind": {
@@ -1239,9 +885,15 @@
         },
         "label": {
           "type": "string"
+        },
+        "trials": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TrialRef"
+          }
         }
       },
-      "required": ["at", "attempts", "count", "kind", "label"]
+      "required": ["at", "count", "kind", "label", "trials"]
     },
     "FailureClusters": {
       "type": "object",
@@ -1272,7 +924,7 @@
               "kind": {
                 "type": "string",
                 "enum": [
-                  "too-few-tries",
+                  "too-few-trials",
                   "cant-tell-apart",
                   "check-never-fails",
                   "flaky-check",
@@ -1345,7 +997,7 @@
           "type": "object",
           "properties": {
             "baseline": {
-              "$ref": "#/$defs/ArmRef"
+              "$ref": "#/$defs/EnvironmentRef"
             },
             "baselineRate": {
               "$ref": "#/$defs/Rate"
@@ -1373,7 +1025,7 @@
                     "$ref": "#/$defs/Rate"
                   },
                   "variant": {
-                    "$ref": "#/$defs/ArmRef"
+                    "$ref": "#/$defs/EnvironmentRef"
                   }
                 },
                 "required": ["interval", "points", "rate", "variant"]
@@ -1383,7 +1035,7 @@
               "$ref": "#/$defs/Delta"
             },
             "variant": {
-              "$ref": "#/$defs/ArmRef"
+              "$ref": "#/$defs/EnvironmentRef"
             },
             "variantRate": {
               "$ref": "#/$defs/Rate"
@@ -1409,7 +1061,7 @@
               "maximum": 9007199254740991
             },
             "baseline": {
-              "$ref": "#/$defs/ArmRef"
+              "$ref": "#/$defs/EnvironmentRef"
             },
             "kind": {
               "type": "string",
@@ -1447,7 +1099,7 @@
               "$ref": "#/$defs/Rate"
             },
             "variant": {
-              "$ref": "#/$defs/ArmRef"
+              "$ref": "#/$defs/EnvironmentRef"
             }
           },
           "required": ["assertions", "baseline", "kind", "lead", "rate", "variant"]
@@ -1455,11 +1107,6 @@
         {
           "type": "object",
           "properties": {
-            "attempts": {
-              "type": "integer",
-              "exclusiveMinimum": 0,
-              "maximum": 9007199254740991
-            },
             "kind": {
               "type": "string",
               "const": "choice"
@@ -1489,9 +1136,14 @@
             },
             "question": {
               "type": "string"
+            },
+            "trials": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
             }
           },
-          "required": ["attempts", "kind", "noPick", "options", "question"]
+          "required": ["kind", "noPick", "options", "question", "trials"]
         },
         {
           "type": "object",
@@ -1660,7 +1312,7 @@
         "cites": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/AttemptRef"
+            "$ref": "#/$defs/TrialRef"
           }
         },
         "evalId": {
@@ -1943,10 +1595,10 @@
                 "type": "array",
                 "prefixItems": [
                   {
-                    "$ref": "#/$defs/AttemptRef"
+                    "$ref": "#/$defs/TrialRef"
                   },
                   {
-                    "$ref": "#/$defs/AttemptRef"
+                    "$ref": "#/$defs/TrialRef"
                   }
                 ],
                 "items": false,
@@ -2080,13 +1732,10 @@
     "Quote": {
       "type": "object",
       "properties": {
-        "arm": {
+        "case": {
           "type": ["string", "null"]
         },
-        "attempt": {
-          "$ref": "#/$defs/AttemptRef"
-        },
-        "case": {
+        "environment": {
           "type": ["string", "null"]
         },
         "harness": {
@@ -2097,9 +1746,12 @@
         },
         "text": {
           "type": "string"
+        },
+        "trial": {
+          "$ref": "#/$defs/TrialRef"
         }
       },
-      "required": ["arm", "attempt", "case", "harness", "input", "text"]
+      "required": ["case", "environment", "harness", "input", "text", "trial"]
     },
     "Rate": {
       "description": "`text`: `75%`. `interval` is Wilson's; null at n = 0.",
@@ -2220,7 +1872,7 @@
         "cites": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/AttemptRef"
+            "$ref": "#/$defs/TrialRef"
           }
         },
         "confidence": {
@@ -2240,11 +1892,6 @@
     "RosterRow": {
       "type": "object",
       "properties": {
-        "attempts": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
         "effort": {
           "type": ["string", "null"]
         },
@@ -2262,9 +1909,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "trials": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
         }
       },
-      "required": ["attempts", "effort", "gateway", "harness", "model", "servedModels"]
+      "required": ["effort", "gateway", "harness", "model", "servedModels", "trials"]
     },
     "RunHeader": {
       "type": "object",
@@ -2273,7 +1925,7 @@
           "type": "string"
         },
         "cost": {
-          "description": "Null when no attempt or judge call has a cost.",
+          "description": "Null when no trial or judge call has a cost.",
           "anyOf": [
             {
               "type": "object",
@@ -2353,19 +2005,6 @@
         "reeval": {
           "type": "string"
         },
-        "runsPerCell": {
-          "description": "Null when cells ran different counts.",
-          "anyOf": [
-            {
-              "type": "integer",
-              "exclusiveMinimum": 0,
-              "maximum": 9007199254740991
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "scope": {
           "description": "Which runs this one is like-with-like with (`runScope`); unset in reports built before it.",
           "type": "object",
@@ -2397,7 +2036,7 @@
           "type": "string"
         },
         "tokens": {
-          "description": "`input + output + cacheRead + cacheWrite` (`totalTokens`); null when no attempt reported usage.",
+          "description": "`input + output + cacheRead + cacheWrite` (`totalTokens`); null when no trial reported usage.",
           "anyOf": [
             {
               "type": "object",
@@ -2416,6 +2055,19 @@
             }
           ]
         },
+        "trialsPerCell": {
+          "description": "Null when cells ran different counts.",
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "wall": {
           "$ref": "#/$defs/Figure"
         }
@@ -2426,12 +2078,12 @@
         "git",
         "profile",
         "reeval",
-        "runsPerCell",
         "startedAt",
         "status",
         "tally",
         "title",
         "tokens",
+        "trialsPerCell",
         "wall"
       ]
     },
@@ -2443,12 +2095,6 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/ReportClaim"
-          }
-        },
-        "attempts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/AttemptIndexRow"
           }
         },
         "evals": {
@@ -2473,7 +2119,7 @@
         },
         "reportVersion": {
           "type": "number",
-          "const": 4
+          "const": 5
         },
         "rollup": {
           "anyOf": [
@@ -2498,11 +2144,16 @@
         "single": {
           "description": "`evals.length === 1`: the eval is the `#` title and every block moves up one level.",
           "type": "boolean"
+        },
+        "trials": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TrialIndexRow"
+          }
         }
       },
       "required": [
         "actions",
-        "attempts",
         "evals",
         "header",
         "integrity",
@@ -2511,7 +2162,8 @@
         "rollup",
         "roster",
         "runId",
-        "single"
+        "single",
+        "trials"
       ]
     },
     "RunTally": {
@@ -2539,7 +2191,7 @@
           "maximum": 9007199254740991
         },
         "reclassified": {
-          "description": "Of `infraError`: attempts an unhandled turn error moved out of pass or fail.",
+          "description": "Of `infraError`: trials an unhandled turn error moved out of pass or fail.",
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
@@ -2642,17 +2294,358 @@
       },
       "required": ["assertions", "axes", "breakdown", "columns", "kind", "median"]
     },
+    "TrialFacts": {
+      "description": "What one trial's trajectory shows it did, counted from its classified tool calls.",
+      "type": "object",
+      "properties": {
+        "byClass": {
+          "type": "object",
+          "properties": {
+            "context": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "dependency": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "verify": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "web": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "workspace": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["context", "dependency", "verify", "web", "workspace"]
+        },
+        "contextFiles": {
+          "description": "Each placed context file its calls read, directly or through a glob, in order of first read.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "firstLine": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "path": {
+                "type": "string"
+              },
+              "reads": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": ["firstLine", "path", "reads"]
+          }
+        },
+        "skills": {
+          "description": "Each skill its calls used, by where it came from, in order of first use.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "firstLine": {
+                "description": "The trajectory line of its first use, from 1.",
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "reads": {
+                "description": "The calls that used it.",
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "skill": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string",
+                "enum": ["placed", "skill-dir", "elsewhere"]
+              }
+            },
+            "required": ["firstLine", "reads", "skill", "source"]
+          }
+        },
+        "toolCalls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": ["byClass", "contextFiles", "skills", "toolCalls"]
+    },
+    "TrialIndexRow": {
+      "type": "object",
+      "properties": {
+        "agentMs": {
+          "$ref": "#/$defs/Figure"
+        },
+        "case": {
+          "type": ["string", "null"]
+        },
+        "diff": {
+          "description": "Lines exclude lockfiles; null counts print `not recorded`.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "added": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "files": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "removed": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": ["added", "files", "removed", "text"]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "environment": {
+          "type": ["string", "null"]
+        },
+        "evalId": {
+          "type": "string"
+        },
+        "facts": {
+          "description": "What its trajectory shows it did, from the report's `facts`; absent when the report had none for it, such as a passing trial whose trajectory `evidence` didn't keep.",
+          "$ref": "#/$defs/TrialFacts"
+        },
+        "failure": {
+          "description": "What its task threw (`TrialRecord.failure`); absent when it threw nothing.",
+          "type": "object",
+          "properties": {
+            "meta": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": ["key", "value"]
+              }
+            },
+            "name": {
+              "type": ["string", "null"]
+            },
+            "reason": {
+              "type": "string"
+            },
+            "stack": {
+              "type": ["string", "null"]
+            },
+            "turn": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["meta", "name", "reason", "stack", "turn"]
+        },
+        "grades": {
+          "description": "Each of the trial's grades, in the eval's order; absent when no grader ran.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": ["string", "null"]
+              },
+              "grade": {
+                "type": ["string", "null"]
+              },
+              "grader": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["code", "judge", "builtin"]
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "score": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "weight": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": ["error", "grade", "grader", "kind", "required", "score", "weight"]
+          }
+        },
+        "harness": {
+          "type": "string"
+        },
+        "href": {
+          "description": "The target every `TrialRef` to this trial uses.",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "key": {
+          "description": "`TrialRecord.key`.",
+          "type": "string"
+        },
+        "links": {
+          "type": "object",
+          "properties": {
+            "captures": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "href": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["href", "name"]
+              }
+            },
+            "diff": {
+              "type": ["string", "null"]
+            },
+            "questions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "trajectory": {
+              "type": ["string", "null"]
+            }
+          },
+          "required": ["captures", "diff", "questions", "trajectory"]
+        },
+        "llmCalls": {
+          "description": "Its model calls (`activity.llmCalls`); absent in reports from before reeval counted them.",
+          "$ref": "#/$defs/Figure"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": ["pass", "fail", "infra_error", "canceled"]
+        },
+        "reclassified": {
+          "type": "boolean"
+        },
+        "score": {
+          "description": "`TrialRecord.score`; absent when it has none.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "tokens": {
+          "$ref": "#/$defs/Figure"
+        },
+        "toolCalls": {
+          "$ref": "#/$defs/Figure"
+        },
+        "turnError": {
+          "type": ["string", "null"]
+        }
+      },
+      "required": [
+        "agentMs",
+        "case",
+        "diff",
+        "environment",
+        "evalId",
+        "harness",
+        "href",
+        "id",
+        "key",
+        "links",
+        "outcome",
+        "reclassified",
+        "tokens",
+        "toolCalls",
+        "turnError"
+      ]
+    },
+    "TrialRef": {
+      "description": "`href` is the citation target (Section 2.10).",
+      "type": "object",
+      "properties": {
+        "href": {
+          "type": "string"
+        },
+        "id": {
+          "description": "The display label, `A1..AN`, numbered over the evals the report covers.",
+          "type": "string"
+        },
+        "key": {
+          "description": "The trial's `TrialRecord.key`, the same in every report of its run.",
+          "type": "string"
+        }
+      },
+      "required": ["href", "id", "key"]
+    },
     "VariantComparison": {
       "type": "object",
       "properties": {
-        "arms": {
-          "description": "Baseline first, then variants in declaration order.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Arm"
-          }
-        },
-        "assertionsByArm": {
+        "assertionsByEnvironment": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/AssertionRow"
@@ -2677,6 +2670,13 @@
             "$ref": "#/$defs/EffortPivotRow"
           }
         },
+        "environments": {
+          "description": "Baseline first, then variants in declaration order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CompareEnvironment"
+          }
+        },
         "kind": {
           "type": "string",
           "const": "comparison"
@@ -2684,25 +2684,25 @@
         "summary": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ArmRow"
+            "$ref": "#/$defs/EnvironmentRow"
           }
         },
         "uniformLead": {
-          "description": "Set when every arm passed every applicable assertion; `assertionsByArm` is then empty.",
+          "description": "Set when every environment passed every applicable assertion; `assertionsByEnvironment` is then empty.",
           "type": ["string", "null"]
         }
       },
       "required": [
-        "arms",
-        "assertionsByArm",
+        "assertionsByEnvironment",
         "behavior",
         "contrasts",
         "effortByHarness",
+        "environments",
         "kind",
         "summary",
         "uniformLead"
       ]
     }
   },
-  "x-schemaVersion": 4
+  "x-schemaVersion": 5
 }

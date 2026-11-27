@@ -19,10 +19,10 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import type { AgentLog } from '@reeval/agents'
 import { shellQuote } from '@reeval/sandbox-docker/process'
-import { createChecks } from '../src/attempt/checks.ts'
-import { traceEnvironment } from '../src/attempt/debug.ts'
-import { startWithRetry, writeFiles } from '../src/attempt/session.ts'
-import type { Attempt, AttemptSpec } from '../src/attempt/state.ts'
+import { createChecks } from '../src/trial/checks.ts'
+import { traceEnvironment } from '../src/trial/debug.ts'
+import { startWithRetry, writeFiles } from '../src/trial/session.ts'
+import type { Trial, TrialSpec } from '../src/trial/state.ts'
 import { regressions } from '../src/commands.ts'
 import {
   CONFIG_FILES,
@@ -41,7 +41,7 @@ import {
   UsageError,
   withProfileHistory,
 } from '../src/config.ts'
-import type { AttemptDebug } from '../src/debug/attempt.ts'
+import type { TrialDebug } from '../src/debug/trial.ts'
 import {
   acceptIntoSnapshot,
   changedBetween,
@@ -119,8 +119,8 @@ test("the -v broker line names each brokered endpoint's path matcher", () => {
       secrets: [],
     }
     traceEnvironment(
-      debug as unknown as AttemptDebug,
-      { harness: { kind, model } } as unknown as AttemptSpec,
+      debug as unknown as TrialDebug,
+      { harness: { kind, model } } as unknown as TrialSpec,
       {
         record,
         substitutions: [],
@@ -432,7 +432,7 @@ test('c.writeFile refuses absolute paths and paths that leave the workspace', as
       sandbox: box,
       signal: new AbortController().signal,
       start: async () => [box, {}],
-    } as unknown as Attempt
+    } as unknown as Trial
     const { writeFile } = createChecks(a)
     for (const path of ['/etc/passwd', '../outside.txt', 'a/../../x', '~/../x', 'C:\\x', '.']) {
       await assert.rejects(writeFile(path, 'x'), {
@@ -818,7 +818,7 @@ test('resolveConfig defaults', () => {
   assert.deepEqual(c.sandbox, { kind: 'docker' })
   assert.equal(c.environment, undefined, 'no environment by default')
   assert.deepEqual(c.profiles, {})
-  assert.equal(c.runs, undefined, 'unset, so each eval takes its own default')
+  assert.equal(c.trials, undefined, 'unset, so each eval takes its own default')
   assert.equal(c.judge.model, undefined, 'no default judge model')
   assert.equal(c.timeoutMs, 900_000)
 })
@@ -1018,7 +1018,7 @@ test("the credential checks ask for the key of the judge the run uses, the profi
   ])
 })
 
-test("the credential checks ask for the keys of the judges the plan's attempts resolve", () => {
+test("the credential checks ask for the keys of the judges the plan's trials resolve", () => {
   const config = resolveConfig({ judge: { model: 'google/gemini-2.5-flash' } }, '/p')
   const env = { CURSOR_API_KEY: 'k', GOOGLE_GENERATIVE_AI_API_KEY: 'g' }
   const judges = [
@@ -1429,11 +1429,11 @@ test('the history folder sits in the directory the evals live in', () => {
 test('history.archive is off by default and reads the same from reeval.config.ts and reeval.yaml', () => {
   assert.equal(resolveConfig({}, '/p').history.archive, false)
   const ts = resolveConfig(
-    { history: { archive: true }, profiles: { ci: { limit: { runs: 1 } } } },
+    { history: { archive: true }, profiles: { ci: { limit: { trials: 1 } } } },
     '/p',
   )
   const yaml = resolveConfigData(
-    { history: { archive: true }, profiles: { ci: { limit: { runs: 1 } } } },
+    { history: { archive: true }, profiles: { ci: { limit: { trials: 1 } } } },
     '/p',
     'reeval.yaml',
   )
@@ -1488,7 +1488,7 @@ test("a profile's history.store replaces the config's and keeps its artifacts", 
             },
           },
         },
-        pr: { limit: { runs: 1 } },
+        pr: { limit: { trials: 1 } },
       },
     },
     '/p',
@@ -1739,7 +1739,7 @@ test('decideState keeps JSON-only state an object', () => {
   )
   assert.throws(
     () => resolveJudgeArtifacts(['missing'], new Map()),
-    /artifacts names a capture this attempt doesn't have: "missing"/,
+    /artifacts names a capture this trial doesn't have: "missing"/,
   )
 })
 
@@ -1806,7 +1806,7 @@ const entry = (
   git: null,
   runner: 'local',
   harnesses: ['cursor:composer-2.5'],
-  summary: { evals: 1, attempts: 1, pass: 0, fail: 0, notGated: 0, infraError: 0, skipped: 0 },
+  summary: { evals: 1, trials: 1, pass: 0, fail: 0, notGated: 0, infraError: 0, skipped: 0 },
   stack: {
     imageIds: ['sha256:aaa'],
     agentClis: ['1.0'],
@@ -1873,7 +1873,7 @@ test('compare classifies an eval on the cells both runs have, and lists the rest
   assert.equal(compare(base, disjoint)[0]?.status, 'drift', 'no shared cell: not comparable')
 })
 
-test("compare names a gate change and classifies base's attempts under head's gate", () => {
+test("compare names a gate change and classifies base's trials under head's gate", () => {
   type Gate = HistoryEntry['evals'][number]['cells'][number]['gate']
   const PARTS = { sources: 's', harness: 'h', judge: 'j', context: 'c' }
   const cell = (
@@ -2017,7 +2017,7 @@ test('compare reads an eval with cases by its pooled gate, comparable when its c
             cells: [cell(caseOutcome, opts)],
           })),
           caseCount: cases.length,
-          lifts: lifts.map((l) => ({ vs: 'control', points: 0, lo: 0, hi: 0, ...l })),
+          lifts: lifts.map((l) => ({ vs: 'baseline', points: 0, lo: 0, hi: 0, ...l })),
         } as unknown as Eval,
       ],
     }
@@ -2353,7 +2353,7 @@ const base: Resolved = {
   sandbox: { kind: 'fake' },
   environments: [],
   compare: undefined,
-  runs: 3,
+  trials: 3,
   env: {},
   egress: {},
   judge: {},
@@ -2365,7 +2365,7 @@ const base: Resolved = {
   pin: [],
 }
 
-test('expand: per harness, the control then each variant; labels name the role', () => {
+test('expand: per harness, the baseline then each variant; labels name the role', () => {
   const plain = defineEnvironment('plain', { files: { 'from-baseline.txt': 'base' } })
   const skill = defineEnvironment('skill', { env: { A: '1' } })
   const extra = defineEnvironment('extra', { files: { 'from-eval.txt': 'no' } })
@@ -2374,31 +2374,31 @@ test('expand: per harness, the control then each variant; labels name the role',
     [
       { options: { environments: extra }, where: 'profiles.parent.defaults' },
       {
-        options: { compare: { control: plain, variants: [skill] }, runs: 1, target: regression() },
+        options: { compare: { baseline: plain, variants: [skill] }, trials: 1, target: regression() },
         where: 'e',
       },
     ],
     'e',
   )
   assert.equal(resolved.environments[0]?.name, 'extra', 'the parent environment is still resolved')
-  const attempts = expand(resolved)
+  const trials = expand(resolved)
   assert.deepEqual(
-    attempts.map((a) => [a.cell.key, a.cell.role, a.gate !== 'none', a.label]),
+    trials.map((a) => [a.cell.key, a.cell.role, a.gate !== 'none', a.label]),
     [
-      ['a/plain/fake', 'control', false, 'a · control'],
+      ['a/plain/fake', 'baseline', false, 'a · baseline'],
       ['a/skill/fake', 'variant', true, 'a · skill'],
-      ['b/plain/fake', 'control', false, 'b · control'],
+      ['b/plain/fake', 'baseline', false, 'b · baseline'],
       ['b/skill/fake', 'variant', true, 'b · skill'],
     ],
   )
-  const variant = attempts.find((a) => a.cell.role === 'variant')
+  const variant = trials.find((a) => a.cell.role === 'variant')
   assert.deepEqual(
     variant?.environment.layers.map((l) => l.name),
     ['skill'],
     'a variant is not layered on the baseline or the eval environment',
   )
-  assert.equal(attempts[0]?.environment.layers[0]?.name, 'plain')
-  assert.notEqual(attempts[0]?.environment.name, 'extra')
+  assert.equal(trials[0]?.environment.layers[0]?.name, 'plain')
+  assert.notEqual(trials[0]?.environment.name, 'extra')
 })
 
 test('named compare uses the cascaded sandbox option, not the config environment', () => {
@@ -2411,7 +2411,7 @@ test('named compare uses the cascaded sandbox option, not the config environment
   const kept = parent.extend('kept', { files: { 'x.txt': 'y' } })
   const { resolved } = cascade(
     { ...base, sandbox: { kind: 'fake', id: 'from-root' }, environment: configEnv },
-    [{ options: { compare: { control: plain, variants: [skill] }, runs: 1 }, where: 'e' }],
+    [{ options: { compare: { baseline: plain, variants: [skill] }, trials: 1 }, where: 'e' }],
     'e',
   )
   assert.deepEqual(
@@ -2443,48 +2443,48 @@ test('named compare uses the cascaded sandbox option, not the config environment
   assert.equal(expand(evalSandbox.resolved)[0]?.sandbox.id, 'from-eval')
 })
 
-test('environments beside a compare is an error: compare.control names what the eval runs in', () => {
+test('environments beside a compare is an error: compare.baseline names what the eval runs in', () => {
   const plain = defineEnvironment('plain', {})
   const skill = defineEnvironment('skill', {})
   assert.throws(
     () =>
       checkOptions(
-        { environments: plain, compare: { control: plain, variants: [skill] } } as never,
+        { environments: plain, compare: { baseline: plain, variants: [skill] } } as never,
         'evals/e.eval.ts',
       ),
-    /evals\/e\.eval\.ts sets both environments and compare\. With compare, the control is compare\.control: move it there, as compare: \{ control: plain, variants: \[\.\.\.\] \}\./,
+    /evals\/e\.eval\.ts sets both environments and compare\. With compare, the baseline is compare\.baseline: move it there, as compare: \{ baseline: plain, variants: \[\.\.\.\] \}\./,
   )
   assert.throws(
     () => checkOptions({ compare: { variants: [skill] } } as never, 'evals/e.eval.ts'),
-    /compare in evals\/e\.eval\.ts has no control\. Name it: compare: \{ control: app, variants: \[\.\.\.\] \}\./,
+    /compare in evals\/e\.eval\.ts has no baseline\. Name it: compare: \{ baseline: app, variants: \[\.\.\.\] \}\./,
   )
   assert.throws(
     () => checkOptions({ environments: plain, compare: false }, 'evals/e.eval.ts'),
     /compare: false can't be set in evals\/e\.eval\.ts/,
   )
-  checkOptions({ compare: { control: plain, variants: [skill] } }, 'evals/e.eval.ts')
+  checkOptions({ compare: { baseline: plain, variants: [skill] } }, 'evals/e.eval.ts')
   checkOptions({ environments: plain }, 'evals/e.eval.ts')
 })
 
-test('cascade: profile defaults sit under evals, limits narrow unless pinned, --runs wins', () => {
+test('cascade: profile defaults sit under evals, limits narrow unless pinned, --trials wins', () => {
   const plain = defineEnvironment('plain', {})
   const skill = defineEnvironment('skill', {})
   const profile = {
     name: 'pr',
     reason: '--profile',
-    defaults: { runs: 5 },
-    limit: { runs: 1, compare: false as const, agents: ['a'] },
+    defaults: { trials: 5 },
+    limit: { trials: 1, compare: false as const, agents: ['a'] },
     judge: {},
     tags: [],
     budget: {},
   }
   const narrowed = cascade(
     base,
-    [{ options: { compare: { control: plain, variants: [skill] } }, where: 'e' }],
+    [{ options: { compare: { baseline: plain, variants: [skill] } }, where: 'e' }],
     'e',
     { profile },
   )
-  assert.equal(narrowed.resolved.runs, 1)
+  assert.equal(narrowed.resolved.trials, 1)
   assert.deepEqual(
     narrowed.resolved.harness.map((h) => h.id),
     ['a'],
@@ -2493,26 +2493,26 @@ test('cascade: profile defaults sit under evals, limits narrow unless pinned, --
   assert.deepEqual(narrowed.notes, [
     'agents 2 → 1 (profile pr)',
     'compare off (profile pr)',
-    'runs 5 → 1 (profile pr)',
+    'trials 5 → 1 (profile pr)',
   ])
   const pinned = cascade(
     base,
     [
       {
-        options: { compare: { control: plain, variants: [skill] }, pin: ['runs', 'compare'] },
+        options: { compare: { baseline: plain, variants: [skill] }, pin: ['trials', 'compare'] },
         where: 'e',
       },
     ],
     'e',
-    { profile, runs: 2 },
+    { profile, trials: 2 },
   )
-  assert.equal(pinned.resolved.runs, 2, '--runs beats pins')
+  assert.equal(pinned.resolved.trials, 2, '--trials beats pins')
   assert.equal(pinned.resolved.compare?.variants.length, 1)
-  const overridden = cascade(base, [{ options: {}, where: 'e' }], 'e', { profile, runs: 3 })
-  assert.equal(overridden.resolved.runs, 3)
+  const overridden = cascade(base, [{ options: {}, where: 'e' }], 'e', { profile, trials: 3 })
+  assert.equal(overridden.resolved.trials, 3)
   assert.ok(
     !overridden.notes.some((n) => n.startsWith('runs ')),
-    `--runs replaces the profile's limit, so no runs note: ${overridden.notes.join('; ')}`,
+    `--trials replaces the profile's limit, so no runs note: ${overridden.notes.join('; ')}`,
   )
   const skipped = cascade(
     base,
@@ -2523,22 +2523,22 @@ test('cascade: profile defaults sit under evals, limits narrow unless pinned, --
   assert.equal(skipped.skip, 'no agent left: profile pr allows a')
 })
 
-test('cascade: unset runs default to 4 for a compare with variants, 1 otherwise', () => {
+test('cascade: unset trials default to 4 for a compare with variants, 1 otherwise', () => {
   const plain = defineEnvironment('plain', {})
   const skill = defineEnvironment('skill', {})
-  const compare = { control: plain, variants: [skill] }
-  const unset = { ...base, runs: undefined }
-  const runsOf = (options: EvalOptions, opts: Parameters<typeof cascade>[3] = {}) =>
+  const compare = { baseline: plain, variants: [skill] }
+  const unset = { ...base, trials: undefined }
+  const trialsOf = (options: EvalOptions, opts: Parameters<typeof cascade>[3] = {}) =>
     cascade(unset, [{ options, where: 'e' }], 'e', opts)
-  const compared = runsOf({ compare })
-  assert.equal(compared.resolved.runs, 4)
-  assert.deepEqual(compared.notes, ['runs 4 (compare default)'])
-  assert.equal(compared.resolved.sources?.runs, 'compare default: 4 a side')
-  assert.equal(runsOf({}).resolved.runs, 1, 'no compare runs once')
-  assert.equal(runsOf({ compare: { ...compare, variants: [] } }).resolved.runs, 1)
-  assert.equal(runsOf({ compare, runs: 1 }).resolved.runs, 1, 'an explicit 1 stands')
-  assert.equal(runsOf({ compare }, { runs: 2 }).resolved.runs, 2, '--runs replaces the default')
-  assert.equal(runsOf({ compare }, { pooled: true }).resolved.runs, 1, 'a pooled case runs once')
+  const compared = trialsOf({ compare })
+  assert.equal(compared.resolved.trials, 4)
+  assert.deepEqual(compared.notes, ['trials 4 (compare default)'])
+  assert.equal(compared.resolved.sources?.trials, 'compare default: 4 a side')
+  assert.equal(trialsOf({}).resolved.trials, 1, 'no compare runs once')
+  assert.equal(trialsOf({ compare: { ...compare, variants: [] } }).resolved.trials, 1)
+  assert.equal(trialsOf({ compare, trials: 1 }).resolved.trials, 1, 'an explicit 1 stands')
+  assert.equal(trialsOf({ compare }, { trials: 2 }).resolved.trials, 2, '--trials replaces the default')
+  assert.equal(trialsOf({ compare }, { pooled: true }).resolved.trials, 1, 'a pooled case runs once')
   const profile = (p: Partial<ResolvedProfile>): ResolvedProfile => ({
     name: 'pr',
     reason: '--profile',
@@ -2550,27 +2550,27 @@ test('cascade: unset runs default to 4 for a compare with variants, 1 otherwise'
     ...p,
   })
   assert.equal(
-    runsOf({ compare }, { profile: profile({ defaults: { runs: 2 } }) }).resolved.runs,
+    trialsOf({ compare }, { profile: profile({ defaults: { trials: 2 } }) }).resolved.trials,
     2,
   )
-  const capped = runsOf({ compare }, { profile: profile({ limit: { runs: 1 } }) })
-  assert.equal(capped.resolved.runs, 1)
-  assert.deepEqual(capped.notes, ['runs 4 (compare default)', 'runs 4 → 1 (profile pr)'])
-  assert.equal(capped.resolved.sources?.runs, 'profiles.pr.limit', 'the trace names the cap')
-  const off = runsOf({ compare }, { profile: profile({ limit: { compare: false } }) })
-  assert.equal(off.resolved.runs, 1, 'a compare the limit turns off runs once')
+  const capped = trialsOf({ compare }, { profile: profile({ limit: { trials: 1 } }) })
+  assert.equal(capped.resolved.trials, 1)
+  assert.deepEqual(capped.notes, ['trials 4 (compare default)', 'trials 4 → 1 (profile pr)'])
+  assert.equal(capped.resolved.sources?.trials, 'profiles.pr.limit', 'the trace names the cap')
+  const off = trialsOf({ compare }, { profile: profile({ limit: { compare: false } }) })
+  assert.equal(off.resolved.trials, 1, 'a compare the limit turns off runs once')
   assert.equal(
-    cascade({ ...base, runs: 2 }, [{ options: { compare }, where: 'e' }], 'e').resolved.runs,
+    cascade({ ...base, trials: 2 }, [{ options: { compare }, where: 'e' }], 'e').resolved.trials,
     2,
   )
 })
 
-test('a check a side never ran has no verdict, and not-run attempts are not failures', async () => {
+test('a check a side never ran has no verdict, and not-run trials are not failures', async () => {
   const { checkVerdict } = await import('../src/view/contrasts.ts')
   const t = (pass: number, fail: number, notRun = 0, error = 0) => ({ pass, fail, error, notRun })
   assert.equal(checkVerdict(t(0, 2), t(0, 0, 2)), undefined, 'failed against never ran')
   assert.equal(checkVerdict(t(2, 0), t(0, 0, 2)), undefined, 'passed against never ran')
-  assert.equal(checkVerdict(t(2, 0, 1), t(2, 0)), 'both-pass', 'a not-run attempt is no fail')
+  assert.equal(checkVerdict(t(2, 0, 1), t(2, 0)), 'both-pass', 'a not-run trial is no fail')
   assert.equal(checkVerdict(t(0, 1, 1), t(2, 0)), 'discriminates')
   assert.equal(checkVerdict(t(1, 1), t(0, 0, 2)), undefined)
   assert.equal(checkVerdict(t(2, 0), t(0, 2)), 'discriminates')
@@ -2943,7 +2943,7 @@ test('git(): URLs, GitHub shorthands and local paths, resolved against the calli
 test('selectProfile: --profile, then REEVAL_PROFILE, then defaultProfile', () => {
   const config = resolveConfig(
     {
-      budget: { attempts: 50 },
+      budget: { trials: 50 },
       defaultProfile: { ci: 'pr', local: 'dev', cloud: 'fan' },
       profiles: {
         pr: { budget: { duration: '1h' } },
@@ -2959,7 +2959,7 @@ test('selectProfile: --profile, then REEVAL_PROFILE, then defaultProfile', () =>
   const ci = selectProfile(config, undefined, { CI: 'true' })
   assert.deepEqual(
     [ci?.name, ci?.reason, ci?.budget],
-    ['pr', 'auto: CI is set', { attempts: 50, duration: '1h' }],
+    ['pr', 'auto: CI is set', { trials: 50, duration: '1h' }],
   )
   assert.equal(selectProfile(config, undefined, {})?.reason, 'default')
   const cloud = selectProfile(config, undefined, { CI: 'true' }, true)

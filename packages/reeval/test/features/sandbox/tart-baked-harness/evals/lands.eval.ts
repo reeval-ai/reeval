@@ -2,7 +2,7 @@ import { defineEval } from 'reeval'
 import { observed } from 'reeval/graders'
 import { agentSaw, mac } from './env.ts'
 
-// The bootstrap ran once, in the VM preflight baked, not in this attempt's clone of it.
+// The bootstrap ran once, in the VM preflight baked, not in this trial's clone of it.
 export default defineEval({
   environment: mac,
   graders: [

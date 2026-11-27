@@ -3,7 +3,7 @@ import { pageStatus } from 'reeval/graders'
 import { baseline, variant } from './env.ts'
 
 export default defineEval({
-  compare: { control: baseline, variants: [variant] },
+  compare: { baseline: baseline, variants: [variant] },
   // The mistake: the task captured landing, not aside.
   graders: [pageStatus('aside', 200)],
   questions: [

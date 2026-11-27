@@ -3,7 +3,7 @@
 **Shows:** one task over a list of cases. `cases` runs the eval once per case: the agent adds one
 function to `src/math.js` (`subtract`, `multiply`, `power`), and the task calls it with that case's
 numbers through [`checks/call.mjs`](./checks/call.mjs) and observes the answer. Each case is an
-object whose `key` names it; the `answers` grader reads the attempt's case as `c.case`, typed by
+object whose `key` names it; the `answers` grader reads the trial's case as `c.case`, typed by
 `defineGrader<{ want: string }>`, and the cases make one eval.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -26,7 +26,7 @@ claude-code` runs the same evals on Claude Code, and `--profile <name>` on any o
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** `pnpm eval -v`: one eval with three cases, each case an attempt. Here the fake
+**What to look at:** `pnpm eval -v`: one eval with three cases, each case a trial. Here the fake
 agent's `power` multiplies instead:
 
 ```text
@@ -39,7 +39,7 @@ with-cases.eval.ts
       answer  4 1 · 6 1 · 10 1
 ```
 
-`pnpm reeval run --dry-run` plans the eval as one row. Each case's `key` is its attempt's name
+`pnpm reeval run --dry-run` plans the eval as one row. Each case's `key` is its trial's name
 (`with-cases#power`), and `pnpm reeval run power` runs one case.
 
 | File | What it is |

@@ -1,4 +1,4 @@
-// One attempt as an ATIF trajectory (Harbor's Agent Trajectory Interchange Format): a user step
+// One trial as an ATIF trajectory (Harbor's Agent Trajectory Interchange Format): a user step
 // per prompt, and agent steps folded from the trajectory. An agent step is one harness step where
 // the trajectory numbers them, and starts again at a message that follows tool calls, since
 // Codex's and Cursor's steps are whole turns. Each tool call is one `tool_calls` entry with its
@@ -6,14 +6,14 @@
 // subagent's events are an embedded trajectory its spawn call's result refers to. What ATIF has
 // no field for (tool timing, `ok`, cost basis, the outcome) goes in `extra`. The eval's own
 // `c.decide` calls aren't the agent's, so they're left out.
-import type { AttemptRecord, RunRecord } from '../history/types.ts'
+import type { TrialRecord, RunRecord } from '../history/types.ts'
 import type { TokenUsage } from '../types.ts'
 import type { Metrics, ObservationResult, Step, ToolCall, Trajectory } from './atif-schema.ts'
 import type { TrajectoryLine } from './model.ts'
 
 export const ATIF_VERSION = 'ATIF-v1.7'
 
-type Turn = AttemptRecord['turns'][number]
+type Turn = TrialRecord['turns'][number]
 
 type Building = {
   step?: number
@@ -44,18 +44,18 @@ function tokens(u: TokenUsage): Metrics {
   }
 }
 
-/** The ATIF trajectory of `attempt`, from its record and its `trajectory.jsonl` lines. */
+/** The ATIF trajectory of `trial`, from its record and its `trajectory.jsonl` lines. */
 export function toAtif(
   run: RunRecord,
-  attempt: AttemptRecord,
+  trial: TrialRecord,
   lines: TrajectoryLine[],
 ): Trajectory {
   const cell = run.evals
-    .find((e) => e.attempts.some((a) => a.key === attempt.key))
-    ?.cells.find((c) => c.key === attempt.cell)
-  const version = run.stack.images.find((i) => i.id === attempt.imageId)?.agentCli ?? 'unknown'
+    .find((e) => e.trials.some((a) => a.key === trial.key))
+    ?.cells.find((c) => c.key === trial.cell)
+  const version = run.stack.images.find((i) => i.id === trial.imageId)?.agentCli ?? 'unknown'
   const name = cell?.harnessKind ?? 'unknown'
-  const records = new Map((attempt.subagents ?? []).map((s) => [s.id, s]))
+  const records = new Map((trial.subagents ?? []).map((s) => [s.id, s]))
   const parentOf = (id: string) => records.get(id)?.parent
   // A subagent that streamed nothing itself still holds the trajectories of those it spawned.
   const tagged = new Set<string>()
@@ -71,7 +71,7 @@ export function toAtif(
   // the gateway saw any, else its highest step.
   const callsByTurn = () => {
     const counts = new Map<number, number>()
-    if (attempt.activity.llmCalls === null) return counts
+    if (trial.activity.llmCalls === null) return counts
     const calls = lines.filter((l) => l.type === 'model-call')
     for (const l of calls.length ? calls : lines) {
       const n = counts.get(l.turn) ?? 0
@@ -89,7 +89,7 @@ export function toAtif(
     let cur = null as Building | null
     const close = () => {
       if (!cur) return
-      const turn: Turn | undefined = scope === undefined ? attempt.turns[cur.turn] : undefined
+      const turn: Turn | undefined = scope === undefined ? trial.turns[cur.turn] : undefined
       steps.push(
         defined({
           step_id: steps.length + 1,
@@ -100,7 +100,7 @@ export function toAtif(
               ? (turn?.servedModel ?? turn?.model ?? undefined)
               : records.get(scope)?.model,
           reasoning_effort:
-            scope === undefined ? (turn?.servedEffort ?? attempt.effort ?? undefined) : undefined,
+            scope === undefined ? (turn?.servedEffort ?? trial.effort ?? undefined) : undefined,
           message: cur.texts.join('\n\n'),
           reasoning_content: cur.reasoning.length ? cur.reasoning.join('\n\n') : undefined,
           tool_calls: cur.calls.length ? cur.calls : undefined,
@@ -217,7 +217,7 @@ export function toAtif(
     if (scope === undefined) {
       const calls = callsByTurn()
       for (const [turn, at] of lastOfTurn) {
-        const t = attempt.turns[turn]
+        const t = trial.turns[turn]
         const step = steps[at] as Step
         if (t?.usage) step.metrics = defined({ ...tokens(t.usage), cost_usd: t.cost?.usd })
         if (calls.get(turn)) step.llm_call_count = calls.get(turn)
@@ -243,21 +243,21 @@ export function toAtif(
   }
 
   const { steps, subs } = build(undefined)
-  const sum = attempt.usage ? totals(attempt.usage) : undefined
-  const cost = attempt.cost && { cost_basis: attempt.cost.basis, cost_source: attempt.cost.source }
+  const sum = trial.usage ? totals(trial.usage) : undefined
+  const cost = trial.cost && { cost_basis: trial.cost.basis, cost_source: trial.cost.source }
   return defined({
     schema_version: ATIF_VERSION,
     session_id: run.runId,
-    trajectory_id: attempt.key,
+    trajectory_id: trial.key,
     agent: defined({ name, version, model_name: cell?.model ?? undefined }),
     steps,
     final_metrics: defined({
       ...sum,
-      total_cost_usd: attempt.cost?.usd,
+      total_cost_usd: trial.cost?.usd,
       total_steps: steps.length,
       extra: sum || cost ? { ...sum?.extra, ...cost } : undefined,
     }),
-    extra: { outcome: attempt.outcome },
+    extra: { outcome: trial.outcome },
     subagent_trajectories: subs.length ? subs : undefined,
   })
 }

@@ -1,15 +1,15 @@
-no profile · 4 evals · 5 cells · 5 attempts
-a-prebuilt-image     fake/prebuilt/agent                              control  gated any  ×1  egress "allow-all"
-a-toolchain-image    fake/toolchain/docker:python:3.12-slim+6c6fc36c  control  gated any  ×1  egress "allow-all"
-real-harnesses       cursor:composer-2.5/-/docker                     control  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on claude-code:claude-sonnet-5 · egress "allow-all"
-                     claude-code:claude-sonnet-5/-/docker             control  gated any  ×1  effort medium · egress "allow-all"
-the-default-sandbox  fake/-/docker                                    control  gated any  ×1  egress "allow-all"
+no profile · 4 evals · 5 cells · 5 trials
+a-prebuilt-image     fake/prebuilt/agent                              baseline  gated any  ×1  egress "allow-all"
+a-toolchain-image    fake/toolchain/docker:python:3.12-slim+6c6fc36c  baseline  gated any  ×1  egress "allow-all"
+real-harnesses       cursor:composer-2.5/-/docker                     baseline  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on claude-code:claude-sonnet-5 · egress "allow-all"
+                     claude-code:claude-sonnet-5/-/docker             baseline  gated any  ×1  effort medium · egress "allow-all"
+the-default-sandbox  fake/-/docker                                    baseline  gated any  ×1  egress "allow-all"
 excluded: —
 image agent · cursor · 1 evals
   image  ghcr.io/acme/agent:1  (used as is)
 image docker:python:3.12-slim+6c6fc36c · cursor + install · 1 evals
   from python:3.12-slim  reeval-sandbox:cursor-0.1.9-python-3-12-slim-63a9deef  (Node, git and the harness bootstrap on top; reeval image build refreshes a moved tag)
-  install 1 command      reeval-install:<base key + commands>                   (build unless cached)
+  install 1 command      reeval-install:26563624a130ec20                        (build unless cached)
 image docker · cursor · 2 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)
 image docker · claude-code · 1 evals

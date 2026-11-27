@@ -1,5 +1,5 @@
 // The kept workspace: what it keeps and leaves out, its manifest, its caps, the run's cap at
-// assembly, and reading it back with the rest of what an attempt stored through `readStoredAttempt`.
+// assembly, and reading it back with the rest of what a trial stored through `readStoredTrial`.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import {
@@ -15,12 +15,12 @@ import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { gunzipSync, gzipSync } from 'node:zlib'
 import { readTar, writeTar } from '@reeval/sandbox-docker'
-import type { Attempt } from '../src/attempt/state.ts'
-import { keepWorkspace } from '../src/attempt/workspace.ts'
+import type { Trial } from '../src/trial/state.ts'
+import { keepWorkspace } from '../src/trial/workspace.ts'
 import { snapshot } from '../src/diff.ts'
 import { Artifacts, placeWorkspace } from '../src/history/assemble.ts'
-import { readKeptFiles, readRef, readStoredAttempt } from '../src/history/stored-attempt.ts'
-import type { AttemptFiles, AttemptRecord, ExecLine } from '../src/history/types.ts'
+import { readKeptFiles, readRef, readStoredTrial } from '../src/history/stored-trial.ts'
+import type { TrialFiles, TrialRecord, ExecLine } from '../src/history/types.ts'
 import { sha256 } from '../src/ids.ts'
 import type { Sandbox } from '../src/sandbox/index.ts'
 import type { EvalRecord } from '../src/types.ts'
@@ -52,8 +52,8 @@ function hostBox(dir: string): Sandbox {
   } as unknown as Sandbox
 }
 
-const attemptFor = (signal = new AbortController().signal) =>
-  ({ signal, record: {} }) as unknown as Attempt & { record: EvalRecord }
+const trialFor = (signal = new AbortController().signal) =>
+  ({ signal, record: {} }) as unknown as Trial & { record: EvalRecord }
 
 const write = (dir: string, path: string, data: string | Buffer) => {
   mkdirSync(join(dir, path, '..'), { recursive: true })
@@ -78,7 +78,7 @@ describe('keepWorkspace', {
     write(work, 'bin/run.sh', '#!/bin/sh\necho hi\n')
     chmodSync(join(work, 'bin/run.sh'), 0o755)
     symlinkSync('src/app.js', join(work, 'link'))
-    const a = attemptFor()
+    const a = trialFor()
     await keepWorkspace(a, box, join(dir, 'kept'))
     const { sha256: archiveHash, ...kept } = a.record.workspace ?? {}
     const archive = readFileSync(join(dir, 'kept/workspace.tar.gz'))
@@ -119,7 +119,7 @@ describe('keepWorkspace', {
     write(box.workdir, 'blob.bin', Buffer.concat([Buffer.from([0, 1, 2, 0]), Buffer.from(SECRET)]))
     write(box.workdir, `${SECRET}.txt`, 'named\n')
     write(box.workdir, 'ok.txt', 'fine\n')
-    const a = attemptFor()
+    const a = trialFor()
     await keepWorkspace(a, box, join(dir, 'kept'))
     assert.deepEqual(
       [...(a.record.workspace?.dropped ?? [])].sort(),
@@ -143,7 +143,7 @@ describe('keepWorkspace', {
     const random = Buffer.alloc(64 * 1024)
     for (let i = 0; i < random.length; i++) random[i] = Math.floor(Math.random() * 256)
     write(box.workdir, 'random.bin', random)
-    const over = attemptFor()
+    const over = trialFor()
     await keepWorkspace(over, box, join(dir, 'kept'), { tar: 16 * 1024, raw: 2 ** 20 })
     assert.equal(over.record.workspace?.skipped?.cause, 'size')
     assert.match(
@@ -152,7 +152,7 @@ describe('keepWorkspace', {
     )
     assert.equal(over.record.workspace?.bytes, 0)
     assert.ok(!existsSync(join(dir, 'kept')))
-    const raw = attemptFor()
+    const raw = trialFor()
     await keepWorkspace(raw, box, join(dir, 'kept'), { tar: 2 ** 20, raw: 16 * 1024 })
     assert.match(
       raw.record.workspace?.skipped?.message ?? '',
@@ -207,7 +207,7 @@ describe('keepWorkspace', {
         '/work',
       )
       const dir = tempDir('keep-workspace-alpine')
-      const a = attemptFor()
+      const a = trialFor()
       await keepWorkspace(a, box, join(dir, 'kept'))
       assert.equal(a.record.workspace?.skipped, null, a.record.workspace?.skipped?.message)
       assert.deepEqual(a.record.workspace?.excluded, ['node_modules/'])
@@ -229,15 +229,15 @@ describe('keepWorkspace', {
     }
   })
 
-  test('a workspace without the git index keeps none, saying so; a stopped attempt nothing', async () => {
+  test('a workspace without the git index keeps none, saying so; a stopped trial nothing', async () => {
     const dir = tempDir('keep-workspace-error')
     const box = hostBox(dir)
-    const a = attemptFor()
+    const a = trialFor()
     await keepWorkspace(a, box, join(dir, 'kept'))
     assert.equal(a.record.workspace?.skipped?.cause, 'error')
     const stop = new AbortController()
     stop.abort()
-    const stopped = attemptFor(stop.signal)
+    const stopped = trialFor(stop.signal)
     await keepWorkspace(stopped, box, join(dir, 'kept'))
     assert.equal(stopped.record.workspace, undefined)
   })
@@ -259,7 +259,7 @@ describe('placeWorkspace', () => {
       sha256: sha256('archive'),
     }
     const out = new Artifacts()
-    const files: AttemptFiles = {}
+    const files: TrialFiles = {}
     const gone = await placeWorkspace(kept, 'e/c/0', out, join(dir, 'evals/b.json'), {}, 10)
     assert.deepEqual(gone.skipped, {
       cause: 'error',
@@ -277,7 +277,7 @@ describe('placeWorkspace', () => {
       out.moves.get('e/c/1/workspace.tar.gz'),
       join(dir, 'evals/a.workspace/workspace.tar.gz'),
     )
-    const second: AttemptFiles = {}
+    const second: TrialFiles = {}
     const past = await placeWorkspace(kept, 'e/c/2', out, staged, second, 10)
     assert.deepEqual(past?.skipped, {
       cause: 'size',
@@ -287,8 +287,8 @@ describe('placeWorkspace', () => {
   })
 })
 
-describe('readStoredAttempt', () => {
-  test("reads an attempt's execs, observations, captures and kept files, checking each hash", async () => {
+describe('readStoredTrial', () => {
+  test("reads a trial's execs, observations, captures and kept files, checking each hash", async () => {
     const run = tempDir('stored')
     const ref = (path: string, data: string | Buffer) => {
       write(run, path, data)
@@ -309,9 +309,9 @@ describe('readStoredAttempt', () => {
     const box = hostBox(tempDir('stored-box'))
     await snapshot(box)
     write(box.workdir, 'src/app.js', 'export {}\n')
-    const a = attemptFor()
+    const a = trialFor()
     await keepWorkspace(a, box, join(run, 'staged'))
-    const attempt = {
+    const trial = {
       observations: [{ name: 'orm', value: 'drizzle', turn: 1, sha256: sha256('"drizzle"') }],
       changedFiles: [{ path: 'src/app.js', status: 'modified', added: 1, removed: 0 }],
       files: {
@@ -326,10 +326,10 @@ describe('readStoredAttempt', () => {
           { ...ref('1/artifacts/home.png', 'png'), name: 'home', mediaType: 'image/png' },
         ],
       },
-    } as unknown as AttemptRecord
-    const t = await readStoredAttempt(run, attempt)
+    } as unknown as TrialRecord
+    const t = await readStoredTrial(run, trial)
     assert.deepEqual(t.execs, lines)
-    assert.deepEqual(t.observations, attempt.observations)
+    assert.deepEqual(t.observations, trial.observations)
     assert.equal((await t.readArtifact('home'))?.toString(), 'png')
     assert.equal(await t.readArtifact('missing'), null)
     assert.deepEqual(t.diff, {
@@ -344,13 +344,13 @@ describe('readStoredAttempt', () => {
     assert.equal(await t.workspace?.readFile('nope.js'), null)
     writeFileSync(join(run, '1/execs.jsonl'), 'changed\n')
     await assert.rejects(
-      readStoredAttempt(run, attempt),
+      readStoredTrial(run, trial),
       /1\/execs\.jsonl changed since the run wrote it/,
     )
-    const bare = await readStoredAttempt(run, {
+    const bare = await readStoredTrial(run, {
       files: {},
       changedFiles: [],
-    } as unknown as AttemptRecord)
+    } as unknown as TrialRecord)
     assert.deepEqual(
       [bare.execs, bare.observations, bare.workspace, bare.diff],
       [[], [], null, { patch: '', files: [] }],
@@ -363,12 +363,12 @@ describe('readStoredAttempt', () => {
     const json = JSON.stringify(value)
     write(run, '1/observations/1.json', json)
     const file = { path: '1/observations/1.json', sha256: sha256(json), bytes: json.length }
-    const attempt = {
+    const trial = {
       observations: [{ name: 'rows', value: null, turn: 1, sha256: file.sha256, file }],
       files: {},
       changedFiles: [],
-    } as unknown as AttemptRecord
-    const t = await readStoredAttempt(run, attempt)
+    } as unknown as TrialRecord
+    const t = await readStoredTrial(run, trial)
     assert.deepEqual(t.observations[0]?.value, value)
   })
 
@@ -393,13 +393,13 @@ describe('readStoredAttempt', () => {
     symlinkSync('/etc/passwd', join(box.workdir, 'abs'))
     symlinkSync('loop', join(box.workdir, 'loop'))
     const run = tempDir('stored-links')
-    const a = attemptFor()
+    const a = trialFor()
     await keepWorkspace(a, box, join(run, 'staged'))
     const archive = readFileSync(join(run, 'staged/workspace.tar.gz'))
     const manifest = readFileSync(join(run, 'staged/workspace.json'))
     write(run, '1/workspace.json', manifest)
     const workspace = { path: '1/workspace.tar.gz', sha256: sha256(archive), bytes: archive.length }
-    const attempt = {
+    const trial = {
       files: {
         workspace,
         workspaceManifest: {
@@ -408,9 +408,9 @@ describe('readStoredAttempt', () => {
           bytes: manifest.length,
         },
       },
-    } as unknown as AttemptRecord
+    } as unknown as TrialRecord
     const fetched: string[] = []
-    const kept = await readKeptFiles(run, attempt, {
+    const kept = await readKeptFiles(run, trial, {
       fetch: async (ref, file) => {
         fetched.push(ref.path)
         writeFileSync(file, archive)
@@ -424,12 +424,12 @@ describe('readStoredAttempt', () => {
       assert.equal(await kept?.readFile(path), null, path)
     }
     const bad = await readKeptFiles(tempDir('stored-bad-fetch'), {
-      files: { ...attempt.files, workspaceManifest: attempt.files.workspaceManifest },
-    } as unknown as AttemptRecord).catch((error: Error) => error)
+      files: { ...trial.files, workspaceManifest: trial.files.workspaceManifest },
+    } as unknown as TrialRecord).catch((error: Error) => error)
     assert.ok(bad instanceof Error, 'no manifest in that run')
     const wrong = tempDir('stored-wrong-fetch')
     write(wrong, '1/workspace.json', manifest)
-    const refetched = await readKeptFiles(wrong, attempt, {
+    const refetched = await readKeptFiles(wrong, trial, {
       fetch: async (_ref, file) => writeFileSync(file, 'not it'),
     })
     await assert.rejects(
@@ -455,8 +455,8 @@ describe('recording a kept workspace', () => {
     const runs = join(p.dir, '.reeval/runs')
     const runId = (readdirSync(runs).find((f) => f.endsWith('.json')) ?? '').replace(/\.json$/, '')
     const record = JSON.parse(readFileSync(join(runs, `${runId}.json`), 'utf8'))
-    const ref = record.evals[0].attempts[0].files.workspace
-    assert.ok(ref, 'the attempt kept its workspace')
+    const ref = record.evals[0].trials[0].files.workspace
+    assert.ok(ref, 'the trial kept its workspace')
     const leak = gzipSync(
       writeTar([
         { type: 'file', path: 'leak.bin', mode: 0o644, mtime: 0, data: Buffer.from(`\0${SECRET}`) },

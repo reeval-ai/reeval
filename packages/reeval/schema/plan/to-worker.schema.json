@@ -32,7 +32,7 @@
           "const": "antigravity"
         },
         "maxConcurrent": {
-          "description": "The most Antigravity attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most Antigravity trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -41,7 +41,7 @@
           "minLength": 1
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         }
       },
@@ -65,7 +65,7 @@
       "required": ["from", "kind"]
     },
     "BoatProviderDescriptor": {
-      "description": "boat.dev machines that run each attempt's sandbox, made by `boat()` from `reeval/provider/boat`.",
+      "description": "boat.dev machines that run each trial's sandbox, made by `boat()` from `reeval/provider/boat`.",
       "type": "object",
       "properties": {
         "apiKey": {
@@ -84,18 +84,12 @@
           "required": ["from", "kind"],
           "additionalProperties": false
         },
-        "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, each in a container with a network of its own. Default 1.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8
-        },
         "kind": {
           "type": "string",
           "const": "boat"
         },
         "maxConcurrent": {
-          "description": "The most attempts on Boat at once, across the run: machines times `attemptsPerMachine`. The sandbox's `maxConcurrent` when unset.",
+          "description": "The most trials on Boat at once, across the run: machines times `trialsPerMachine`. The sandbox's `maxConcurrent` when unset.",
           "type": "integer",
           "minimum": 1,
           "maximum": 9007199254740991
@@ -107,8 +101,14 @@
           "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         },
         "reuse": {
-          "description": "A machine takes another of the run's attempts once one ends, instead of being deleted. Default false, one attempt per slot.",
+          "description": "A machine takes another of the run's trials once one ends, instead of being deleted. Default false, one trial per slot.",
           "type": "boolean"
+        },
+        "trialsPerMachine": {
+          "description": "The trials one machine runs at once, each in a container with a network of its own. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
         },
         "type": {
           "description": "The machine size. Default `small`.",
@@ -139,12 +139,6 @@
           "required": ["from", "kind"],
           "additionalProperties": false
         },
-        "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, each in a container of its own with its own workspace, home, network and egress gateway. Default 1.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8
-        },
         "dockerfile": {
           "description": "A Dockerfile, absolute or relative to the directory of the file it's written in, built from its directory with `REEVAL_BASE` set to reeval's sandbox image.",
           "type": "string",
@@ -161,7 +155,7 @@
           "pattern": "\\S"
         },
         "image": {
-          "description": "An image that already has the harness baked in, pulled from its registry on a build VM. Preflight builds the image (reeval's for the harness, with none of `image`, `from`, `dockerfile` or `install`) once into a Boat saved snapshot, and each attempt runs in a container of it on a VM started from the snapshot.",
+          "description": "An image that already has the harness baked in, pulled from its registry on a build VM. Preflight builds the image (reeval's for the harness, with none of `image`, `from`, `dockerfile` or `install`) once into a Boat saved snapshot, and each trial runs in a container of it on a VM started from the snapshot.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -178,7 +172,7 @@
           "const": "boat"
         },
         "maxConcurrent": {
-          "description": "The most attempts on Boat at once, across the run: machines times `attemptsPerMachine`.",
+          "description": "The most trials on Boat at once, across the run: machines times `trialsPerMachine`.",
           "type": "integer",
           "minimum": 1,
           "maximum": 9007199254740991
@@ -190,8 +184,14 @@
           "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         },
         "reuse": {
-          "description": "A machine takes another of the run's attempts once one ends, in a new container, instead of being deleted. Default false, one attempt per slot.",
+          "description": "A machine takes another of the run's trials once one ends, in a new container, instead of being deleted. Default false, one trial per slot.",
           "type": "boolean"
+        },
+        "trialsPerMachine": {
+          "description": "The trials one machine runs at once, each in a container of its own with its own workspace, home, network and egress gateway. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
         },
         "type": {
           "description": "The machine size. Default `small`.",
@@ -203,18 +203,18 @@
       "additionalProperties": false
     },
     "Budget": {
-      "description": "Run-level caps. `attempts` is checked against the plan; `duration` while running.",
+      "description": "Run-level caps. `trials` is checked against the plan; `duration` while running.",
       "type": "object",
       "properties": {
-        "attempts": {
-          "description": "The most attempts the plan may have.",
+        "duration": {
+          "description": "How long the run may go on, from the first trial's start.",
+          "$ref": "#/$defs/Duration"
+        },
+        "trials": {
+          "description": "The most trials the plan may have.",
           "type": "integer",
           "minimum": 1,
           "maximum": 9007199254740991
-        },
-        "duration": {
-          "description": "How long the run may go on, from the first attempt's start.",
-          "$ref": "#/$defs/Duration"
         }
       },
       "additionalProperties": false
@@ -238,11 +238,11 @@
           "type": "string"
         },
         "required": {
-          "description": "A failed natural pass (or an error) makes the attempt's score 0. Default false.",
+          "description": "A failed natural pass (or an error) makes the trial's score 0. Default false.",
           "type": "boolean"
         },
         "weight": {
-          "description": "Its share of the attempt's score. Default 1; 0 records only.",
+          "description": "Its share of the trial's score. Default 1; 0 records only.",
           "type": "number",
           "minimum": 0
         }
@@ -284,7 +284,7 @@
           "type": "boolean"
         },
         "model": {
-          "description": "Vision model for `instructions`. Cascades like `question`. Default is `analysis.model`, else the attempt's judge model, whichever is first a language model; never Jev.",
+          "description": "Vision model for `instructions`. Cascades like `question`. Default is `analysis.model`, else the trial's judge model, whichever is first a language model; never Jev.",
           "type": "string",
           "format": "includes",
           "pattern": "\\/"
@@ -365,7 +365,7 @@
           "const": "claude-code"
         },
         "maxConcurrent": {
-          "description": "The most Claude Code attempts at once, across the run, e.g. for the account's rate limits.",
+          "description": "The most Claude Code trials at once, across the run, e.g. for the account's rate limits.",
           "type": "number"
         },
         "model": {
@@ -374,7 +374,7 @@
           "minLength": 1
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         },
         "systemPrompt": {
@@ -396,17 +396,11 @@
       "additionalProperties": false
     },
     "CloudSandboxDescriptor": {
-      "description": "A VM per attempt from reeval's own VM service, made by `cloud()` from `reeval/internal/vm`.",
+      "description": "A VM per trial from reeval's own VM service, made by `cloud()` from `reeval/internal/vm`.",
       "type": "object",
       "properties": {
-        "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, each in a container of its own, as `boat({ attemptsPerMachine })` does. Default 1.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8
-        },
         "capabilities": {
-          "description": "Linux capabilities the attempt's container adds back, as `docker({ capabilities })` does.",
+          "description": "Linux capabilities the trial's container adds back, as `docker({ capabilities })` does.",
           "type": "array",
           "items": {
             "type": "string",
@@ -414,7 +408,7 @@
           }
         },
         "cpus": {
-          "description": "CPUs the attempt's container may use; the VM's share per slot when unset.",
+          "description": "CPUs the trial's container may use; the VM's share per slot when unset.",
           "type": "number",
           "exclusiveMinimum": 0
         },
@@ -434,7 +428,7 @@
           "pattern": "\\S"
         },
         "image": {
-          "description": "An image that already has the harness baked in, pulled from its registry. With any of `image`, `from`, `dockerfile` or `install`, each attempt runs in a container of the recipe's image, which each VM pulls or builds as `docker()` does locally as its first attempt starts: without `reuse`, that's every attempt.",
+          "description": "An image that already has the harness baked in, pulled from its registry. With any of `image`, `from`, `dockerfile` or `install`, each trial runs in a container of the recipe's image, which each VM pulls or builds as `docker()` does locally as its first trial starts: without `reuse`, that's every trial.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -451,11 +445,11 @@
           "const": "cloud"
         },
         "maxConcurrent": {
-          "description": "The most attempts on cloud VMs at once, across the run: machines times `attemptsPerMachine`.",
+          "description": "The most trials on cloud VMs at once, across the run: machines times `trialsPerMachine`.",
           "type": "number"
         },
         "memory": {
-          "description": "The attempt's container's memory, as `docker({ memory })` sets it; the VM's share per slot when unset. More than that share fails the attempt.",
+          "description": "The trial's container's memory, as `docker({ memory })` sets it; the VM's share per slot when unset. More than that share fails the trial.",
           "anyOf": [
             {
               "type": "string",
@@ -469,17 +463,17 @@
           ]
         },
         "pids": {
-          "description": "Processes and threads at once in the attempt's container. Default 1024.",
+          "description": "Processes and threads at once in the trial's container. Default 1024.",
           "type": "integer",
           "exclusiveMinimum": 0,
           "maximum": 9007199254740991
         },
         "reuse": {
-          "description": "A machine takes another of the run's attempts once one ends, instead of being deleted, as `boat({ reuse })` does. Default false, one attempt per slot.",
+          "description": "A machine takes another of the run's trials once one ends, instead of being deleted, as `boat({ reuse })` does. Default false, one trial per slot.",
           "type": "boolean"
         },
         "root": {
-          "description": "Run the agent, setup steps and checks as root in the attempt's container, as `docker({ root })` does.",
+          "description": "Run the agent, setup steps and checks as root in the trial's container, as `docker({ root })` does.",
           "type": "boolean"
         },
         "size": {
@@ -500,6 +494,12 @@
               "maximum": 9007199254740991
             }
           ]
+        },
+        "trialsPerMachine": {
+          "description": "The trials one machine runs at once, each in a container of its own, as `boat({ trialsPerMachine })` does. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
         }
       },
       "required": ["kind"],
@@ -533,7 +533,7 @@
           "const": "codex"
         },
         "maxConcurrent": {
-          "description": "The most Codex attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most Codex trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -542,7 +542,7 @@
           "pattern": "^[\\w.-]+$"
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         },
         "systemPrompt": {
@@ -666,7 +666,7 @@
           "const": "cursor"
         },
         "maxConcurrent": {
-          "description": "The most Cursor attempts at once, across the run, e.g. for the account's rate limits.",
+          "description": "The most Cursor trials at once, across the run, e.g. for the account's rate limits.",
           "type": "number"
         },
         "model": {
@@ -685,7 +685,7 @@
           }
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         }
       },
@@ -706,7 +706,7 @@
       "required": ["from", "kind"]
     },
     "DaytonaProviderDescriptor": {
-      "description": "Daytona sandboxes that run each attempt's sandbox, made by `daytona()` from `reeval/provider/daytona`.",
+      "description": "Daytona sandboxes that run each trial's sandbox, made by `daytona()` from `reeval/provider/daytona`.",
       "type": "object",
       "properties": {
         "apiKey": {
@@ -725,18 +725,12 @@
           "required": ["from", "kind"],
           "additionalProperties": false
         },
-        "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, as `boat({ attemptsPerMachine })` does. Default 1.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8
-        },
         "kind": {
           "type": "string",
           "const": "daytona"
         },
         "maxConcurrent": {
-          "description": "The most attempts on Daytona at once, across the run: machines times `attemptsPerMachine`. The sandbox's `maxConcurrent` when unset.",
+          "description": "The most trials on Daytona at once, across the run: machines times `trialsPerMachine`. The sandbox's `maxConcurrent` when unset.",
           "type": "integer",
           "minimum": 1,
           "maximum": 9007199254740991
@@ -748,13 +742,19 @@
           "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         },
         "reuse": {
-          "description": "A machine takes another of the run's attempts once one ends, instead of being deleted, as `boat({ reuse })` does. Default false, one attempt per slot.",
+          "description": "A machine takes another of the run's trials once one ends, instead of being deleted, as `boat({ reuse })` does. Default false, one trial per slot.",
           "type": "boolean"
         },
         "size": {
           "description": "The sandbox size. Default `medium`.",
           "type": "string",
           "enum": ["small", "medium", "large"]
+        },
+        "trialsPerMachine": {
+          "description": "The trials one machine runs at once, as `boat({ trialsPerMachine })` does. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
         }
       },
       "required": ["apiKey", "kind", "prefix"],
@@ -779,12 +779,6 @@
           },
           "required": ["from", "kind"],
           "additionalProperties": false
-        },
-        "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, each as a user of its own with its own home (which each sees at `/home/reeval`), workspace and egress gateway. Default 1. A harness whose bridge takes a fixed port in the machine (Claude Code, OpenCode, Goose, fx, Grok Build) runs one per machine.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8
         },
         "dockerfile": {
           "description": "A Dockerfile, absolute or relative to the directory of the file it's written in, that Daytona builds from its directory into a snapshot. `FROM ${REEVAL_BASE}` starts it from reeval's sandbox image; any other base must be Debian or Ubuntu based, and gets Node and the harness baked on top.",
@@ -819,7 +813,7 @@
           "const": "daytona"
         },
         "maxConcurrent": {
-          "description": "The most attempts on Daytona at once, across the run: machines times `attemptsPerMachine`.",
+          "description": "The most trials on Daytona at once, across the run: machines times `trialsPerMachine`.",
           "type": "integer",
           "minimum": 1,
           "maximum": 9007199254740991
@@ -831,13 +825,19 @@
           "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         },
         "reuse": {
-          "description": "A machine takes another of the run's attempts once one ends, instead of being deleted: its user's processes, cron jobs and files are removed and its home put back as the snapshot had it. Default false, one attempt per slot.",
+          "description": "A machine takes another of the run's trials once one ends, instead of being deleted: its user's processes, cron jobs and files are removed and its home put back as the snapshot had it. Default false, one trial per slot.",
           "type": "boolean"
         },
         "size": {
           "description": "The sandbox size. Default `medium`.",
           "type": "string",
           "enum": ["small", "medium", "large"]
+        },
+        "trialsPerMachine": {
+          "description": "The trials one machine runs at once, each as a user of its own with its own home (which each sees at `/home/reeval`), workspace and egress gateway. Default 1. A harness whose bridge takes a fixed port in the machine (Claude Code, OpenCode, Goose, fx, Grok Build) runs one per machine.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
         }
       },
       "required": ["apiKey", "kind", "prefix"],
@@ -1002,7 +1002,7 @@
       ]
     },
     "Egress": {
-      "description": "One policy for the whole attempt, or one per phase.",
+      "description": "One policy for the whole trial, or one per phase.",
       "anyOf": [
         {
           "$ref": "#/$defs/EgressPolicy"
@@ -1013,7 +1013,7 @@
       ]
     },
     "EgressPolicy": {
-      "description": "Where the sandbox may connect: any host over HTTP(S) through the egress gateway (`'proxy'`, the default), anywhere including raw TCP and UDP around the gateway (`'allow-all'`), nowhere (`'deny-all'`), or only the listed hosts (`'*.example.com'` matches subdomains). Under a restricted policy the harness's own hosts, brokered secrets' `hosts` and MCP servers' hosts are allowed too; any other request gets a refusal, and the attempt goes on.",
+      "description": "Where the sandbox may connect: any host over HTTP(S) through the egress gateway (`'proxy'`, the default), anywhere including raw TCP and UDP around the gateway (`'allow-all'`), nowhere (`'deny-all'`), or only the listed hosts (`'*.example.com'` matches subdomains). Under a restricted policy the harness's own hosts, brokered secrets' `hosts` and MCP servers' hosts are allowed too; any other request gets a refusal, and the trial goes on.",
       "anyOf": [
         {
           "type": "string",
@@ -1054,7 +1054,7 @@
           "required": []
         },
         "extendEnvironment": {
-          "description": "A child environment layered on this one; wherever it sets a key this one has, it wins. `sandbox` is replaced entirely when the child sets one; when the child omits it, the parent's sandbox is kept. This is how two `compare` arms share setup: `compare` itself never layers.",
+          "description": "A child environment layered on this one; wherever it sets a key this one has, it wins. `sandbox` is replaced entirely when the child sets one; when the child omits it, the parent's sandbox is kept. This is how two `compare` environments share setup: `compare` itself never layers.",
           "type": "object",
           "properties": {},
           "required": []
@@ -1178,11 +1178,11 @@
           ]
         },
         "sandbox": {
-          "description": "Where the attempt runs: `docker()` or `fakeSandbox()`. A child's `extend` / `extendEnvironment` replaces the parent's entirely when it sets one; install is not merged onto the parent image.",
+          "description": "Where the trial runs: `docker()` or `fakeSandbox()`. A child's `extend` / `extendEnvironment` replaces the parent's entirely when it sets one; install is not merged onto the parent image.",
           "$ref": "#/$defs/DeclaredSandbox"
         },
         "setup": {
-          "description": "Shell commands run in every attempt before the agent starts; a child's run after its parent's.",
+          "description": "Shell commands run in every trial before the agent starts; a child's run after its parent's.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/SetupStep"
@@ -1250,7 +1250,7 @@
       "type": "object",
       "properties": {
         "answer": {
-          "description": "How it answers questions asked of each attempt: a fixed answer, a function of the attempt as the model sees it, or `{ error }` to fail every call. An answer may be `{ choice?, text? }`. Default the first of the question's `choices`, with the text `fake answer`.",
+          "description": "How it answers questions asked of each trial: a fixed answer, a function of the trial as the model sees it, or `{ error }` to fail every call. An answer may be `{ choice?, text? }`. Default the first of the question's `choices`, with the text `fake answer`.",
           "anyOf": [
             {
               "type": "object",
@@ -1331,7 +1331,7 @@
       "type": "object",
       "properties": {
         "bootstrap": {
-          "description": "A shell command the fake agent runs as its session starts, once per sandbox, as a real adapter's bootstrap installs its CLI: `tart()` bakes it into the image it clones, as it does a real harness's, so an attempt there finds it done.",
+          "description": "A shell command the fake agent runs as its session starts, once per sandbox, as a real adapter's bootstrap installs its CLI: `tart()` bakes it into the image it clones, as it does a real harness's, so a trial there finds it done.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -1370,7 +1370,7 @@
           }
         },
         "flakeRate": {
-          "description": "Chance (0–1) that an attempt writes no files and says so, for flaky pass rates.",
+          "description": "Chance (0–1) that a trial writes no files and says so, for flaky pass rates.",
           "type": "number"
         },
         "gateway": {
@@ -1406,7 +1406,7 @@
           ]
         },
         "maxConcurrent": {
-          "description": "The most attempts on this harness kind at once, across the run.",
+          "description": "The most trials on this harness kind at once, across the run.",
           "type": "number"
         },
         "reasoning": {
@@ -1428,7 +1428,7 @@
           "type": "string"
         },
         "startHangs": {
-          "description": "The first this many session starts of an attempt never become ready, even when aborted (`true`: every one).",
+          "description": "The first this many session starts of a trial never become ready, even when aborted (`true`: every one).",
           "anyOf": [
             {
               "type": "number"
@@ -1440,7 +1440,7 @@
           ]
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         },
         "subagents": {
@@ -1535,7 +1535,7 @@
           }
         },
         "turnMs": {
-          "description": "Each turn's recorded agent time, exactly, whatever the wall clock says: a test can compare agent time without scheduling jitter, which four runs a side can tell apart.",
+          "description": "Each turn's recorded agent time, exactly, whatever the wall clock says: a test can compare agent time without scheduling jitter, which four trials a side can tell apart.",
           "type": "number",
           "minimum": 0
         },
@@ -1640,7 +1640,7 @@
           "const": "fake"
         },
         "maxConcurrent": {
-          "description": "The most attempts on this sandbox kind at once, across the run.",
+          "description": "The most trials on this sandbox kind at once, across the run.",
           "type": "number"
         }
       },
@@ -1648,7 +1648,7 @@
       "additionalProperties": false
     },
     "FakeScriptStep": {
-      "description": "One action of a scripted fake agent. `exec` is reported as a `shell` tool call whose output is the command's stdout, `write` as file edits, and `reply` is the turn's final message. `mcp` (`'<server>/<tool>'`) starts the environment's stdio MCP server in the sandbox, as an agent would, and calls the tool with no arguments; it's reported as `mcp__<server>__<tool>`. `error` ends the turn there with status `error` and that message, as a provider error would; one worded as a provider's credit, quota or rate limit makes the attempt an infra error. `refuseKey` ends it as the model API rejecting the key in that variable would, which makes the attempt an infra error.",
+      "description": "One action of a scripted fake agent. `exec` is reported as a `shell` tool call whose output is the command's stdout, `write` as file edits, and `reply` is the turn's final message. `mcp` (`'<server>/<tool>'`) starts the environment's stdio MCP server in the sandbox, as an agent would, and calls the tool with no arguments; it's reported as `mcp__<server>__<tool>`. `error` ends the turn there with status `error` and that message, as a provider error would; one worded as a provider's credit, quota or rate limit makes the trial an infra error. `refuseKey` ends it as the model API rejecting the key in that variable would, which makes the trial an infra error.",
       "anyOf": [
         {
           "type": "object",
@@ -1721,7 +1721,7 @@
       ]
     },
     "FakeVote": {
-      "description": "A blinded label's pick: the attempt shown first (`A`), second (`B`), or neither.",
+      "description": "A blinded label's pick: the trial shown first (`A`), second (`B`), or neither.",
       "enum": ["A", "B", "tie"]
     },
     "FxHarnessDescriptor": {
@@ -1752,7 +1752,7 @@
           "const": "fx"
         },
         "maxConcurrent": {
-          "description": "The most fx attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most fx trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -1761,7 +1761,7 @@
           "minLength": 1
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         }
       },
@@ -1856,7 +1856,7 @@
           "const": "goose"
         },
         "maxConcurrent": {
-          "description": "The most Goose attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most Goose trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -1865,7 +1865,7 @@
           "pattern": "^[\\w.-]+\\/[\\w.-]+$"
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         }
       },
@@ -1914,7 +1914,7 @@
           "const": "grok-build"
         },
         "maxConcurrent": {
-          "description": "The most Grok Build attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most Grok Build trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -1923,7 +1923,7 @@
           "pattern": "^[\\w.-]+$"
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         }
       },
@@ -1931,7 +1931,7 @@
       "additionalProperties": false
     },
     "HarnessDescriptor": {
-      "description": "The agent an attempt runs: a real harness, or the fake one.",
+      "description": "The agent a trial runs: a real harness, or the fake one.",
       "oneOf": [
         {
           "$ref": "#/$defs/FakeHarnessDescriptor"
@@ -1966,7 +1966,7 @@
       ]
     },
     "HostFile": {
-      "description": "A file on the host, read when an attempt starts. Made by the `file` helper.",
+      "description": "A file on the host, read when a trial starts. Made by the `file` helper.",
       "type": "object",
       "properties": {
         "kind": {
@@ -2149,7 +2149,7 @@
           "const": "opencode"
         },
         "maxConcurrent": {
-          "description": "The most OpenCode attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most OpenCode trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -2158,7 +2158,7 @@
           "minLength": 1
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         },
         "systemPrompt": {
@@ -2196,7 +2196,7 @@
       "additionalProperties": false
     },
     "PhasedEgress": {
-      "description": "An egress policy per phase of the attempt: `setup` covers its files and setup steps, `agent` the harness's start, every turn and every check after them. A phase it leaves unset keeps the policy it inherits.",
+      "description": "An egress policy per phase of the trial: `setup` covers its files and setup steps, `agent` the harness's start, every turn and every check after them. A phase it leaves unset keeps the policy it inherits.",
       "type": "object",
       "properties": {
         "agent": {
@@ -2245,7 +2245,7 @@
           "const": "pi"
         },
         "maxConcurrent": {
-          "description": "The most pi attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most pi trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -2254,7 +2254,7 @@
           "pattern": "^[\\w.-]+\\/\\S+$"
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         },
         "systemPrompt": {
@@ -2766,23 +2766,6 @@
           "description": "Defaults for every question, merged over the config's.",
           "$ref": "#/$defs/QuestionOptions"
         },
-        "runs": {
-          "description": "Attempts per cell: a number, or `{ bestOf: n }` (odd, 3 or more).",
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "bestOf": {
-                  "type": "number"
-                }
-              },
-              "required": ["bestOf"]
-            }
-          ]
-        },
         "sandbox": {
           "description": "The default machine when the resolved environment omits `sandbox`.",
           "anyOf": [
@@ -2801,7 +2784,7 @@
           ]
         },
         "snapshot": {
-          "description": "When each attempt's workspace is copied; merged over the config's.",
+          "description": "When each trial's workspace is copied; merged over the config's.",
           "anyOf": [
             {
               "$ref": "#/$defs/SnapshotOptions"
@@ -2815,7 +2798,7 @@
           ]
         },
         "target": {
-          "description": "Whether each eval passes and can fail the run, over its attempts' scores.",
+          "description": "Whether each eval passes and can fail the run, over its trials' scores.",
           "anyOf": [
             {
               "type": "object",
@@ -2828,7 +2811,7 @@
                   "const": "capability"
                 },
                 "threshold": {
-                  "description": "The score, from 0 to 1, one attempt must reach.",
+                  "description": "The score, from 0 to 1, one trial must reach.",
                   "type": "number"
                 }
               },
@@ -2841,7 +2824,7 @@
                   "const": "regression"
                 },
                 "threshold": {
-                  "description": "The score, from 0 to 1, every attempt must reach.",
+                  "description": "The score, from 0 to 1, every trial must reach.",
                   "type": "number"
                 }
               },
@@ -2850,7 +2833,7 @@
           ]
         },
         "timeout": {
-          "description": "Per attempt.",
+          "description": "Per trial.",
           "anyOf": [
             {
               "type": "number"
@@ -2866,6 +2849,23 @@
             },
             {
               "type": "string"
+            }
+          ]
+        },
+        "trials": {
+          "description": "Trials per cell: a number, or `{ bestOf: n }` (odd, 3 or more).",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "bestOf": {
+                  "type": "number"
+                }
+              },
+              "required": ["bestOf"]
             }
           ]
         }
@@ -2884,7 +2884,7 @@
           }
         },
         "compare": {
-          "description": "`false` runs the control only; `{ maxVariants }` keeps the first n variants.",
+          "description": "`false` runs the baseline only; `{ maxVariants }` keeps the first n variants.",
           "anyOf": [
             {
               "type": "boolean",
@@ -2904,14 +2904,8 @@
             }
           ]
         },
-        "runs": {
-          "description": "The most runs per cell.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 9007199254740991
-        },
         "traits": {
-          "description": "Cells to run, by their environment's traits (with `compare`, the control's): each key's trait must equal the value, or one of a list's, or for a list trait contain it. Evals left with no cell are skipped.",
+          "description": "Cells to run, by their environment's traits (with `compare`, the baseline's): each key's trait must equal the value, or one of a list's, or for a list trait contain it. Evals left with no cell are skipped.",
           "type": "object",
           "propertyNames": {
             "type": "string"
@@ -2930,6 +2924,12 @@
               }
             ]
           }
+        },
+        "trials": {
+          "description": "The most trials per cell.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
         }
       },
       "additionalProperties": false
@@ -3187,7 +3187,7 @@
           }
         },
         "provider": {
-          "description": "The machines every attempt's sandbox runs on; this machine when unset.",
+          "description": "The machines every trial's sandbox runs on; this machine when unset.",
           "anyOf": [
             {
               "$ref": "#/$defs/BoatProviderDescriptor"
@@ -3205,23 +3205,6 @@
         },
         "root": {
           "type": "string"
-        },
-        "runs": {
-          "description": "Unset leaves each eval its default: 4 for a compare with variants, otherwise 1.",
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "bestOf": {
-                  "type": "number"
-                }
-              },
-              "required": ["bestOf"]
-            }
-          ]
         },
         "sandbox": {
           "description": "The default machine when the resolved environment omits `sandbox`. `defineConfig({ sandbox })` sets it; profile defaults, groups and evals cascade over it. Implicit `docker()` when nobody sets one.",
@@ -3253,7 +3236,7 @@
                   "const": "capability"
                 },
                 "threshold": {
-                  "description": "The score, from 0 to 1, one attempt must reach.",
+                  "description": "The score, from 0 to 1, one trial must reach.",
                   "type": "number"
                 }
               },
@@ -3266,7 +3249,7 @@
                   "const": "regression"
                 },
                 "threshold": {
-                  "description": "The score, from 0 to 1, every attempt must reach.",
+                  "description": "The score, from 0 to 1, every trial must reach.",
                   "type": "number"
                 }
               },
@@ -3276,6 +3259,23 @@
         },
         "timeoutMs": {
           "type": "number"
+        },
+        "trials": {
+          "description": "Unset leaves each eval its default: 4 for a compare with variants, otherwise 1.",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "bestOf": {
+                  "type": "number"
+                }
+              },
+              "required": ["bestOf"]
+            }
+          ]
         }
       },
       "required": [
@@ -3302,12 +3302,12 @@
         "question",
         "record",
         "root",
-        "runs",
         "sandbox",
         "secrets",
         "snapshot",
         "target",
-        "timeoutMs"
+        "timeoutMs",
+        "trials"
       ]
     },
     "ResolvedHistory": {
@@ -3456,21 +3456,21 @@
       "type": "object",
       "properties": {
         "cells": {
-          "description": "`reeval run --cell`: only attempts on these cell keys or `cell#n` ids.",
+          "description": "`reeval run --cell`: only trials on these cell keys or `cell#n` ids.",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "completed": {
-          "description": "Attempt keys already finished when this run was resumed; workers register them as skip.",
+          "description": "Trial keys already finished when this run was resumed; workers register them as skip.",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "concurrency": {
-          "description": "How many attempts run at once, across the run.",
+          "description": "How many trials run at once, across the run.",
           "type": "number"
         },
         "config": {
@@ -3485,11 +3485,11 @@
           "$ref": "#/$defs/CursorEfforts"
         },
         "inputs": {
-          "description": "`reeval run --dry-run --json`: each attempt lists the host files it reads in `inputs`.",
+          "description": "`reeval run --dry-run --json`: each trial lists the host files it reads in `inputs`.",
           "type": "boolean"
         },
         "placement": {
-          "description": "Where the attempts' sandboxes run: `cloud` on a cloud run's own machines; here when unset.",
+          "description": "Where the trials' sandboxes run: `cloud` on a cloud run's own machines; here when unset.",
           "const": "cloud"
         },
         "profile": {
@@ -3504,10 +3504,6 @@
         },
         "runId": {
           "type": "string"
-        },
-        "runs": {
-          "description": "`reeval run --runs n`: overrides every level.",
-          "type": "number"
         },
         "stagingDir": {
           "type": "string"
@@ -3526,8 +3522,12 @@
             "$ref": "#/$defs/TraitFilter"
           }
         },
+        "trials": {
+          "description": "`reeval run --trials n`: overrides every level.",
+          "type": "number"
+        },
         "verbosity": {
-          "description": "`-v` (1) or `-vv` (2) streams the attempts' debug lines; 0 only writes debug.log.",
+          "description": "`-v` (1) or `-vv` (2) streams the trials' debug lines; 0 only writes debug.log.",
           "enum": [0, 1, 2]
         }
       },
@@ -3597,7 +3597,7 @@
       "additionalProperties": false
     },
     "SandboxDescriptor": {
-      "description": "Where an attempt runs: its declared sandbox, or the one `place()` made of it on the run's provider.",
+      "description": "Where a trial runs: its declared sandbox, or the one `place()` made of it on the run's provider.",
       "anyOf": [
         {
           "$ref": "#/$defs/FakeSandboxDescriptor"
@@ -3629,7 +3629,7 @@
           "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
         },
         "hosts": {
-          "description": "Brokers the secret: the sandbox gets a per-attempt placeholder, and the Docker egress gateway swaps in the real value only on HTTPS requests to these hosts (`*.example.com` for subdomains).",
+          "description": "Brokers the secret: the sandbox gets a per-trial placeholder, and the Docker egress gateway swaps in the real value only on HTTPS requests to these hosts (`*.example.com` for subdomains).",
           "minItems": 1,
           "type": "array",
           "items": {
@@ -3678,7 +3678,7 @@
       "additionalProperties": false
     },
     "SetupStep": {
-      "description": "Runs in every attempt before the agent starts, with secrets, outside the eval timeout: a shell command, or `{ run, timeout?, cwd? }`.",
+      "description": "Runs in every trial before the agent starts, with secrets, outside the eval timeout: a shell command, or `{ run, timeout?, cwd? }`.",
       "anyOf": [
         {
           "type": "string",
@@ -3969,7 +3969,7 @@
       ]
     },
     "TartSandboxDescriptor": {
-      "description": "A macOS VM on this Mac, cloned from `image` for each attempt by Tart, made by `tart()`.",
+      "description": "A macOS VM on this Mac, cloned from `image` for each trial by Tart, made by `tart()`.",
       "type": "object",
       "properties": {
         "cpus": {
@@ -4021,7 +4021,7 @@
           "pattern": "\\S"
         },
         "image": {
-          "description": "The VM each attempt clones: an OCI image such as `ghcr.io/cirruslabs/macos-sequoia-base:latest`, or a local VM's name. Tart must have it before the run: `reeval image build` (or `tart pull`) pulls it, and `reeval run` refuses one `tart list` doesn't show.",
+          "description": "The VM each trial clones: an OCI image such as `ghcr.io/cirruslabs/macos-sequoia-base:latest`, or a local VM's name. Tart must have it before the run: `reeval image build` (or `tart pull`) pulls it, and `reeval run` refuses one `tart list` doesn't show.",
           "type": "string",
           "pattern": "^\\S+$"
         },
@@ -4138,7 +4138,7 @@
       ]
     },
     "TraitFilter": {
-      "description": "One `--trait key=value`, or one key of a profile's `limit.traits`: a cell matches when its control's trait equals one of `values` or, for a list trait, contains one. Every filter must match.",
+      "description": "One `--trait key=value`, or one key of a profile's `limit.traits`: a cell matches when its baseline's trait equals one of `values` or, for a list trait, contains one. Every filter must match.",
       "type": "object",
       "properties": {
         "by": {

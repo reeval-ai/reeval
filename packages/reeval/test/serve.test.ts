@@ -14,7 +14,7 @@ import {
   SETTLE_MS,
   type ServeProbe,
   servePort,
-} from '../src/attempt/serve.ts'
+} from '../src/trial/serve.ts'
 import { allocatePort, PORT_RANGE } from '../src/capture/index.ts'
 
 const linux = process.platform === 'linux' ? false : 'reads /proc'

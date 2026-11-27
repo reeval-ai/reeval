@@ -1,5 +1,5 @@
 // boat() without Docker or a key: preflight's check of the account, a run's cleanup by name prefix
-// and an attempt's lifecycle, all against the fake Boat API (support/boat.ts) through the Boat SDK.
+// and a trial's lifecycle, all against the fake Boat API (support/boat.ts) through the Boat SDK.
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { symlinkSync } from 'node:fs'
@@ -255,7 +255,7 @@ describe("installing a harness's CLI in a new VM", () => {
 })
 
 describe('--resume of a stopped run', () => {
-  // Machines that never start fail the resumed attempt at once, which is all these need of it.
+  // Machines that never start fail the resumed trial at once, which is all these need of it.
   let down: FakeBoat
   before(async () => {
     down = await fakeBoat(
@@ -319,7 +319,7 @@ export default defineConfig({
     assert.ok(deleted < calls.indexOf('GET /limits'), calls.join('\n'))
   })
 
-  test("deletes a profile's Boat VMs it left before any attempt starts", async () => {
+  test("deletes a profile's Boat VMs it left before any trial starts", async () => {
     const left = `${runPrefix(createBoat({ prefix: 'own' })(), SEEDED_RUN_ID)}dead00`
     await resume(
       'boat-resume-profile',
@@ -333,18 +333,18 @@ export default defineConfig({
 })
 
 describe("the account's capacity", () => {
-  test('is the free machines times attemptsPerMachine, capped by maxConcurrent', async () => {
+  test('is the free machines times trialsPerMachine, capped by maxConcurrent', async () => {
     const at = (o: Parameters<typeof boat>[0]) => pointedAt(api.key, () => boatCapacity(boat(o)))
-    assert.deepEqual(await at({}), { machines: 4, attempts: 4 })
-    assert.deepEqual(await at({ attemptsPerMachine: 3 }), { machines: 4, attempts: 12 })
-    assert.deepEqual(await at({ attemptsPerMachine: 3, maxConcurrent: 5 }), {
+    assert.deepEqual(await at({}), { machines: 4, trials: 4 })
+    assert.deepEqual(await at({ trialsPerMachine: 3 }), { machines: 4, trials: 12 })
+    assert.deepEqual(await at({ trialsPerMachine: 3, maxConcurrent: 5 }), {
       machines: 4,
-      attempts: 5,
+      trials: 5,
     })
     // Without the limits, the pool runs one machine, so the run runs no more than it holds.
     assert.deepEqual(
-      await pointedAt('boat_wrong', () => boatCapacity(boat({ attemptsPerMachine: 2 }))),
-      { machines: 1, attempts: 2 },
+      await pointedAt('boat_wrong', () => boatCapacity(boat({ trialsPerMachine: 2 }))),
+      { machines: 1, trials: 2 },
     )
   })
   test("a pool's own cap is maxConcurrent's machines, under the account's free ones", async () => {
@@ -353,13 +353,13 @@ describe("the account's capacity", () => {
     const plain = await open({})
     assert.equal(plain.options.limits.machines, 4)
     assert.equal(plain.options.machines, undefined, 'the account caps it alone')
-    const capped = await open({ attemptsPerMachine: 2, maxConcurrent: 3 })
+    const capped = await open({ trialsPerMachine: 2, maxConcurrent: 3 })
     assert.equal(capped.options.limits.machines, 4)
     assert.equal(capped.options.machines, 2)
   })
 })
 
-describe('an attempt on a sandbox it cannot reach', () => {
+describe('a trial on a sandbox it cannot reach', () => {
   const files = {
     'reeval.config.ts': `
 import { defineConfig } from 'reeval'
@@ -383,7 +383,7 @@ export default defineEval({
 
   test('fails as infra, and its sandbox is deleted', async () => {
     const p = await project('boat-unreachable', files)
-    // reeval's image is saved already, so the attempt's own machine is the first to start.
+    // reeval's image is saved already, so the trial's own machine is the first to start.
     const harness = fakeAgent({ script: [[{ exec: 'true' }]] })
     const { key } = await vmImageKey({}, harness, { root: p.dir })
     const saved = snapshotName('reeval', key)
@@ -414,7 +414,7 @@ export default defineEval({
     assert.equal(created.idempotencyKey, name, 'a retried create makes one sandbox')
     assert.equal(created.body?.noEnv, true)
     assert.equal(created.body?.snapshots, false, 'a stopped sandbox is erased, not kept')
-    assert.ok(Number(created.body?.ttlSeconds) > 600, 'the TTL outlasts the attempt')
+    assert.ok(Number(created.body?.ttlSeconds) > 600, 'the TTL outlasts the trial')
     assert.deepEqual(created.body?.labels, {
       'sweep-job': 'job_42',
       owner: 'ci',

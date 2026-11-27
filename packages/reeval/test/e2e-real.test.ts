@@ -14,10 +14,10 @@ import { buildRunReport } from '../src/view/report/build.ts'
 import { type CliRun, readRun, recordedRuns, runCli } from './helpers.ts'
 import { containersLeft } from './support/containers.ts'
 import { fixture } from './support/fixture.ts'
-import { harnesses, reserveAttempts, rowEnv, skipRow } from './support/harnesses.ts'
+import { harnesses, reserveTrials, rowEnv, skipRow } from './support/harnesses.ts'
 
 const HISTORY = 'evals/.history'
-const VIEWS = ['lift', 'flaky_cells', 'drift', 'failing_attempts', 'eval_trend', 'verdict_flips']
+const VIEWS = ['lift', 'flaky_cells', 'drift', 'failing_trials', 'eval_trend', 'verdict_flips']
 
 const git = (cwd: string, ...args: string[]) =>
   execFileSync('git', ['-c', 'user.name=e2e', '-c', 'user.email=e2e@reeval.test', ...args], {
@@ -49,7 +49,7 @@ for (const row of harnesses.filter((r) => !r.harness)) {
     test('reeval run --record -v: passes, prints the phase trace, writes .reeval/debug', {
       timeout: 600_000,
     }, async () => {
-      reserveAttempts(row, 2, 'e2e')
+      reserveTrials(row, 2, 'e2e')
       const p = await fixture('e2e')
       dir = p.dir
       git(dir, 'init', '-q', '-b', 'main')
@@ -64,7 +64,7 @@ for (const row of harnesses.filter((r) => !r.harness)) {
       const logs = filesUnder(join(dir, '.reeval/debug', run.runId)).filter((f) =>
         f.endsWith('debug.log'),
       )
-      assert.equal(logs.length, 1, `one attempt's debug.log: ${logs}`)
+      assert.equal(logs.length, 1, `one trial's debug.log: ${logs}`)
       const log = join(dir, '.reeval/debug', run.runId, logs[0] as string)
       assert.ok(statSync(log).size > 0)
       assert.match(readFileSync(log, 'utf8'), /Z teardown /)
@@ -97,11 +97,11 @@ for (const row of harnesses.filter((r) => !r.harness)) {
         trend.map((t) => [t.run_id, t.outcome]).sort(),
         runs.map((id) => [id, 'pass']).sort(),
       )
-      const [attempts] = json<Array<{ n: number }>>(
-        await runCli(dir, ['query', 'SELECT COUNT(*) AS n FROM attempts', '--json'], { env }),
-        'attempts',
+      const [trials] = json<Array<{ n: number }>>(
+        await runCli(dir, ['query', 'SELECT COUNT(*) AS n FROM trials', '--json'], { env }),
+        'trials',
       )
-      assert.equal(attempts?.n, 2)
+      assert.equal(trials?.n, 2)
     })
 
     test('reeval history and reeval show read the recorded runs', async () => {
@@ -119,7 +119,7 @@ for (const row of harnesses.filter((r) => !r.harness)) {
       assert.equal(shown.runId, runs[1])
     })
 
-    test("the studio's report: both runs, linking every attempt's trajectory", async () => {
+    test("the studio's report: both runs, linking every trial's trajectory", async () => {
       assert.equal(runs.length, 2, 'the runs failed')
       const source = { root: dir, historyDir: join(dir, 'evals/.history'), scratch: false }
       for (const id of runs) {
@@ -129,8 +129,8 @@ for (const row of harnesses.filter((r) => !r.harness)) {
           ...(await readReportInputs(join(run.dir, id), run.record)),
           links: reportLinks(id),
         })
-        assert.ok(report.attempts.length > 0, id)
-        for (const a of report.attempts) {
+        assert.ok(report.trials.length > 0, id)
+        for (const a of report.trials) {
           assert.ok(a.links.trajectory, `${id} ${a.key}: no trajectory link`)
           assert.ok(a.facts, `${id} ${a.key}: no facts from its trajectory`)
           const path = a.links.trajectory.slice(reportLinks(id).base.length)

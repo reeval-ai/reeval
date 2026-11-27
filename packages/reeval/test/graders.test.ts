@@ -1,5 +1,5 @@
 // reeval/graders' built-ins and reeval/graders/match: their names, options and data form, their
-// fingerprints, and what each grades from an attempt's turns, execs, diff and captures.
+// fingerprints, and what each grades from a trial's turns, execs, diff and captures.
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import {

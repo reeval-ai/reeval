@@ -5,14 +5,14 @@ import {
   type Gateway,
   startGateway,
 } from '@reeval/sandbox-docker'
-import type { AttemptDebug } from '../debug/attempt.ts'
+import type { TrialDebug } from '../debug/trial.ts'
 import { egressLabel, isRestricted, setupEgress } from '../egress.ts'
 import { gatewayGlue, sessionSandbox } from './docker.ts'
 import type { SandboxOptions } from './index.ts'
 import { InfraError, type NetworkSandbox } from './types.ts'
 
 /**
- * Brokered values never enter the sandbox: with no gateway to swap them in, the attempt can't
+ * Brokered values never enter the sandbox: with no gateway to swap them in, the trial can't
  * start. `helper` names the sandbox (`boat()`), `hint` says what the gateway needs there.
  */
 export const brokeringRefusal = (
@@ -27,7 +27,7 @@ export const brokeringRefusal = (
 
 /** The debug line saying whether the gateway runs and what it brokers. */
 export function logGateway(
-  debug: AttemptDebug | undefined,
+  debug: TrialDebug | undefined,
   egress: EgressStatus | undefined,
   brokered: readonly string[],
 ): void {
@@ -46,7 +46,7 @@ export type BootedMachine = {
    * its size when the provider chose another than the eval asked for.
    */
   vm?: { id: string; name?: string; size?: string }
-  /** Other attempts run on the machine at the same time, as its pool laid it out. */
+  /** Other trials run on the machine at the same time, as its pool laid it out. */
   shared?: boolean
   /** Runs the gateway's forwarder as root. */
   root: ExecTransport
@@ -73,7 +73,7 @@ export type StartOptions = {
   helper: string
   /** The machine as the record names it: its provider and size. */
   machine: { sandbox: string; size?: string }
-  /** Other attempts run on the machine at the same time, so its usage isn't recorded. */
+  /** Other trials run on the machine at the same time, so its usage isn't recorded. */
   shared?: boolean
   /** A macOS guest, which has no `/proc` to read usage from, only its sizes. */
   darwin?: boolean

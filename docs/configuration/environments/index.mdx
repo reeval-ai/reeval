@@ -1,6 +1,6 @@
 ---
 title: "Define an environment"
-description: "Give each harness attempt the files, rules, skills, and servers it needs."
+description: "Give each harness trial the files, rules, skills, and servers it needs."
 ---
 
 Give the harness its files, rules, skills, and servers with `defineEnvironment()`, and derive a variant with its `.extendEnvironment()` method. For the definition, see [Environment](/reference/glossary#environment). Define environments in the `evals/environments.ts` file that `reeval init` writes.
@@ -25,7 +25,7 @@ For more information about each environment field, see [Workspaces](/configurati
 </Step>
 <Step title="Extend an environment">
 
-In the `evals/environments.ts` file, call `.extendEnvironment()` on `page` to derive `page-production`. The child keeps the parent's fields and adds its own, so the control and the variant differ by one change.
+In the `evals/environments.ts` file, call `.extendEnvironment()` on `page` to derive `page-production`. The child keeps the parent's fields and adds its own, so the baseline and the variant differ by one change.
 
 ```ts title="evals/environments.ts"
 export const production = page.extendEnvironment('page-production', {
@@ -42,14 +42,14 @@ For more information about the merge rules, see [`extend`](/reference/environmen
 </Step>
 <Step title="Use an environment in an evaluation">
 
-In the `evals/page.eval.ts` file, pass `page` as the control and `production` as a variant. reeval names each cell by its harness, environment, and sandbox.
+In the `evals/page.eval.ts` file, pass `page` as the baseline and `production` as a variant. reeval names each cell by its harness, environment, and sandbox.
 
 ```ts title="evals/page.eval.ts"
 import { defineEval } from '{{ pkg }}'
 import { page, production } from './environments.ts'
 
 export default defineEval({
-  compare: { control: page, variants: [production] },
+  compare: { baseline: page, variants: [production] },
   task: async (c) => {
     // ...
   },

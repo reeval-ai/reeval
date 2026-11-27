@@ -8,6 +8,6 @@ const reopened = closed.extendEnvironment('reopened', { egress: { setup: 'allow-
 const same = defineEnvironment('same', { egress: { setup: 'deny-all', agent: 'deny-all' } })
 
 export default defineEval({
-  compare: { control: closed, variants: [reopened] },
+  compare: { baseline: closed, variants: [reopened] },
   task: async () => {},
 })

@@ -494,7 +494,7 @@ const BUILD_TIMEOUT_S = 30 * 60
 /** How long a run's cleanup may wait on one organization, so an unreachable API can't stall it. */
 const CLEANUP_TIMEOUT_MS = 30_000
 /**
- * How long an SSH token lives: past any attempt's machine, which the pool keeps alive and reuses,
+ * How long an SSH token lives: past any trial's machine, which the pool keeps alive and reuses,
  * and which deleting the sandbox revokes first.
  */
 const SSH_TOKEN_MINUTES = 24 * 60
@@ -544,7 +544,7 @@ async function hostKeys(host: string, port: number, alias: string): Promise<stri
  */
 export const openDaytonaPool: OpenPool<DaytonaSandboxDescriptor> = async (sandbox, o) => {
   const api = await daytonaClient(sandbox, o.root)
-  const k = sandbox.attemptsPerMachine ?? 1
+  const k = sandbox.trialsPerMachine ?? 1
   const start = o.image as DaytonaStart | undefined
   if (!start)
     throw new InfraError("The daytona() sandbox's image wasn't prepared before the run started")
@@ -557,7 +557,7 @@ export const openDaytonaPool: OpenPool<DaytonaSandboxDescriptor> = async (sandbo
         startsPerMinute: null,
         startsPerHour: null,
       },
-      attemptsPerMachine: k,
+      trialsPerMachine: k,
       reuse: sandbox.reuse ?? false,
     },
   }
@@ -606,7 +606,7 @@ export function daytonaPoolProvider(
             name,
             ...(snapshot ? { snapshot } : { image: start.image, resources: resourcesOf(size) }),
             labels: { ...extra, ...labels },
-            // The pool says when a machine goes; Daytona's idle stop would cut an attempt off.
+            // The pool says when a machine goes; Daytona's idle stop would cut a trial off.
             autoStopInterval: 0,
             ephemeral: true,
             ttlMinutes: Math.ceil(ttlSeconds / 60),
@@ -737,13 +737,13 @@ export async function removeRunSandboxes(
   }
 }
 
-/** The machines and attempts the run's pool keeps going: `maxConcurrent`'s, when it's set. */
+/** The machines and trials the run's pool keeps going: `maxConcurrent`'s, when it's set. */
 export async function daytonaCapacity(
   sandbox: DaytonaSandboxDescriptor,
-): Promise<{ machines: number; attempts: number } | null> {
+): Promise<{ machines: number; trials: number } | null> {
   if (!sandbox.maxConcurrent) return null
-  const k = sandbox.attemptsPerMachine ?? 1
-  return { machines: Math.ceil(sandbox.maxConcurrent / k), attempts: sandbox.maxConcurrent }
+  const k = sandbox.trialsPerMachine ?? 1
+  return { machines: Math.ceil(sandbox.maxConcurrent / k), trials: sandbox.maxConcurrent }
 }
 
 /** The host's OpenSSH tools a Daytona sandbox runs on, or the first one missing. */

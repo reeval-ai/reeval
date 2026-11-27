@@ -4,10 +4,10 @@ import { hasFile, succeeded } from 'reeval/graders'
 // The agent starts from the small package in ./project.
 const math = defineEnvironment('math', ({ directory }) => ({ files: directory('./project') }))
 
-// Eight attempts, so there's work to run side by side.
+// Eight trials, so there's work to run side by side.
 export default defineEval({
   environment: math,
-  runs: 8,
+  trials: 8,
   graders: [hasFile('src/math.js', /export function multiply/), succeeded('node --test')],
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js, with a test in test/math.test.js.')

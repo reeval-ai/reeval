@@ -1,15 +1,15 @@
-no profile · 2 evals · 4 cells · 8 attempts
-fixes-bug  cursor:composer-2.5/-/docker          control  gated any  ×2  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on claude-code:claude-sonnet-5
-           claude-code:claude-sonnet-5/-/docker  control  gated any  ×2  effort medium
-greets     cursor:composer-2.5/-/docker          control  gated any  ×2  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on claude-code:claude-sonnet-5
-           claude-code:claude-sonnet-5/-/docker  control  gated any  ×2  effort medium
+no profile · 2 evals · 4 cells · 8 trials
+fixes-bug  cursor:composer-2.5/-/docker          baseline  gated any  ×2  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on claude-code:claude-sonnet-5
+           claude-code:claude-sonnet-5/-/docker  baseline  gated any  ×2  effort medium
+greets     cursor:composer-2.5/-/docker          baseline  gated any  ×2  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on claude-code:claude-sonnet-5
+           claude-code:claude-sonnet-5/-/docker  baseline  gated any  ×2  effort medium
 excluded: —
 image docker · cursor · 2 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)
 image docker · claude-code · 2 evals
   base  reeval-sandbox:claude-code-1.0.176-patch.3b2ddb94  (reeval's image: pulled or built when missing or when its key changed)
-cost  estimated $1.28–6.52 at prices.json over models.dev list prices, judge included · 2 of 8 attempts from 2 past runs (1 past attempt at its recorded cost), the rest rough
-prices prices.json over models.dev · unpriced — · past 2 runs, 3 attempts
+cost  estimated $1.28–6.52 at prices.json over models.dev list prices, judge included · 2 of 8 trials from 2 past runs (1 past trial at its recorded cost), the rest rough
+prices prices.json over models.dev · unpriced — · past 2 runs, 3 trials
   fixes-bug  cursor:composer-2.5/-/docker          composer-2.5     judge google/gemini-3.8-flash  typical     ×2  agent 606000–4040000 tokens $0.162–1.05   judge 0–124000 tokens $0–0.105
   fixes-bug  claude-code:claude-sonnet-5/-/docker  claude-sonnet-5  judge google/gemini-3.8-flash  typical     ×2  agent 606000–4040000 tokens $0.372–2.25   judge 0–124000 tokens $0–0.105
   greets     cursor:composer-2.5/-/docker          composer-2.5     judge google/gemini-3.8-flash  history ×3  ×2  agent 1516800–2370000 tokens $0.352–0.55  judge 11000–124000 tokens $0.0113–0.105

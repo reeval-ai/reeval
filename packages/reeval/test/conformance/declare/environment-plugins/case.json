@@ -4,7 +4,7 @@
   "plan": "plan/plugins/expected/remote.txt",
   "args": [],
   "planSources": [
-    "plan/plugins/evals/remote-plugins-git-and-npm-read-at-the-attempt.eval.ts",
+    "plan/plugins/evals/remote-plugins-git-and-npm-read-at-the-trial.eval.ts",
     "plan/plugins/evals/remote-plugins-a-child-adds-another.eval.ts"
   ]
 }

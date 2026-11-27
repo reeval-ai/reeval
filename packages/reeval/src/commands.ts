@@ -440,9 +440,9 @@ function formatStopped(stopped: StoppedRun[], root: string): string[] {
     '',
     `${stopped.length} run${stopped.length === 1 ? '' : 's'} stopped without writing a record:`,
     ...stopped.map(
-      (r) => `  ${r.runId}  ${how[r.phase]}, ${r.finished} of ${r.planned} attempts finished`,
+      (r) => `  ${r.runId}  ${how[r.phase]}, ${r.finished} of ${r.planned} trials finished`,
     ),
-    `reeval run --resume ${last.runId} keeps the attempts that finished, runs the rest and writes the record; deleting ${fromCwd(join(root, '.reeval', 'staging', last.runId))} discards the run.`,
+    `reeval run --resume ${last.runId} keeps the trials that finished, runs the rest and writes the record; deleting ${fromCwd(join(root, '.reeval', 'staging', last.runId))} discards the run.`,
   ]
 }
 
@@ -488,7 +488,7 @@ export async function showCommand(ctx: Ctx, refs: string[]): Promise<number> {
       )
     if (live) {
       ctx.err?.(
-        `note: ${live.runId} is still running (${live.counts.done} of ${live.planned} attempts finished); reeval show reads the newest finished run until it writes its record, and reeval studio shows it live.`,
+        `note: ${live.runId} is still running (${live.counts.done} of ${live.planned} trials finished); reeval show reads the newest finished run until it writes its record, and reeval studio shows it live.`,
       )
     }
   }
@@ -503,7 +503,7 @@ export async function showCommand(ctx: Ctx, refs: string[]): Promise<number> {
     const { runTrace } = await import('./history/trace.ts')
     const { trajectoryLines } = await import('./mcp/files.ts')
     const trajectories = new Map<string, TrajectoryLine[]>()
-    for (const a of run.evals.flatMap((e) => e.attempts)) {
+    for (const a of run.evals.flatMap((e) => e.trials)) {
       const lines = a.startedAt ? await trajectoryLines(config, run, a) : null
       if (lines) trajectories.set(a.key, lines)
     }
@@ -542,20 +542,20 @@ async function regradesOf(path: string, json?: boolean): Promise<string> {
   const outcomesAfter = (n: number) =>
     new Map(
       applyRegrades(structuredClone(record), regrades.slice(0, n)).evals.flatMap((e) =>
-        e.attempts.map((a) => [a.key, a.outcome]),
+        e.trials.map((a) => [a.key, a.outcome]),
       ),
     )
   const out = [`${regrades.length} regrade${regrades.length === 1 ? '' : 's'} of ${record.runId}:`]
   let outcomes = outcomesAfter(0)
   for (const [i, r] of regrades.entries()) {
     const passed = (list: Array<string | undefined>) => list.filter((o) => o === 'pass').length
-    const before = passed(r.attempts.map((a) => outcomes.get(a.key)))
+    const before = passed(r.trials.map((a) => outcomes.get(a.key)))
     outcomes = outcomesAfter(i + 1)
-    const after = passed(r.attempts.map((a) => outcomes.get(a.key)))
-    const n = r.attempts.length
+    const after = passed(r.trials.map((a) => outcomes.get(a.key)))
+    const n = r.trials.length
     const graders = r.graders?.join(', ') ?? 'every changed grader'
     out.push(
-      `  ${r.id}  ${r.at.slice(0, 16).replace('T', ' ')} UTC  ${graders}  ${n} attempt${n === 1 ? '' : 's'}: ${before}/${n} → ${after}/${n} passed`,
+      `  ${r.id}  ${r.at.slice(0, 16).replace('T', ' ')} UTC  ${graders}  ${n} trial${n === 1 ? '' : 's'}: ${before}/${n} → ${after}/${n} passed`,
     )
   }
   return out.join('\n')

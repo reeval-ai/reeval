@@ -1,4 +1,4 @@
-// The report's per-attempt facts (`attemptFacts`) against `reeval query`'s projection of the same
+// The report's per-trial facts (`trialFacts`) against `reeval query`'s projection of the same
 // trajectories, on every corpus run, and what a report holds with and without the trajectories.
 import assert from 'node:assert/strict'
 import { cpSync, readFileSync } from 'node:fs'
@@ -8,8 +8,8 @@ import { corpusEntries, HISTORY_DIR } from '../scripts/schema/corpus.ts'
 import { nodeAtLeast, openHistoryDb } from '../src/history/db.ts'
 import { leveledArchiveFiles } from '../src/history/files.ts'
 import { readReportInputs } from '../src/history/report-inputs.ts'
-import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
-import { type AttemptFacts, attemptFacts } from '../src/view/classify.ts'
+import type { TrialRecord, RunRecord } from '../src/history/types.ts'
+import { type TrialFacts, trialFacts } from '../src/view/classify.ts'
 import { trajectoryByLine } from '../src/view/model.ts'
 import { readableRecord } from '../src/view/record.ts'
 import { buildRunReport, readableRunReport, runReportSchema } from '../src/view/report/index.ts'
@@ -20,33 +20,33 @@ const entries = corpusEntries()
 const recordOf = (raw: Record<string, unknown>) =>
   readableRecord(structuredClone(raw) as unknown as RunRecord)
 
-const attemptsOf = (record: RunRecord) => record.evals.flatMap((e) => e.attempts)
+const trialsOf = (record: RunRecord) => record.evals.flatMap((e) => e.trials)
 
-const failed = (a: AttemptRecord) => a.outcome !== 'pass'
+const failed = (a: TrialRecord) => a.outcome !== 'pass'
 
-/** `history.db`'s rows for one attempt, counted as `AttemptFacts` counts them. */
+/** `history.db`'s rows for one trial, counted as `TrialFacts` counts them. */
 function projected(
   db: Awaited<ReturnType<typeof openHistoryDb>>,
   runId: string,
   key: string,
-): AttemptFacts {
-  const where = 'WHERE run_id = ? AND attempt_key = ?'
+): TrialFacts {
+  const where = 'WHERE run_id = ? AND trial_key = ?'
   const calls = db.query(`SELECT class, COUNT(*) AS n FROM tool_calls ${where} GROUP BY class`, [
     runId,
     key,
-  ]).rows as Array<{ class: keyof AttemptFacts['byClass']; n: number }>
+  ]).rows as Array<{ class: keyof TrialFacts['byClass']; n: number }>
   const byClass = { context: 0, dependency: 0, web: 0, verify: 0, workspace: 0 }
   for (const c of calls) byClass[c.class] = Number(c.n)
   const skills = db.query(
     `SELECT skill, source, COUNT(*) AS reads, MIN(line) AS firstLine FROM skill_uses ${where}
      GROUP BY skill, source ORDER BY firstLine, skill, source`,
     [runId, key],
-  ).rows as AttemptFacts['skills']
+  ).rows as TrialFacts['skills']
   const contextFiles = db.query(
     `SELECT path, COUNT(*) AS reads, MIN(line) AS firstLine FROM context_reads ${where}
      GROUP BY path ORDER BY firstLine, path`,
     [runId, key],
-  ).rows as AttemptFacts['contextFiles']
+  ).rows as TrialFacts['contextFiles']
   return {
     toolCalls: Object.values(byClass).reduce((a, b) => a + b, 0),
     byClass,
@@ -60,7 +60,7 @@ function projected(
 }
 
 /** `facts` with its skills and files in the order `projected` sorts them. */
-const sorted = (facts: AttemptFacts): AttemptFacts => ({
+const sorted = (facts: TrialFacts): TrialFacts => ({
   ...facts,
   skills: [...facts.skills].sort(
     (a, b) =>
@@ -73,11 +73,11 @@ const sorted = (facts: AttemptFacts): AttemptFacts => ({
   ),
 })
 
-describe('attemptFacts', () => {
+describe('trialFacts', () => {
   test("agrees with history.db's tool_calls, skill_uses and context_reads on every corpus run", {
     skip: !nodeAtLeast(process.versions.node) && 'reeval query needs Node 22.16',
   }, async () => {
-    let attempts = 0
+    let trials = 0
     let calls = 0
     let skills = 0
     let files = 0
@@ -90,14 +90,14 @@ describe('attemptFacts', () => {
         for (const run of entry.runs) {
           const record = recordOf(run.raw)
           const { facts } = await readReportInputs(join(history, record.runId), record)
-          for (const a of attemptsOf(record)) {
+          for (const a of trialsOf(record)) {
             const mine = facts?.get(a.key)
             const where = `${entry.name} ${record.runId} ${a.key}`
             if (!mine) {
               assert.equal(a.files.trajectory, undefined, `${where}: a kept trajectory`)
               continue
             }
-            attempts++
+            trials++
             calls += mine.toolCalls
             skills += mine.skills.length
             files += mine.contextFiles.length
@@ -108,38 +108,38 @@ describe('attemptFacts', () => {
         db.close()
       }
     }
-    assert.ok(attempts > 0 && calls > 0, 'the corpus has trajectories with tool calls')
+    assert.ok(trials > 0 && calls > 0, 'the corpus has trajectories with tool calls')
     assert.ok(skills > 0, 'the corpus has a skill use')
     assert.ok(files > 0, 'the corpus has a context file read')
   })
 
-  test("finds an attempt's environment by its key, not by object identity", async () => {
+  test("finds a trial's environment by its key, not by object identity", async () => {
     let compared = 0
     for (const entry of entries) {
       for (const run of entry.runs) {
         const record = recordOf(run.raw)
         const { facts } = await readReportInputs(join(entry.dir, HISTORY_DIR, record.runId), record)
-        for (const a of attemptsOf(record)) {
+        for (const a of trialsOf(record)) {
           const ref = a.files.trajectory
           const kept = facts?.get(a.key)
           if (!ref || !kept) continue
           const text = readFileSync(join(entry.dir, HISTORY_DIR, record.runId, ref.path), 'utf8')
           const clone = structuredClone(a)
-          assert.deepEqual(attemptFacts(record, clone, trajectoryByLine(text)), kept, a.key)
+          assert.deepEqual(trialFacts(record, clone, trajectoryByLine(text)), kept, a.key)
           if (kept.byClass.context > 0) compared++
         }
       }
     }
-    assert.ok(compared > 0, 'an attempt read its environment, so a lost lookup would show')
+    assert.ok(compared > 0, 'a trial read its environment, so a lost lookup would show')
   })
 
   test('numbers lines as the file does, past blank and unreadable ones', () => {
     const entry = entries.find((e) => e.name === 'fake-matrix') ?? entries[0]
     assert.ok(entry)
     const record = recordOf(entry.runs[0]?.raw as Record<string, unknown>)
-    const a = attemptsOf(record)[0] as AttemptRecord
+    const a = trialsOf(record)[0] as TrialRecord
     const tool = JSON.stringify({ type: 'tool', turn: 1, tool: 'bash', input: { command: 'ls' } })
-    const facts = attemptFacts(record, a, trajectoryByLine(`\n{oops\n${tool}\n`))
+    const facts = trialFacts(record, a, trajectoryByLine(`\n{oops\n${tool}\n`))
     assert.equal(facts.toolCalls, 1)
     assert.equal(facts.byClass.workspace, 1)
     assert.deepEqual(trajectoryByLine(`\n{oops\n${tool}`).slice(0, 2), [null, null])
@@ -147,7 +147,7 @@ describe('attemptFacts', () => {
 })
 
 describe("the report's facts", () => {
-  test('are on every attempt row whose trajectory was read, and absent on the others', async () => {
+  test('are on every trial row whose trajectory was read, and absent on the others', async () => {
     let withFacts = 0
     let without = 0
     for (const entry of entries) {
@@ -158,7 +158,7 @@ describe("the report's facts", () => {
         const inputs = await readReportInputs(runDir, record)
         const report = buildRunReport(record, inputs)
         runReportSchema.parse(JSON.parse(JSON.stringify(report)))
-        for (const row of report.attempts) {
+        for (const row of report.trials) {
           const kept = inputs.facts?.get(row.key)
           if (kept) {
             withFacts++
@@ -170,7 +170,7 @@ describe("the report's facts", () => {
         }
         const bare = buildRunReport(record, { ...inputs, facts: undefined })
         assert.ok(
-          bare.attempts.every((r) => !('facts' in r)),
+          bare.trials.every((r) => !('facts' in r)),
           `${record.runId}: no facts without them`,
         )
       }
@@ -180,11 +180,11 @@ describe("the report's facts", () => {
 
   test('readReportInputs reads none without the record', async () => {
     const entry = entries.find((e) =>
-      e.runs.some((r) => attemptsOf(recordOf(r.raw)).some((a) => a.files.trajectory)),
+      e.runs.some((r) => trialsOf(recordOf(r.raw)).some((a) => a.files.trajectory)),
     )
     assert.ok(entry)
     const run = entry.runs.find((r) =>
-      attemptsOf(recordOf(r.raw)).some((a) => a.files.trajectory),
+      trialsOf(recordOf(r.raw)).some((a) => a.files.trajectory),
     ) as (typeof entry.runs)[number]
     const record = recordOf(run.raw)
     const runDir = join(entry.dir, HISTORY_DIR, record.runId)
@@ -192,11 +192,11 @@ describe("the report's facts", () => {
     assert.ok((await readReportInputs(runDir, record)).facts?.size)
   })
 
-  test("are absent, not empty, on the passing attempts whose trajectories 'evidence' drops", async () => {
+  test("are absent, not empty, on the passing trials whose trajectories 'evidence' drops", async () => {
     const found = entries.flatMap((entry) =>
       entry.runs.flatMap((run) => {
         const record = recordOf(run.raw)
-        const kept = attemptsOf(record).filter((a) => a.files.trajectory)
+        const kept = trialsOf(record).filter((a) => a.files.trajectory)
         return kept.some(failed) && kept.some((a) => !failed(a)) ? [{ entry, record }] : []
       }),
     )[0]
@@ -209,11 +209,11 @@ describe("the report's facts", () => {
     const file = made.files.find((f) => f.path === `${record.runId}/report.json`)
     assert.ok(file, 'the archive has report.json')
     const report = readableRunReport(JSON.parse(Buffer.from(file.data).toString()))
-    const outcome = new Map(attemptsOf(record).map((a) => [a.key, a]))
+    const outcome = new Map(trialsOf(record).map((a) => [a.key, a]))
     let passing = 0
     let failing = 0
-    for (const row of report.attempts) {
-      const a = outcome.get(row.key) as AttemptRecord
+    for (const row of report.trials) {
+      const a = outcome.get(row.key) as TrialRecord
       if (!a.files.trajectory) continue
       if (failed(a)) {
         failing++
@@ -226,14 +226,14 @@ describe("the report's facts", () => {
     assert.ok(passing > 0 && failing > 0)
   })
 
-  test('count the source of the checked skill, once for each attempt that found it', () => {
+  test('count the source of the checked skill, once for each trial that found it', () => {
     const record = entries
       .flatMap((entry) => entry.runs.map((r) => recordOf(r.raw)))
-      .find((r) => r.evals.some((e) => e.attempts.length >= 4))
-    assert.ok(record, 'a corpus eval has four attempts')
-    const e = record.evals.find((x) => x.attempts.length >= 4)
+      .find((r) => r.evals.some((e) => e.trials.length >= 4))
+    assert.ok(record, 'a corpus eval has four trials')
+    const e = record.evals.find((x) => x.trials.length >= 4)
     assert.ok(e)
-    const [one, two, three, four] = e.attempts
+    const [one, two, three, four] = e.trials
     assert.ok(one && two && three && four)
     e.compare = undefined
     const check = (status: 'pass' | 'fail', label = 'toHaveCalledSkill x') =>
@@ -244,21 +244,21 @@ describe("the report's facts", () => {
           matcher: 'toHaveCalledSkill',
           status,
         },
-      ] as NonNullable<AttemptRecord['assertions']>
+      ] as NonNullable<TrialRecord['assertions']>
     for (const a of [one, two, three, four]) a.outcome = 'pass'
     one.assertions = check('pass')
     two.assertions = check('pass')
     three.assertions = check('fail')
     four.assertions = check('pass', 'found the skill')
-    type Use = [skill: string, source: AttemptFacts['skills'][number]['source'], line: number]
-    const facts = (...uses: Use[]): AttemptFacts => ({
+    type Use = [skill: string, source: TrialFacts['skills'][number]['source'], line: number]
+    const facts = (...uses: Use[]): TrialFacts => ({
       toolCalls: uses.length,
       byClass: { context: uses.length, dependency: 0, web: 0, verify: 0, workspace: 0 },
       skills: uses.map(([skill, source, firstLine]) => ({ skill, source, reads: 1, firstLine })),
       contextFiles: [],
     })
     const evals = [e.key]
-    const discovery = (f?: Map<string, AttemptFacts>) =>
+    const discovery = (f?: Map<string, TrialFacts>) =>
       buildRunReport(record, { evals, facts: f }).evals[0]?.discovery.find(
         (d) => d.what === 'skill',
       )
@@ -279,7 +279,7 @@ describe("the report's facts", () => {
         { source: 'skill-dir', count: 1 },
         { source: 'elsewhere', count: 1 },
       ],
-      "a check with a label of its own doesn't name the skill, so its attempt counts in none",
+      "a check with a label of its own doesn't name the skill, so its trial counts in none",
     )
     four.assertions = check('pass')
     const all = discovery(uses)
@@ -298,16 +298,16 @@ describe("the report's facts", () => {
   test('read the checked skill from a passing, unnegated check with its default label only', () => {
     const record = entries
       .flatMap((entry) => entry.runs.map((r) => recordOf(r.raw)))
-      .find((r) => r.evals.some((e) => e.attempts.length >= 1))
+      .find((r) => r.evals.some((e) => e.trials.length >= 1))
     assert.ok(record)
-    const e = record.evals.find((x) => x.attempts.length >= 1)
+    const e = record.evals.find((x) => x.trials.length >= 1)
     assert.ok(e)
     e.compare = undefined
-    const [a, ...rest] = e.attempts
+    const [a, ...rest] = e.trials
     assert.ok(a)
     for (const b of rest) b.assertions = []
     a.outcome = 'pass'
-    const facts = new Map<string, AttemptFacts>([
+    const facts = new Map<string, TrialFacts>([
       [
         a.key,
         {
@@ -329,11 +329,11 @@ describe("the report's facts", () => {
         labelled,
         matcher,
         status,
-      })) as NonNullable<AttemptRecord['assertions']>
+      })) as NonNullable<TrialRecord['assertions']>
       const d = buildRunReport(record, { evals: [e.key], facts }).evals[0]?.discovery.find(
         (x) => x.what === 'skill',
       )
-      assert.equal(d?.found.text, '1 of 1', 'the attempt found the skill')
+      assert.equal(d?.found.text, '1 of 1', 'the trial found the skill')
       return d?.sources
     }
     const placed = [{ source: 'placed', count: 1 }]
@@ -358,7 +358,7 @@ describe("the report's facts", () => {
         ['not.toHaveCalledSkill', 'not.toHaveCalledSkill q', 'pass'],
       ),
       [],
-      'a failing check names no skill the attempt found',
+      'a failing check names no skill the trial found',
     )
     assert.deepEqual(
       sources(

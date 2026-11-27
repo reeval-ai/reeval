@@ -300,7 +300,7 @@ describe('the Tart sandbox', { skip: !posix && 'the fake tart is a bash script' 
     }
   })
 
-  test("a harness's brokered key fails the attempt when the gateway can't start", async () => {
+  test("a harness's brokered key fails the trial when the gateway can't start", async () => {
     await withEnv({ FAKE_TART_NO_SUDO: '1' }, async () => {
       await assert.rejects(
         createTartSandbox(
@@ -367,7 +367,7 @@ describe('the Tart sandbox', { skip: !posix && 'the fake tart is a bash script' 
     }
   })
 
-  test("a clone that doesn't boot fails the attempt as infrastructure, and is deleted", async () => {
+  test("a clone that doesn't boot fails the trial as infrastructure, and is deleted", async () => {
     await withEnv({ FAKE_TART_RUN_FAILS: '1' }, async () => {
       await assert.rejects(
         createTartSandbox(vm(), options()),
@@ -403,7 +403,7 @@ describe('the Tart sandbox', { skip: !posix && 'the fake tart is a bash script' 
     }
   })
 
-  test('refuses an attempt under any egress but allow-all, before cloning', async () => {
+  test('refuses a trial under any egress but allow-all, before cloning', async () => {
     await assert.rejects(
       createTartSandbox(vm(), options({ egress: { policy: 'proxy', auto: [] } })),
       /^InfraError: tart\(\) runs under egress 'allow-all' only/,
@@ -483,7 +483,7 @@ describe('baked Tart images', { skip: !posix && 'the fake tart is a bash script'
     assert.equal(clones() - before, 1)
   })
 
-  test('an attempt clones the baked image, and its harness finds its bootstrap done', async () => {
+  test('a trial clones the baked image, and its harness finds its bootstrap done', async () => {
     const { image } = await bakeTartImage(vm(), bake, ctx())
     const box = await createTartSandbox(vm(), options({ image }))
     try {

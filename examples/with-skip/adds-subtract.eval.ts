@@ -4,7 +4,7 @@ import { math } from './environments.ts'
 
 export default defineEval({
   environment: math,
-  runs: 1,
+  trials: 1,
   tags: ['math', 'smoke'],
   graders: [observed('subtract', (out) => out === '4')],
   async task(c) {

@@ -197,12 +197,12 @@ describe('the matrix check (twins: it can fail)', () => {
   test('eval option coverage fails when a key, plan case or refusal row is missing', () => {
     assert.deepEqual(
       checkEvalOptionCoverage([], {
-        evalOptionKeys: ['harness', 'runs'],
+        evalOptionKeys: ['harness', 'trials'],
         evalOptionSpecs: [{ key: 'harness', featureId: 'matrix.harness-runs', plan: true }],
         refusalText: '',
       }),
       [
-        'eval option "runs" has no entry in test/features/eval-options.ts: add one naming its inventory feature; when reeval run --dry-run output changes, set plan: true and add a case under test/plan/',
+        'eval option "trials" has no entry in test/features/eval-options.ts: add one naming its inventory feature; when reeval run --dry-run output changes, set plan: true and add a case under test/plan/',
         'eval option "harness": inventory feature matrix.harness-runs doesn\'t exist',
       ],
     )

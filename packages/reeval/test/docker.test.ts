@@ -148,12 +148,12 @@ export default defineEval({
     const spans = parseSpans(readRun(p.dir).read('spans.jsonl'))
     const root = spans.find((s) => s.name === 'reeval.run')
     const container = spans.find((s) => s.name === 'container')
-    const attempt = spans.find((s) => s.name === 'attempt')
+    const trial = spans.find((s) => s.name === 'trial')
     assert.equal(container?.parentSpanId, root?.spanId, 'a local container sits under the run')
     assert.equal(container?.attributes['reeval.sandbox'], 'docker')
     assert.equal(container?.attributes['container.image.name'], DEFAULT_IMAGE)
     assert.match(String(container?.attributes['container.id']), /^[0-9a-f]{12}$/)
-    assert.equal(attempt?.attributes['container.id'], container?.attributes['container.id'])
+    assert.equal(trial?.attributes['container.id'], container?.attributes['container.id'])
     assert.ok((container?.startMs ?? 0) <= (container?.endMs ?? 0))
     assert.match(run.stack.images[0]?.id ?? '', /^sha256:[0-9a-f]{64}$/)
     assert.match(run.stack.images[0]?.agentCli ?? '', /^@cursor\/sdk \d+\.\d+\.\d+$/)
@@ -301,7 +301,7 @@ export default defineEval({
         assert.ok(at >= 0, `no root warning in:\n${stdout}`)
         assert.ok(
           at < lines.findIndex((l) => l.includes('▶')),
-          'the warning comes before the first attempt starts',
+          'the warning comes before the first trial starts',
         )
         assert.deepEqual(run.plan.sandboxWarnings, [
           {
@@ -564,7 +564,7 @@ export const brokenTools = defineEnvironment('broken-tools', {
 import { brokenTools } from './broken-tools-env'
 export default defineEval({
   environment: brokenTools,
-  runs: 2,
+  trials: 2,
   async task(c) { await c.exec('true') },
 })
 `,
@@ -582,11 +582,11 @@ export default defineEval({
         ...slow,
       })
       assert.equal(r.code, 3, r.stdout + r.stderr)
-      assert.equal(counter.count(), 1, 'the failing install layer is built once for three attempts')
+      assert.equal(counter.count(), 1, 'the failing install layer is built once for three trials')
       const { run, read } = readRun(p.dir)
       const outcome = (name: string) => run.evals.find((e) => e.name === name)
       assert.equal(outcome('ok')?.outcome, 'pass', 'the eval that needs no broken image runs')
-      const failed = run.evals.filter((e) => e.name !== 'ok').flatMap((e) => e.attempts)
+      const failed = run.evals.filter((e) => e.name !== 'ok').flatMap((e) => e.trials)
       assert.equal(failed.length, 3)
       for (const a of failed) {
         assert.equal(a.outcome, 'infra_error')
@@ -612,7 +612,7 @@ export default defineEval({
       assert.ok(failedAt >= 0, r.stdout)
       assert.ok(
         failedAt < lines.findIndex((l) => /^ {2}◆ {2}(Running|Streaming)/.test(l)),
-        'reported before any attempt starts',
+        'reported before any trial starts',
       )
       assert.equal(
         lines.filter((l) =>
@@ -623,13 +623,13 @@ export default defineEval({
       assert.equal(
         lines.filter((l) => l.startsWith('::error file=evals/a.eval.ts')).length,
         0,
-        'no annotation per attempt',
+        'no annotation per trial',
       )
       const summary = lines.slice(lines.indexOf('Infra errors (3)'))
       assert.equal(
         summary.filter((l) => l.includes(' record ')).length,
         0,
-        'no record path for attempts that never started',
+        'no record path for trials that never started',
       )
       assert.match(
         read('summary.md'),
@@ -648,7 +648,7 @@ export default defineEval({
   )
 
   test(
-    'a config-level image that fails stops the run before any attempt: exit 3, or 2 for a missing image',
+    'a config-level image that fails stops the run before any trial: exit 3, or 2 for a missing image',
     docker,
     async () => {
       const p = await project('docker-prepare-config', {
@@ -685,7 +685,7 @@ export default defineEval({
         r.stderr,
         /The sandbox docker\+[0-9a-f]+ \+ install is set by reeval\.config\.ts for every eval, so nothing ran\./,
       )
-      assert.doesNotMatch(r.stdout, /▶/, 'no attempt started')
+      assert.doesNotMatch(r.stdout, /▶/, 'no trial started')
 
       writeFileSync(
         join(p.dir, 'reeval.config.ts'),
@@ -741,9 +741,9 @@ export default defineEval({
       const { run } = readRun(p.dir)
       for (const e of run.evals) {
         assert.equal(e.outcome, 'infra_error', e.name)
-        assert.equal(e.attempts[0]?.error?.prepare?.stage, 'from')
+        assert.equal(e.trials[0]?.error?.prepare?.stage, 'from')
         assert.match(
-          e.attempts[0]?.error?.message ?? '',
+          e.trials[0]?.error?.message ?? '',
           /reeval needs a Debian or Ubuntu based image/,
         )
       }
@@ -974,7 +974,7 @@ export default defineEval({
     },
   )
 
-  test('concurrent attempts in two workers share one build of a new layer', docker, async () => {
+  test('concurrent trials in two workers share one build of a new layer', docker, async () => {
     const nonce = `${Date.now()}-${process.pid}`
     const env = `import { docker } from 'reeval/sandbox'
 export const fresh = docker({
@@ -985,7 +985,7 @@ export const fresh = docker({
 import { fresh } from './env.ts'
 export default defineEval({
   environment: defineEnvironment('${name}', { sandbox: fresh }),
-  runs: 2,
+  trials: 2,
   async task(c) {
   await c.send('x')
   await c.exec('cat /opt/reeval-built')
@@ -1014,18 +1014,18 @@ export default defineEval({
     })
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const { run, read } = readRun(p.dir)
-    const attempts = run.evals.flatMap((e) => e.attempts)
-    assert.equal(attempts.length, 4)
-    const ids = new Set(attempts.map((a) => a.imageId))
-    const built = new Set(attempts.map((a) => read(a.checks[0]?.log.path ?? '')))
+    const trials = run.evals.flatMap((e) => e.trials)
+    assert.equal(trials.length, 4)
+    const ids = new Set(trials.map((a) => a.imageId))
+    const built = new Set(trials.map((a) => read(a.checks[0]?.log.path ?? '')))
     try {
-      assert.equal(readFileSync(builds, 'utf8'), 'build\n', 'one docker build for four attempts')
-      assert.equal(ids.size, 1, `one image for every attempt, got ${[...ids].join(', ')}`)
-      assert.equal(built.size, 1, 'every attempt saw the same build')
+      assert.equal(readFileSync(builds, 'utf8'), 'build\n', 'one docker build for four trials')
+      assert.equal(ids.size, 1, `one image for every trial, got ${[...ids].join(', ')}`)
+      assert.equal(built.size, 1, 'every trial saw the same build')
       assert.equal(liveContainers(run.runId), '')
     } finally {
       const refs = new Set(
-        attempts
+        trials
           .map((a) => run.stack.images.find((i) => i.id === a.imageId)?.ref)
           .filter(Boolean) as string[],
       )
@@ -1130,7 +1130,7 @@ export default defineEval({
     }
   })
 
-  test('from: a toolchain image gets Node, git and the harness baked on, runs the attempt, and is cached', {
+  test('from: a toolchain image gets Node, git and the harness baked on, runs the trial, and is cached', {
     ...docker,
     timeout: 900_000,
   }, async () => {
@@ -1312,7 +1312,7 @@ export default defineEval({
         'reeval.config.ts': config('{ delayMs: 60_000 }'),
         'evals/d.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
-  runs: 2,
+  trials: 2,
   async task(c) {
  await c.send('wait') 
   },
@@ -1334,7 +1334,7 @@ export default defineEval({
         ?.replace(/\.json$/, '')
       assert.ok(runId, 'the run was written')
       assert.equal(liveContainers(runId), '')
-      // The canary: both attempts had a container when the signal came.
+      // The canary: both trials had a container when the signal came.
       assert.equal(started, 2)
     },
   )
@@ -1347,7 +1347,7 @@ export default defineEval({
       'reeval.config.ts': config('{ delayMs: 60_000 }'),
       'evals/d.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
-  runs: 2,
+  trials: 2,
   async task(c) {
  await c.send('wait') 
   },
@@ -1413,7 +1413,7 @@ export default defineEval({
     assert.equal(liveContainers(runId), '', `${orphan} was removed`)
   })
 
-  test("SIGKILL during grading leaves a grader's container that the next run removes, on attempts off Docker", {
+  test("SIGKILL during grading leaves a grader's container that the next run removes, on trials off Docker", {
     ...docker,
     skip: docker.skip || (process.platform === 'win32' && 'needs POSIX signals'),
   }, async () => {
@@ -1452,7 +1452,7 @@ export default defineEval({ sandbox: fakeSandbox(), graders: [waits], async task
   })
 
   test(
-    "a grader's image that fails to prepare fails only its evals' attempts, before their agent runs",
+    "a grader's image that fails to prepare fails only its evals' trials, before their agent runs",
     docker,
     async () => {
       const p = await project('docker-grader-image-fails', {
@@ -1471,13 +1471,13 @@ export default defineEval({ sandbox: fakeSandbox(), async task(c) { await c.send
       })
       const r = await runCli(p.dir, ['run', '--ui', 'plain'], slow)
       assert.equal(r.code, 3, r.stdout + r.stderr)
-      assert.match(r.stdout + r.stderr, /set by defineGrader\("bad"\); only its attempts fail/)
+      assert.match(r.stdout + r.stderr, /set by defineGrader\("bad"\); only its trials fail/)
       const { run } = readRun(p.dir)
-      const graded = run.evals.find((e) => e.name === 'graded')?.attempts[0]
+      const graded = run.evals.find((e) => e.name === 'graded')?.trials[0]
       assert.equal(graded?.outcome, 'infra_error')
       assert.match(graded?.error?.message ?? '', /set by defineGrader\("bad"\), failed to prepare/)
       assert.deepEqual(graded?.turns, [], 'the agent never ran')
-      assert.equal(run.evals.find((e) => e.name === 'plain')?.attempts[0]?.outcome, 'pass')
+      assert.equal(run.evals.find((e) => e.name === 'plain')?.trials[0]?.outcome, 'pass')
     },
   )
 
@@ -1524,7 +1524,7 @@ export default defineEval({
   })
 
   test(
-    'Cursor attempts broker the key; without brokering the attempt fails closed',
+    'Cursor trials broker the key; without brokering the trial fails closed',
     docker,
     async () => {
       const cursorConfig = (sandbox: string) => `
@@ -1667,7 +1667,7 @@ export default defineEval({
         proxied?.error?.message ?? '',
         /^Can't enforce egress proxy: the egress gateway, the sandbox's only way out, could not start \(the forwarder exited .*\)\. The egress gateway needs Node in the image: start from a Debian or Ubuntu image with docker\(\{ from: 'busybox:1\.37' \}\)/,
       )
-      // busybox has no git, so the attempt fails later on, past the gateway.
+      // busybox has no git, so the trial fails later on, past the gateway.
       assert.match(evals.find((e) => e.name === 'direct')?.error?.message ?? '', /snapshot/)
       assert.equal(liveContainers(run.runId), '')
     },
@@ -1705,8 +1705,8 @@ export default defineEval({
       const first = await run()
       const second = await run()
       assert.ok(
-        first.evals[0]?.attempts[0]?.context?.some((c) => c.path.endsWith('/house/SKILL.md')),
-        JSON.stringify(first.evals[0]?.attempts[0]?.context),
+        first.evals[0]?.trials[0]?.context?.some((c) => c.path.endsWith('/house/SKILL.md')),
+        JSON.stringify(first.evals[0]?.trials[0]?.context),
       )
       assert.equal(first.evals[0]?.fingerprint, second.evals[0]?.fingerprint)
       assert.deepEqual(
@@ -2004,7 +2004,7 @@ export default defineConfig({ target: regression(),
           'evals/hi.eval.ts': String.raw`import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
-  // The refused token makes the attempt an infra error; the checks below still run.
+  // The refused token makes the trial an infra error; the checks below still run.
   await c.send('Reply with the word hi.').catch(() => {})
   // Goose's own environment, read from /proc while its session is open.
   const env = await c.exec(
@@ -2017,7 +2017,7 @@ export default defineEval({
     'GOOGLE_APPLICATION_CREDENTIALS=/reeval/google-adc.json',
   ]
   const same = goose.sort().join('\n') === expected.join('\n')
-  // The infra error is the attempt's error, so each check's result is an exit code the record keeps.
+  // The infra error is the trial's error, so each check's result is an exit code the record keeps.
   await c.exec(same ? 'true' : 'false', { label: 'goose env' })
   const project = (await c.exec('printenv GCP_PROJECT_ID')).stdout.trim()
   await c.exec(project === 'eval-project' ? 'true' : 'false', { label: 'eval env' })
@@ -2289,7 +2289,7 @@ export default defineEval({
   )
 
   test(
-    'Claude Code attempts broker the key on its endpoints; without brokering the attempt fails closed',
+    'Claude Code trials broker the key on its endpoints; without brokering the trial fails closed',
     claudeImage,
     async () => {
       const claudeConfig = (sandbox: string) => `
@@ -2307,7 +2307,7 @@ import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
 
-  // The rejected key makes the attempt an infra error; the checks below still run, caught.
+  // The rejected key makes the trial an infra error; the checks below still run, caught.
   await c.send('Reply with the word hi.').catch(() => {})
   const environ = await c.exec('env; cat /proc/[0-9]*/environ | tr "\\\\0" "\\\\n"')
   // After a 401 the CLI may unset ANTHROPIC_API_KEY. What's left is reeval's
@@ -2410,10 +2410,10 @@ export default defineEval({
       const r = await runCli(p.dir, ['run'], { env: { ANTHROPIC_API_KEY: 'not_a_real_key' } })
       assert.equal(r.code, 3, r.stdout + r.stderr)
       const { run, evals } = readRun(p.dir)
-      const attempt = evals[0]?.attempts[0]
-      assert.equal(attempt?.outcome, 'infra_error', JSON.stringify(attempt?.error))
-      assert.equal(attempt?.error?.kind, 'infra')
-      assert.match(attempt?.error?.message ?? '', /^Claude Code harness failed to start: /)
+      const trial = evals[0]?.trials[0]
+      assert.equal(trial?.outcome, 'infra_error', JSON.stringify(trial?.error))
+      assert.equal(trial?.error?.kind, 'infra')
+      assert.match(trial?.error?.message ?? '', /^Claude Code harness failed to start: /)
       assert.equal(liveContainers(run.runId), '')
     },
   )

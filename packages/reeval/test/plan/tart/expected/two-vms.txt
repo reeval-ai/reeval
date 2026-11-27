@@ -1,4 +1,4 @@
-no profile · 1 evals · 1 cells · 3 attempts
-warning: tart(ghcr.io/cirruslabs/macos-sequoia-base:latest) uses the moving tag "latest": the image can change between runs, so results aren't comparable over time. Pin a digest (ghcr.io/cirruslabs/macos-sequoia-base@sha256:…), or a version tag the registry publishes; each attempt records the digest it cloned either way.
-builds-the-app  fake/mac/tart:macos-sequoia-base:latest  control  gated any  ×3  egress "allow-all"
+no profile · 1 evals · 1 cells · 3 trials
+warning: tart(ghcr.io/cirruslabs/macos-sequoia-base:latest) uses the moving tag "latest": the image can change between runs, so results aren't comparable over time. Pin a digest (ghcr.io/cirruslabs/macos-sequoia-base@sha256:…), or a version tag the registry publishes; each trial records the digest it cloned either way.
+builds-the-app  fake/mac/tart:macos-sequoia-base:latest  baseline  gated any  ×3  egress "allow-all"
 excluded: —

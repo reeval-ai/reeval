@@ -19,7 +19,7 @@ const throwsForZero = defineGrader('throws-for-0', ({ file }) => ({
 }))
 
 export default defineEval({
-  compare: { control: math, variants: [withErrors] },
+  compare: { baseline: math, variants: [withErrors] },
   questions: [
     {
       question: 'Which divide() says more clearly what went wrong when b is 0?',

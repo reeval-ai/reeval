@@ -3,15 +3,15 @@ import { fakeAgent } from 'reeval/agent'
 import { daytona } from 'reeval/provider/daytona'
 
 // Docker tier only: docker({ from, install }) on daytona(), the fake Daytona API, which builds the image
-// reeval generates and starts each sandbox from its snapshot, logging in as root; both attempts
+// reeval generates and starts each sandbox from its snapshot, logging in as root; both trials
 // share one machine, each slot restoring the image's copy of the home. The bootstrap
-// says whether it ran in the image, before the install, or in the attempt, after it. As the agent:
+// says whether it ran in the image, before the install, or in the trial, after it. As the agent:
 // who it is, what the install left, which node it finds, and where the bootstrap ran.
 export default defineConfig({
   target: regression(),
   agents: fakeAgent({
     bootstrap:
-      'if [ -f /etc/reeval-install-proof ]; then echo attempt; else echo image; fi > ~/bootstrapped',
+      'if [ -f /etc/reeval-install-proof ]; then echo trial; else echo image; fi > ~/bootstrapped',
     script: [
       [
         {
@@ -20,5 +20,5 @@ export default defineConfig({
       ],
     ],
   }),
-  provider: daytona({ attemptsPerMachine: 2 }),
+  provider: daytona({ trialsPerMachine: 2 }),
 })

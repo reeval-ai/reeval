@@ -4,7 +4,7 @@ import { base, skilled } from '../../../plan/compare/evals/envs.ts'
 evaluate(
   'trajectory across harnesses',
   {
-    compare: { control: base, variants: [skilled] },
+    compare: { baseline: base, variants: [skilled] },
     questions: [
       {
         question: 'Which agent verified its work?',
@@ -18,10 +18,10 @@ evaluate(
 evaluate(
   'trajectory within a harness',
   {
-    compare: { control: base, variants: [skilled] },
+    compare: { baseline: base, variants: [skilled] },
     questions: [
       {
-        question: 'Which arm verified its work?',
+        question: 'Which environment verified its work?',
         across: 'environment',
         trajectory: 'tools',
       },
@@ -32,7 +32,7 @@ evaluate(
 evaluate(
   'screenshots',
   {
-    compare: { control: base, variants: [skilled] },
+    compare: { baseline: base, variants: [skilled] },
     questions: [
       { question: 'Which page looks better?', across: 'environment', artifacts: ['landing'] },
     ],
@@ -40,7 +40,7 @@ evaluate(
   async () => {},
 )
 evaluate(
-  'each attempt with the trajectory',
+  'each trial with the trajectory',
   {
     questions: [
       {
@@ -55,7 +55,7 @@ evaluate(
   async () => {},
 )
 evaluate(
-  'each attempt without the trajectory',
+  'each trial without the trajectory',
   {
     questions: [
       { question: 'What did the agent say it did?', task: true, output: true, diff: true },

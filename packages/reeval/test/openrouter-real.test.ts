@@ -36,8 +36,8 @@ export default defineConfig({ target: regression(),
   gateway: [openrouter()],
   judge: { model: '${OPENROUTER_JUDGE_MODEL}' },
   analysis: { model: '${ANALYSIS_MODEL}' },
-  runs: 1,
-  budget: { attempts: 1 },
+  trials: 1,
+  budget: { trials: 1 },
 })
 `,
     'evals/greet.eval.ts': `import { defineEval } from 'reeval'
@@ -61,7 +61,7 @@ export default defineEval({
   ) as ShapeSchema
   assert.deepEqual(validate(schema, run), [], 'the record fits its schema')
 
-  const grade = run.evals[0]?.attempts[0]?.grades?.[0]
+  const grade = run.evals[0]?.trials[0]?.grades?.[0]
   const judgment = grade?.judge?.calls?.[0]
   assert.ok(judgment, `no judge call recorded\n${r.stdout}\n${r.stderr}`)
   t.diagnostic(`${judgment.resolvedModel} · $${judgment.costUsd} · score ${grade?.score}`)

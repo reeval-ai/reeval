@@ -1,4 +1,4 @@
-// Which tool calls an attempt made, what each did and which skills it used, from its record and
+// Which tool calls a trial made, what each did and which skills it used, from its record and
 // trajectory.jsonl alone. `reeval query` stores these facts and the run report shows them, in any
 // JavaScript runtime, so nothing this module reaches may use Node or the filesystem
 // (test/view-boundary.test.ts holds it).
@@ -13,7 +13,7 @@ import {
   type ToolClass,
 } from '../history/tool-class.ts'
 import { targetText, toolTarget } from '../history/tool-target.ts'
-import type { AttemptRecord, RunRecord } from '../history/types.ts'
+import type { TrialRecord, RunRecord } from '../history/types.ts'
 import type { TrajectoryLine } from './model.ts'
 
 const ADAPTER_HOME = /^~\/\.ai-sdk-harness\/\.harness-bootstrap\/[^/]+\/(?:implementation\/)?home\//
@@ -81,7 +81,7 @@ export function toolCalls(lines: readonly (TrajectoryLine | null)[]): ToolCall[]
 }
 
 /**
- * The skills whose `SKILL.md` an attempt wrote: by a file-editing tool that created or rewrote it,
+ * The skills whose `SKILL.md` a trial wrote: by a file-editing tool that created or rewrote it,
  * or by a shell command (a redirect, `tee`, `cp` and the like).
  */
 function skillsAuthored(lines: readonly (TrajectoryLine | null)[], calls: ToolCall[]): Set<string> {
@@ -114,25 +114,25 @@ export type ClassifiedCall = ToolCall & {
   class: ToolClass
   /** The declared context files the call read. */
   files: string[]
-  /** The skills the call used; a failed call or one on a skill the attempt wrote counts only placed ones. */
+  /** The skills the call used; a failed call or one on a skill the trial wrote counts only placed ones. */
   skills: ReturnType<typeof skillUses>
 }
 
-/** One attempt's tool calls, classified, and the skills it found that its environment didn't place. */
-export type AttemptCalls = {
+/** One trial's tool calls, classified, and the skills it found that its environment didn't place. */
+export type TrialCalls = {
   calls: ClassifiedCall[]
   found: Map<string, { source: string; path: string | null }>
 }
 
 /**
- * Classifies one attempt's tool calls from its trajectory's lines: what `tool_calls`,
- * `context_reads`, `skill_uses` and `found_skills` hold, and what {@link attemptFacts} counts.
+ * Classifies one trial's tool calls from its trajectory's lines: what `tool_calls`,
+ * `context_reads`, `skill_uses` and `found_skills` hold, and what {@link trialFacts} counts.
  */
-export function classifyAttempt(
-  a: AttemptRecord,
+export function classifyTrial(
+  a: TrialRecord,
   env: { skills: string[]; mcp: string[] },
   lines: readonly (TrajectoryLine | null)[] | undefined,
-): AttemptCalls {
+): TrialCalls {
   const { skills } = env
   const calls = lines ? toolCalls(lines) : []
   const authored = lines ? skillsAuthored(lines, calls) : new Set<string>()
@@ -168,8 +168,8 @@ export function classifyAttempt(
   return { calls: classified, found }
 }
 
-/** What one attempt's trajectory shows it did, counted from its classified tool calls. */
-export type AttemptFacts = {
+/** What one trial's trajectory shows it did, counted from its classified tool calls. */
+export type TrialFacts = {
   toolCalls: number
   byClass: Record<ToolClass, number>
   /** Each skill its calls used, by where it came from, in order of first use. */
@@ -186,30 +186,30 @@ export type AttemptFacts = {
 }
 
 /**
- * One attempt's facts from its trajectory's lines (as `trajectoryByLine` parses them), its
+ * One trial's facts from its trajectory's lines (as `trajectoryByLine` parses them), its
  * calls classified as `reeval query`'s `tool_calls`, `context_reads` and `skill_uses` classify them,
- * against the skills and MCP servers of the attempt's environment in `record`.
+ * against the skills and MCP servers of the trial's environment in `record`.
  */
-export function attemptFacts(
+export function trialFacts(
   record: RunRecord,
-  attempt: AttemptRecord,
+  trial: TrialRecord,
   lines: readonly (TrajectoryLine | null)[],
-): AttemptFacts {
+): TrialFacts {
   const digest = record.evals
-    .find((e) => e.attempts.some((x) => x.key === attempt.key))
-    ?.cells.find((c) => c.key === attempt.cell)?.environmentDigest
+    .find((e) => e.trials.some((x) => x.key === trial.key))
+    ?.cells.find((c) => c.key === trial.cell)?.environmentDigest
   const env = record.environments.find((x) => x.digest === (digest ?? ''))
   const declared = { skills: env?.skills.map((s) => s.name) ?? [], mcp: env?.mcp ?? [] }
-  const byClass: AttemptFacts['byClass'] = {
+  const byClass: TrialFacts['byClass'] = {
     context: 0,
     dependency: 0,
     web: 0,
     verify: 0,
     workspace: 0,
   }
-  const skills = new Map<string, AttemptFacts['skills'][number]>()
-  const files = new Map<string, AttemptFacts['contextFiles'][number]>()
-  const { calls } = classifyAttempt(attempt, declared, lines)
+  const skills = new Map<string, TrialFacts['skills'][number]>()
+  const files = new Map<string, TrialFacts['contextFiles'][number]>()
+  const { calls } = classifyTrial(trial, declared, lines)
   for (const call of calls) {
     byClass[call.class]++
     for (const { skill, source } of call.skills) {

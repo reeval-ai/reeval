@@ -1,6 +1,6 @@
 {
   "eval": "plan/compare/evals/variants",
   "treeRoot": "plan/compare",
-  "plan": "plan/compare/expected/control-and-variants.txt",
+  "plan": "plan/compare/expected/baseline-and-variants.txt",
   "args": []
 }

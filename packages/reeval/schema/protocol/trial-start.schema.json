@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Generated from TrialStart in src/contract/trial.ts by `pnpm schema:update`; don't edit. reeval's message to a runner that starts a trial's body.",
+  "title": "TrialStart",
+  "$ref": "#/$defs/TrialStart",
+  "$defs": {
+    "Cell": {
+      "description": "A cell of an evaluation combines a harness, an environment (`-` when none is set), and that environment's sandbox id. With `compare`, the baseline is `compare.baseline` and each variant is that environment on its own, including its sandbox.",
+      "type": "object",
+      "properties": {
+        "environment": {
+          "description": "The environment's own name, also on a variant cell (`with-skill`, with no prefix).",
+          "type": "string"
+        },
+        "harness": {
+          "description": "The harness id: `id` when set, otherwise `<kind>:<model>` (`<kind>` alone without a model), with `[effort=<value>]` appended whenever `effort` is set, then a tag for each shared option set (`[tools=<names>]`, `[commands=<hash>]`, …).",
+          "type": "string"
+        },
+        "key": {
+          "description": "The harness id, the environment name, and the sandbox id, joined with `/`.",
+          "type": "string"
+        },
+        "role": {
+          "description": "`variant` on a compare's variant cell, else `baseline`: the compare's baseline, or any cell of an eval without `compare`, each environment of an `environments` grid included. A variant's lift is against the `baseline` cell on its harness and sandbox.",
+          "$ref": "#/$defs/CellRole"
+        },
+        "sandbox": {
+          "description": "The sandbox id is `id` when set, or `fake` for the fake sandbox. A Docker sandbox starts with the engine (`docker` by default). It adds `:` and the sanitized final component of `image` or `from`, or for `dockerfile` the sanitized filename (the parent directory name when that filename is `Dockerfile` and a parent is present). Non-empty `install` steps append `+` and an eight-character hash.",
+          "type": "string"
+        },
+        "traits": {
+          "description": "The environment's merged traits; unset when it has none. Not part of the key.",
+          "readOnly": true,
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "readOnly": true,
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          }
+        },
+        "variant": {
+          "description": "The variant's name, for variant cells.",
+          "type": "string"
+        }
+      },
+      "required": ["environment", "harness", "key", "role", "sandbox"],
+      "additionalProperties": false
+    },
+    "CellRole": {
+      "type": "string",
+      "enum": ["baseline", "variant"]
+    },
+    "TrialStart": {
+      "description": "reeval to the runner: run this eval's body for this trial. Nothing has started yet: the sandbox and the agent session start on the body's first call that needs them, so its own code runs first. The runner sends its calls, then `done`.",
+      "type": "object",
+      "properties": {
+        "body": {
+          "description": "The eval's `body`, as its declaration named it.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "file": {
+          "description": "The eval file, relative to the project.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "trial": {
+          "description": "`c.trial`: which cell of the matrix this trial is, and its run number.",
+          "type": "object",
+          "properties": {
+            "cell": {
+              "$ref": "#/$defs/Cell"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "n": {
+              "description": "The run number, from 1.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["cell", "id", "n"],
+          "additionalProperties": false
+        },
+        "type": {
+          "type": "string",
+          "const": "start"
+        }
+      },
+      "required": ["body", "file", "trial", "type"],
+      "additionalProperties": false
+    }
+  }
+}

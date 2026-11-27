@@ -1,5 +1,5 @@
 import { clip, formatDuration, plural } from '../text.ts'
-import type { AttemptMeta } from '../types.ts'
+import type { TrialMeta } from '../types.ts'
 import { type DebugLine, debugTime } from '../view/debug.ts'
 import { triesNote } from '../view/judgments.ts'
 import { failureHeadline } from '../view/suite.ts'
@@ -27,7 +27,7 @@ export function debugLines(c: Colors, line: DebugLine, ms: boolean): string[] {
   return [head, ...shown, ...(more > 0 ? [c.dim(`    … ${more} more lines in trace.ndjson`)] : [])]
 }
 
-/** Offset into an attempt, `+1:05`. */
+/** Offset into a trial, `+1:05`. */
 export function offset(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000))
   return `+${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
@@ -41,8 +41,8 @@ export function outcomeOf(e: EvalResult): Outcome {
   return e.meta?.outcome ?? (e.state === 'passed' ? 'pass' : 'fail')
 }
 
-/** What tells an eval's attempts apart: the axes that vary (`cursor:composer-2.5 · with-skill`), else the harness. */
-export function attemptAxes(a: AttemptMeta | undefined, fallback: string): string {
+/** What tells an eval's trials apart: the axes that vary (`cursor:composer-2.5 · with-skill`), else the harness. */
+export function trialAxes(a: TrialMeta | undefined, fallback: string): string {
   return a?.label.replace(/\s*#\d+$/, '') || a?.harness.kind || fallback
 }
 
@@ -129,7 +129,7 @@ export function judgeLine(
   return `${c.dim('judge')}  ${verdict}${score}${threshold}  ${j.question}`
 }
 
-/** The phase a running attempt is in, for the heartbeat. */
+/** The phase a running trial is in, for the heartbeat. */
 export function phaseOf(p: Progress | undefined): string {
   switch (p?.kind) {
     case undefined:
@@ -197,7 +197,7 @@ export function failureLines(
 
 type FailedCheck = NonNullable<NonNullable<EvalResult['meta']>['failedChecks']>[number]
 
-/** The failed check the attempt's error is, when it is one. */
+/** The failed check the trial's error is, when it is one. */
 export function errorCheck(e: EvalResult): FailedCheck | undefined {
   const message = e.errors[0] ?? ''
   // A record's message is its first line, clipped with a trailing `…`.
@@ -226,7 +226,7 @@ function otherChecks(c: Colors, e: EvalResult): string[] {
 const ERROR_NAME = /^(?:Assertion)?Error: /
 
 /**
- * A failed attempt's reason on one line, as the live list prints it after `failed` or `errored`:
+ * A failed trial's reason on one line, as the live list prints it after `failed` or `errored`:
  * the message without its error's class, the judge's verdict, or `canceled`.
  */
 export function failureReason(e: EvalResult): string {
@@ -248,7 +248,7 @@ function failureBody(
   options: { max: number; reasons?: Array<string | null> },
 ): string[] {
   if (outcome === 'infra_error') {
-    // Its sandbox's failure was printed in full before the run; each attempt names it.
+    // Its sandbox's failure was printed in full before the run; each trial names it.
     if (e.meta?.prepare) {
       const lines = message.trimEnd().split('\n')
       return [c.yellow('infra error'), lines[0] ?? '', lines.at(-1) ?? ''].filter(

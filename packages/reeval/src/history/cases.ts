@@ -1,6 +1,6 @@
 // An eval with `cases` is one record entry: its cells over every case, each case's own cells in
-// `cases`, and each attempt's `case`. A run plans and assembles each case as an entry of its own
-// (`family` set, named `<eval> [<key>]`), so attempts, resume and artifacts keep their keys;
+// `cases`, and each trial's `case`. A run plans and assembles each case as an entry of its own
+// (`family` set, named `<eval> [<key>]`), so trials, resume and artifacts keep their keys;
 // `foldCases` turns those entries, and the `families` beside them, into the eval, and
 // `unfoldCases` turns it back. Browser-safe: reading a record from before this shape folds it too.
 import { evalId, legacyCaseEvalName, legacyEvalId } from '../eval-id.ts'
@@ -21,18 +21,18 @@ import type {
 } from './types.ts'
 
 /**
- * Each cell's checks: every label any attempt of the eval recorded, tallied over the cell's
- * counted attempts (pass or fail), from an older reeval's assertions. An attempt that counted
+ * Each cell's checks: every label any trial of the eval recorded, tallied over the cell's
+ * counted trials (pass or fail), from an older reeval's assertions. A trial that counted
  * without reaching a label, because an `expect.require` or a thrown error before it ended the
  * body, counts it `notRun`.
  */
-export function checkTallies(entry: Pick<EvalEntry, 'attempts' | 'cells'>): void {
+export function checkTallies(entry: Pick<EvalEntry, 'trials' | 'cells'>): void {
   const labels = [
-    ...new Set(entry.attempts.flatMap((a) => (a.assertions ?? []).map((x) => x.label))),
+    ...new Set(entry.trials.flatMap((a) => (a.assertions ?? []).map((x) => x.label))),
   ]
   if (!labels.length) return
   for (const c of entry.cells) {
-    const counted = entry.attempts.filter(
+    const counted = entry.trials.filter(
       (a) => a.cell === c.key && (a.outcome === 'pass' || a.outcome === 'fail'),
     )
     if (!counted.length) continue
@@ -49,22 +49,22 @@ export function checkTallies(entry: Pick<EvalEntry, 'attempts' | 'cells'>): void
   }
 }
 
-/** Puts the control's tally beside each of the variant's checks, with whether it discriminates. */
-export function discrimination(control: CellRecord, variant: CellRecord): void {
+/** Puts the baseline's tally beside each of the variant's checks, with whether it discriminates. */
+export function discrimination(baseline: CellRecord, variant: CellRecord): void {
   for (const check of variant.checks ?? []) {
-    const k = control.checks?.find((x) => x.label === check.label)
+    const k = baseline.checks?.find((x) => x.label === check.label)
     if (!k) continue
     const { label: _label, ...tally } = k
-    check.control = tally
+    check.baseline = tally
     const verdict = checkVerdict(check, k)
     if (verdict) check.verdict = verdict
   }
 }
 
-/** The control a variant cell is measured against: the control on its harness and sandbox. */
-export const controlOf = (cells: readonly CellRecord[], variant: CellRecord) =>
+/** The baseline a variant cell is measured against: the baseline on its harness and sandbox. */
+export const baselineOf = (cells: readonly CellRecord[], variant: CellRecord) =>
   cells.find(
-    (x) => x.role === 'control' && x.harness === variant.harness && x.sandbox === variant.sandbox,
+    (x) => x.role === 'baseline' && x.harness === variant.harness && x.sandbox === variant.sandbox,
   )
 
 /** Whether a record entry was written before one eval per TypeScript file. */
@@ -111,7 +111,7 @@ function mergeCell(
     fingerprint:
       parts === first.fingerprintParts ? first.fingerprint : sha256Hex(JSON.stringify(parts)),
     fingerprintParts: parts,
-    runs: sum((c) => c.runs),
+    trials: sum((c) => c.trials),
     pass,
     fail,
     infraError: sum((c) => c.infraError),
@@ -191,9 +191,9 @@ function foldOne(
   const id = renamed === template || taken.has(renamedId) ? (family?.id ?? meta.id) : renamedId
   const name = template
   const cases = sorted.map((m) => caseOf(m, template))
-  const attempts = sorted.flatMap((m, i) => {
+  const trials = sorted.flatMap((m, i) => {
     const key = (cases[i] as CaseRecord).key
-    return m.attempts.map((a) => ({ ...a, case: key, id: `${a.cell}#${key}#${a.n}` }))
+    return m.trials.map((a) => ({ ...a, case: key, id: `${a.cell}#${key}#${a.n}` }))
   })
   const several = meta.cases >= 2
   const keys: string[] = []
@@ -211,10 +211,10 @@ function foldOne(
       )
     : first.cells.map((c) => ({ ...c }))
   if (several) {
-    checkTallies({ attempts, cells })
+    checkTallies({ trials, cells })
     for (const c of cells) {
-      const control = c.role === 'variant' ? controlOf(cells, c) : undefined
-      if (control) discrimination(control, c)
+      const baseline = c.role === 'variant' ? baselineOf(cells, c) : undefined
+      if (baseline) discrimination(baseline, c)
     }
   }
   const gated = new Set(cells.filter((c) => c.gate !== 'none').map((c) => c.key))
@@ -244,10 +244,10 @@ function foldOne(
       cells.map((c) => (c.gate === 'none' && c.outcome === 'fail' ? 'pass' : c.outcome)),
     ),
     todo: sorted.every((m) => m.todo),
-    passRate: passRateOf(attempts.filter((a) => gated.has(a.cell)).map((a) => a.outcome)),
+    passRate: passRateOf(trials.filter((a) => gated.has(a.cell)).map((a) => a.outcome)),
     scores: meanScores(targetCells(cells).map((c) => c.scores)),
     cells,
-    attempts,
+    trials,
     ...(excluded.length ? { excluded } : {}),
     cases,
     caseCount: family?.cases ?? meta.cases,
@@ -329,7 +329,7 @@ export function caseEntries(e: EvalEntry): EvalEntry[] {
       scores: meanScores(targetCells(c.cells).map((x) => x.scores)),
       fingerprint: c.fingerprint,
       cells: c.cells,
-      attempts: e.attempts
+      trials: e.trials
         .filter((a) => a.case === c.key)
         .map(({ case: _case, ...a }) => ({ ...a, id: `${a.cell}#${a.n}` })),
       ...(c.answers?.length ? { answers: c.answers } : {}),
@@ -350,7 +350,7 @@ export function familyOf(e: EvalEntry): FamilyRecord | undefined {
     group: e.group,
     name: e.name,
     cases: e.caseCount ?? e.cases.length,
-    ran: e.cases.filter((c) => e.attempts.some((a) => a.case === c.key && a.outcome !== 'skipped'))
+    ran: e.cases.filter((c) => e.trials.some((a) => a.case === c.key && a.outcome !== 'skipped'))
       .length,
     rates,
     lifts,
@@ -361,7 +361,7 @@ export function familyOf(e: EvalEntry): FamilyRecord | undefined {
 
 /**
  * The record as a run plans and assembles it: each eval with `cases` back as its cases' entries,
- * with `families`. What `foldCases` folds, this undoes, so a resume finds each attempt where it ran.
+ * with `families`. What `foldCases` folds, this undoes, so a resume finds each trial where it ran.
  */
 export function unfoldCases(record: RunRecord): RunRecord {
   if (!record.evals.some((e) => e.cases)) return record

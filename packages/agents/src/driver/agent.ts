@@ -17,7 +17,7 @@ import {
 } from './trajectory.ts'
 import type { AgentLog, HarnessResult, HarnessSession } from './types.ts'
 
-/** A stream part into the attempt's trace, and each tool call as a `-v` line as it happens. */
+/** A stream part into the trial's trace, and each tool call as a `-v` line as it happens. */
 function traceStreamPart(
   log: AgentLog,
   part: StampedPart['part'],
@@ -48,7 +48,7 @@ function traceStreamPart(
 /**
  * Each turn's cost from what the harness reports on its finish: a session's running total, as
  * Claude Code's is, less what its earlier turns reported. A total that fell, or a session other
- * than the attempt's first, can't be split into turns, so that turn has no reported cost; nor
+ * than the trial's first, can't be split into turns, so that turn has no reported cost; nor
  * has one the harness put at $0, or marked `guessed`, for a model its own prices don't list. A
  * guessed turn still moves the total on, so the next turn's cost leaves the guess out.
  */

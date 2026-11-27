@@ -1,14 +1,14 @@
 // A sandbox on a pooled Linux VM a provider starts in the run's main process (machine-service.ts)
-// and an attempt reaches over SSH: `daytona()`'s, started from its image. The provider's pool hands
-// out slots; this sets up the attempt's slot over SSH and starts it through the shared sequence
-// (start.ts). The SSH helpers here are also `boat()`'s and `cloud()`'s, whose attempts run in a
+// and a trial reaches over SSH: `daytona()`'s, started from its image. The provider's pool hands
+// out slots; this sets up the trial's slot over SSH and starts it through the shared sequence
+// (start.ts). The SSH helpers here are also `boat()`'s and `cloud()`'s, whose trials run in a
 // container on the VM (vm-container.ts).
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { connectSsh, type SshMachine, slotLayout } from '@reeval/sandbox-docker'
 import { run } from '@reeval/sandbox-docker/process'
-import { attemptDebug } from '../debug/attempt.ts'
+import { trialDebug } from '../debug/trial.ts'
 import { egressLabel } from '../egress.ts'
 import { registerSecret } from '../redact.ts'
 import type { DaytonaSandboxDescriptor } from '../types.ts'
@@ -37,16 +37,16 @@ export type PooledSshMachine = {
   /** The login user is root, with no `sudo`: a machine started from a built image. */
   loginRoot?: true
   /**
-   * Attempts the machine's pool runs on it at once, and whether its slots take another attempt,
+   * Trials the machine's pool runs on it at once, and whether its slots take another trial,
    * as the pool laid them out; the descriptor's when the provider doesn't say.
    */
-  attemptsPerMachine?: number
+  trialsPerMachine?: number
   reuse?: boolean
 }
 
-/** Past the attempt's timeout, so a machine whose worker was killed still goes away by itself. */
+/** Past the trial's timeout, so a machine whose worker was killed still goes away by itself. */
 export const TTL_MARGIN_S = 600
-/** How many times an attempt asks for another machine when the one it got fails to set up. */
+/** How many times a trial asks for another machine when the one it got fails to set up. */
 const SETUP_TRIES = 3
 
 /** Where the sandbox user finds the Node (and its npm) the VM's login user runs. */
@@ -118,7 +118,7 @@ export type PooledSshOptions = {
 }
 
 /**
- * One attempt on a slot of `descriptor`'s pool: leases it, sets it up over SSH as its own user
+ * One trial on a slot of `descriptor`'s pool: leases it, sets it up over SSH as its own user
  * (resetting a reused slot, copying the image's home with the harness into a shared one's) and
  * starts it. A reused slot that fails to set up is dropped and another leased, up to 3 times.
  */
@@ -127,7 +127,7 @@ export async function createPooledSshSandbox(
   options: SandboxOptions,
   o: PooledSshOptions,
 ): Promise<NetworkSandbox> {
-  const debug = attemptDebug()
+  const debug = trialDebug()
   return startSandbox(options, {
     helper: o.helper,
     machine: { sandbox: o.sandbox, size: o.size },
@@ -139,7 +139,7 @@ export async function createPooledSshSandbox(
             sandbox: descriptor,
             ...(o.image !== undefined && { image: o.image }),
             runId: options.runId,
-            ...(options.attempt !== undefined && { attempt: options.attempt }),
+            ...(options.trial !== undefined && { trial: options.trial }),
             root: process.cwd(),
             ttlSeconds: Math.ceil(options.timeoutMs / 1000) + TTL_MARGIN_S,
           },
@@ -151,7 +151,7 @@ export async function createPooledSshSandbox(
         })
         const info = lease.info as PooledSshMachine
         if (info.secretUser) registerSecret(info.user)
-        const shared = (info.attemptsPerMachine ?? descriptor.attemptsPerMachine ?? 1) > 1
+        const shared = (info.trialsPerMachine ?? descriptor.trialsPerMachine ?? 1) > 1
         // A machine of its own that's never reused has the image's home as it is.
         const slotHome = shared || (info.reuse ?? descriptor.reuse)
         const label = slotHome ? o.homeLabel : undefined
@@ -159,12 +159,12 @@ export async function createPooledSshSandbox(
           'container',
           lease.start
             ? `created ${info.id} (${info.name}, ${info.size}) in ${lease.start.ms}ms${lease.start.queuedMs >= 1000 ? `, ${Math.round(lease.start.queuedMs / 1000)}s of it waiting for the account's start caps` : ''}${lease.start.rateLimited ? `, after ${lease.start.rateLimited} rate-limited starts` : ''}; slot ${lease.slot}`
-            : `${lease.reused ? 'reused' : 'shared'} ${info.id} (${info.name}, ${info.size}); slot ${lease.slot}${lease.reused ? `, its attempt ${lease.reused + 1}` : ''}`,
+            : `${lease.reused ? 'reused' : 'shared'} ${info.id} (${info.name}, ${info.size}); slot ${lease.slot}${lease.reused ? `, its trial ${lease.reused + 1}` : ''}`,
         )
         if (slotHome && !label && options.harness && harnessBake(options.harness)) {
           debug?.log(
             'container',
-            `${info.id} slot ${lease.slot}: the image keeps no home with the harness's CLI, so this attempt installs it`,
+            `${info.id} slot ${lease.slot}: the image keeps no home with the harness's CLI, so this trial installs it`,
           )
         }
         for (const lost of lease.lost) debug?.log('container', lostLine(lost))

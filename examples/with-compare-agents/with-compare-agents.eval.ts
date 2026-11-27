@@ -11,9 +11,9 @@ export default defineEval({
   pin: ['agents'],
   agents: [claudeCode({ model: 'claude-sonnet-5' }), codex({ model: 'gpt-5.6-luna' })],
   compare: {
-    control: math,
+    baseline: math,
     variants: [withJsdoc],
-    // Only Claude Code runs the variant; Codex runs the control alone.
+    // Only Claude Code runs the variant; Codex runs the baseline alone.
     agents: ['claude-code:claude-sonnet-5'],
   },
   questions: [{ question: 'Which multiply() is easier to read?', across: 'agent', diff: true }],

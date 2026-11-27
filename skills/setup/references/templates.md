@@ -9,7 +9,7 @@ edit.
 Say the project has `skills/acme-billing/SKILL.md`, with two rules among others: "money is an
 integer number of cents, in a column whose name ends in `_cents`" and "every money column has a
 `currency char(3)` beside it". A capable agent without the skill writes `numeric(10,2)` and no
-currency, so the rules tell the arms apart. The task asks for the table, not the rules.
+currency, so the rules tell the environments apart. The task asks for the table, not the rules.
 
 ```ts
 // evals/environments.ts
@@ -35,7 +35,7 @@ import { plain, withSkill } from './environments.ts'
 const migration = 'migrations/001_invoices.sql'
 
 export default defineEval({
-  compare: { control: plain, variants: [withSkill] },
+  compare: { baseline: plain, variants: [withSkill] },
   graders: [
     hasFile(migration, /create table[^;]*invoices/i, {
       name: 'creates-invoices',
@@ -58,7 +58,7 @@ export default defineEval({
 
 Read the skill you're evaluating and choose its own most specific rules that a file or a command
 can check; the example's rules are only a shape. A rule every agent already follows shows no
-lift (both arms `2 of 2`), which is a real answer but a dull first run.
+lift (both environments `2 of 2`), which is a real answer but a dull first run.
 
 The canary and the oracle: profiles in `reeval.config.ts` whose fake agent writes a wrong and a
 right answer. Write the oracle's answer differently from the one you had in mind (other column
@@ -153,7 +153,7 @@ export default defineEval({
   A toolchain other than Node goes in `sandbox: docker({ from: 'python:3.12-slim' })` on the
   environment.
 - Choose a task the size of a small PR. A task the repo's tests can't see needs a hidden test.
-- A big repo's whole suite can take minutes an attempt: check with its typecheck and the one
+- A big repo's whole suite can take minutes a trial: check with its typecheck and the one
   spec the task touches.
 - An install script that downloads a browser (puppeteer, Playwright) can fail in the sandbox.
   `npm ci --ignore-scripts` skips it, and the typecheck and most tests still run.
@@ -161,7 +161,7 @@ export default defineEval({
 ## D. A rules file, with and without
 
 The repo has no skills, but it has agent rules (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`). The
-control works in the repo without them; the variant gets the same file back as `rules`, which
+baseline works in the repo without them; the variant gets the same file back as `rules`, which
 reeval writes where its agent reads them. `acme-cli`'s `AGENTS.md` says that each user-facing
 change adds a line to `CHANGELOG.md`, and that each module's test sits beside it as
 `*.test.ts`. Neither shows in the code around a change.
@@ -191,7 +191,7 @@ import { inDiff, succeeded } from 'reeval/graders'
 import { repo, withRules } from './environments.ts'
 
 export default defineEval({
-  compare: { control: repo, variants: [withRules] },
+  compare: { baseline: repo, variants: [withRules] },
   graders: [
     inDiff('CHANGELOG.md'),
     inDiff('src/**/*.test.ts'),
@@ -205,21 +205,21 @@ export default defineEval({
 ```
 
 - Leave out every rules file the agent might read (`!AGENTS.md`, `!CLAUDE.md`, `!GEMINI.md`),
-  and any doc that repeats the rules you check (`!CONTRIBUTING.md`): a control that still
-  finds them isn't a control.
-- A mature repo's conventions show in its code, so both arms often pass. That's the answer to
+  and any doc that repeats the rules you check (`!CONTRIBUTING.md`): a baseline that still
+  finds them isn't a baseline.
+- A mature repo's conventions show in its code, so both environments often pass. That's the answer to
   "does the rules file change anything here?", and the eval stays useful as a regression check
   across models and harnesses.
 - The prompt asks for the change, never for a changelog line or a test: that's what the rules
   file should add.
-- `inDiff` reads the attempt's diff, so it needs no oracle; a `compiles` check needs
+- `inDiff` reads the trial's diff, so it needs no oracle; a `compiles` check needs
   none either.
 
 ## C. A subject you researched
 
 The user wants to know whether agents use Zod 4 correctly. Research found that Zod 4 moved string
 formats to the top level (`z.email()`, not `z.string().email()`). The variant gets a short skill
-you wrote from that research; the control gets nothing.
+you wrote from that research; the baseline gets nothing.
 
 ```md
 <!-- skills/zod-4/SKILL.md -->
@@ -261,7 +261,7 @@ const accepts = `node -e "import('./user.js').then(({ User }) => {
 })"`
 
 export default defineEval({
-  compare: { control: zod, variants: [withZodSkill] },
+  compare: { baseline: zod, variants: [withZodSkill] },
   graders: [
     succeeded('validates emails'),
     hasFile('user.js', /z\.email\(/, { name: 'uses-z-email' }),

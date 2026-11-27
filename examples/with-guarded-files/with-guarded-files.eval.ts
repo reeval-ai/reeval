@@ -6,7 +6,7 @@ const math = defineEnvironment('math', ({ directory }) => ({ files: directory('.
 export default defineEval({
   environment: math,
   graders: [
-    // required: a changed dependency file makes the attempt score 0, however well the rest went.
+    // required: a changed dependency file makes the trial score 0, however well the rest went.
     notInDiff(['package.json', 'package-lock.json'], { required: true }),
     succeeded('node --test'),
   ],

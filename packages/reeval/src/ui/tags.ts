@@ -55,19 +55,19 @@ export class Tagger {
   #tags = new Map<string, string>()
   #taken = new Set<string>()
 
-  addFile(attempts: Array<Pick<CollectedEval, 'id' | 'name'>>): void {
-    const evals = [...new Map(attempts.map((a) => [a.id, a])).values()]
+  addFile(trials: Array<Pick<CollectedEval, 'id' | 'name'>>): void {
+    const evals = [...new Map(trials.map((a) => [a.id, a])).values()]
     const fresh = evals.filter((e) => !this.#tags.has(e.id))
     for (const [id, tag] of fileTags(fresh, this.#taken)) this.#tags.set(id, tag)
   }
 
   /** `greet#1`: the eval's tag and run number. */
-  label(id: string, attempt: number): string {
+  label(id: string, trial: number): string {
     let tag = this.#tags.get(id)
     if (!tag) {
       this.addFile([{ id, name: id.split(' › ').at(-1) ?? id }])
       tag = this.#tags.get(id) ?? 'eval'
     }
-    return `${tag}#${attempt}`
+    return `${tag}#${trial}`
   }
 }

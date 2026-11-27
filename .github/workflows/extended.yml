@@ -84,7 +84,7 @@ jobs:
     steps:
       # Recorded runs' artifact paths pass Windows' 260-character limit, which git keeps by default.
       - run: git config --system core.longpaths true
-      # Scanning every file the tests write and every process they start makes attempts on a busy
+      # Scanning every file the tests write and every process they start makes trials on a busy
       # runner take tens of seconds; the runner is thrown away after the job.
       - run: powershell -Command "Set-MpPreference -DisableRealtimeMonitoring \$true"
         continue-on-error: true

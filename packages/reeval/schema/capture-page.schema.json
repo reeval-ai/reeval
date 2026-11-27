@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "Generated from CapturePageFile in src/types.ts by `pnpm schema:update`; don't edit. What the browser saw on one c.capture(): an attempt's artifacts/<name>.capture.json.",
+  "$comment": "Generated from CapturePageFile in src/types.ts by `pnpm schema:update`; don't edit. What the browser saw on one c.capture(): a trial's artifacts/<name>.capture.json.",
   "title": "CapturePageFile",
   "$ref": "#/$defs/CapturePageFile",
   "$defs": {

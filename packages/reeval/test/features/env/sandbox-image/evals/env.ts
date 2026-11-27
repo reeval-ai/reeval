@@ -6,5 +6,5 @@ const sandbox =
     ? docker({ from: 'python:3.12-slim', id: 'python' })
     : fakeSandbox({ dir: new URL('../sandboxes', import.meta.url), id: 'python' })
 
-/** The attempt's sandbox is the one this environment names. */
+/** The trial's sandbox is the one this environment names. */
 export const python = defineEnvironment('python', { sandbox })

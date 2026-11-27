@@ -36,7 +36,7 @@ import { buildSteps, pluginBuildId, pluginCall } from '../environment/plugins.ts
 import { stepCommand } from '../environment.ts'
 import { ownFile } from '../root.ts'
 import type {
-  AttemptImage,
+  TrialImage,
   DockerSandboxDescriptor,
   HarnessDescriptor,
   PluginBuild,
@@ -229,7 +229,7 @@ async function harnessBase(
   root: string,
   signal: AbortSignal,
   b: Builds,
-): Promise<Layer & { info: ImageInfo; dockerfile: AttemptImage['dockerfile']; layers: Layer[] }> {
+): Promise<Layer & { info: ImageInfo; dockerfile: TrialImage['dockerfile']; layers: Layer[] }> {
   const { engine } = b
   /**
    * `from` with the harness baked on. Its key is what `from` named when it was built, unless the
@@ -364,11 +364,11 @@ async function harnessBase(
   return { ...base, info, dockerfile: null, layers: [base] }
 }
 
-/** A plugin build baked into an attempt's image: which build, its layer, and where it left the plugin. */
+/** A plugin build baked into a trial's image: which build, its layer, and where it left the plugin. */
 export type BuiltPlugin = { id: string; tag: string; dir: string; commit: string | null }
 
-/** What a Docker sandbox's `prepare` returns: the attempt's image, and the plugins built into it. */
-export type PreparedImage = AttemptImage & { plugins?: BuiltPlugin[] }
+/** What a Docker sandbox's `prepare` returns: the trial's image, and the plugins built into it. */
+export type PreparedImage = TrialImage & { plugins?: BuiltPlugin[] }
 
 /** A plugin build's layer spec, from its source fetched on the host. */
 export async function pluginBuildSpec(
@@ -389,7 +389,7 @@ export async function pluginBuildSpec(
 }
 
 /**
- * The image an attempt's container starts from: the sandbox's image for the harness, plus a
+ * The image a trial's container starts from: the sandbox's image for the harness, plus a
  * cached layer with its `install` commands, then one cached layer per built plugin, each built if
  * missing. Each build's log goes to `.reeval/cache/images/` under `root`.
  */

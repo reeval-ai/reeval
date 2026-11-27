@@ -28,7 +28,7 @@ in [`examples/profiles.ts`](../profiles.ts).
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the screenshot, in the attempt's directory under `.reeval/runs/`:
+**What to look at:** the screenshot, in the trial's directory under `.reeval/runs/`:
 
 ```text
 .reeval/runs/<run>/with-capture-179838/fake-site-fake-22c560/1/

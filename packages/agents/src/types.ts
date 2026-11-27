@@ -180,7 +180,7 @@ export type ModelCallEvent = {
    * `main` for one of the agent's own steps, `side` for a call its CLI made around them: a
    * session title, a web search's own model call, Antigravity's Flash Lite calls. A call is
    * `main` when its tokens are one of the turn's steps' as the harness reported them. Otherwise
-   * it's `side` when its request declared at most one tool while another call in the attempt
+   * it's `side` when its request declared at most one tool while another call in the trial
    * declared more, or when another model served it than served the turn's other calls, and `main`
    * when neither holds. Absent in records from before roles.
    */
@@ -263,7 +263,7 @@ export type CostUsd = {
  * The model provider ended a turn, not the agent: out of credit, over its quota, rate limited or
  * overloaded, with the HTTP status of the last model call the egress gateway brokered when that
  * call failed (`null` when it didn't, as in a stream that failed inside an HTTP 200, or none was).
- * The attempt is then an infra error, so `--retry-errors` runs it again.
+ * The trial is then an infra error, so `--retry-errors` runs it again.
  */
 export type ProviderStopRecord = {
   cause: 'credit' | 'quota' | 'rate_limit' | 'overloaded'

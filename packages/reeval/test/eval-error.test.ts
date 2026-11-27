@@ -1,9 +1,9 @@
-// `EvalError` and the attempt's `failure`: what a task's throw records, how it prints and how it's
-// queried. The fixture `history/eval-error` checks the same from inside an attempt.
+// `EvalError` and the trial's `failure`: what a task's throw records, how it prints and how it's
+// queried. The fixture `history/eval-error` checks the same from inside a trial.
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
-import { recordTaskFailure } from '../src/attempt/record.ts'
-import type { Attempt } from '../src/attempt/state.ts'
+import { recordTaskFailure } from '../src/trial/record.ts'
+import type { Trial } from '../src/trial/state.ts'
 // biome-ignore lint/suspicious/noShadowRestrictedNames: reeval's EvalError stands in for the global one
 import { EvalError } from '../src/eval-error.ts'
 import { errorFrom } from '../src/language-runner/transport.ts'
@@ -12,7 +12,7 @@ import { fakeConfig, project, readRun, runCli } from './helpers.ts'
 
 function failed(error: unknown, turns = 1) {
   const record = { error: { kind: 'assertion', message: String(error) } } as EvalRecord
-  const a = { record, turns: Array(turns).fill({}) } as unknown as Attempt
+  const a = { record, turns: Array(turns).fill({}) } as unknown as Trial
   recordTaskFailure(a, error, '/project')
   return record
 }
@@ -52,7 +52,7 @@ describe('EvalError', () => {
   })
 })
 
-describe("the attempt's failure", () => {
+describe("the trial's failure", () => {
   test("an EvalError records its reason, masked meta, turn and stack, and is the error's message", () => {
     const error = new EvalError({
       reason: 'the build\nfails',
@@ -115,10 +115,10 @@ describe("the attempt's failure", () => {
     )
   })
 
-  test("an attempt whose error isn't the task's has no task failure", () => {
+  test("a trial whose error isn't the task's has no task failure", () => {
     const error = new Error('expected 1 to be 2')
     const infra = { error: { kind: 'infra', message: 'x' } } as EvalRecord
-    recordTaskFailure({ record: infra, turns: [] } as unknown as Attempt, error, '/project')
+    recordTaskFailure({ record: infra, turns: [] } as unknown as Trial, error, '/project')
     assert.equal(infra.failure, undefined)
   })
 
@@ -154,7 +154,7 @@ export default defineEval({
       /#1 {2}0% {2}TypeError: x\.y is not a function\n +before the first turn\n +at task \(evals\/b\.eval\.ts:5:\d+\)/,
     )
     const { run } = readRun(p.dir)
-    const [a, b] = run.evals.map((e) => e.attempts[0]?.failure)
+    const [a, b] = run.evals.map((e) => e.trials[0]?.failure)
     assert.deepEqual(
       { ...a, stack: undefined },
       {
@@ -172,7 +172,7 @@ export default defineEval({
     assert.equal(b?.name, 'TypeError')
     const q = await runCli(p.dir, [
       'query',
-      'SELECT eval_key, reason FROM failing_attempts ORDER BY eval_key',
+      'SELECT eval_key, reason FROM failing_trials ORDER BY eval_key',
       '--json',
     ])
     assert.equal(q.code, 0, q.stderr)

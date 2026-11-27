@@ -8,8 +8,8 @@ const source = 'evals/landing.eval.ts'
 const task =
   PREAMBLE +
   'evals/landing.eval.ts builds a landing page and screenshots it as `home`. Turn it into a ' +
-  'skill comparison: the control has no skill, the variant gets the design skill in ' +
-  "skills/design, 2 runs per cell. Add a question asking which arm's landing page follows " +
+  'skill comparison: the baseline has no skill, the variant gets the design skill in ' +
+  "skills/design, 2 trials per cell. Add a question asking which environment's landing page follows " +
   "the design guidelines more closely, and let the question see each side's `home` " +
   'screenshot. Keep the existing grader. `npx reeval run --dry-run` must plan it and it must ' +
   "typecheck with `npx tsc -p .`; you don't need to run it."
@@ -20,23 +20,23 @@ export default defineEval({
   compare: channels(project('landing', 'compare')),
   graders: [
     succeeded('typechecks'),
-    defineGrader('plans-2-cells-and-4-attempts', {
+    defineGrader('plans-2-cells-and-4-trials', {
       grade: (c) => {
         const totals = planOf(c)?.totals
-        return totals?.evals === 1 && totals.cells === 2 && totals.attempts === 4
+        return totals?.evals === 1 && totals.cells === 2 && totals.trials === 4
       },
     }),
-    defineGrader('a-control-and-a-variant', {
+    defineGrader('a-baseline-and-a-variant', {
       grade: (c) =>
         planOf(c)
           ?.evals[0]?.cells.map((cell) => cell.role)
           .sort()
-          .join() === 'control,variant',
+          .join() === 'baseline,variant',
     }),
     defineGrader('asks-a-compare-question', {
       grade: (c) => /design/i.test(question(c)?.question ?? ''),
     }),
-    defineGrader('pairs-the-two-arms', {
+    defineGrader('pairs-the-two-environments', {
       grade: (c) => question(c)?.across.includes('environment') ?? false,
     }),
     defineGrader('the-question-sees-screenshots', {

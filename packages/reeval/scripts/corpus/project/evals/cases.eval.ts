@@ -1,4 +1,4 @@
-import { defineEnvironment, defineEval } from 'reeval'
+import { defineEnvironment, defineEval, regression } from 'reeval'
 import { succeeded } from 'reeval/graders'
 
 const plain = defineEnvironment('plain', {})
@@ -10,7 +10,8 @@ const withHouseGreeting = defineEnvironment('with-house-greeting', ({ skill }) =
 // record has a family with rates and a paired lift.
 export default defineEval({
   cases: [{ key: 'Ada' }, { key: 'Grace' }],
-  compare: { control: plain, variants: [withHouseGreeting], minLift: 0.2 },
+  compare: { baseline: plain, variants: [withHouseGreeting], minLift: 0.2 },
+  target: regression(),
   graders: [succeeded('grep -q Ahoy greet.js')],
   task: async (c, { key: name }) => {
     await c.send(`Write greet.js that greets ${name} in our house style.`)

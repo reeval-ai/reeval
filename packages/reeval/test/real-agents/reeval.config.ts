@@ -15,14 +15,14 @@ export default defineConfig({
   profiles: {
     // The judge-free evals tagged smoke, once, on the cheap model.
     smoke: {
-      limit: { runs: 1, compare: false, agents: ['cursor:composer-2.5'] },
+      limit: { trials: 1, compare: false, agents: ['cursor:composer-2.5'] },
       tags: ['smoke'],
-      budget: { attempts: 5, duration: '15m' },
+      budget: { trials: 5, duration: '15m' },
     },
-    // evals/questions.eval.ts on Cursor and pi, 4 attempts, its question answered by the
+    // evals/questions.eval.ts on Cursor and pi, 4 trials, its question answered by the
     // analysis model.
-    questions: { tags: ['questions'], budget: { attempts: 4 } },
-    // The CI history on R2, kept indefinitely with every attempt's debug data. The keys are
+    questions: { tags: ['questions'], budget: { trials: 4 } },
+    // The CI history on R2, kept indefinitely with every trial's debug data. The keys are
     // GitHub Actions secrets and the endpoint and bucket repository variables, set on the
     // recording step only.
     ci: {

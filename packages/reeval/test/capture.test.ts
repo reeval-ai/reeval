@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { deflateRawSync } from 'node:zlib'
-import { capturePage, msysTreeKill } from '../src/attempt/capture.ts'
-import type { Attempt } from '../src/attempt/state.ts'
+import { capturePage, msysTreeKill } from '../src/trial/capture.ts'
+import type { Trial } from '../src/trial/state.ts'
 import { fakeInstructions } from '../src/capture/fake-instructions.ts'
 import {
   cacheLabel,
@@ -306,7 +306,7 @@ test("c.capture()'s timeout starts once a downloaded browser is in hand", {
     signal: new AbortController().signal,
     report: () => {},
     record: {},
-  } as unknown as Attempt
+  } as unknown as Trial
   try {
     const error = await capturePage(a, 3000, { name: 'home', timeout: '1s' }).then(
       () => undefined,

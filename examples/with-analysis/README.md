@@ -33,15 +33,15 @@ one profile you need.
 ```text
 analysis 20261126T080940Z_…
 
-TL;DR (medium)  The agent adds a tested multiply on every try.
+TL;DR (medium)  The agent adds a tested multiply on every trial.
 
 Results
-  - The agent adds a tested multiply on every try. [F1]
+  - The agent adds a tested multiply on every trial. [F1]
 
 Suggested actions
   none: nothing here is worth acting on
 
-Confidence: medium. A few attempts, on a fake agent.
+Confidence: medium. A few trials, on a fake agent.
 
 fake-analysis · analysis-v14 · digest v15 · 0 in / 0 out tokens · 0s · 1 citations checked, 0 invalid, 0 dropped · …
 ```

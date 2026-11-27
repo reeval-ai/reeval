@@ -1,0 +1,14 @@
+no profile · 5 evals · 10 cells · 20 trials · budget trials 20 ✓
+best-of-3        a/-/docker  baseline  gated any  ×2
+                 b/-/docker  baseline  gated any  ×2
+best-of-5-gated  a/-/docker  baseline  gated      ×2  target regression(1)
+                 b/-/docker  baseline  gated      ×2
+fixed            a/-/docker  baseline  gated any  ×2
+                 b/-/docker  baseline  gated any  ×2
+inherits-it      a/-/docker  baseline  gated any  ×2
+                 b/-/docker  baseline  gated any  ×2
+trials-2         a/-/docker  baseline  gated any  ×2
+                 b/-/docker  baseline  gated any  ×2
+excluded: —
+image docker · cursor · 5 evals
+  base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

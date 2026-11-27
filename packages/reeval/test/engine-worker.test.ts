@@ -124,18 +124,18 @@ const wireTests = (msg: CollectedWire) =>
     name: t.name,
     groups: t.groups,
     mode: t.mode,
-    ...(t.mode === 'run' && t.attempt && (t.attempt.name !== undefined || t.attempt.inputs)
+    ...(t.mode === 'run' && t.trial && (t.trial.name !== undefined || t.trial.inputs)
       ? {
-          attempt: {
-            ...(t.attempt.name !== undefined ? { name: t.attempt.name } : {}),
-            ...(t.attempt.inputs ? { inputs: t.attempt.inputs } : {}),
+          trial: {
+            ...(t.trial.name !== undefined ? { name: t.trial.name } : {}),
+            ...(t.trial.inputs ? { inputs: t.trial.inputs } : {}),
           },
         }
       : {}),
   }))
 
 describe('startWorker', () => {
-  test('a cancel aborts the running attempts; an orphaned worker cancels, finishes and exits', async () => {
+  test('a cancel aborts the running trials; an orphaned worker cancels, finishes and exits', async () => {
     const waitsBody = `
 registerTest('waits', { mode: 'run' }, async (h) => {
   await new Promise((resolve) => h.signal.addEventListener('abort', resolve))
@@ -157,7 +157,7 @@ registerTest('waits', { mode: 'run' }, async (h) => {
     assert.equal(canceled?.result.errors[0]?.message, 'The run was canceled')
   })
 
-  test('an orphaned worker with a running attempt disconnects and exits', async () => {
+  test('an orphaned worker with a running trial disconnects and exits', async () => {
     const orphan = fakeChannel()
     startWorker(orphan.channel)
     const second = await evalFile(`
@@ -172,14 +172,14 @@ registerTest('waits', { mode: 'run' }, async (h) => {
     assert.deepEqual(orphan.exits.slice(0, 1), [0])
   })
 
-  test('says hello, collects, reports the tests with their attempts, harnesses and trait keys, and exits', async () => {
+  test('says hello, collects, reports the tests with their trials, harnesses and trait keys, and exits', async () => {
     const c = fakeChannel()
     startWorker(c.channel)
     assert.deepEqual(c.sent[0], { t: 'hello', protocol: PROTOCOL })
     const { file, run, id } = await evalFile(`
 if (!(globalThis as any).__es.getRunContext().config.root) throw new Error('no run context')
 registerGroup('g', 'run', () => {
-  registerTest('a [x#1]', { mode: 'run', attempt: { name: 'a' } }, async () => {})
+  registerTest('a [x#1]', { mode: 'run', trial: { name: 'a' } }, async () => {})
 })
 registerTest('todo', { mode: 'todo' }, async () => {})
 declarePlanned(['a', 'b'], ['lang'])
@@ -190,7 +190,7 @@ declarePlanned(['b', 'c'], ['lang', 'os'])
     assert.deepEqual(c.types(), ['hello', 'collected', 'done'])
     const collected = collectedMsg(c.sent)
     assert.deepEqual(wireTests(collected), [
-      { index: 0, name: 'a [x#1]', groups: ['g'], mode: 'run', attempt: { name: 'a' } },
+      { index: 0, name: 'a [x#1]', groups: ['g'], mode: 'run', trial: { name: 'a' } },
       { index: 1, name: 'todo', groups: [], mode: 'todo' },
       { index: 2, name: stubEvalName(id), groups: [], mode: 'skip' },
     ])
@@ -199,15 +199,15 @@ declarePlanned(['b', 'c'], ['lang', 'os'])
     assert.deepEqual(c.exits, [0])
   })
 
-  test("with inputs asked for, puts what the file's load read first in each attempt's inputs", async () => {
+  test("with inputs asked for, puts what the file's load read first in each trial's inputs", async () => {
     const c = fakeChannel()
     startWorker(c.channel)
     const { root, file, run, id } = await evalFile(`
 import { readFileSync } from 'node:fs'
 import { NAME } from './helper.ts'
 readFileSync(new URL('./data.json', import.meta.url))
-registerTest(NAME, { mode: 'run', attempt: { name: 'a' } }, async () => {})
-registerTest('b', { mode: 'run', attempt: { name: 'b', inputs: [{ path: '/x', kind: 'file' }] } }, async () => {})
+registerTest(NAME, { mode: 'run', trial: { name: 'a' } }, async () => {})
+registerTest('b', { mode: 'run', trial: { name: 'b', inputs: [{ path: '/x', kind: 'file' }] } }, async () => {})
 registerTest('todo', { mode: 'todo' }, async () => {})
 `)
     writeFileSync(join(root, 'evals/helper.ts'), "export const NAME: string = 'a'\n")
@@ -221,13 +221,13 @@ registerTest('todo', { mode: 'todo' }, async () => {})
     ]
     const collected = collectedMsg(c.sent)
     assert.deepEqual(wireTests(collected), [
-      { index: 0, name: 'a', groups: [], mode: 'run', attempt: { name: 'a', inputs: loaded } },
+      { index: 0, name: 'a', groups: [], mode: 'run', trial: { name: 'a', inputs: loaded } },
       {
         index: 1,
         name: 'b',
         groups: [],
         mode: 'run',
-        attempt: { name: 'b', inputs: [...loaded, { path: '/x', kind: 'file' }] },
+        trial: { name: 'b', inputs: [...loaded, { path: '/x', kind: 'file' }] },
       },
       { index: 2, name: 'todo', groups: [], mode: 'todo' },
       { index: 3, name: stubEvalName(id), groups: [], mode: 'skip' },
@@ -241,14 +241,14 @@ registerTest('todo', { mode: 'todo' }, async () => {})
     startWorker(c.channel)
     const { root, file, run } = await evalFile(`
 import { NAME } from './helper.ts'
-registerTest(NAME, { mode: 'run', attempt: { name: 'a' } }, async () => {})
+registerTest(NAME, { mode: 'run', trial: { name: 'a' } }, async () => {})
 `)
     writeFileSync(join(root, 'evals/helper.ts'), "export const NAME: string = 'a'\n")
     writeFileSync(join(root, 'evals/tsconfig.json'), '{ "extends": "../tsconfig.base.json" }\n')
     writeFileSync(join(root, 'tsconfig.base.json'), '{ "compilerOptions": { "strict": true } }\n')
     c.send({ t: 'init', run: { ...run, inputs: true }, file, select: null })
     await c.exit
-    assert.deepEqual((c.sent[1] as { tests: Array<{ attempt?: unknown }> }).tests[0]?.attempt, {
+    assert.deepEqual((c.sent[1] as { tests: Array<{ trial?: unknown }> }).tests[0]?.trial, {
       name: 'a',
       inputs: [
         { path: file, kind: 'eval' },
@@ -270,7 +270,7 @@ import dep from 'dep'
 import { H } from '#h'
 import { S } from '${join(shared, 's.ts')}'
 readFileSync(new URL('../fixture/package.json', import.meta.url))
-registerTest(dep + H + S, { mode: 'run', attempt: { name: 'a' } }, async () => {})
+registerTest(dep + H + S, { mode: 'run', trial: { name: 'a' } }, async () => {})
 `)
     writeFileSync(join(root, 'package.json'), '{ "name": "project" }\n')
     writeFileSync(join(root, 'evals/package.json'), '{ "imports": { "#h": "./lib/h.ts" } }\n')
@@ -287,7 +287,7 @@ registerTest(dep + H + S, { mode: 'run', attempt: { name: 'a' } }, async () => {
     writeFileSync(join(root, 'fixture/package.json'), '{}\n')
     c.send({ t: 'init', run: { ...run, inputs: true }, file, select: null })
     await c.exit
-    assert.deepEqual((c.sent[1] as { tests: Array<{ attempt?: unknown }> }).tests[0]?.attempt, {
+    assert.deepEqual((c.sent[1] as { tests: Array<{ trial?: unknown }> }).tests[0]?.trial, {
       name: 'a',
       inputs: [
         { path: file, kind: 'eval' },
@@ -308,7 +308,7 @@ registerTest(dep + H + S, { mode: 'run', attempt: { name: 'a' } }, async () => {
     const c = fakeChannel()
     startWorker(c.channel)
     const { file, run } = await evalFile(`
-const gate = () => ({ limits: { attempts: 1 }, rank: { eval: 'e', file: 'f', order: 0, n: 1, cell: 0 } })
+const gate = () => ({ limits: { trials: 1 }, rank: { eval: 'e', file: 'f', order: 0, n: 1, cell: 0 } })
 registerTest('gated', { mode: 'run', gate }, async (h) => {
   console.log('from gated')
   h.progress({ kind: 'sandbox' })
@@ -347,7 +347,7 @@ registerTest('not selected', { mode: 'run' }, async () => { throw new Error('ran
     assert.equal((c.sent.find((m) => m.t === 'log') as { index?: number }).index, 0)
   })
 
-  test('logs outside an attempt go to the file; a record after a timeout follows its result', async () => {
+  test('logs outside a trial go to the file; a record after a timeout follows its result', async () => {
     const c = fakeChannel()
     startWorker(c.channel)
     const { file, run } = await evalFile(`

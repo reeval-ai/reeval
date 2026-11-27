@@ -72,9 +72,9 @@ Run the evaluation:
 npx reeval run recommendation
 ```
 
-The grader's score counts toward the attempt's score like any other grader's.
+The grader's score counts toward the trial's score like any other grader's.
 
-When the provider still fails the model call after its retries, or the judge times out, the attempt ends in an infra error, which `--retry-errors` runs again. When the model refuses or answers malformed, the grader records an `error` and scores 0. The other graders still run.
+When the provider still fails the model call after its retries, or the judge times out, the trial ends in an infra error, which `--retry-errors` runs again. When the model refuses or answers malformed, the grader records an `error` and scores 0. The other graders still run.
 
 ## Choose what the judge sees
 

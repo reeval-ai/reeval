@@ -1,0 +1,11 @@
+profile off (--profile) · 5 evals · 5 cells · 7 trials
+compare-cases     a/base/docker  baseline  gated any  ×2  2 cases · compare off (profile off)
+                  case a         a/base/docker ×1
+                  case b         a/base/docker ×1
+compare-trials-1  a/base/docker  baseline  gated any  ×1  compare off (profile off)
+compare-trials-2  a/base/docker  baseline  gated any  ×2  compare off (profile off)
+compare           a/base/docker  baseline  gated any  ×1  compare off (profile off)
+no-compare        a/base/docker  baseline  gated any  ×1
+excluded: —
+image docker · cursor · 5 evals
+  base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

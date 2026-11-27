@@ -1,7 +1,7 @@
 # with-query
 
 **Shows:** SQL over your runs with `reeval query`. The eval compares a changelog skill against no
-skill, so there's something to ask about: `failing_attempts` lists each failed attempt with its
+skill, so there's something to ask about: `failing_trials` lists each failed trial with its
 score, `lift` gives the difference in mean score with its interval, and `--json` prints any of
 them for a program.
 
@@ -13,7 +13,7 @@ and `pnpm reeval image build --profile claude-code` once.
 
 ```bash
 pnpm eval
-pnpm reeval query "SELECT cell_key, score FROM failing_attempts"
+pnpm reeval query "SELECT cell_key, score FROM failing_trials"
 ```
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
@@ -30,7 +30,7 @@ one profile you need.
 history, unless `--run last` narrows it:
 
 ```text
-$ pnpm reeval query "SELECT cell_key, score FROM failing_attempts"
+$ pnpm reeval query "SELECT cell_key, score FROM failing_trials"
 history.db: 1 runs
 cell_key        score
 fake/math/fake  0.5
@@ -38,8 +38,8 @@ fake/math/fake  0.5
 fake/math/fake  0.5
 fake/math/fake  0.5
 
-$ pnpm reeval query "SELECT variant, control_mean_score, variant_mean_score, points, lo, hi FROM lift"
-variant    control_mean_score  variant_mean_score  points  lo      hi
+$ pnpm reeval query "SELECT variant, baseline_mean_score, variant_mean_score, points, lo, hi FROM lift"
+variant    baseline_mean_score  variant_mean_score  points  lo      hi
 changelog  0.5                 1                   0.5     -0.102  0.85
 ```
 
@@ -48,7 +48,7 @@ changelog  0.5                 1                   0.5     -0.102  0.85
 
 | File | What it is |
 |---|---|
-| [`with-query.eval.ts`](./with-query.eval.ts) | The eval: the control, the variant and two graders |
+| [`with-query.eval.ts`](./with-query.eval.ts) | The eval: the baseline, the variant and two graders |
 | [`skills/changelog/SKILL.md`](./skills/changelog/SKILL.md) | The skill the variant adds |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |

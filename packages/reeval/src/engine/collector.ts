@@ -1,4 +1,4 @@
-// The eval file's tree of groups and attempts, as `evaluate` and `group` declare it, and which
+// The eval file's tree of groups and trials, as `evaluate` and `group` declare it, and which
 // of them run. It follows Vitest's collector: a group's body runs after the code around it (the
 // file's top level first, then each group in order), and `.only` narrows its own file only.
 import { UsageError } from '../errors.ts'
@@ -13,7 +13,7 @@ type Suite = {
   containsOnly: boolean
 }
 
-/** One registered test: an attempt, a skipped eval or a placeholder. */
+/** One registered test: a trial, a skipped eval or a placeholder. */
 export type CollectedTest = {
   type: 'test'
   /** Its place in the file, in declaration order. */

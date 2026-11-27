@@ -1,4 +1,4 @@
-// Antigravity in Docker, in its own file so its attempts don't share docker.test.ts's time budget.
+// Antigravity in Docker, in its own file so its trials don't share docker.test.ts's time budget.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { describe, test } from 'node:test'
@@ -42,7 +42,7 @@ const realAgy = {
 
 describe('antigravity in docker', () => {
   test(
-    'Antigravity attempts broker the key on its model endpoint only; without brokering the attempt fails closed',
+    'Antigravity trials broker the key on its model endpoint only; without brokering the trial fails closed',
     agyImage,
     async () => {
       const agyConfig = (sandbox: string) => `
@@ -59,7 +59,7 @@ export default defineConfig({ target: regression(),
 import { defineEval } from 'reeval'
 export default defineEval({
   task: async (c) => {
-  // The rejected key makes the attempt an infra error; the checks below still run, caught.
+  // The rejected key makes the trial an infra error; the checks below still run, caught.
   await c.send('Reply with the word hi.').catch(() => {})
   // Nothing in the sandbox holds the key: the CLI's own env had only the placeholder.
   const search = (needle: string) => c.exec(\`grep -rlsF --exclude-dir=proc --exclude-dir=sys --exclude-dir=dev \${needle} / || true\`)
@@ -190,7 +190,7 @@ export default defineEval({
       const { run, dir } = readRun(p.dir)
       assert.equal(liveContainers(run.runId), '')
       // The CLI's token counts reach the record, per turn and totaled, and never go negative.
-      const turns = run.evals[0]?.attempts[0]?.turns ?? []
+      const turns = run.evals[0]?.trials[0]?.turns ?? []
       for (const t of turns) {
         assert.ok(t.usage && t.usage.input > 0 && t.usage.output > 0, JSON.stringify(t.usage))
         assert.ok(t.usage.cacheRead >= 0, JSON.stringify(t.usage))

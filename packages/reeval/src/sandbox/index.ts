@@ -15,8 +15,8 @@ import { InfraError, RunStopped, type Sandbox } from './types.ts'
 
 export type SandboxOptions = {
   runId: string
-  /** The attempt's key, which a pooled machine's lease names. */
-  attempt?: string
+  /** The trial's key, which a pooled machine's lease names. */
+  trial?: string
   timeoutMs: number
   signal: AbortSignal
   /** Variables for every process in the sandbox. */
@@ -25,11 +25,11 @@ export type SandboxOptions = {
   image?: string
   /** The hosts of `tart({ hosts })` preflight kept, each with the image it prepared there. */
   hosts?: readonly PreparedHost[]
-  /** The saved image preflight prepared for a VM sandbox, which each attempt runs in a container of. */
+  /** The saved image preflight prepared for a VM sandbox, which each trial runs in a container of. */
   base?: SandboxBase
   /** The plugins with a `build`, which a sandbox that prepares its image on its machine builds there. */
   pluginBuilds?: readonly PluginSource[]
-  /** The attempt's harness, whose CLI `boat()` installs before the session's start is timed. */
+  /** The trial's harness, whose CLI `boat()` installs before the session's start is timed. */
   harness?: HarnessDescriptor
   /** The harness's credential, which the Docker egress gateway keeps out of the sandbox. */
   brokering?: Brokering
@@ -43,7 +43,7 @@ export type SandboxOptions = {
   egress: PlannedEgress
   /**
    * A gateway warning for the terminal (a refused brokered request), once per distinct text, and
-   * a few per attempt at most.
+   * a few per trial at most.
    */
   onWarning?: (text: string) => void
   /** Each new entry of the sandbox's `secretWarnings`, as the gateway finds it. */

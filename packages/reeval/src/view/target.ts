@@ -4,17 +4,17 @@
 import { plural } from '../text.ts'
 import type { Target } from '../types.ts'
 import { scorePercent as percent } from './report/format.ts'
-import type { EvalResult, ScoredAttempt } from './suite.ts'
+import type { EvalResult, ScoredTrial } from './suite.ts'
 
-const counts = (a: ScoredAttempt) => a.score !== null
+const counts = (a: ScoredTrial) => a.score !== null
 
 /**
- * The mean score, then what the eval is judged on against its target: `mean 86% · 4/5 runs at
- * 100%, worst 70%` (the worst only over several runs), `mean 86% · every run ≥ 70%, worst 70%`,
- * `mean 40% · 2/5 runs at 100% (pass@5)`, or with cases `mean 67% · 2/3 cases hit 100% (pass@2)`,
+ * The mean score, then what the eval is judged on against its target: `mean 86% · 4/5 trials at
+ * 100%, worst 70%` (the worst only over several trials), `mean 86% · every trial ≥ 70%, worst 70%`,
+ * `mean 40% · 2/5 trials at 100% (pass@5)`, or with cases `mean 67% · 2/3 cases hit 100% (pass@2)`,
  * as the record judges a capability case by case (`(best of 3)` where a majority decides), then
  * any infra errors; an older record's `metric` reads `86% ≥ 80%`, or `86%` with no threshold. Its
- * outcome in words when no attempt counted.
+ * outcome in words when no trial counted.
  */
 export function targetNumber(e: EvalResult): string {
   if (e.todo) return 'todo'
@@ -39,15 +39,15 @@ export function targetNumber(e: EvalResult): string {
   return `mean ${percent(meanScore, t.threshold)} · ${judgedOn(e, runs, t)}${more}`
 }
 
-function judgedOn(e: EvalResult, runs: ScoredAttempt[], t: Target): string {
-  const hits = runs.filter((a) => a.outcome === 'pass').length
+function judgedOn(e: EvalResult, trials: ScoredTrial[], t: Target): string {
+  const hits = trials.filter((a) => a.outcome === 'pass').length
   const at = t.threshold === 1 ? 'at 100%' : `≥ ${percent(t.threshold)}`
-  const of = `${hits}/${plural(runs.length, 'run')} ${at}`
+  const of = `${hits}/${plural(trials.length, 'trial')} ${at}`
   const bestOf = (e.cells ?? e.cases?.flatMap((k) => k.cells) ?? []).find((c) => c.bestOf)?.bestOf
   if (bestOf) return `${of} (best of ${bestOf})`
-  if (t.kind === 'capability' && runs.some((a) => a.case !== null)) {
-    const cases = new Map<string, ScoredAttempt[]>()
-    for (const a of runs) {
+  if (t.kind === 'capability' && trials.some((a) => a.case !== null)) {
+    const cases = new Map<string, ScoredTrial[]>()
+    for (const a of trials) {
       const key = `${a.case}\0${a.cell}`
       cases.set(key, [...(cases.get(key) ?? []), a])
     }
@@ -57,10 +57,10 @@ function judgedOn(e: EvalResult, runs: ScoredAttempt[], t: Target): string {
     const bar = t.threshold === 1 ? '100%' : `≥ ${percent(t.threshold)}`
     return `${hit}/${plural(groups.length, 'case')} hit ${bar} (pass@${k})`
   }
-  if (t.kind === 'capability') return `${of} (pass@${runs.length})`
-  const worst = Math.min(...runs.map((a) => a.score ?? 0))
-  const head = hits === runs.length && t.threshold < 1 ? `every run ${at}` : of
-  return `${head}${worst < 1 && runs.length > 1 ? `, worst ${percent(worst, t.threshold)}` : ''}`
+  if (t.kind === 'capability') return `${of} (pass@${trials.length})`
+  const worst = Math.min(...trials.map((a) => a.score ?? 0))
+  const head = hits === trials.length && t.threshold < 1 ? `every trial ${at}` : of
+  return `${head}${worst < 1 && trials.length > 1 ? `, worst ${percent(worst, t.threshold)}` : ''}`
 }
 
 /** How the eval stands: `pass` and `fail` only for a blocking target, `report` otherwise. */

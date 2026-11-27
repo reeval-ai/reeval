@@ -1,9 +1,9 @@
 # with-egress-deny-all
 
 **Shows:** an agent with no network. The eval sets `egress: 'deny-all'`: the container is
-detached from every Docker network, and the gateway refuses every request except what the attempt
+detached from every Docker network, and the gateway refuses every request except what the trial
 needs (the agent's own API, brokered secrets' hosts and MCP servers' hosts). The agent adds
-`multiply(a, b)` to a small package, and each refused request lands in the attempt's `egress`
+`multiply(a, b)` to a small package, and each refused request lands in the trial's `egress`
 record.
 
 **Needs:** Docker, even for the fake agent; in this repo, run `pnpm install && pnpm build` at the
@@ -39,7 +39,7 @@ for the task's own request:
 [adds#1 fake] 15:02:12 gateway   CONNECT registry.npmjs.org:443 → 403 · blocked: the policy denies all egress · ↑0 B ↓0 B · 0ms · no key substituted
 ```
 
-A refused request doesn't fail the attempt; the graders decide whether it matters. The run record's
+A refused request doesn't fail the trial; the graders decide whether it matters. The run record's
 `egress.blocked` lists each refused host with the reason, and the studio's State tab shows it.
 
 | File | What it is |

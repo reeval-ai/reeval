@@ -2,7 +2,7 @@ import { defineEnvironment, type Turn } from 'reeval'
 import { tart } from 'reeval/sandbox'
 
 // The plan counts both Macs' VMs, three; preflight skips small for its memory, which leaves one at
-// a time. No maxConcurrent: the run's lease holds the second attempt until the first's VM ends.
+// a time. No maxConcurrent: the run's lease holds the second trial until the first's VM ends.
 export const mac = defineEnvironment('mac', {
   sandbox: tart({
     image: 'ghcr.io/cirruslabs/macos-sequoia-base:15.6',

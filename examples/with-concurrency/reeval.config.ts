@@ -10,7 +10,7 @@ const fakeFile = (path: string) =>
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that copies ./fake-agent's files into the workspace, taking two seconds a
-  // turn, so the wall time shows how many attempts ran at once.
+  // turn, so the wall time shows how many trials ran at once.
   agents: fakeAgent({
     files: {
       'src/math.js': fakeFile('src/math.js'),

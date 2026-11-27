@@ -31,7 +31,7 @@ export const FLAGS = {
   'skip-secret-scan': { type: 'boolean' },
   limit: { type: 'string' },
   'fail-on-regression': { type: 'boolean' },
-  runs: { type: 'string' },
+  trials: { type: 'string' },
   run: { type: 'string' },
   profile: { type: 'string' },
   'dry-run': { type: 'boolean' },
@@ -155,7 +155,7 @@ export const RUN_FLAGS: FlagName[] = [
   'dry-run',
   'json',
   'force',
-  'runs',
+  'trials',
   'concurrency',
   'registry',
   'tag',
@@ -240,16 +240,16 @@ export const COMMANDS: Record<string, CommandSpec> = {
       },
       { flags: '--dry-run', help: 'Show the plan without running' },
       { flags: '--json', help: 'Print results as JSON on stdout' },
-      { flags: '--force', help: 'Run even when over budget.attempts' },
-      { flags: '--runs <n>', help: 'Attempts per cell' },
-      { flags: '--concurrency <n>', help: 'Attempts at once (default: 8)' },
+      { flags: '--force', help: 'Run even when over budget.trials' },
+      { flags: '--trials <n>', help: 'Trials per cell' },
+      { flags: '--concurrency <n>', help: 'Trials at once (default: 8)' },
       {
         flags: '--registry <prefix>',
         help: 'Registry to pull sandbox images from before building',
       },
       { flags: '--tag <tag>', help: 'Only evals with this tag; !tag excludes; repeatable' },
       { flags: '--trait <key=value>', help: 'Only cells with this environment trait; repeatable' },
-      { flags: '--cell <key>', help: 'Only this cell key or cell#n attempt id; repeatable' },
+      { flags: '--cell <key>', help: 'Only this cell key or cell#n trial id; repeatable' },
       { flags: '--record', help: 'Also record the run to the history folder' },
       { flags: '--resume [ref]', help: 'Resume a stopped or interrupted run (default: newest)' },
       {
@@ -266,7 +266,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
         flags: '--output-logs <level>',
         help: 'Detail lines to print: full, errors-only or none (default: none)',
       },
-      { flags: '-v, --verbose', help: "Print each attempt's trace" },
+      { flags: '-v, --verbose', help: "Print each trial's trace" },
       { flags: '-vv', help: 'Also print raw payloads and keep every trace' },
       { flags: '-d, --detach', help: 'Run in the background; reeval attach follows it' },
       { flags: '--events', help: 'Write events to .reeval/events/<run>.ndjson', hidden: true },
@@ -429,7 +429,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
     },
   },
   bundle: {
-    flags: ['profile', 'runs', 'tag', 'trait', 'out'],
+    flags: ['profile', 'trials', 'tag', 'trait', 'out'],
     positionals: Number.POSITIVE_INFINITY,
     group: 'Run evals',
     hidden: true,
@@ -437,7 +437,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
     summary: "Package a run's plan and files as a .tar.gz",
     options: [
       { flags: '--profile <name>', help: 'Profile to plan with' },
-      { flags: '--runs --tag --trait', help: 'Same as reeval run' },
+      { flags: '--trials --tag --trait', help: 'Same as reeval run' },
       { flags: '--out <file>', help: 'Output file (default: <project>.bundle.tar.gz)' },
     ],
   },
@@ -522,7 +522,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
     summary: 'Export a run as an archive, or in another format',
     description: 'Export a run as its archive zip, or with --format in another format',
     options: [
-      { flags: '--format <name>', help: 'atif: an ATIF trajectory per attempt' },
+      { flags: '--format <name>', help: 'atif: an ATIF trajectory per trial' },
       {
         flags: '--out <path>',
         help: 'The zip or a directory for it, or the directory for --format (default: <run>.zip, <run>.<format>)',
@@ -561,9 +561,9 @@ export const COMMANDS: Record<string, CommandSpec> = {
     positionals: Number.POSITIVE_INFINITY,
     group: 'Results',
     usage: 'regrade [filter...]',
-    summary: "Grade recorded attempts again with today's graders",
+    summary: "Grade recorded trials again with today's graders",
     description:
-      "Grade recorded attempts again with today's graders (default: each eval's latest run)",
+      "Grade recorded trials again with today's graders (default: each eval's latest run)",
     options: [
       { flags: '--tag <tag>', help: 'Only evals with this tag; !tag excludes; repeatable' },
       { flags: '--grader <name>', help: 'Only this grader; repeatable' },
@@ -787,7 +787,7 @@ export const GLOBAL: FlagName[] = ['config', 'help', 'version']
  */
 export const INSTEAD: Record<string, string> = {
   'reeval run --trace':
-    "-vv keeps every attempt's trace.ndjson in .reeval/debug, and reeval show --trace writes a run's timeline for ui.perfetto.dev",
+    "-vv keeps every trial's trace.ndjson in .reeval/debug, and reeval show --trace writes a run's timeline for ui.perfetto.dev",
 }
 
 /** What reeval is, in one line: bare `reeval`, `--help` and the package's description say it. */

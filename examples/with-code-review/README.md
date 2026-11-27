@@ -31,7 +31,7 @@ reporting it:
 
 ```text
 with-code-review.eval.ts
-  ✗ with-code-review  mean 0% · 0/1 run at 100%  regression(1)
+  ✗ with-code-review  mean 0% · 0/1 trial at 100%  regression(1)
     #1  0%  not-in-diff:** 0% (required)
 ```
 

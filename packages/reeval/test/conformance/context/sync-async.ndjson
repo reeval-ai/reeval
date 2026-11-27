@@ -1,5 +1,5 @@
 {"case":"sync-async","about":"exec; sync and async Python bodies must emit the same runner requests (see reeval-python tests)","options":{}}
-{"reeval":{"type":"start","attempt":{"id":"fake/-/fake#1","cell":{"key":"fake/-/fake","harness":"fake","environment":"-","sandbox":"fake","role":"control"},"n":1},"file":"evals/sync-async.eval.ts","body":"b1"}}
+{"reeval":{"type":"start","trial":{"id":"fake/-/fake#1","cell":{"key":"fake/-/fake","harness":"fake","environment":"-","sandbox":"fake","role":"baseline"},"n":1},"file":"evals/sync-async.eval.ts","body":"b1"}}
 {"runner":{"id":"1","call":{"op":"exec","command":"echo sync-async-ok"}}}
 {"reeval":{"id":"1","ok":true,"op":"exec","result":{"exitCode":0,"stdout":"sync-async-ok\n","stderr":""}}}
 {"runner":{"type":"done"}}

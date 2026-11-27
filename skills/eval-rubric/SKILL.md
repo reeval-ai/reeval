@@ -22,45 +22,45 @@ reeval doesn't check these, so read the eval for them yourself:
 - **One judge question asks one thing.** Split "uses Zod and adds tests" in two.
 - **A prompt doesn't name the tool** an eval asks the agent to choose.
 - **An eval about a change compares it:** a skill, doc or MCP server gets `compare` with a
-  control without it.
+  baseline without it.
 
-## `too-few-tries`
+## `too-few-trials`
 
-Concern. A variant's difference from its control doesn't hold (its 95% interval spans 0), or it
-rests on a small sample, in any direction: a side has fewer than 4 counted tries, or a `same`'s
+Concern. A variant's difference from its baseline doesn't hold (its 95% interval spans 0), or it
+rests on a small sample, in any direction: a side has fewer than 4 counted trials, or a `same`'s
 interval still reaches past 20 points (2 of 4 against 2 of 4), so the effect is only a direction;
-for an eval with cases, the pooled lift's, insufficient below 6 cases. It also prints when both arms pass
+for an eval with cases, the pooled lift's, insufficient below 6 cases. It also prints when both environments pass
 every run and no other measure (effort, a judge, a check, a compare question) is better or worse,
 but some lean: a difference its own test doesn't hold yet, at p below 0.1 and at least 10
 points, 0.05 of a judge's score, 60/40 of 4 or more decisive pairs for a question (p below 0.2), or 10% of an
-effort median ("the variant looks different: 10% faster; about 30 runs a side would confirm
+effort median ("the variant looks different: 10% faster; about 30 trials a side would confirm
 it"); weaker ones are the same, except on a sample too small for the test to show anything ("12×
-faster, but 3 runs a side can't confirm it; 4 is the least that can"). **Fix:** raise `runs` to the number the remark
+faster, but 3 trials a side can't confirm it; 4 is the least that can"). **Fix:** raise `trials` to the number the remark
 names, or add cases.
 
 ## `cant-tell-apart`
 
-Concern. A variant and its control both passed every run, or both failed every run, on 4 runs a
-side or more (for an eval with cases, every case on both sides, over 6 cases or more), so no number of runs
+Concern. A variant and its baseline both passed every trial, or both failed every trial, on 4 trials a
+side or more (for an eval with cases, every case on both sides, over 6 cases or more), so no number of trials
 can tell them apart. On a pass ceiling it prints only when every other measure of the comparison
 is the same too; one that is better or worse is the result and raises nothing, and one that only
-leans raises `too-few-tries`. Both failing always raises it. **Fix:** when both
-always pass, make the task harder, so the control can fail; when both always fail, check the eval
+leans raises `too-few-trials`. Both failing always raises it. **Fix:** when both
+always pass, make the task harder, so the baseline can fail; when both always fail, check the eval
 with an agent that does the task (an oracle, such as a fake agent writing the solution), and make
 the task easier if its checks pass.
 
 ## `check-never-fails`
 
-Suggestion. A check passed every try over at least 5 recorded runs on the default
-branch and 20 tries on the same setup (on a compare, on both sides every run), so it never tells a
+Suggestion. A check passed every trial over at least 5 recorded runs on the default
+branch and 20 trials on the same setup (on a compare, on both sides every run), so it never tells a
 good result from a bad one. **Fix:** make it strict enough to fail on a wrong result, or remove it.
 
 ## `flaky-check`
 
-Concern. A cell is flaky over comparable runs (at least 6 counted tries; below that it's
+Concern. A cell is flaky over comparable runs (at least 6 counted trials; below that it's
 `mixed` and raises nothing), and the check both passed and failed in at least 2 of its newest 5
-runs with nothing changed. **Fix:** check something every good try does, or raise `runs` so one
-try doesn't decide it.
+runs with nothing changed. **Fix:** check something every good trial does, or raise `trials` so one
+trial doesn't decide it.
 
 ## `slow-mcp-start`
 
@@ -70,7 +70,7 @@ answered. It's about the environment, not the eval's source, so it prints in eve
 
 ## `proxy-only-egress`
 
-Concern. An attempt under egress `'proxy'` (the default) failed with a connection
+Concern. A trial under egress `'proxy'` (the default) failed with a connection
 error (`Network is unreachable`, `ECONNREFUSED`, `Could not resolve host`, …) and the egress gateway
 neither refused nor failed to resolve anything, so the connection never reached it: a raw TCP or UDP client, SSH, a database
 driver, or a client that ignores `HTTPS_PROXY`. It's about what happened in the run, so it prints in
@@ -81,7 +81,7 @@ point the client at `HTTPS_PROXY`.
 
 Concern. In Docker, a setup step left a process running (`nohup server &`) with a
 `to: 'checks'` secret without `hosts` in its environment, so the process holds the real value while
-the agent, as the same user, works beside it and can read it. The attempt's `setupProcesses` names
+the agent, as the same user, works beside it and can read it. The trial's `setupProcesses` names
 each process and secret. It matches the secret's variable name, so no remark doesn't mean no
 process holds the value: a copy under another name or in a command's arguments isn't found. It's
 about what happened in the run, so it prints in every run it happens.
@@ -92,7 +92,7 @@ start the process from `c.exec` after the agent's turn.
 
 Concern. Under `egress: { setup, agent }`, a connection the setup phase opened through the egress
 gateway (a background process's CONNECT tunnel or WebSocket) was still open when the agent phase
-started, and the agent's policy refuses its host, so reeval closed it. The attempt's
+started, and the agent's policy refuses its host, so reeval closed it. The trial's
 `egress.blocked` has it with `closed: true`. Whatever setup left running lost that connection, so
 a check that relies on it may fail for a reason the agent didn't cause. It's about what happened
 in the run, so it prints in every run it happens. **Fix:** stop the process before setup ends, or
@@ -100,10 +100,10 @@ allow its host in `egress.agent` if the agent's work needs it.
 
 ## `snapshot-too-large`
 
-Concern. An attempt's workspace was over its `snapshot` form's cap (as a directory, 50 MB of
+Concern. A trial's workspace was over its `snapshot` form's cap (as a directory, 50 MB of
 files; with `snapshot: { compress: true }`, 10 MB compressed or 200 MB uncompressed; either way
 without `node_modules/`, `.git/`, `.cache/` and the other dependency and cache directories), so
-reeval took no snapshot of it. The attempt's `snapshots[].skipped` gives the size and the
+reeval took no snapshot of it. The trial's `snapshots[].skipped` gives the size and the
 directories left out. It's about what happened in the run, so it prints in every run it happens.
 **Fix:** have the task write generated files (build output, downloads, datasets) into a directory
 reeval leaves out, compress the snapshots for the larger cap, or set `snapshot: false` on the eval
@@ -112,7 +112,7 @@ when nobody reads its workspace.
 ## `observe-throws`
 
 Concern. The body of an eval whose target can't fail the run (the default `capability()`) threw in more than half its
-counted tries. Such an eval fails the run only on run and infra errors, but what those tries recorded is the
-eval's own error, not what the agent did. The remark quotes the first error and lists each try.
+counted trials. Such an eval fails the run only on run and infra errors, but what those trials recorded is the
+eval's own error, not what the agent did. The remark quotes the first error and lists each trial.
 **Fix:** fix what the body throws (a missing file it reads, a bad selector), or grade what can
-fail with a grader, so a miss lowers the score instead of ending the try.
+fail with a grader, so a miss lowers the score instead of ending the trial.

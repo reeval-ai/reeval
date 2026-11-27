@@ -93,7 +93,7 @@ profiles. Leave them.
 
 Pick the low-hanging fruit, in this order:
 
-1. **The project has skills:** a compare of one skill, with and without. The control is an empty
+1. **The project has skills:** a compare of one skill, with and without. The baseline is an empty
    workspace, the variant the same plus the skill; the task is one the skill's own rules decide.
    This is the eval that shows lift. Template A in
    [references/templates.md](references/templates.md).
@@ -114,18 +114,18 @@ Each eval:
 - **Check rules only the skill teaches.** Read the skill (or rules file) and pick two or three
   of its most specific rules that one task touches: a house convention, a helper or file it
   names, a version-specific API, a non-obvious default. Ask of each: would a strong agent do
-  this unprompted? If yes (index a foreign key, deny public access, validate input), both arms
+  this unprompted? If yes (index a foreign key, deny public access, validate input), both environments
   pass it; pick another. In a real repo, the agent copies what the code around the change
   already shows (the error class, the logger), so prefer rules the code can't show: a changelog
   entry, where tests go, a file to register in. Grep the repo for each rule: one that
-  `CONTRIBUTING.md` or the docs repeat reaches the control too, so leave those files out of
-  the control as well, or pick another rule. Check that the task triggers each rule: a rule for
+  `CONTRIBUTING.md` or the docs repeat reaches the baseline too, so leave those files out of
+  the baseline as well, or pick another rule. Check that the task triggers each rule: a rule for
   user-facing changes needs a user-facing task. One labeled check per rule, so the check
   table shows which ones the skill changed.
 - **One task, one prompt, that doesn't name the answer.** Ask for the outcome in the user's
   words ("an invoices table with its total"), never the rule the check looks for ("store the
   total in cents"), and not in the rule's terms either ("a user-visible fix" hints at the
-  changelog). Reread the prompt: if it restates the rule, the control passes too. Name the
+  changelog). Reread the prompt: if it restates the rule, the baseline passes too. Name the
   file the task is about (`src/projectId.ts`) so a check can read it, but not the files a rule
   decides (where the test goes): check those with a glob or the one path the rule allows.
 - **Deterministic checks first:** a file's content, a command's exit code, a script that imports
@@ -135,7 +135,7 @@ Each eval:
   (`{ inputs: { diff: true } }`, `{ inputs: { output: true } }`), and then add `judge:` to the config.
 - **A name that states the question:** `stores invoice totals in cents with the billing skill`,
   not `billing test`. The results and `reeval explain` read in its terms.
-- **Small:** leave `runs` unset: a compare runs 4 a cell (8 attempts), the fewest for a lift
+- **Small:** leave `trials` unset: a compare runs 4 a cell (8 trials), the fewest for a lift
   verdict, and anything else once. Seed only the files the task
   needs. If it needs the repo, seed it with `directory('..', { glob: ['!.env*', '!.reeval/',
   '!evals/', '!reeval.config.*'] })`: `directory()` doesn't skip `.env*`, keys must not reach
@@ -155,7 +155,7 @@ check that runs a build or the project's tests needs no oracle.
 ## 5. Check it plans, then the machine
 
 ```bash
-npx reeval run --dry-run        # exit 0; the evals, cells and attempts you meant
+npx reeval run --dry-run        # exit 0; the evals, cells and trials you meant
 npx reeval doctor               # Docker, image, keys; exit 1 names each fix
 ```
 
@@ -173,7 +173,7 @@ npx reeval doctor               # Docker, image, keys; exit 1 names each fix
   check is too narrow. Fix the check.
 
 Only start a real `npx reeval run` if the user asked for it or agrees: it runs a real agent on
-their key. One compare (8 attempts) on Cursor is several minutes.
+their key. One compare (8 trials) on Cursor is several minutes.
 
 ## 6. Hand over
 
@@ -185,12 +185,12 @@ End with a short message, not a report:
    build`, Docker.
 3. The command to run: `npx reeval run` (or `npx reeval run <eval-name>` for one).
 4. How to read the output, in a few lines. `npx reeval run` prints a line per eval and a sentence
-   for each way one failed; `npx reeval show` prints its arms and checks. A real Cursor run of
+   for each way one failed; `npx reeval show` prints its environments and checks. A real Cursor run of
    Template A, from `npx reeval show`:
 
 ```text
 pass             stores invoice totals in cents with the billing skill
-  arm                     pass
+  environment             pass
   plain                   0 of 2
   with-billing-skill      2 of 2  helped
   check                   plain   with-billing-skill
@@ -201,21 +201,21 @@ pass             stores invoice totals in cents with the billing skill
 1 pass
 ```
 
-- Each arm's `N of M` is passing attempts. The variant's word is its effect against the control:
-  `helped`, `made it worse`, or `same`; on a small sample (below 4 runs a side, or a `same` at
-  2 of 4 against 2 of 4) a `too-few-tries` remark says it doesn't hold yet and names the `runs`. When
-  both arms pass every run, or both fail every run, at 4 runs a side or more, a `cant-tell-apart`
-  remark says more runs won't help: make the task harder, or check the eval. When both pass but
+- Each environment's `N of M` is passing trials. The variant's word is its effect against the baseline:
+  `helped`, `made it worse`, or `same`; on a small sample (below 4 trials a side, or a `same` at
+  2 of 4 against 2 of 4) a `too-few-trials` remark says it doesn't hold yet and names the `trials`. When
+  both environments pass every trial, or both fail every trial, at 4 trials a side or more, a `cant-tell-apart`
+  remark says more trials won't help: make the task harder, or check the eval. When both pass but
   another measure differs, the line under the variant names it (`Same pass rate · 5× faster.`),
-  and a measure that only leans gets a `too-few-tries` remark with the runs that would confirm it.
-  The check table shows which check told the arms apart.
+  and a measure that only leans gets a `too-few-trials` remark with the trials that would confirm it.
+  The check table shows which check told the environments apart.
 - `Worth knowing:` under an eval in `reeval run`'s list names what about it needs work, with the line to fix. Remarks never
   change a verdict.
-- Both arms passing is a result, not a broken eval: the agent already does this without the
+- Both environments passing is a result, not a broken eval: the agent already does this without the
   skill. Say so, and suggest a harder task or a more specific rule from the skill next.
-- A check that fails every attempt on both arms is more often a broken check than a hard task.
-  Open one attempt's `diff.patch` before you say the agent can't do it.
+- A check that fails every trial on both environments is more often a broken check than a hard task.
+  Open one trial's `diff.patch` before you say the agent can't do it.
 - Exit 0 means no eval missed a blocking target (the default `capability()` never blocks); only the
   variant is gated in a compare.
-- Details: `.reeval/runs/<run>/summary.md`, each attempt's `trajectory.jsonl` and `diff.patch`;
+- Details: `.reeval/runs/<run>/summary.md`, each trial's `trajectory.jsonl` and `diff.patch`;
   `npx reeval studio` browses them; `npx reeval query effort` compares tools, time and tokens.

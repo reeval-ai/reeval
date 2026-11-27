@@ -2,7 +2,7 @@
 // channel, specified in ./PROTOCOL.md, with JSON Schemas in schema/plan/. A worker may come from
 // another copy of reeval (the project's own), so both check PROTOCOL before anything else.
 import type { Limits, Rank } from '../scheduler/core.ts'
-import type { AttemptMeta, EvalMeta, RunContext } from '../types.ts'
+import type { TrialMeta, EvalMeta, RunContext } from '../types.ts'
 import type { Progress } from '../ui/events.ts'
 import type { DebugLine } from '../view/debug.ts'
 import type { SerializedError } from './errors.ts'
@@ -16,7 +16,7 @@ export type WireTest = {
   name: string
   groups: string[]
   mode: 'run' | 'skip' | 'only' | 'todo'
-  attempt?: AttemptMeta
+  trial?: TrialMeta
 }
 
 export type WireResult = {
@@ -43,7 +43,7 @@ export type FromWorker =
   | { t: 'hello'; protocol: number }
   /**
    * `harnesses`: the ids the file's evals run on before a profile's limit, tag-filtered ones too;
-   * `traits`: the trait keys the control environments of the evals the tags select define.
+   * `traits`: the trait keys the baseline environments of the evals the tags select define.
    */
   | { t: 'collected'; tests: WireTest[]; harnesses: string[]; traits: string[] }
   | { t: 'load-error'; error: SerializedError }
@@ -58,7 +58,7 @@ export type FromWorker =
   | { t: 'debug'; index: number; line: DebugLine }
   | { t: 'log'; index?: number; at: number; stream: 'stdout' | 'stderr'; text: string }
   | { t: 'result'; index: number; result: WireResult }
-  /** The attempt wrote its record after its result was sent (after a timeout or cancel). */
+  /** The trial wrote its record after its result was sent (after a timeout or cancel). */
   | { t: 'meta'; index: number; meta: EvalMeta }
   | { t: 'unhandled'; error: SerializedError }
   | { t: 'done' }

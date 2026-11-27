@@ -1,5 +1,5 @@
 // The `machines` service the main process answers workers' leases with: one pool per account and
-// size across every worker, a released slot handed to the next attempt, a waiting lease
+// size across every worker, a released slot handed to the next trial, a waiting lease
 // abandoned, a dead worker's slots broken, pools on one account under its limits, and close
 // removing every machine.
 import assert from 'node:assert/strict'
@@ -32,7 +32,7 @@ function fakePooled(machines = 1) {
       opened.push((sandbox as MachineDescriptor & { account: string }).account)
       return {
         provider: provider as PoolProvider<unknown>,
-        options: { limits: { machines }, attemptsPerMachine: 1, reuse: true },
+        options: { limits: { machines }, trialsPerMachine: 1, reuse: true },
       }
     },
   }
@@ -111,11 +111,11 @@ describe('MachineService', () => {
     await assert.rejects(service.call('w1', lease('3')), /machine pools are closed/)
   })
 
-  test("the holdings name each attempt's machine and every machine the pools hold, idle ones included", async () => {
+  test("the holdings name each trial's machine and every machine the pools hold, idle ones included", async () => {
     const fake = fakePooled(2)
     const service = new MachineService({ pooled: () => fake.pooled })
     assert.deepEqual(service.holdings(), { machines: [], leases: new Map() })
-    await service.call('w1', { ...lease('1'), attempt: 'one' })
+    await service.call('w1', { ...lease('1'), trial: 'one' })
     await service.call('w1', lease('2'))
     assert.deepEqual(service.holdings(), {
       machines: ['m1', 'm2'],

@@ -20,14 +20,14 @@ function files(dir: string): string[] {
     .sort()
 }
 
-/** The one attempt directory of `name` (a substring of its eval slug) in the newest debug run. */
-function attemptDir(root: string, name: string): string {
+/** The one trial directory of `name` (a substring of its eval slug) in the newest debug run. */
+function trialDir(root: string, name: string): string {
   const runs = readdirSync(debugRoot(root)).sort()
   const run = join(debugRoot(root), runs.at(-1) as string)
   const matches = files(run)
     .filter((f) => f.endsWith('debug.log') && f.includes(name))
     .map((f) => join(run, f.slice(0, -'/debug.log'.length)))
-  assert.equal(matches.length, 1, `one attempt of ${name} in ${run}: ${files(run).join(', ')}`)
+  assert.equal(matches.length, 1, `one trial of ${name} in ${run}: ${files(run).join(', ')}`)
   return matches[0] as string
 }
 
@@ -62,7 +62,7 @@ export default defineEval({
 })
 `
 
-/** `[traces#1 traced]  12:50:01 <phase>`: one attempt's debug line for a phase. */
+/** `[traces#1 traced]  12:50:01 <phase>`: one trial's debug line for a phase. */
 const phaseLine = (phase: string, ms = false) =>
   new RegExp(
     `^\\[traces#1 [^\\]]+\\]\\s+\\d{2}:\\d{2}:\\d{2}${ms ? '\\.\\d{3}' : ''} ${phase}\\s`,
@@ -72,7 +72,7 @@ const phaseLine = (phase: string, ms = false) =>
 const PHASES = ['plan', 'env', 'image', 'container', 'harness', 'check', 'judge', 'teardown']
 
 describe('verbosity', () => {
-  test('-v prints each phase line for an attempt, prefixed with the attempt', async () => {
+  test('-v prints each phase line for a trial, prefixed with the trial', async () => {
     const p = await project('debug-v', {
       'reeval.config.ts': fakeConfig({ harness: script }),
       'evals/traces.eval.ts': passing,
@@ -83,7 +83,7 @@ describe('verbosity', () => {
     // What each phase says: the plan's sources, the files and setup placed, tool calls, the check.
     assert.match(
       r.stdout,
-      / plan {6}config reeval\.config\.ts · no profile · run \S+ · attempt fake\/traced\/fake#1$/m,
+      / plan {6}config reeval\.config\.ts · no profile · run \S+ · trial fake\/traced\/fake#1$/m,
     )
     assert.match(r.stdout, / plan {6}environment traced \(evals\/traces\.eval\.ts\)$/m)
     assert.match(r.stdout, / env {7}file notes\.md \(6 bytes\)$/m)
@@ -107,11 +107,11 @@ describe('verbosity', () => {
     const r = await runCli(p.dir, ['run', '--output-logs', 'full'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     for (const phase of PHASES) assert.doesNotMatch(r.stdout, phaseLine(phase), phase)
-    // Twin: the attempt's own lines still print, under the same prefix.
+    // Twin: the trial's own lines still print, under the same prefix.
     assert.match(r.stdout, /^\[traces#1 [^\]]+\] ▶ traces$/m)
   })
 
-  test('grouped logs keep each attempt’s debug lines in its own block', async () => {
+  test('grouped logs keep each trial’s debug lines in its own block', async () => {
     const p = await project('debug-grouped', {
       'reeval.config.ts': fakeConfig({ harness: script }),
       'evals/traces.eval.ts': passing,
@@ -134,7 +134,7 @@ describe('verbosity', () => {
     }
   })
 
-  test('agent mode prints -v lines too, under the attempt tag', async () => {
+  test('agent mode prints -v lines too, under the trial tag', async () => {
     const p = await project('debug-agent', {
       'reeval.config.ts': fakeConfig({ harness: script }),
       'evals/traces.eval.ts': passing,
@@ -172,13 +172,13 @@ describe('local debug data', () => {
     const r = await runCli(p.dir, ['run', '--record'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const { run } = readRun(p.dir)
-    const dir = attemptDir(p.dir, 'traces-')
+    const dir = trialDir(p.dir, 'traces-')
     assert.ok(dir.includes(join('.reeval', 'debug', run.runId)), dir)
     const log = read(join(dir, 'debug.log'))
     for (const phase of PHASES) {
       assert.match(log, new RegExp(`^\\d{4}-\\d{2}-\\d{2}T[\\d:.]+Z ${phase}\\s`, 'm'), phase)
     }
-    assert.deepEqual(files(dir), ['debug.log'], 'a passing attempt keeps no trace')
+    assert.deepEqual(files(dir), ['debug.log'], 'a passing trial keeps no trace')
 
     const history = join(p.dir, 'evals', '.history')
     assert.deepEqual(recordedRuns(p.dir), [run.runId])
@@ -193,7 +193,7 @@ describe('local debug data', () => {
     }
   })
 
-  test('trace.ndjson is kept for a failing attempt, not a passing one unless -vv', async () => {
+  test('trace.ndjson is kept for a failing trial, not a passing one unless -vv', async () => {
     const p = await project('debug-trace', {
       'reeval.config.ts': fakeConfig({ harness: script }),
       'evals/traces.eval.ts': passing,
@@ -201,8 +201,8 @@ describe('local debug data', () => {
     })
     const r = await runCli(p.dir, ['run'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    const pass = attemptDir(p.dir, 'traces-')
-    const fail = attemptDir(p.dir, 'fails-')
+    const pass = trialDir(p.dir, 'traces-')
+    const fail = trialDir(p.dir, 'fails-')
     assert.equal(existsSync(join(pass, 'trace.ndjson')), false, 'no trace for the pass')
     const trace = read(join(fail, 'trace.ndjson'))
       .trim()
@@ -220,7 +220,7 @@ describe('local debug data', () => {
 
     const traced = await runCli(p.dir, ['run', '-vv'])
     assert.equal(traced.code, 1, traced.stdout + traced.stderr)
-    assert.ok(existsSync(join(attemptDir(p.dir, 'traces-'), 'trace.ndjson')))
+    assert.ok(existsSync(join(trialDir(p.dir, 'traces-'), 'trace.ndjson')))
   })
 
   test('a small trace buffer drops the oldest entries and says how many', async () => {
@@ -233,7 +233,7 @@ describe('local debug data', () => {
     })
     const r = await runCli(p.dir, ['run'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    const text = read(join(attemptDir(p.dir, 'fails-'), 'trace.ndjson'))
+    const text = read(join(trialDir(p.dir, 'fails-'), 'trace.ndjson'))
     const [head, ...entries] = text
       .trim()
       .split('\n')
@@ -277,7 +277,7 @@ export default defineEval({
     })
     const r = await runCli(p.dir, ['run', '-vv'], { env: { REEVAL_DEBUG_LEAKY: LEAKY } })
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    const dir = attemptDir(p.dir, 'leaks')
+    const dir = trialDir(p.dir, 'leaks')
     const outputs = {
       screen: r.stdout + r.stderr,
       'debug.log': read(join(dir, 'debug.log')),
@@ -386,7 +386,7 @@ export default defineEval({
     const env = { REEVAL_DEBUG_PROVIDER_API_KEY: KEY }
     const r = await runCli(p.dir, ['run', '-vv'], { env })
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    const dir = attemptDir(p.dir, 'searches')
+    const dir = trialDir(p.dir, 'searches')
     const { run } = readRun(p.dir)
     const outputs = {
       screen: r.stdout + r.stderr,
@@ -435,7 +435,7 @@ export default defineEval({
     })
     const r = await runCli(p.dir, ['run', '-vv'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    const dir = attemptDir(p.dir, 'prints')
+    const dir = trialDir(p.dir, 'prints')
     const view = readRun(p.dir)
     const outputs = {
       screen: r.stdout + r.stderr,

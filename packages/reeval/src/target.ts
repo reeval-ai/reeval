@@ -2,11 +2,11 @@
 // the studio and the history derive a cell's gate as the plan does.
 import type { CellGate, RecordedTarget, Target } from './types.ts'
 
-/** Passes when every attempt scores at least `threshold` (pass^k); a miss fails the run. */
+/** Passes when every trial scores at least `threshold` (pass^k); a miss fails the run. */
 export const regression = (threshold = 1): Target => ({ kind: 'regression', threshold })
 
 /**
- * Passes when one attempt scores at least `threshold` (pass@k). A miss fails the run only with
+ * Passes when one trial scores at least `threshold` (pass@k). A miss fails the run only with
  * `blocking: true`. The default target is `capability()`.
  */
 export const capability = (threshold = 1, options: { blocking?: boolean } = {}): Target => ({
@@ -18,7 +18,7 @@ export const capability = (threshold = 1, options: { blocking?: boolean } = {}):
 /** The default: `capability()`, which only reports. */
 export const DEFAULT_TARGET: Target = capability()
 
-/** The score an attempt passes at: the target's threshold, 1 without one. */
+/** The score a trial passes at: the target's threshold, 1 without one. */
 export const thresholdOf = (target: RecordedTarget | undefined): number => target?.threshold ?? 1
 
 /** Whether a miss fails the run. */
@@ -37,8 +37,8 @@ export function targetLabel(target: RecordedTarget): string {
 }
 
 /**
- * The gate of a cell the target applies to: a hit share in a `runs: { bestOf }` cell, else the
- * target's rule over the attempts.
+ * The gate of a cell the target applies to: a hit share in a `trials: { bestOf }` cell, else the
+ * target's rule over the trials.
  */
 export function targetGate(target: Target, bestOf: boolean): CellGate {
   if (bestOf) return { passRate: 0.5 }

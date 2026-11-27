@@ -37,7 +37,7 @@ export default defineEval({
   network to go quiet from that beat, so it covers a click that only fetches) — no
   selectors; the model clicks pixels. `viewport: 'full-page'` is the saved shot (default window + tall PNG).
 - `capture.model` cascades like `question`; the call may override. Default is
-  `analysis.model`, else the attempt's judge model (a profile's or the eval's),
+  `analysis.model`, else the trial's judge model (a profile's or the eval's),
   whichever is first a language model; never Jev. Gemini's 0–1000 points are scaled to the screenshot. Fixture evals import
   `fakeInstructions` from `reeval/testing` and pass it as `instructions`.
   The same `timeout` is the budget for the whole capture, its instructions included: if it
@@ -52,5 +52,5 @@ export default defineEval({
   pictures. Ask about facts in the picture, not whether it "looks
   great". Jev (`typesafe-ai/jev-1.14.0`) takes PNG captures; a provider that cannot take files
   fails that call.
-- On a question, `artifacts: ['sign-in']` (or `true`) sends each attempt's own capture of that
+- On a question, `artifacts: ['sign-in']` (or `true`) sends each trial's own capture of that
   name as an image (see [compare.md](compare.md)).

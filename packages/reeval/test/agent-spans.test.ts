@@ -1,4 +1,4 @@
-// The agent export's spans for one attempt, from its record: parentage, real timings, token
+// The agent export's spans for one trial, from its record: parentage, real timings, token
 // mapping, subagent nesting, evaluation events, no content, and ids that repeat for one record.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
@@ -105,7 +105,7 @@ const record = {
   ],
 } as unknown as EvalRecord
 
-const attempt = (r: EvalRecord = record) => ({
+const trial = (r: EvalRecord = record) => ({
   runId: 'run-1',
   evalId: 'e1',
   key: 'k1',
@@ -113,14 +113,14 @@ const attempt = (r: EvalRecord = record) => ({
   n: 1,
   harness: { kind: 'claude-code', model: 'claude-x', effort: 'high' } as HarnessDescriptor,
   record: r,
-  attemptSpanId: 'f'.repeat(16),
+  trialSpanId: 'f'.repeat(16),
 })
-const build = () => agentSpans(attempt())
+const build = () => agentSpans(trial())
 
 const byName = (spans: AgentSpan[], prefix: string) =>
   spans.filter((s) => s.name.startsWith(prefix))
 
-test('one trace per attempt: the agent, its turns, and their model and tool calls', () => {
+test('one trace per trial: the agent, its turns, and their model and tool calls', () => {
   const spans = build()
   const [root] = byName(spans, 'invoke_agent')
   const [turn] = byName(spans, 'turn')
@@ -232,7 +232,7 @@ test('no prompt, answer, reasoning or tool input and output is sent', () => {
   assert.doesNotMatch(JSON.stringify(build()), /SECRET/)
 })
 
-test('one record gives the same ids each time, and a retry of the attempt another trace', () => {
+test('one record gives the same ids each time, and a retry of the trial another trace', () => {
   assert.deepEqual(build(), build())
   const retried = agentSpans({
     runId: 'run-1',
@@ -259,40 +259,40 @@ test("a turn's span and its tool calls' as it ends, then the rest at the end, ar
       },
     ],
   } as unknown as EvalRecord
-  const live = finishedTurnSpans(attempt(timed), 0)
+  const live = finishedTurnSpans(trial(timed), 0)
   assert.deepEqual(
     live.map((s) => s.name),
     ['execute_tool Agent', 'execute_tool file-edit', 'turn 1'],
   )
-  const rest = agentSpans(attempt(timed), new Set([0]))
+  const rest = agentSpans(trial(timed), new Set([0]))
   assert.deepEqual(
     rest.map((s) => s.name),
     ['chat claude-x', 'chat claude-haiku', 'invoke_agent claude-code'],
   )
   const byId = (spans: AgentSpan[]) => spans.toSorted((a, b) => a.spanId.localeCompare(b.spanId))
-  assert.deepEqual(byId([...live, ...rest]), byId(agentSpans(attempt(timed))))
+  assert.deepEqual(byId([...live, ...rest]), byId(agentSpans(trial(timed))))
 })
 
-test("a turn with a tool call whose duration is only inferred later waits for the attempt's end", () => {
-  assert.deepEqual(finishedTurnSpans(attempt(), 0), [])
+test("a turn with a tool call whose duration is only inferred later waits for the trial's end", () => {
+  assert.deepEqual(finishedTurnSpans(trial(), 0), [])
 })
 
-test("the run ends an attempt's agent span as an error when its worker exits first, and only then", () => {
+test("the run ends a trial's agent span as an error when its worker exits first, and only then", () => {
   const sent: AgentSpan[] = []
   const relay = agentRelay((span) => sent.push(span))
-  const open = openAgentSpan(attempt())
+  const open = openAgentSpan(trial())
   relay.call('1', { open })
   relay.call('2', { open: { ...open, spanId: 'b'.repeat(16) } })
   relay.call('2', [{ ...open, spanId: 'b'.repeat(16) }])
   relay.released('2', 'signal SIGKILL')
-  assert.equal(sent.length, 1, 'an attempt that ended is not ended again')
+  assert.equal(sent.length, 1, 'a trial that ended is not ended again')
   relay.released('1', 'exit code 1')
   const crashed = sent[1]
-  assert.equal(crashed?.spanId, build().at(-1)?.spanId, 'the same span the finished attempt sends')
+  assert.equal(crashed?.spanId, build().at(-1)?.spanId, 'the same span the finished trial sends')
   assert.equal(crashed?.name, 'invoke_agent claude-code')
   assert.deepEqual(crashed?.status, {
     code: 'error',
-    message: 'The engine worker exited before the attempt ended (exit code 1)',
+    message: 'The engine worker exited before the trial ended (exit code 1)',
   })
   assert.equal(crashed?.attributes['reeval.outcome'], 'infra_error')
   relay.call('3', { open })
@@ -333,18 +333,18 @@ test('the agent span ends with the last tool call, even one that outlived a turn
     ],
   } as unknown as EvalRecord
   const root = (spans: AgentSpan[]) => spans.find((s) => s.name.startsWith('invoke_agent'))
-  assert.equal(finishedTurnSpans(attempt(r), 0).length, 2)
-  assert.equal(root(agentSpans(attempt(r)))?.endMs, T0 + 6500)
-  assert.equal(root(agentSpans(attempt(r), new Set([0])))?.endMs, T0 + 6500)
+  assert.equal(finishedTurnSpans(trial(r), 0).length, 2)
+  assert.equal(root(agentSpans(trial(r)))?.endMs, T0 + 6500)
+  assert.equal(root(agentSpans(trial(r), new Set([0])))?.endMs, T0 + 6500)
 })
 
-test("a canceled run's dead worker leaves its attempt's agent span canceled, not an infra error", () => {
+test("a canceled run's dead worker leaves its trial's agent span canceled, not an infra error", () => {
   const sent: AgentSpan[] = []
   const relay = agentRelay(
     (span) => sent.push(span),
     () => true,
   )
-  relay.call('1', { open: openAgentSpan(attempt()) })
+  relay.call('1', { open: openAgentSpan(trial()) })
   relay.released('1', 'signal SIGKILL')
   assert.equal(sent[0]?.attributes['reeval.outcome'], 'fail')
   assert.equal(sent[0]?.attributes['reeval.error.kind'], 'aborted')

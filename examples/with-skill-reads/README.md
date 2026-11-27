@@ -38,7 +38,7 @@ path                                       reads  first_line
 ~/.agents/skills/jsdoc/references/tags.md  0      ·
 ```
 
-The reference was never opened. `first_line` is the read's line in the attempt's
+The reference was never opened. `first_line` is the read's line in the trial's
 `trajectory.jsonl`, and `skill_reads` and `context_use` say the same from the skill's side and
 the tool calls':
 

@@ -1,4 +1,4 @@
-// Each turn, attempt, judge call, cell and run's cost in a record. A cost the harness or gateway
+// Each turn, trial, judge call, cell and run's cost in a record. A cost the harness or gateway
 // reported wins, unless it's $0, which a harness says for a model it has no price for; else reeval
 // estimates the tokens at list prices (prices.ts) and says so. A model
 // with no price gets no cost, never $0, and a sum counts what it left out in `unpriced`.
@@ -7,7 +7,7 @@ import { loadPrices, type Prices } from '../prices.ts'
 import type { CostTotal, CostUsd, TokenUsage } from '../types.ts'
 import { totalTokens } from '../usage.ts'
 import { sumCosts } from '../view/cost.ts'
-import type { AttemptRecord, JudgmentRecord, RunRecord } from './types.ts'
+import type { TrialRecord, JudgmentRecord, RunRecord } from './types.ts'
 
 const used = (u: TokenUsage | null | undefined): u is TokenUsage => !!u && totalTokens(u) > 0
 const micro = (usd: number) => Math.round(usd * 1e6) / 1e6
@@ -31,18 +31,18 @@ function estimate(
 
 /** A turn's cost: the one reported, else its tokens estimated at `model`'s price. */
 export const turnCost = (
-  t: Pick<AttemptRecord['turns'][number], 'cost' | 'usage' | 'model' | 'callUsage'>,
+  t: Pick<TrialRecord['turns'][number], 'cost' | 'usage' | 'model' | 'callUsage'>,
   model: string | null | undefined,
   pricer: Pricer | null,
 ): CostUsd | undefined => t.cost ?? estimate(t.usage, t.model ?? model, pricer, t.callUsage)
 
 /** Whether some turn used tokens and has no cost. */
 export const unpricedTurns = (
-  turns: readonly Pick<AttemptRecord['turns'][number], 'cost' | 'usage'>[],
+  turns: readonly Pick<TrialRecord['turns'][number], 'cost' | 'usage'>[],
 ) => turns.some((t) => !t.cost && used(t.usage))
 
-/** The turns' costs as the attempt's, unless some turn that used tokens has none. */
-function attemptCost(a: AttemptRecord): CostUsd | undefined {
+/** The turns' costs as the trial's, unless some turn that used tokens has none. */
+function trialCost(a: TrialRecord): CostUsd | undefined {
   if (a.cost) return a.cost
   if (a.reportedCostUsd) {
     return { usd: a.reportedCostUsd, basis: 'reported', source: 'openrouter' }
@@ -54,11 +54,11 @@ function attemptCost(a: AttemptRecord): CostUsd | undefined {
 
 type JudgeCall = Pick<JudgmentRecord, 'cost' | 'costUsd' | 'usage' | 'model' | 'resolvedModel'>
 
-/** A judge grader's calls, which count toward the attempt's judge cost. */
-const graderCalls = (a: AttemptRecord): JudgeCall[] =>
+/** A judge grader's calls, which count toward the trial's judge cost. */
+const graderCalls = (a: TrialRecord): JudgeCall[] =>
   (a.grades ?? []).flatMap((g) => g.judge?.calls ?? [])
 
-const judgeCalls = (a: AttemptRecord): JudgeCall[] => [...a.judgements, ...graderCalls(a)]
+const judgeCalls = (a: TrialRecord): JudgeCall[] => [...a.judgements, ...graderCalls(a)]
 
 function judgmentCost(j: JudgeCall, pricer: Pricer | null): CostUsd | undefined {
   if (j.cost) return j.cost
@@ -69,7 +69,7 @@ function judgmentCost(j: JudgeCall, pricer: Pricer | null): CostUsd | undefined 
 /** Whether pricing the record needs prices: some turn or judge call used tokens with no cost. */
 export function needsPricing(record: RunRecord): boolean {
   return record.evals.some((e) =>
-    e.attempts.some(
+    e.trials.some(
       (a) =>
         unpricedTurns(a.turns) || judgeCalls(a).some((j) => !j.cost && !j.costUsd && used(j.usage)),
     ),
@@ -78,10 +78,10 @@ export function needsPricing(record: RunRecord): boolean {
 
 /** The record with every cost it can have. */
 export function priceRecord(record: RunRecord, pricer: Pricer | null): RunRecord {
-  const attempts: AttemptRecord[] = []
+  const trials: TrialRecord[] = []
   const evals = record.evals.map((e) => {
     const models = new Map(e.cells.map((c) => [c.key, c.model]))
-    const priced = e.attempts.map((a) => {
+    const priced = e.trials.map((a) => {
       const turns = a.turns.map((t) => {
         const cost = turnCost(t, models.get(a.cell), pricer)
         return cost ? { ...t, cost } : t
@@ -99,9 +99,9 @@ export function priceRecord(record: RunRecord, pricer: Pricer | null): RunRecord
         return { ...g, judge: { ...g.judge, calls } }
       })
       const withTurns = { ...a, turns, judgements: judgments, ...(grades ? { grades } : {}) }
-      const cost = attemptCost(withTurns)
+      const cost = trialCost(withTurns)
       const out = cost ? { ...withTurns, cost } : withTurns
-      attempts.push(out)
+      trials.push(out)
       return out
     })
     const cells = e.cells.map((c) => {
@@ -109,9 +109,9 @@ export function priceRecord(record: RunRecord, pricer: Pricer | null): RunRecord
       const cost = totals(mine)
       return cost ? { ...c, cost } : c
     })
-    return { ...e, attempts: priced, cells }
+    return { ...e, trials: priced, cells }
   })
-  const run = totals(attempts)
+  const run = totals(trials)
   return {
     ...record,
     evals,
@@ -123,10 +123,10 @@ export function priceRecord(record: RunRecord, pricer: Pricer | null): RunRecord
   }
 }
 
-function totals(attempts: AttemptRecord[]): { agent?: CostTotal; judge?: CostTotal } | undefined {
-  const agent = sumCosts(attempts.map((a) => ({ cost: a.cost, used: used(a.usage) })))
+function totals(trials: TrialRecord[]): { agent?: CostTotal; judge?: CostTotal } | undefined {
+  const agent = sumCosts(trials.map((a) => ({ cost: a.cost, used: used(a.usage) })))
   const judge = sumCosts(
-    attempts.flatMap((a) => judgeCalls(a).map((j) => ({ cost: j.cost, used: used(j.usage) }))),
+    trials.flatMap((a) => judgeCalls(a).map((j) => ({ cost: j.cost, used: used(j.usage) }))),
   )
   if (!agent && !judge) return undefined
   return { ...(agent ? { agent } : {}), ...(judge ? { judge } : {}) }

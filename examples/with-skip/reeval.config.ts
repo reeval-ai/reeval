@@ -19,7 +19,7 @@ export default defineConfig({
   // Every eval's options: two runs a cell, passing when one of them does (regression() would
   // need both).
   timeout: '5m',
-  runs: 2,
+  trials: 2,
   // The real agents: `--profile claude-code`, or any other in ../profiles.ts. An example's own
   // profiles go beside them.
   profiles: { ...profiles },

@@ -54,7 +54,7 @@ export default defineEval({
   },
 })
 `
-/** An eval whose environment has a setup step, so its attempt writes setup.log and checks/1.log. */
+/** An eval whose environment has a setup step, so its trial writes setup.log and checks/1.log. */
 const setUp = (command: string) => `import assert from 'node:assert/strict'
 import { defineEnvironment, defineEval } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
@@ -136,7 +136,7 @@ describe('recording runs into evals/.history', () => {
     const [e] = recorded.evals
     assert.ok(e)
     assert.equal(recorded.run.artifacts, 'all')
-    const trial = e.attempts[0]
+    const trial = e.trials[0]
     for (const file of [
       'summary.md',
       'report.json',
@@ -147,24 +147,24 @@ describe('recording runs into evals/.history', () => {
     }
     const report = readableRunReport(JSON.parse(recorded.read('report.json')))
     assert.deepEqual(
-      report.attempts.map((a) => [a.id, a.key]),
+      report.trials.map((a) => [a.id, a.key]),
       [['A1', trial?.key]],
       'report.json is the RunReport summary.md renders',
     )
     const scratchReport = readableRunReport(
       JSON.parse(readFileSync(join(p.dir, '.reeval/runs', run.runId, 'report.json'), 'utf8')),
     )
-    assert.ok(report.attempts[0]?.facts, 'the recorded report has the facts of the kept trajectory')
+    assert.ok(report.trials[0]?.facts, 'the recorded report has the facts of the kept trajectory')
     assert.deepEqual(
-      scratchReport.attempts.map((a) => a.facts),
-      report.attempts.map((a) => a.facts),
+      scratchReport.trials.map((a) => a.facts),
+      report.trials.map((a) => a.facts),
       ".reeval/runs' report.json has the same facts as the history copy",
     )
     const summary = recorded.read('summary.md')
     assert.match(summary, /^# agent$/m, 'passes get detail')
     assert.match(
       summary,
-      /^\| <a id="attempt-[a-z0-9-]+"><\/a>A1 \| agent \| fake \| fake \| pass \|/m,
+      /^\| <a id="trial-[a-z0-9-]+"><\/a>A1 \| agent \| fake \| fake \| pass \|/m,
     )
     assert.equal(sh(p.dir, 'status', '--porcelain'), '?? evals/.history/', 'plain files for git')
 
@@ -296,13 +296,13 @@ describe('recording runs into evals/.history', () => {
     assert.ok(archived.includes(`${runId}/report.json`), 'archive keeps report.json')
     assert.ok(
       archived.some((p) => p.endsWith('/diff.patch')),
-      'evidence default keeps a passing attempt diff in the archive',
+      'evidence default keeps a passing trial diff in the archive',
     )
     assert.ok(archived.includes(`${runId}/spans.jsonl`), "archive keeps the run's trace")
     assert.ok(
       archived.some((p) => p.endsWith('/workspace.tar.gz')) &&
         archived.some((p) => p.endsWith('/workspace.json')),
-      'evidence default keeps a passing attempt kept workspace in the archive',
+      'evidence default keeps a passing trial kept workspace in the archive',
     )
     assert.equal(archived.length, 7)
     assert.equal(
@@ -575,15 +575,15 @@ import { defineEval } from 'reeval'
 import { baseline, variant } from './env.ts'
 
 export default defineEval({
-  runs: 2,
-  compare: { control: baseline, variants: [variant] },
+  trials: 2,
+  compare: { baseline: baseline, variants: [variant] },
   questions: [{ question: 'Which page looks better?', across: 'environment', task: true, artifacts: ['landing'] }],
   async task(c) {
     await c.send('write the page')
     const server = await c.serve('node server.mjs')
     await c.capture(server, { name: 'aside' })
     await c.capture(server, { name: 'landing' })
-    assert.equal(c.attempt.n, 1, 'first try')
+    assert.equal(c.trial.n, 1, 'first try')
   },
 })
 `,
@@ -594,7 +594,7 @@ export default defineEval({
 import { baseline, variant } from './env.ts'
 
 export default defineEval({
-  compare: { control: baseline, variants: [variant], minLift: 0.5 },
+  compare: { baseline: baseline, variants: [variant], minLift: 0.5 },
   async task(c) {
     await c.send('write the page')
   },
@@ -608,11 +608,11 @@ import { defineEval } from 'reeval'
 import { baseline, variant } from './env.ts'
 
 export default defineEval({
-  runs: 2,
-  compare: { control: baseline, variants: [variant], minLift: 0.6 },
+  trials: 2,
+  compare: { baseline: baseline, variants: [variant], minLift: 0.6 },
   async task(c) {
     await c.send('write the page')
-    assert.equal(c.attempt.cell.role === 'variant' || c.attempt.n === 1, true, 'passes')
+    assert.equal(c.trial.cell.role === 'variant' || c.trial.n === 1, true, 'passes')
   },
 })
 `,
@@ -631,7 +631,7 @@ export default defineEval({
     )
     assert.ok(shots.length > 0)
     for (const s of shots) assert.ok(s.path && existsSync(join(dir, s.path)), s.path)
-    for (const a of mixed?.attempts ?? []) {
+    for (const a of mixed?.trials ?? []) {
       const kept = Object.keys(a.files).sort()
       if (a.outcome === 'fail') assert.ok(a.files.trajectory, `${a.id} keeps its trajectory`)
       else {
@@ -645,21 +645,21 @@ export default defineEval({
     const flat = evalOf('flat')
     assert.equal(flat?.outcome, 'fail')
     assert.ok(
-      flat?.attempts.every((a) => a.outcome === 'pass' && a.files.trajectory),
-      'a lift gate that failed with no failed attempt keeps every attempt',
+      flat?.trials.every((a) => a.outcome === 'pass' && a.files.trajectory),
+      'a lift gate that failed with no failed trial keeps every trial',
     )
     const lifted = evalOf('lifted')
     const variantCell = lifted?.cells.find((c) => c.role === 'variant')
     assert.equal(variantCell?.outcome, 'fail', 'the variant misses its minLift')
     assert.ok(
-      lifted?.attempts
+      lifted?.trials
         .filter((a) => a.cell === variantCell?.key)
         .every((a) => a.outcome === 'pass' && a.files.trajectory),
-      "the lift-failed cell keeps its attempts beside the control's failure",
+      "the lift-failed cell keeps its trials beside the baseline's failure",
     )
   })
 
-  test("history.artifacts defaults to 'evidence': a passing attempt keeps diffs, not logs", async () => {
+  test("history.artifacts defaults to 'evidence': a passing trial keeps diffs, not logs", async () => {
     const p = await gitProject('record-default-level', {
       'evals/passes.eval.ts': setUp('echo ok'),
       'evals/fails.eval.ts': setUp('exit 4'),
@@ -670,37 +670,37 @@ export default defineEval({
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const { run, dir } = readRun(p.dir, { history: HISTORY })
     assert.equal(run.artifacts, 'evidence')
-    const attempt = (name: string) => run.evals.find((e) => e.name === name)?.attempts[0]
-    const fail = attempt('fails')
+    const trial = (name: string) => run.evals.find((e) => e.name === name)?.trials[0]
+    const fail = trial('fails')
     assert.equal(fail?.outcome, 'fail')
     for (const ref of [fail?.files.setupLog, fail?.files.trajectory, fail?.checks[0]?.log]) {
-      assert.ok(ref && existsSync(join(dir, ref.path)), `the failed attempt keeps ${ref?.path}`)
+      assert.ok(ref && existsSync(join(dir, ref.path)), `the failed trial keeps ${ref?.path}`)
     }
-    const pass = attempt('passes')
+    const pass = trial('passes')
     assert.equal(pass?.outcome, 'pass')
     // evidencePass: drop trajectory/setup/check logs; keep diff/captures when present.
-    assert.equal(pass?.files.trajectory, undefined, 'no trajectory for the passing attempt')
-    assert.equal(pass?.files.setupLog, undefined, 'no setup.log for the passing attempt')
+    assert.equal(pass?.files.trajectory, undefined, 'no trajectory for the passing trial')
+    assert.equal(pass?.files.setupLog, undefined, 'no setup.log for the passing trial')
     assert.deepEqual(
       pass?.checks.map((c) => c.log),
       [undefined],
-      'no c.exec log for the passing attempt',
+      'no c.exec log for the passing trial',
     )
     if (pass?.files.diff) {
       assert.ok(existsSync(join(dir, pass.files.diff.path)), 'evidence may keep a passing diff')
     }
   })
 
-  test("'failures' keeps a passing attempt's diff beside a failure of its own case only", async () => {
+  test("'failures' keeps a passing trial's diff beside a failure of its own case only", async () => {
     const p = await gitProject('record-cases-diff', {
       'evals/cased.eval.ts': `import assert from 'node:assert/strict'
 import { defineEval } from 'reeval'
 export default defineEval({
   cases: [{ key: 'a' }, { key: 'b' }],
-  runs: 2,
+  trials: 2,
   async task(c, { key: k }) {
     await c.send(k)
-    assert.equal(k === 'a' && c.attempt.n === 1, false, 'first a fails')
+    assert.equal(k === 'a' && c.trial.n === 1, false, 'first a fails')
   },
 })
 `,
@@ -709,7 +709,7 @@ export default defineEval({
     const r = await runCli(p.dir, ['record', '--artifacts', 'failures'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const { run } = readRun(p.dir, { history: HISTORY })
-    const kept = run.evals[0]?.attempts.map((a) => [a.case, a.n, a.outcome, Object.keys(a.files)])
+    const kept = run.evals[0]?.trials.map((a) => [a.case, a.n, a.outcome, Object.keys(a.files)])
     assert.deepEqual(
       kept?.map(([k, n, outcome, files]) => [k, n, outcome, (files as string[]).includes('diff')]),
       [
@@ -1006,7 +1006,7 @@ export default defineEval({
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const { run } = readRun(withProfile.dir)
     assert.equal(
-      run.evals[0]?.attempts[0]?.grades?.[0]?.judge?.calls[0]?.model,
+      run.evals[0]?.trials[0]?.grades?.[0]?.judge?.calls[0]?.model,
       'fake',
       'the profile judged',
     )

@@ -1,8 +1,8 @@
-✗ greets-in-the-house-style  mean 50% · 4/8 runs at 100%, worst 0%  regression(1)
+✗ greets-in-the-house-style  mean 50% · 4/8 trials at 100%, worst 0%  regression(1)
     #1–4 · with-skill  100%
     #1–4 · with-doc    0%    "house greeting" failed
       expected command to succeed, exit code 1 · evals/greets-in-the-house-style.eval.ts:21
-  arm              pass            vs control
+  environment      pass            vs baseline
   plain            0 of 4
   with-skill       4 of 4  helped  "house greeting" +100 pts
     difference +100 points, 95% interval +31…+100
@@ -18,9 +18,9 @@
   with-skill       1      <0.1s
   with-doc         1      <0.1s
 
-· greets-once                100%                                   metric()
+· greets-once                100%                                     metric()
     #1–4  100%
-  arm              pass            vs control
+  environment      pass            vs baseline
   plain            0 of 4
   with-skill       4 of 4  helped  "house greeting" +100 pts
     difference +100 points, 95% interval +31…+100
@@ -28,10 +28,10 @@
   house greeting   0 of 4  4 of 4
     expected command to succeed, exit code 1
 
-✗ keeps-the-plain-greeting   mean 0% · 0/4 runs at 100%, worst 0%   regression(1)
+✗ keeps-the-plain-greeting   mean 0% · 0/4 trials at 100%, worst 0%   regression(1)
     #1–4  0%  "says hello" failed
       expected command to succeed, exit code 1 · evals/keeps-the-plain-greeting.eval.ts:21
-  arm              pass                   vs control
+  environment      pass                   vs baseline
   plain            4 of 4
   with-skill       0 of 4  made it worse  "says hello" −100 pts
     difference −100 points, 95% interval −100…−31

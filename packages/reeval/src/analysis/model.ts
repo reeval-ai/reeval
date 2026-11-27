@@ -93,7 +93,7 @@ export function questionModel(
   judge: JudgeModel | undefined = config.judge.model,
 ): string | FakeAnalysisModel {
   if (question.model !== undefined) return question.model
-  const task = question.across !== undefined ? 'pick between two attempts' : 'answer in words'
+  const task = question.across !== undefined ? 'pick between two trials' : 'answer in words'
   const model = fallbackModel(config, judge)
   const fix = `give the question its own, { question: '…', model: 'google/gemini-3.8-flash' }, or set question: { model } on its group or eval`
   if (model === undefined) {

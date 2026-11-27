@@ -1,15 +1,15 @@
-no profile · 2 evals · 6 cells · 6 attempts
-fixes-bug  cursor:my-model/-/docker           control  gated any  ×1  effort: cursor:my-model not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · effort: cursor:gpt-5.6-luna-high not checked against Cursor's model catalog (CURSOR_API_KEY isn't set)
-           cursor:gpt-5.6-luna-high/-/docker  control  gated any  ×1
-           fake/-/docker                      control  gated any  ×1
-greets     cursor:my-model/-/docker           control  gated any  ×1  effort: cursor:my-model not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · effort: cursor:gpt-5.6-luna-high not checked against Cursor's model catalog (CURSOR_API_KEY isn't set)
-           cursor:gpt-5.6-luna-high/-/docker  control  gated any  ×1
-           fake/-/docker                      control  gated any  ×1
+no profile · 2 evals · 6 cells · 6 trials
+fixes-bug  cursor:my-model/-/docker           baseline  gated any  ×1  effort: cursor:my-model not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · effort: cursor:gpt-5.6-luna-high not checked against Cursor's model catalog (CURSOR_API_KEY isn't set)
+           cursor:gpt-5.6-luna-high/-/docker  baseline  gated any  ×1
+           fake/-/docker                      baseline  gated any  ×1
+greets     cursor:my-model/-/docker           baseline  gated any  ×1  effort: cursor:my-model not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · effort: cursor:gpt-5.6-luna-high not checked against Cursor's model catalog (CURSOR_API_KEY isn't set)
+           cursor:gpt-5.6-luna-high/-/docker  baseline  gated any  ×1
+           fake/-/docker                      baseline  gated any  ×1
 excluded: —
 image docker · cursor · 2 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)
 cost  $0.03–0.24 priced (gpt-5.6-luna-high only) at prices.json over models.dev list prices; my-model: 0.6–4.1M tokens, typesafe-ai/jev: up to 372k tokens, no list price · no history, rough
-prices prices.json over models.dev · unpriced my-model 606000–4040000, typesafe-ai/jev 0–372000 · past 0 runs, 0 attempts
+prices prices.json over models.dev · unpriced my-model 606000–4040000, typesafe-ai/jev 0–372000 · past 0 runs, 0 trials
   fixes-bug  cursor:my-model/-/docker           my-model           judge typesafe-ai/jev  typical  ×1  agent 303000–2020000 tokens $—              judge 0–62000 tokens $—
   fixes-bug  cursor:gpt-5.6-luna-high/-/docker  gpt-5.6-luna-high  judge typesafe-ai/jev  typical  ×1  agent 303000–2020000 tokens $0.0192–0.1165  judge 0–62000 tokens $—
   fixes-bug  fake/-/docker                      fake               judge typesafe-ai/jev  free     ×1  agent 0–0 tokens $0–0                       judge 0–62000 tokens $—

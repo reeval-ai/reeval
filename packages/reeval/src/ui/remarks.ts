@@ -1,7 +1,7 @@
 // The `Remarks:` section under the tally: what's wrong with the evals themselves, each with its
 // fix. Concerns only and at most `REMARK_CAP` of them; `verbose` adds the rest and the
 // suggestions. A remark prints until a run has printed it, so once you've seen it a run on the
-// same source prints nothing, except a lift too few runs hold, a slow MCP start, a connection that
+// same source prints nothing, except a lift too few trials hold, a slow MCP start, a connection that
 // never reached the egress gateway, a setup process holding a checks secret or a workspace too
 // large to snapshot, which print in every run they happen. With none to print there's no heading.
 import { clip } from '../text.ts'
@@ -14,7 +14,7 @@ export const REMARK_CAP = 3
 
 /** Kinds about what happened in this run, not the eval's source: they print in every run they happen. */
 const EVERY_RUN: readonly Remark['kind'][] = [
-  'too-few-tries',
+  'too-few-trials',
   'slow-mcp-start',
   'proxy-only-egress',
   'setup-process-secret',

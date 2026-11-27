@@ -3,7 +3,7 @@
 **Shows:** measuring a skill someone else publishes. The variant fetches Anthropic's
 `brand-guidelines` skill from [anthropics/skills](https://github.com/anthropics/skills) at a pinned
 commit with `skill.git(repo, { ref, path, only })`. The page without the skill is the
-control. The agent styles a page in Anthropic's brand, and the graders look for
+baseline. The agent styles a page in Anthropic's brand, and the graders look for
 the skill's exact accent color and fonts, which an agent without it has to guess.
 
 **Needs:** the network, for reeval to fetch the skill on the host (it caches it in
@@ -27,14 +27,14 @@ on Claude Code, and `--profile <name>` on any other agent in [`examples/profiles
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the result block's arms, and the graders the control misses:
+**What to look at:** the result block's environments, and the graders the baseline misses:
 
 ```text
 with-library-skill-lift.eval.ts
-  · with-library-skill-lift  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
-    arm               pass
+  · with-library-skill-lift  mean 100% · 4/4 trials at 100% (pass@4)  capability(1)
+    environment       pass
     page              0 of 4
-      error  score 0.33 below 1: brand-orange scored 0.00; brand-fonts scored 0.00 (4 runs)
+      error  score 0.33 below 1: brand-orange scored 0.00; brand-fonts scored 0.00 (4 trials)
     brand-guidelines  4 of 4  helped
 ```
 
@@ -43,7 +43,7 @@ commit and content hash under `environments[].skills`.
 
 | File | What it is |
 |---|---|
-| [`with-library-skill-lift.eval.ts`](./with-library-skill-lift.eval.ts) | The eval: the control, the fetched skill as the variant, and three graders |
+| [`with-library-skill-lift.eval.ts`](./with-library-skill-lift.eval.ts) | The eval: the baseline, the fetched skill as the variant, and three graders |
 | [`project/`](./project) | The page the agent starts from: `index.html`, unstyled |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace, without and with the skill |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, and the real agents from `../profiles.ts` |

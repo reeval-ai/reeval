@@ -21,23 +21,23 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any, BinaryIO, TextIO, cast
 
-from reeval_python._wire import AttemptCall
-from reeval_python.context import AttemptContext, SyncAttemptContext, track_calls, unawaited
+from reeval_python._wire import TrialCall
+from reeval_python.context import TrialContext, SyncTrialContext, track_calls, unawaited
 from reeval_python.declare import collect_eval_file, get_body, is_async
-from reeval_python.errors import AttemptAborted, EvalError, ReevalCallError
+from reeval_python.errors import TrialAborted, EvalError, ReevalCallError
 
 RUNNER_PROTOCOL = 3
 
-_attempt: ContextVar[str | None] = ContextVar("_attempt", default=None)
+_trial: ContextVar[str | None] = ContextVar("_trial", default=None)
 
-# The tasks each attempt's body started, by its key: a body that returns leaves none running.
+# The tasks each trial's body started, by its key: a body that returns leaves none running.
 _started: dict[str, weakref.WeakSet[asyncio.Task[Any]]] = {}
 
 
 def _task_factory(loop: asyncio.AbstractEventLoop, coro: Any, **kwargs: Any) -> asyncio.Task[Any]:
     task: asyncio.Task[Any] = asyncio.Task(coro, loop=loop, **kwargs)
     context = kwargs.get("context")
-    key = context.get(_attempt) if context is not None else _attempt.get()
+    key = context.get(_trial) if context is not None else _trial.get()
     if key is not None:
         _started.setdefault(key, weakref.WeakSet()).add(task)
     return task
@@ -100,7 +100,7 @@ class _RoutedBytes(io.RawIOBase):
 
 
 class _Routed(io.TextIOBase):
-    """`sys.stdout`/`sys.stderr` in the runner: a body's lines go to its attempt's log."""
+    """`sys.stdout`/`sys.stderr` in the runner: a body's lines go to its trial's log."""
 
     def __init__(self, frames: _Frames, stream: str, fallback: TextIO) -> None:
         self._frames = frames
@@ -137,40 +137,40 @@ class _Routed(io.TextIOBase):
         if os.getpid() != self._frames.pid:
             os.write(2, s.encode("utf-8", "backslashreplace"))
             return len(s)
-        attempt = _attempt.get()
+        trial = _trial.get()
         with self._lock:
-            text = self._partial.pop(attempt, "") + s
+            text = self._partial.pop(trial, "") + s
             *lines, rest = text.split("\n")
             if rest:
-                self._partial[attempt] = rest
+                self._partial[trial] = rest
         for line in lines:
-            self._emit(attempt, line.removesuffix("\r"))
+            self._emit(trial, line.removesuffix("\r"))
         return len(s)
 
     def flush(self) -> None:
-        attempt = _attempt.get()
-        if attempt is not None:
-            self.flush_attempt(attempt)
+        trial = _trial.get()
+        if trial is not None:
+            self.flush_trial(trial)
 
-    def flush_attempt(self, attempt: str) -> None:
+    def flush_trial(self, trial: str) -> None:
         with self._lock:
-            rest = self._partial.pop(attempt, "")
+            rest = self._partial.pop(trial, "")
         if rest:
-            self._emit(attempt, rest)
+            self._emit(trial, rest)
 
-    def _emit(self, attempt: str | None, line: str) -> None:
-        if attempt is None:
+    def _emit(self, trial: str | None, line: str) -> None:
+        if trial is None:
             self._fallback.write(line + "\n")
             self._fallback.flush()
         else:
-            self._frames.write({"t": "log", "key": attempt, "stream": self._stream, "text": line})
+            self._frames.write({"t": "log", "key": trial, "stream": self._stream, "text": line})
 
 
 class _Connection:
     def __init__(self, frames: _Frames) -> None:
         self._frames = frames
         self._pending: dict[tuple[str, str], asyncio.Future[dict[str, Any]]] = {}
-        self.aborted: dict[str, AttemptAborted] = {}
+        self.aborted: dict[str, TrialAborted] = {}
         self._ended: set[str] = set()
         # Bodies that ended before reeval aborted them: `aborted` holds their refusal of calls.
         self._finished_first: set[str] = set()
@@ -187,38 +187,38 @@ class _Connection:
         self._ended.add(key)
         if key not in self.aborted:
             self._finished_first.add(key)
-            self.abort(key, "AbortError", "the attempt is over: its body already returned")
+            self.abort(key, "AbortError", "the trial is over: its body already returned")
 
-    def aborted_by_reeval(self, key: str) -> AttemptAborted | None:
+    def aborted_by_reeval(self, key: str) -> TrialAborted | None:
         return None if key in self._finished_first else self.aborted.get(key)
 
     def abort(self, key: str, name: str, message: str) -> None:
         """reeval gave up on the body: its calls in flight and every later one raise."""
-        aborted = self.aborted[key] = AttemptAborted(name, message)
+        aborted = self.aborted[key] = TrialAborted(name, message)
         for pending in [k for k in self._pending if k[0] == key]:
             fut = self._pending.pop(pending)
             if not fut.done():
                 fut.set_exception(aborted)
 
     def complete_reply(self, msg: dict[str, Any]) -> None:
-        attempt = msg.get("key")
+        trial = msg.get("key")
         req_id = msg.get("id")
-        if attempt is None or req_id is None:
+        if trial is None or req_id is None:
             return
-        key = (str(attempt), str(req_id))
+        key = (str(trial), str(req_id))
         fut = self._pending.pop(key, None)
         if fut is not None and not fut.done():
             fut.set_result(msg)
 
-    async def request(self, attempt_id: str, req_id: str, call: AttemptCall) -> dict[str, Any]:
-        if attempt_id in self.aborted:
-            raise self.aborted[attempt_id]
+    async def request(self, trial_id: str, req_id: str, call: TrialCall) -> dict[str, Any]:
+        if trial_id in self.aborted:
+            raise self.aborted[trial_id]
         fut = asyncio.get_running_loop().create_future()
-        self._pending[(attempt_id, req_id)] = fut
+        self._pending[(trial_id, req_id)] = fut
         try:
-            self.write({"id": req_id, "call": call, "key": attempt_id})
+            self.write({"id": req_id, "call": call, "key": trial_id})
         except BaseException:
-            self._pending.pop((attempt_id, req_id), None)
+            self._pending.pop((trial_id, req_id), None)
             raise
         return await fut
 
@@ -256,16 +256,16 @@ async def _in_thread(fn: Any, *args: Any) -> Any:
     return await fut
 
 
-async def _run_body(conn: _Connection, attempt_id: str, body_id: str) -> None:
-    _attempt.set(attempt_id)
+async def _run_body(conn: _Connection, trial_id: str, body_id: str) -> None:
+    _trial.set(trial_id)
     fn = get_body(body_id)
     ids = itertools.count(1)
 
-    async def send_request(call: AttemptCall) -> dict[str, Any]:
-        return await conn.request(attempt_id, str(next(ids)), call)
+    async def send_request(call: TrialCall) -> dict[str, Any]:
+        return await conn.request(trial_id, str(next(ids)), call)
 
     loop = asyncio.get_running_loop()
-    async_ctx = AttemptContext(attempt_id, send_request)
+    async_ctx = TrialContext(trial_id, send_request)
     error: dict[str, Any] | None = None
 
     try:
@@ -274,7 +274,7 @@ async def _run_body(conn: _Connection, attempt_id: str, body_id: str) -> None:
             result = fn(async_ctx)
             if inspect.isawaitable(result):
                 await result
-            if left := _left_running(attempt_id):
+            if left := _left_running(trial_id):
                 raise ReevalCallError(
                     "UsageError",
                     f"the body returned with {len(left)} task(s) it started still running, so "
@@ -288,7 +288,7 @@ async def _run_body(conn: _Connection, attempt_id: str, body_id: str) -> None:
                     "awaits each c call",
                 )
         else:
-            sync_ctx = SyncAttemptContext(async_ctx, loop)
+            sync_ctx = SyncTrialContext(async_ctx, loop)
             result = await _in_thread(fn, sync_ctx)
             if inspect.isgenerator(result) or inspect.isasyncgen(result):
                 raise ReevalCallError(
@@ -306,17 +306,17 @@ async def _run_body(conn: _Connection, attempt_id: str, body_id: str) -> None:
                     "decorator around it",
                 )
     except asyncio.CancelledError:
-        _left_running(attempt_id)
+        _left_running(trial_id)
         unawaited()
-        conn.finish(attempt_id)
-        _flush(attempt_id)
+        conn.finish(trial_id)
+        _flush(trial_id)
         raise
-    except AttemptAborted as exc:
+    except TrialAborted as exc:
         error = {"name": exc.name, "message": str(exc)}
     except ReevalCallError as exc:
         error = {"name": exc.name, "message": str(exc), "stack": traceback.format_exc()}
     except BaseException as exc:  # noqa: BLE001
-        # SystemExit and the like end this body only: the runner serves other attempts too.
+        # SystemExit and the like end this body only: the runner serves other trials too.
         if (failed := _failed_asserts(exc)) is not None:
             message = "\n".join(str(e) or _assert_line(e) for e in failed)
             error = {"name": "AssertionError", "message": message}
@@ -327,11 +327,11 @@ async def _run_body(conn: _Connection, attempt_id: str, body_id: str) -> None:
         else:
             error = {"name": type(exc).__name__, "message": str(exc)}
         error["stack"] = traceback.format_exc()
-    _left_running(attempt_id)
+    _left_running(trial_id)
     unawaited()
-    conn.finish(attempt_id)
-    _flush(attempt_id)
-    conn.done(attempt_id, error)
+    conn.finish(trial_id)
+    _flush(trial_id)
+    conn.done(trial_id, error)
 
 
 def _failed_asserts(exc: BaseException) -> list[AssertionError] | None:
@@ -359,7 +359,7 @@ def _assert_line(exc: AssertionError) -> str:
 def _flush(key: str) -> None:
     for stream in (sys.stdout, sys.stderr):
         if isinstance(stream, _Routed):
-            stream.flush_attempt(key)
+            stream.flush_trial(key)
 
 
 # What stopped the runner's loop, when something did: a `SystemExit` or `KeyboardInterrupt`
@@ -370,13 +370,13 @@ _escaped: BaseException | None = None
 def _canceled_done(conn: _Connection, key: str) -> None:
     aborted = conn.aborted_by_reeval(key)
     if aborted is None and _escaped is not None:
-        aborted = AttemptAborted(
+        aborted = TrialAborted(
             type(_escaped).__name__,
-            f"a task a body started raised {_escaped!r}, which stopped the runner this attempt "
+            f"a task a body started raised {_escaped!r}, which stopped the runner this trial "
             "ran in",
         )
     if aborted is None:
-        aborted = AttemptAborted(
+        aborted = TrialAborted(
             "RunnerError", "the runner stopped this body without reeval aborting it"
         )
     error = {"name": aborted.name, "message": str(aborted)}

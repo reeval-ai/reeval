@@ -1,5 +1,5 @@
-profile nightly (--profile) · 1 evals · 1 cells · 1 attempts
-p  fake/base/docker:nightly  control  gated any  ×1  files NOTES.md
+profile nightly (--profile) · 1 evals · 1 cells · 1 trials
+p  fake/base/docker:nightly  baseline  gated any  ×1  files NOTES.md
 excluded: —
 image docker:nightly · cursor · 1 evals
   dockerfile nightly/Dockerfile  reeval-dockerfile:nightly-a38c991bf07325a6  (docker build (layer cache), tagged by content hash)

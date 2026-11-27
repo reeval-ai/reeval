@@ -47,7 +47,7 @@ import { type GraderDef, graderDef } from '../src/grade/define.ts'
 import { judge } from '../src/grade/judge-grader.ts'
 import { runGraders } from '../src/grade/run.ts'
 import { fakeBrokering } from '../src/harness/agents.ts'
-import { readStoredAttempt } from '../src/history/stored-attempt.ts'
+import { readStoredTrial } from '../src/history/stored-trial.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { sha256 } from '../src/ids.ts'
 import { askJudge } from '../src/judge/index.ts'
@@ -76,7 +76,7 @@ import {
   harnesses,
   harnessOf,
   keyOf,
-  reserveAttempts,
+  reserveTrials,
 } from './support/harnesses.ts'
 import {
   boatSandbox as boat,
@@ -108,7 +108,7 @@ type Feature = {
   /** Under `test/features/`. */
   dir: string
   tiers: Tier[]
-  /** The environment the evals run in: attempt ids are `fake/<env>/<sandbox>#1`. */
+  /** The environment the evals run in: trial ids are `fake/<env>/<sandbox>#1`. */
   env: string
   /** Cell sandbox id, when it isn't the tier default (`fake`, `docker` or `podman`). */
   sandbox?: string
@@ -122,19 +122,19 @@ type Feature = {
   /** What the canary's failure says: proof it failed on the check, not on setup. */
   canary: RegExp | ((tier: Tier) => RegExp)
   /**
-   * What the canary's first failed attempt observed, by name: proof the check saw the wrong value
+   * What the canary's first failed trial observed, by name: proof the check saw the wrong value
    * rather than nothing. See `sawMatches` for how each value matches.
    */
   canarySaw?: Record<string, Saw>
-  /** What the canary's first failed attempt's graders returned, by grader name, matched as `canarySaw`. */
+  /** What the canary's first failed trial's graders returned, by grader name, matched as `canarySaw`. */
   canaryGraded?: Record<string, Saw> | ((tier: Tier) => Record<string, Saw>)
   /** The canary's environment, when it needs another one; defaults to `env`. */
   canaryEnv?: string
-  /** Canary cell environments that must pass. The other canary attempts must match `canary`. */
+  /** Canary cell environments that must pass. The other canary trials must match `canary`. */
   canaryPass?: string[]
-  /** When the check is that the attempt fails, e.g. an infra error; else it must pass. */
+  /** When the check is that the trial fails, e.g. an infra error; else it must pass. */
   lands?: Pick<EvalExpectation, 'outcome' | 'error'>
-  /** With `lands.error`, the cell environments whose attempts must pass instead. */
+  /** With `lands.error`, the cell environments whose trials must pass instead. */
   landsPass?: string[]
   /**
    * Host variables for `reeval run`, e.g. what `secret.fromEnv` reads; a function runs at test time,
@@ -152,7 +152,7 @@ type Feature = {
   /** A host device the Docker tier passes in, so it skips on a host without one. */
   hostDevice?: string
   /**
-   * Every eval and attempt, when the defaults can't name them: several harnesses or a family's
+   * Every eval and trial, when the defaults can't name them: several harnesses or a family's
    * cases. Fake tier only, where the ids are fixed.
    */
   evals?: RunExpectation['evals']
@@ -345,7 +345,7 @@ const onFakeBoat: Pick<Feature, 'sandbox' | 'hostEnv' | 'prepare'> = {
 }
 /** No sandbox of the run is left on the fake API. */
 const boatCleanedUp = (run: RunRecord, sandbox: { prefix: string } = boat(), api = boatApi) => {
-  for (const a of run.evals.flatMap((e) => e.attempts)) {
+  for (const a of run.evals.flatMap((e) => e.trials)) {
     if (a.sandboxBase?.provider === 'boat') keptImages.add(a.sandboxBase.key.slice(0, 12))
   }
   const prefix = runPrefix(sandbox, run.runId)
@@ -383,7 +383,7 @@ const onFakeCloud: Pick<Feature, 'sandbox' | 'hostEnv' | 'prepare'> = {
   prepare: () => buildSshVmImage(['boat', 'boat-docker']),
 }
 /**
- * Every VM of the run was made labeled and deleted, and neither the record nor the attempts'
+ * Every VM of the run was made labeled and deleted, and neither the record nor the trials'
  * debug logs name the provider.
  */
 const cloudCleanedUp = (run: RunRecord, project: string) => {
@@ -638,13 +638,13 @@ const egressEnv = () => ({
 /** Each fixture project's fake `tart` directory, for a row run under `tart()`. */
 const fakeTarts = new Map<string, string>()
 
-/** The `lands` eval's first attempt. */
-const landed = (run: RunRecord) => run.evals.find((e) => e.name === 'lands')?.attempts[0]
+/** The `lands` eval's first trial. */
+const landed = (run: RunRecord) => run.evals.find((e) => e.name === 'lands')?.trials[0]
 
-/** The canary eval's first failed attempt, else its first. */
-const canaryAttempt = (run: RunRecord) => {
-  const attempts = run.evals.find((e) => e.name === 'canary')?.attempts ?? []
-  return attempts.find((a) => a.outcome === 'fail') ?? attempts[0]
+/** The canary eval's first failed trial, else its first. */
+const canaryTrial = (run: RunRecord) => {
+  const trials = run.evals.find((e) => e.name === 'canary')?.trials ?? []
+  return trials.find((a) => a.outcome === 'fail') ?? trials[0]
 }
 
 /**
@@ -668,11 +668,11 @@ const sawMatches = (saw: JSONValue | undefined, want: Saw, what: string): void =
   } else assert.deepEqual(saw, want, what)
 }
 
-/** An eval's first attempt's grades, as `[grader, grade, score]`. */
+/** An eval's first trial's grades, as `[grader, grade, score]`. */
 const graded = (run: RunRecord, name: string) =>
   run.evals
     .find((e) => e.name === name)
-    ?.attempts[0]?.grades?.map((g) => [g.grader, g.grade, g.score])
+    ?.trials[0]?.grades?.map((g) => [g.grader, g.grade, g.score])
 
 const skills = (run: RunRecord) => run.environments.flatMap((e) => e.skills)
 const plugins = (run: RunRecord) => run.environments.flatMap((e) => e.plugins ?? [])
@@ -706,9 +706,9 @@ const versionedRepo = (dir: string) => {
 
 const workspaceOf = (run: RunRecord) => run.environments.find((e) => e.workspace)?.workspace
 
-/** An eval's first attempt's first grade, a judge grader's. */
+/** An eval's first trial's first grade, a judge grader's. */
 const judgeGradeOf = (run: RunRecord, name = 'lands') => {
-  const grade = run.evals.find((e) => e.name === name)?.attempts[0]?.grades?.[0]
+  const grade = run.evals.find((e) => e.name === name)?.trials[0]?.grades?.[0]
   assert.ok(grade?.kind === 'judge', JSON.stringify(grade))
   return grade
 }
@@ -809,7 +809,7 @@ export const features: Feature[] = [
       const rows = (
         JSON.parse(r.stdout) as Array<{ skill: string; source: string; reads: number }>
       ).map((x) => [x.skill, x.source, x.reads])
-      // The canary's attempt and the check's, each opening house-greeting. Only an isolated
+      // The canary's trial and the check's, each opening house-greeting. Only an isolated
       // sandbox takes the context, which also lists the installed skill nobody opened.
       const unread = tier === 'fake' ? [] : [['house-farewell', 'skill-dir', 0]]
       assert.deepEqual(rows, [
@@ -961,14 +961,14 @@ export const features: Feature[] = [
       error: {
         kind: 'infra',
         message:
-          /^Workspace git\("\.\.\/repo#v9"\): the repository has no ref "v9" \(a branch, tag or commit SHA\)\.\n\(the workspace git\("\.\.\/repo#v9"\), set by environment missing, failed to prepare before the run started; every attempt that needs it fails with this\)$/,
+          /^Workspace git\("\.\.\/repo#v9"\): the repository has no ref "v9" \(a branch, tag or commit SHA\)\.\n\(the workspace git\("\.\.\/repo#v9"\), set by environment missing, failed to prepare before the run started; every trial that needs it fails with this\)$/,
       },
     },
     canary: zeroBy('observed:greet.js'),
     canarySaw: { 'greet.js': /Hello/ },
     prepare: versionedRepo,
     record: ({ run }) => {
-      const prepare = run.evals.flatMap((e) => e.attempts).find((a) => a.error?.prepare)
+      const prepare = run.evals.flatMap((e) => e.trials).find((a) => a.error?.prepare)
         ?.error?.prepare
       assert.deepEqual(prepare, {
         class: 'config',
@@ -1318,7 +1318,7 @@ export const features: Feature[] = [
     canary: zeroBy('observed:start-ms'),
     record: ({ run }) => {
       const startup = (name: string) =>
-        run.evals.find((e) => e.name === name)?.attempts[0]?.turns.map((t) => t.mcpStartup)
+        run.evals.find((e) => e.name === name)?.trials[0]?.turns.map((t) => t.mcpStartup)
       const [[lands] = []] = startup('lands') ?? []
       assert.equal(lands?.server, 'stamp')
       assert.equal(typeof lands?.ms, 'number', JSON.stringify(lands))
@@ -1425,14 +1425,14 @@ export const features: Feature[] = [
       ]
       assert.deepEqual(landed(run)?.secretWarnings, expected)
       assert.deepEqual(
-        run.secretWarnings?.filter((w) => w.attemptId === key),
-        expected.map((w) => ({ ...w, attemptId: key })),
+        run.secretWarnings?.filter((w) => w.trialId === key),
+        expected.map((w) => ({ ...w, trialId: key })),
       )
       const events = readFileSync(join(project, 'events.ndjson'), 'utf8')
         .split('\n')
         .filter(Boolean)
-        .map((l) => JSON.parse(l) as { type?: string; attemptId?: string })
-        .filter((e) => e.type === 'secret-warning' && e.attemptId === key)
+        .map((l) => JSON.parse(l) as { type?: string; trialId?: string })
+        .filter((e) => e.type === 'secret-warning' && e.trialId === key)
         .map(({ type, secret, host, reason }: Record<string, unknown>) => ({
           type,
           secret,
@@ -1512,17 +1512,17 @@ export const features: Feature[] = [
     canarySaw: { hold: 'held' },
     record: ({ run, project }) => {
       boatCleanedUp(run)
-      const machine = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources?.machine.id
+      const machine = run.evals.find((e) => e.name === 'lands')?.trials[0]?.resources?.machine.id
       assert.match(machine ?? '', /^bx_[0-9a-f]{8}$/)
       const beats = readFileSync(join(project, 'events.ndjson'), 'utf8')
         .trim()
         .split('\n')
         .map((l) => JSON.parse(l) as RunEventLine)
-        .flatMap((l) => (l.type === 'heartbeat' && l.attempts ? [l] : []))
-      const holding = beats.filter((b) => b.attempts?.some((a) => a.machine === machine))
+        .flatMap((l) => (l.type === 'heartbeat' && l.trials ? [l] : []))
+      const holding = beats.filter((b) => b.trials?.some((a) => a.machine === machine))
       assert.ok(holding.length >= 1, JSON.stringify(beats))
       for (const b of holding) assert.ok(b.machines?.includes(machine ?? ''), JSON.stringify(b))
-      assert.deepEqual(beats.at(-1)?.attempts, [])
+      assert.deepEqual(beats.at(-1)?.trials, [])
       assert.equal(beats.at(-1)?.done, true)
     },
   },
@@ -1535,7 +1535,7 @@ export const features: Feature[] = [
     canarySaw: { cpus: (cpus) => typeof cpus === 'number' && cpus > 0 },
     record: ({ run }) => {
       boatCleanedUp(run)
-      const r = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources
+      const r = run.evals.find((e) => e.name === 'lands')?.trials[0]?.resources
       assert.equal(r?.scope, 'container', JSON.stringify(r))
       assert.equal(r?.machine.sandbox, 'boat')
       assert.equal(r?.machine.size, 'small')
@@ -1601,10 +1601,10 @@ export const features: Feature[] = [
         boatApi.requests.some((q) => q.refused && String(q.body?.name).startsWith(prefix)),
         'the refused start was retried, not failed',
       )
-      assert.equal(boatCreates(run, sandbox), 1, 'both attempts ran on one machine')
-      // Whichever attempt ran second, the canary's or lands', found nothing the first left.
+      assert.equal(boatCreates(run, sandbox), 1, 'both trials ran on one machine')
+      // Whichever trial ran second, the canary's or lands', found nothing the first left.
       const saw = run.evals.map((e) => {
-        const path = e.attempts[0]?.files.trajectory?.path ?? ''
+        const path = e.trials[0]?.files.trajectory?.path ?? ''
         const shell = readFileSync(join(runDir, path), 'utf8')
           .trim()
           .split('\n')
@@ -1624,15 +1624,15 @@ export const features: Feature[] = [
     canary: zeroBy('observed:agent-saw'),
     canarySaw: { 'agent-saw': /^\["reeval"/ },
     record: ({ run }) => {
-      assert.equal(boatCreates(run), 1, 'both attempts ran at once on one machine')
+      assert.equal(boatCreates(run), 1, 'both trials ran at once on one machine')
       boatCleanedUp(run)
-      const resources = run.evals.flatMap((e) => e.attempts.map((a) => a.resources))
+      const resources = run.evals.flatMap((e) => e.trials.map((a) => a.resources))
       assert.ok(resources.length >= 2, JSON.stringify(resources))
       for (const r of resources) {
         assert.equal(r?.scope, 'container', JSON.stringify(r))
         assert.equal(r?.machine.sandbox, 'boat')
         assert.ok((r?.machine.vcpus ?? 0) >= 1, JSON.stringify(r))
-        assert.ok(r?.usage, "each attempt's own container's use")
+        assert.ok(r?.usage, "each trial's own container's use")
       }
     },
   },
@@ -1650,9 +1650,9 @@ export const features: Feature[] = [
     canarySaw: { direct: '200 exit=0' },
     record: ({ run }) => {
       boatCleanedUp(run)
-      const attempt = landed(run)
-      const base = attempt?.sandboxBase
-      assert.equal(base?.provider, 'boat', JSON.stringify(attempt))
+      const trial = landed(run)
+      const base = trial?.sandboxBase
+      assert.equal(base?.provider, 'boat', JSON.stringify(trial))
       assert.match(base?.snapshot ?? '', /^reeval-img-[0-9a-f]{12}$/)
       assert.equal(base?.image, `reeval-vm-image:${base?.key.slice(0, 12)}`)
       assert.equal(base?.built, true, 'built by this run')
@@ -1663,9 +1663,9 @@ export const features: Feature[] = [
       assert.ok(creates.length > 0)
       for (const q of creates)
         assert.equal(q.body?.from, base?.snapshot, 'started from the snapshot')
-      assert.equal(attempt?.resources?.scope, 'container', JSON.stringify(attempt?.resources))
-      assert.equal(attempt?.resources?.machine.sandbox, 'boat')
-      assert.deepEqual(attempt?.egress?.blocked, [
+      assert.equal(trial?.resources?.scope, 'container', JSON.stringify(trial?.resources))
+      assert.equal(trial?.resources?.machine.sandbox, 'boat')
+      assert.deepEqual(trial?.egress?.blocked, [
         {
           host: egressTarget.host,
           port: egressTarget.port,
@@ -1701,14 +1701,14 @@ export const features: Feature[] = [
       )
       assert.ok(creates.length > 0, 'the run created its VMs on the service')
       for (const q of creates) assert.equal(q.body?.from, undefined, 'no snapshot to start from')
-      const attempt = landed(run)
-      assert.equal(attempt?.resources?.scope, 'container', JSON.stringify(attempt?.resources))
-      assert.equal(attempt?.resources?.machine.sandbox, 'cloud')
-      assert.equal(attempt?.resources?.machine.size, 'small')
-      const image = run.stack.images.find((i) => i.id === attempt?.imageId)
+      const trial = landed(run)
+      assert.equal(trial?.resources?.scope, 'container', JSON.stringify(trial?.resources))
+      assert.equal(trial?.resources?.machine.sandbox, 'cloud')
+      assert.equal(trial?.resources?.machine.size, 'small')
+      const image = run.stack.images.find((i) => i.id === trial?.imageId)
       assert.match(image?.ref ?? '', /^reeval-install:/, JSON.stringify(run.stack.images))
       assert.deepEqual(image?.install, ['echo baked-by-cloud-image > /etc/reeval-recipe'])
-      assert.deepEqual(attempt?.egress?.blocked, [
+      assert.deepEqual(trial?.egress?.blocked, [
         {
           host: egressTarget.host,
           port: egressTarget.port,
@@ -1731,10 +1731,10 @@ export const features: Feature[] = [
     canary: zeroBy('observed:shell-output'),
     canarySaw: { 'shell-output': 'root\n' },
     evals: {
-      lands: { outcome: 'pass', attempts: ['fake/-/docker#1', 'fake/-/docker#2'] },
+      lands: { outcome: 'pass', trials: ['fake/-/docker#1', 'fake/-/docker#2'] },
       canary: {
         outcome: 'fail',
-        attempts: ['fake/-/docker#1'],
+        trials: ['fake/-/docker#1'],
         error: { kind: 'assertion', message: zeroBy('observed:shell-output') },
       },
     },
@@ -1745,9 +1745,9 @@ export const features: Feature[] = [
         [],
         'every VM of the run is deleted',
       )
-      const attempts = run.evals.flatMap((e) => e.attempts)
-      const machines = attempts.map((a) => a.resources?.machine)
-      for (const [i, a] of attempts.entries()) {
+      const trials = run.evals.flatMap((e) => e.trials)
+      const machines = trials.map((a) => a.resources?.machine)
+      for (const [i, a] of trials.entries()) {
         assert.equal(a.resources?.scope, 'container', JSON.stringify(a.resources))
         assert.equal(machines[i]?.sandbox, 'cloud', 'on a VM, not the machine that ran the run')
         const image = run.stack.images.find((im) => im.id === a.imageId)
@@ -1755,8 +1755,8 @@ export const features: Feature[] = [
       }
       assert.equal(
         new Set(machines.map((m) => m?.id)).size,
-        attempts.length,
-        `each attempt on a VM of its own: ${JSON.stringify(machines)}`,
+        trials.length,
+        `each trial on a VM of its own: ${JSON.stringify(machines)}`,
       )
     },
   },
@@ -1776,7 +1776,7 @@ export const features: Feature[] = [
       const [p] = plugins(run)
       assert.equal(p?.name, 'built')
       assert.match(p?.build ?? '', /^reeval-plugin:[0-9a-f]{12}-[0-9a-f]{16}$/)
-      const r = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources
+      const r = run.evals.find((e) => e.name === 'lands')?.trials[0]?.resources
       assert.equal(r?.machine.sandbox, 'cloud', 'built on a VM, not the machine that ran the run')
     },
   },
@@ -1789,7 +1789,7 @@ export const features: Feature[] = [
     canarySaw: { 'agent-saw': /^\["reeval"/ },
     record: ({ run, project }) => {
       cloudCleanedUp(run, project)
-      const r = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources
+      const r = run.evals.find((e) => e.name === 'lands')?.trials[0]?.resources
       assert.equal(r?.scope, 'container', JSON.stringify(r))
       assert.equal(r?.machine.sandbox, 'cloud')
       assert.equal(r?.machine.size, 'small')
@@ -1808,15 +1808,15 @@ export const features: Feature[] = [
       assert.equal(
         boatCreates(run, CLOUD_VM, dockerBoatApi),
         1,
-        'both attempts ran at once on one machine',
+        'both trials ran at once on one machine',
       )
       cloudCleanedUp(run, project)
-      const resources = run.evals.flatMap((e) => e.attempts.map((a) => a.resources))
+      const resources = run.evals.flatMap((e) => e.trials.map((a) => a.resources))
       assert.ok(resources.length >= 2, JSON.stringify(resources))
       for (const r of resources) {
         assert.equal(r?.scope, 'container', JSON.stringify(r))
         assert.equal(r?.machine.sandbox, 'cloud')
-        assert.ok(r?.usage, "each attempt's own container's use")
+        assert.ok(r?.usage, "each trial's own container's use")
       }
     },
   },
@@ -1847,7 +1847,7 @@ export const features: Feature[] = [
       const recipe = daytona({
         from: 'debian:bookworm-slim',
         install: ['echo installed > /etc/reeval-install-proof'],
-        attemptsPerMachine: 2,
+        trialsPerMachine: 2,
       })
       daytonaCleanedUp(run, recipe)
       const made = daytonaCreated(run, recipe)
@@ -1859,12 +1859,12 @@ export const features: Feature[] = [
       assert.match(String(built?.dockerfile), /^FROM debian:bookworm-slim@sha256:/)
       const logs = debugLogs(project).flat()
       assert.ok(
-        logs.some((l) => l.includes(`starts each attempt from ${snapshot}, which has the harness`)),
-        'the debug log names the image each attempt started from',
+        logs.some((l) => l.includes(`starts each trial from ${snapshot}, which has the harness`)),
+        'the debug log names the image each trial started from',
       )
       assert.ok(
         !logs.some((l) => /installed the fake agent's bootstrap/.test(l)),
-        "the attempt didn't install the harness again",
+        "the trial didn't install the harness again",
       )
     },
   },
@@ -1886,7 +1886,7 @@ export const features: Feature[] = [
     canarySaw: { cpus: (cpus) => typeof cpus === 'number' && cpus > 0 },
     record: ({ run }) => {
       daytonaCleanedUp(run)
-      const r = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources
+      const r = run.evals.find((e) => e.name === 'lands')?.trials[0]?.resources
       assert.equal(r?.scope, 'machine', JSON.stringify(r))
       assert.equal(r?.machine.sandbox, 'daytona')
       assert.equal(r?.machine.size, 'medium')
@@ -1923,7 +1923,7 @@ export const features: Feature[] = [
         daytonaApi.requests.some((q) => q.refused && String(q.body?.name).startsWith('pool-')),
         'the refused start was retried, not failed',
       )
-      assert.equal(daytonaCreated(run, sandbox).length, 1, 'both attempts ran on one machine')
+      assert.equal(daytonaCreated(run, sandbox).length, 1, 'both trials ran on one machine')
       daytonaCleanedUp(run, sandbox)
     },
   },
@@ -1935,15 +1935,15 @@ export const features: Feature[] = [
     canary: zeroBy('observed:agent-saw'),
     canarySaw: { 'agent-saw': /^\["reeval(-s1)?"/ },
     record: ({ run }) => {
-      assert.equal(daytonaCreated(run).length, 1, 'both attempts ran at once on one machine')
+      assert.equal(daytonaCreated(run).length, 1, 'both trials ran at once on one machine')
       daytonaCleanedUp(run)
-      const resources = run.evals.flatMap((e) => e.attempts.map((a) => a.resources))
+      const resources = run.evals.flatMap((e) => e.trials.map((a) => a.resources))
       assert.ok(resources.length >= 2, JSON.stringify(resources))
       for (const r of resources) {
         assert.equal(r?.scope, 'machine', JSON.stringify(r))
         assert.equal(r?.shared, true, JSON.stringify(r))
         assert.equal(r?.machine.sandbox, 'daytona')
-        assert.equal(r?.usage, undefined, "another attempt's use would count in the VM's")
+        assert.equal(r?.usage, undefined, "another trial's use would count in the VM's")
       }
     },
   },
@@ -2010,7 +2010,7 @@ export const features: Feature[] = [
         /Setup left "[^"]+" \(and 2 more\) running with CHECK_TOKEN, a to: 'checks' secret without hosts, in their environment, so the agent can read the real value from those processes\./,
       )
       // Twin: brokered with hosts, the same process holds a placeholder and nothing is recorded.
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]
       assert.ok(canary)
       assert.equal(canary.setupProcesses, undefined)
       assert.equal(filesContaining(runDir, TOKEN), '')
@@ -2074,10 +2074,10 @@ export const features: Feature[] = [
     canary: zeroBy('observed:gets-the-case-masked'),
     canarySaw: { 'gets-the-key': true },
     evals: {
-      lands: { outcome: 'pass', attempts: ['fake/plain/fake#[REDACTED]#1'] },
+      lands: { outcome: 'pass', trials: ['fake/plain/fake#[REDACTED]#1'] },
       canary: {
         outcome: 'fail',
-        attempts: ['fake/plain/fake#[REDACTED]#1'],
+        trials: ['fake/plain/fake#[REDACTED]#1'],
         error: { kind: 'assertion', message: zeroBy('observed:gets-the-case-masked') },
       },
     },
@@ -2105,7 +2105,7 @@ export const features: Feature[] = [
       ] as const) {
         assert.doesNotMatch(text, /sk-ant-|reeval-fixture-not-a-key/, `${where} has the key`)
       }
-      // Twin: the same search finds the masked case in the Attempt index.
+      // Twin: the same search finds the masked case in the Trial index.
       assert.notEqual(filesContaining(runDir, 'plain / [REDACTED]'), '')
     },
   },
@@ -2117,9 +2117,9 @@ export const features: Feature[] = [
     canary: zeroBy('observed:checks-saw-values'),
     canarySaw: { 'checks-saw': '[REDACTED]\n[REDACTED]\n' },
     async record({ run, project, runDir }) {
-      const attempt = landed(run)
-      assert.equal(attempt?.error, null)
-      const lines = readFileSync(join(runDir, attempt?.files.trajectory?.path ?? ''), 'utf8')
+      const trial = landed(run)
+      assert.equal(trial?.error, null)
+      const lines = readFileSync(join(runDir, trial?.files.trajectory?.path ?? ''), 'utf8')
         .trim()
         .split('\n')
         .map((l) => JSON.parse(l))
@@ -2235,7 +2235,7 @@ export const features: Feature[] = [
       assert.equal(
         stdout.split('\n').filter((l) => l.includes(warning)).length,
         2,
-        'one warning per attempt, on the terminal',
+        'one warning per trial, on the terminal',
       )
       // The record, trajectories and debug trace, with a twin: the same search finds the request.
       const state = join(project, '.reeval')
@@ -2347,7 +2347,7 @@ export const features: Feature[] = [
         expectedBlocked: [],
         unresolved: [],
       })
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]?.egress
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]?.egress
       assert.equal(canary?.policy, 'proxy')
       assert.equal(canary?.partial, undefined)
     },
@@ -2356,7 +2356,7 @@ export const features: Feature[] = [
     dir: 'egress/setup-open-agent-closed',
     // Not on rootless Podman (4.9, with its netavark): any container leaving the bridge, at
     // creation or at the switch, can cut the others on it off from the host for seconds, and the
-    // canary's allow-all container needs that route for a whole attempt.
+    // canary's allow-all container needs that route for a whole trial.
     tiers: ['docker'],
     env: 'phased',
     canaryEnv: 'open',
@@ -2388,7 +2388,7 @@ export const features: Feature[] = [
       ])
       const phased = run.environments.find((e) => e.name === 'phased')
       assert.equal(phased?.setupEgress, 'allow-all')
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]?.egress
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]?.egress
       assert.equal(canary?.setup, undefined)
       assert.ok(canary?.blocked.every((h) => h.phase === undefined))
     },
@@ -2413,7 +2413,7 @@ export const features: Feature[] = [
           closed: true,
         },
       ])
-      const kept = run.evals.find((e) => e.name === 'canary')?.attempts[0]?.egress
+      const kept = run.evals.find((e) => e.name === 'canary')?.trials[0]?.egress
       assert.deepEqual(kept?.blocked, [])
       assert.match(
         stdout,
@@ -2480,7 +2480,7 @@ export const features: Feature[] = [
         egress?.contacted.some((h) => h.host === 'api2.cursor.sh'),
         JSON.stringify(egress),
       )
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]?.egress
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]?.egress
       assert.deepEqual(
         canary?.blocked.map((h) => [h.host, h.reason]),
         [['registry.npmjs.org', "registry.npmjs.org isn't in the allowlist"]],
@@ -2553,9 +2553,9 @@ export const features: Feature[] = [
     canary: zeroBy('observed:notes.txt'),
     canarySaw: { 'notes.txt': 'from the environment\n' },
     record: ({ run }) => {
-      const [attempt] = run.evals.find((e) => e.name === 'lands')?.attempts ?? []
-      assert.deepEqual(attempt?.turns, [], 'no turn was sent')
-      assert.ok((attempt?.timings.setupMs ?? 0) > 0, 'the start is timed as setup')
+      const [trial] = run.evals.find((e) => e.name === 'lands')?.trials ?? []
+      assert.deepEqual(trial?.turns, [], 'no turn was sent')
+      assert.ok((trial?.timings.setupMs ?? 0) > 0, 'the start is timed as setup')
     },
   },
   {
@@ -2565,9 +2565,9 @@ export const features: Feature[] = [
     canary: zeroBy('observed:marker.txt'),
     canarySaw: { 'marker.txt': 'written' },
     record: ({ run }) => {
-      const [attempt] = run.evals.find((e) => e.name === 'lands')?.attempts ?? []
+      const [trial] = run.evals.find((e) => e.name === 'lands')?.trials ?? []
       assert.deepEqual(
-        attempt?.checks.map((x) => [x.command, x.exitCode]),
+        trial?.checks.map((x) => [x.command, x.exitCode]),
         [['test -f notes.txt', 0]],
       )
     },
@@ -2661,7 +2661,7 @@ export const features: Feature[] = [
     canary: zeroBy('succeeded:kill'),
     record: ({ run }) => {
       const [lands, canary] = ['lands', 'canary'].map(
-        (name) => run.evals.find((e) => e.name === name)?.attempts[0]?.error,
+        (name) => run.evals.find((e) => e.name === name)?.trials[0]?.error,
       )
       assert.equal(lands?.resource?.cause, 'oom')
       assert.ok((lands?.resource?.kills ?? 0) > 0, JSON.stringify(lands))
@@ -2676,7 +2676,7 @@ export const features: Feature[] = [
     canarySaw: { 'cpu-seconds': /^[01]$/ },
     record: ({ run, tier }) => {
       const [lands, canary] = ['lands', 'canary'].map(
-        (name) => run.evals.find((e) => e.name === name)?.attempts[0]?.resources,
+        (name) => run.evals.find((e) => e.name === name)?.trials[0]?.resources,
       )
       for (const r of [lands, canary]) {
         assert.equal(r?.scope, 'container', JSON.stringify(r))
@@ -2713,7 +2713,7 @@ export const features: Feature[] = [
     canarySaw: { sampler: 'none' },
     record: ({ run }) => {
       // The sampler ran while the check looked for it.
-      const r = run.evals.find((e) => e.name === 'lands')?.attempts[0]?.resources
+      const r = run.evals.find((e) => e.name === 'lands')?.trials[0]?.resources
       assert.ok((r?.usage?.durationMs ?? 0) >= 3000, JSON.stringify(r))
       assert.equal(r?.usage?.partial, undefined, JSON.stringify(r))
     },
@@ -2790,7 +2790,7 @@ export const features: Feature[] = [
       const history = readRun(project, { history: 'evals/.history' })
       assert.equal(history.run.artifacts, 'failures')
       const kept = history.run.evals.flatMap((e) =>
-        e.attempts.map((a) => {
+        e.trials.map((a) => {
           const refs = [
             ...Object.values(a.files).flatMap((v) => (Array.isArray(v) ? v : v ? [v] : [])),
             ...a.checks.flatMap((c) => (c.log ? [c.log] : [])),
@@ -2802,12 +2802,12 @@ export const features: Feature[] = [
       assert.deepEqual(
         kept,
         [
-          ['canary', 'control', 'pass', false],
+          ['canary', 'baseline', 'pass', false],
           ['canary', 'variant', 'fail', true],
-          ['lands', 'control', 'fail', true],
+          ['lands', 'baseline', 'fail', true],
           ['lands', 'variant', 'pass', false],
         ],
-        'each failed attempt keeps its files, whatever its eval did',
+        'each failed trial keeps its files, whatever its eval did',
       )
     },
   },
@@ -2828,7 +2828,7 @@ export const features: Feature[] = [
       ].sort()
       assert.ok(
         loose.some((p) => p.endsWith('/trajectory.jsonl')),
-        "the canary's failed attempt kept its files",
+        "the canary's failed trial kept its files",
       )
       const archive = await openArchive(join(folder, `${runId}.zip`))
       try {
@@ -2926,7 +2926,7 @@ export const features: Feature[] = [
       const answer = answerOf(run, 'lands')
       assert.deepEqual(answer.artifacts, ['landing'])
       assert.deepEqual(shownOf(answer), [
-        { artifacts: [['Attempt A, screenshot 1 of 1', true]], named: false },
+        { artifacts: [['Trial A, screenshot 1 of 1', true]], named: false },
       ])
       for (const vote of answer.votes) {
         assert.deepEqual(vote.artifacts, { a: ['landing'], b: ['landing'] })
@@ -2934,15 +2934,15 @@ export const features: Feature[] = [
     },
   },
   {
-    dir: 'compare/question-attempt',
+    dir: 'compare/question-trial',
     tiers: ['fake', 'docker'],
     env: 'asked',
     canary: zeroBy('observed:out.txt'),
     canarySaw: { 'out.txt': 'hi\n' },
     record: ({ run, runDir }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      const answer = attempt?.answers?.[0]
-      assert.ok(answer, 'lands has an attempt answer')
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      const answer = trial?.answers?.[0]
+      assert.ok(answer, 'lands has a trial answer')
       assert.equal(answer.error, undefined, answer.error)
       assert.deepEqual(answer.stateOptions, {
         task: true,
@@ -2965,9 +2965,9 @@ export const features: Feature[] = [
       const input = JSON.parse(readFileSync(join(runDir, answer.input?.path ?? ''), 'utf8'))
       assert.equal(input.question, 'Did it write out.txt?')
       assert.match(input.prompt, /write out\.txt/)
-      const failed = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      const failed = run.evals.find((e) => e.name === 'canary')?.trials[0]
       assert.equal(failed?.outcome, 'fail')
-      assert.equal(failed?.answers?.[0]?.choice, 'yes', 'a failed attempt is asked too')
+      assert.equal(failed?.answers?.[0]?.choice, 'yes', 'a failed trial is asked too')
     },
   },
   {
@@ -2991,9 +2991,9 @@ export const features: Feature[] = [
           [true, { A: 'variant', B: 'baseline' }],
         ],
       )
-      const landing = (arm: string) =>
-        entry?.attempts
-          .find((a) => a.cell.includes(`/${arm}/`))
+      const landing = (environment: string) =>
+        entry?.trials
+          .find((a) => a.cell.includes(`/${environment}/`))
           ?.files.artifacts?.find((a) => a.name === 'landing')?.path
       for (const call of input.calls) {
         assert.match(call.prompt, /^Question: Which page looks better\?/)
@@ -3001,7 +3001,7 @@ export const features: Feature[] = [
         assert.deepEqual(
           call.screenshots,
           [call.labels.A, call.labels.B].map((side: string, i: number) => ({
-            label: `Attempt ${'AB'[i]}, screenshot 1 of 1`,
+            label: `Trial ${'AB'[i]}, screenshot 1 of 1`,
             side,
             name: 'landing',
             path: landing(side),
@@ -3013,7 +3013,7 @@ export const features: Feature[] = [
     },
   },
   {
-    dir: 'compare/control-empty',
+    dir: 'compare/baseline-empty',
     tiers: ['fake', 'docker'],
     env: 'variant',
     cells: ['empty', 'variant'],
@@ -3024,7 +3024,7 @@ export const features: Feature[] = [
       assert.deepEqual(empty?.files, [])
       for (const e of run.evals.filter((e) => e.name === 'lands')) {
         assert.deepEqual(e.compare, { baseline: 'empty' })
-        assert.equal(e.cells.find((c) => c.role === 'control')?.environment, 'empty')
+        assert.equal(e.cells.find((c) => c.role === 'baseline')?.environment, 'empty')
         assert.ok(e.cells.find((c) => c.role === 'variant')?.lift, JSON.stringify(e.cells))
       }
     },
@@ -3181,8 +3181,8 @@ export const features: Feature[] = [
     canary: zeroBy('no-usage'),
     canaryGraded: { 'no-usage': { input: (n) => typeof n === 'number' && n > 0 } },
     record: ({ run }) => {
-      const attempt = landed(run)
-      const turns = attempt?.turns ?? []
+      const trial = landed(run)
+      const turns = trial?.turns ?? []
       assert.equal(turns.length, 2)
       for (const t of turns) {
         assert.ok(t.usage && t.usage.input + t.usage.cacheRead > 1000, 'the system prompt counts')
@@ -3190,9 +3190,9 @@ export const features: Feature[] = [
         assert.match(t.model ?? '', new RegExp(`^${realModel.replace(/\./g, '\\.')}\\[.*=`))
       }
       assert.equal(
-        attempt?.usage?.output,
+        trial?.usage?.output,
         turns.reduce((n, t) => n + (t.usage?.output ?? 0), 0),
-        "the attempt's total is its turns'",
+        "the trial's total is its turns'",
       )
       assert.equal(run.cost.source, 'reported')
       assert.ok((run.cost.inputTokens ?? 0) > 0 && (run.cost.outputTokens ?? 0) > 0)
@@ -3205,9 +3205,9 @@ export const features: Feature[] = [
     canary: zeroBy('no-beacon'),
     canaryGraded: { 'no-beacon': /\b\d+\s+[0-9a-f]{64}\b/ },
     record: ({ run }) => {
-      const attempt = landed(run)
-      assert.deepEqual(attempt?.turns[0]?.unreported, [])
-      assert.ok((attempt?.activity.webFetches ?? 0) >= 1, 'the fetch is in the record')
+      const trial = landed(run)
+      assert.deepEqual(trial?.turns[0]?.unreported, [])
+      assert.ok((trial?.activity.webFetches ?? 0) >= 1, 'the fetch is in the record')
     },
   },
   {
@@ -3218,13 +3218,13 @@ export const features: Feature[] = [
     canary: zeroBy('no-search'),
     canaryGraded: { 'no-search': (n) => typeof n === 'number' && n >= 1 },
     record: ({ run }) => {
-      const attempt = landed(run)
-      assert.ok((attempt?.activity.webSearches ?? 0) >= 1, 'the search is in the record')
+      const trial = landed(run)
+      assert.ok((trial?.activity.webSearches ?? 0) >= 1, 'the search is in the record')
       assert.ok(
-        attempt?.egress?.contacted.some((h) => h.host === 'mcp.exa.ai'),
-        JSON.stringify(attempt?.egress),
+        trial?.egress?.contacted.some((h) => h.host === 'mcp.exa.ai'),
+        JSON.stringify(trial?.egress),
       )
-      assert.deepEqual(attempt?.egress?.blocked, [], 'nothing it needed was refused')
+      assert.deepEqual(trial?.egress?.blocked, [], 'nothing it needed was refused')
     },
   },
   {
@@ -3235,9 +3235,9 @@ export const features: Feature[] = [
     canary: zeroBy('no-search'),
     canaryGraded: { 'no-search': (n) => typeof n === 'number' && n >= 1 },
     record: ({ run, project }) => {
-      const attempt = landed(run)
-      assert.ok((attempt?.activity.webSearches ?? 0) >= 1, 'the search is in the record')
-      assert.deepEqual(attempt?.egress?.blocked, [], 'nothing it needed was refused')
+      const trial = landed(run)
+      assert.ok((trial?.activity.webSearches ?? 0) >= 1, 'the search is in the record')
+      assert.deepEqual(trial?.egress?.blocked, [], 'nothing it needed was refused')
       // An endpoint refusal is a 403 on an allowed host, so it's in the debug requests only.
       const root = join(project, '.reeval', 'debug', run.runId)
       const requests = readdirSync(root, { recursive: true, encoding: 'utf8' })
@@ -3261,9 +3261,9 @@ export const features: Feature[] = [
     canary: zeroBy('no-search'),
     canaryGraded: { 'no-search': (n) => typeof n === 'number' && n >= 1 },
     record: ({ run, project }) => {
-      const attempt = landed(run)
-      assert.ok((attempt?.activity.webSearches ?? 0) >= 1, 'the search is in the record')
-      assert.deepEqual(attempt?.egress?.blocked, [], 'nothing it needed was refused')
+      const trial = landed(run)
+      assert.ok((trial?.activity.webSearches ?? 0) >= 1, 'the search is in the record')
+      assert.deepEqual(trial?.egress?.blocked, [], 'nothing it needed was refused')
       // An endpoint refusal is a 403 on an allowed host, so it's in the debug requests only.
       const root = join(project, '.reeval', 'debug', run.runId)
       const requests = readdirSync(root, { recursive: true, encoding: 'utf8' })
@@ -3287,19 +3287,19 @@ export const features: Feature[] = [
     canary: zeroBy('two-keys'),
     canaryGraded: { 'two-keys': (keys) => Array.isArray(keys) && keys.length === 1 },
     record: ({ run }) => {
-      const attempt = landed(run)
+      const trial = landed(run)
       assert.ok(
-        attempt?.servedModels?.some((m) => /^claude-sonnet-5-5/.test(m)),
-        JSON.stringify(attempt?.servedModels),
+        trial?.servedModels?.some((m) => /^claude-sonnet-5-5/.test(m)),
+        JSON.stringify(trial?.servedModels),
       )
       assert.ok(
-        attempt?.egress?.contacted.some((h) => h.host === 'api.anthropic.com'),
-        JSON.stringify(attempt?.egress),
+        trial?.egress?.contacted.some((h) => h.host === 'api.anthropic.com'),
+        JSON.stringify(trial?.egress),
       )
       // The agent sometimes also hits registry.npmjs.org; that is curiosity, not a
       // missing brokered host.
       assert.deepEqual(
-        (attempt?.egress?.blocked ?? []).filter((h) => h.host === 'api.anthropic.com'),
+        (trial?.egress?.blocked ?? []).filter((h) => h.host === 'api.anthropic.com'),
         [],
         'the provider host was not refused',
       )
@@ -3319,17 +3319,17 @@ export const features: Feature[] = [
       canary: zeroBy('two-keys'),
       canaryGraded: { 'two-keys': (keys) => Array.isArray(keys) && keys.length === 1 },
       record: ({ run }) => {
-        const attempt = landed(run)
+        const trial = landed(run)
         assert.ok(
-          attempt?.servedModels?.some((m) => served.test(m)),
-          JSON.stringify(attempt?.servedModels),
+          trial?.servedModels?.some((m) => served.test(m)),
+          JSON.stringify(trial?.servedModels),
         )
         assert.ok(
-          attempt?.egress?.contacted.some((h) => h.host === host),
-          JSON.stringify(attempt?.egress),
+          trial?.egress?.contacted.some((h) => h.host === host),
+          JSON.stringify(trial?.egress),
         )
         assert.deepEqual(
-          (attempt?.egress?.blocked ?? []).filter((h) => h.host === host),
+          (trial?.egress?.blocked ?? []).filter((h) => h.host === host),
           [],
           'the provider host was not refused',
         )
@@ -3346,8 +3346,8 @@ export const features: Feature[] = [
       'no-project': (vars) => Array.isArray(vars) && vars.includes('GCP_PROJECT_ID=eval-project'),
     },
     record: ({ run }) => {
-      const attempt = landed(run)
-      assert.ok((attempt?.activity.tools ?? 0) >= 1, JSON.stringify(attempt?.activity))
+      const trial = landed(run)
+      assert.ok((trial?.activity.tools ?? 0) >= 1, JSON.stringify(trial?.activity))
     },
   },
   {
@@ -3376,19 +3376,19 @@ export const features: Feature[] = [
     canary: zeroBy('no-usage'),
     canaryGraded: { 'no-usage': { input: (n) => typeof n === 'number' && n > 0 } },
     record: ({ run }) => {
-      const attempt = landed(run)
-      const turns = attempt?.turns ?? []
+      const trial = landed(run)
+      const turns = trial?.turns ?? []
       assert.equal(turns.length, 2)
-      assert.ok((attempt?.activity.tools ?? 0) >= 1, JSON.stringify(attempt?.activity))
+      assert.ok((trial?.activity.tools ?? 0) >= 1, JSON.stringify(trial?.activity))
       for (const t of turns) {
         assert.ok(t.usage && t.usage.input + t.usage.cacheRead > 1000, 'the system prompt counts')
         // The ledger counts thinking tokens in the output, not apart.
         assert.equal(t.usage.reasoning, null)
       }
       assert.equal(
-        attempt?.usage?.output,
+        trial?.usage?.output,
         turns.reduce((n, t) => n + (t.usage?.output ?? 0), 0),
-        "the attempt's total is its turns'",
+        "the trial's total is its turns'",
       )
     },
   },
@@ -3430,7 +3430,7 @@ export const features: Feature[] = [
         JSON.stringify(seen),
       )
       assert.ok(!seen.some((p) => p.includes('/.gemini/config/skills/')), JSON.stringify(seen))
-      // What the fake agent's own agy plugin install wrote, which the attempt's context lists.
+      // What the fake agent's own agy plugin install wrote, which the trial's context lists.
       assert.ok(
         seen.includes('~/.gemini/config/plugins/house/mcp_config.json'),
         JSON.stringify(seen),
@@ -3581,12 +3581,12 @@ export const features: Feature[] = [
     canary: zeroBy('served-label'),
     canaryGraded: { 'served-label': 'fake-1[effort=medium]' },
     record: ({ run }) => {
-      const attempt = landed(run)
+      const trial = landed(run)
       const cell = run.evals.find((e) => e.name === 'lands')?.cells[0]
       const harness = run.stack.harnesses[0]
       assert.equal(cell?.effort, 'high')
-      assert.equal(attempt?.effort, 'high')
-      assert.equal(attempt?.servedEffort, 'medium')
+      assert.equal(trial?.effort, 'high')
+      assert.equal(trial?.servedEffort, 'medium')
       assert.equal(harness?.effort, 'high')
       assert.deepEqual(harness?.resolvedEffort, ['medium'])
     },
@@ -3645,14 +3645,14 @@ export const features: Feature[] = [
     canary: zeroBy('own-tokens'),
     canaryGraded: { 'own-tokens': { input: 160, output: 16 } },
     record: ({ run, runDir }) => {
-      const attempt = landed(run)
-      const [turn] = attempt?.turns ?? []
+      const trial = landed(run)
+      const [turn] = trial?.turns ?? []
       const own = { input: 100, output: 10, cacheRead: 0, cacheWrite: 0, reasoning: 0 }
       assert.deepEqual(turn?.agentUsage, own)
       assert.equal(turn?.subagentUsage, 'counted')
       assert.deepEqual(turn?.usage, { ...own, input: 160, output: 16 })
-      const [streamed, unstreamed] = attempt?.subagents ?? []
-      assert.equal(attempt?.subagents?.length, 2)
+      const [streamed, unstreamed] = trial?.subagents ?? []
+      assert.equal(trial?.subagents?.length, 2)
       const pick = (o: object | undefined, keys: string[]) =>
         Object.fromEntries(keys.map((k) => [k, (o as Record<string, unknown> | undefined)?.[k]]))
       const streamedWant = {
@@ -3676,13 +3676,13 @@ export const features: Feature[] = [
         usage: { ...own, input: 20, output: 2 },
       }
       assert.deepEqual(pick(unstreamed, Object.keys(unstreamedWant)), unstreamedWant)
-      const lines = readFileSync(join(runDir, attempt?.files.trajectory?.path ?? ''), 'utf8')
+      const lines = readFileSync(join(runDir, trial?.files.trajectory?.path ?? ''), 'utf8')
         .trim()
         .split('\n')
         .map((l) => JSON.parse(l))
       const tagged = lines.filter((e) => e.subagent === streamed?.id).map((e) => e.type)
       assert.deepEqual(tagged, ['file-edit', 'text'])
-      assert.equal(attempt?.activity.fileEdits, 1)
+      assert.equal(trial?.activity.fileEdits, 1)
     },
   },
   {
@@ -3711,8 +3711,8 @@ export const features: Feature[] = [
     canary: zeroBy('aborted'),
     canaryGraded: { aborted: 'completed' },
     record({ run, runDir }) {
-      const attempt = landed(run)
-      const [turn] = attempt?.turns ?? []
+      const trial = landed(run)
+      const [turn] = trial?.turns ?? []
       assert.equal(turn?.status, 'aborted')
       assert.deepEqual(turn?.usage, {
         input: 120,
@@ -3721,7 +3721,7 @@ export const features: Feature[] = [
         cacheWrite: 0,
         reasoning: 10,
       })
-      const lines = readFileSync(join(runDir, attempt?.files.trajectory?.path ?? ''), 'utf8')
+      const lines = readFileSync(join(runDir, trial?.files.trajectory?.path ?? ''), 'utf8')
         .trim()
         .split('\n')
         .map((l) => JSON.parse(l))
@@ -3777,13 +3777,13 @@ export const features: Feature[] = [
     canary: zeroBy('observed:status'),
     canarySaw: { status: 'error' },
     record: ({ run }) => {
-      const attempt = landed(run)
-      assert.deepEqual(attempt?.error?.provider, { cause: 'credit', status: null })
+      const trial = landed(run)
+      assert.deepEqual(trial?.error?.provider, { cause: 'credit', status: null })
       assert.deepEqual(
-        attempt?.turns.map((t) => t.status),
+        trial?.turns.map((t) => t.status),
         ['error', 'error'],
       )
-      assert.deepEqual(attempt?.checks, [], 'no check ran')
+      assert.deepEqual(trial?.checks, [], 'no check ran')
     },
   },
   {
@@ -3854,18 +3854,18 @@ export const features: Feature[] = [
     env: 'plain',
     canary: zeroBy('noted'),
     record: ({ run, runDir }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.equal(attempt?.decisionUse?.calls, 1)
-      assert.equal(attempt?.decisionUse?.usage?.input, 10)
-      assert.equal(attempt?.usage?.input, undefined, "the decision's tokens aren't the agent's")
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      assert.equal(trial?.decisionUse?.calls, 1)
+      assert.equal(trial?.decisionUse?.usage?.input, 10)
+      assert.equal(trial?.usage?.input, undefined, "the decision's tokens aren't the agent's")
       assert.deepEqual(
-        attempt?.grades?.map((g) => [g.grader, g.grade, g.score]),
+        trial?.grades?.map((g) => [g.grader, g.grade, g.score]),
         [
           ['decided', [{ type: 'boolean', probability: 0.9 }], 1],
           ['noted', 2, 1],
         ],
       )
-      const path = attempt?.files.trajectory?.path
+      const path = trial?.files.trajectory?.path
       assert.ok(path, 'lands wrote its trajectory')
       const lines = readFileSync(join(runDir, path), 'utf8')
         .trim()
@@ -3900,9 +3900,9 @@ export const features: Feature[] = [
     },
     canary: zeroBy('observed:answered'),
     record: ({ run, runDir }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.deepEqual(attempt?.decisionUse, { calls: 1, usage: null })
-      const path = attempt?.files.trajectory?.path
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      assert.deepEqual(trial?.decisionUse, { calls: 1, usage: null })
+      const path = trial?.files.trajectory?.path
       assert.ok(path)
       const line = readFileSync(join(runDir, path), 'utf8')
         .trim()
@@ -3975,17 +3975,17 @@ export const features: Feature[] = [
     },
     record: ({ run, stdout }) => {
       const observed = (name: string) =>
-        run.evals.find((e) => e.name === name)?.attempts[0]?.observations
+        run.evals.find((e) => e.name === name)?.trials[0]?.observations
       const want = [
         { name: 'orm', value: 'drizzle', turn: 1 },
         { name: 'deps', value: ['drizzle-orm', 'pg'], turn: 1 },
         { name: 'dep-count', value: 2, turn: 1 },
       ].map((o) => ({ ...o, sha256: sha256(JSON.stringify(o.value)) }))
       assert.deepEqual(observed('lands'), want, 'the last value per name, in first-call order')
-      assert.deepEqual(observed('canary'), want, 'a failed attempt keeps what it observed')
+      assert.deepEqual(observed('canary'), want, 'a failed trial keeps what it observed')
       assert.match(
         stdout,
-        /Observed:\n[│ ]+orm +drizzle 1\n[│ ]+deps +drizzle-orm 1 · pg 1 · 1 attempt$/m,
+        /Observed:\n[│ ]+orm +drizzle 1\n[│ ]+deps +drizzle-orm 1 · pg 1 · 1 trial$/m,
       )
     },
   },
@@ -3995,11 +3995,11 @@ export const features: Feature[] = [
     env: 'plain',
     canary: zeroBy('observed:build-log'),
     record: async ({ run, runDir }) => {
-      const [saw] = canaryAttempt(run)?.observations ?? []
+      const [saw] = canaryTrial(run)?.observations ?? []
       const sawLog = JSON.parse(readFileSync(join(runDir, saw?.file?.path ?? ''), 'utf8'))
       assert.equal(sawLog.split('\n').length, 4001, "the canary's whole 4000-line log")
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      const [log] = attempt?.observations ?? []
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      const [log] = trial?.observations ?? []
       const value = 'compiled\n'.repeat(4000)
       const json = JSON.stringify(value)
       assert.match(log?.file?.path ?? '', /^lands-\w+\/[^/]+\/1\/observations\/1\.json$/)
@@ -4015,7 +4015,7 @@ export const features: Feature[] = [
         'past 4 KiB, the value is in a file beside the record',
       )
       assert.equal(readFileSync(join(runDir, log?.file?.path ?? ''), 'utf8'), json)
-      const t = attempt && (await readStoredAttempt(runDir, attempt))
+      const t = trial && (await readStoredTrial(runDir, trial))
       assert.equal(t?.observations[0]?.value, value)
     },
   },
@@ -4026,15 +4026,15 @@ export const features: Feature[] = [
     canary: zeroBy('reads-the-build-stderr'),
     canaryGraded: { 'reads-the-build-stderr': 'warn' },
     record: ({ run, runDir }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
       assert.deepEqual(
-        attempt?.checks.map((c) => [c.command.split(';')[0], c.label, c.exitCode, c.turn]),
+        trial?.checks.map((c) => [c.command.split(';')[0], c.label, c.exitCode, c.turn]),
         [
           ['test -f out.txt', 'before', 1, 0],
           ['cat out.txt', 'after', 0, 1],
         ],
       )
-      const ref = attempt?.files.execs
+      const ref = trial?.files.execs
       assert.ok(ref, 'files.execs')
       const lines = readFileSync(join(runDir, ref.path), 'utf8')
         .trim()
@@ -4059,12 +4059,12 @@ export const features: Feature[] = [
     env: 'plain',
     canary: zeroBy('has-file:lib/app.js'),
     record: ({ run, runDir, stdout }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      const { workspace, workspaceManifest } = attempt?.files ?? {}
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      const { workspace, workspaceManifest } = trial?.files ?? {}
       assert.ok(workspace && workspaceManifest, 'files.workspace and files.workspaceManifest')
       const archive = readFileSync(join(runDir, workspace.path))
       assert.equal(sha256(archive), workspace.sha256)
-      assert.deepEqual(attempt?.workspace, {
+      assert.deepEqual(trial?.workspace, {
         files: 4,
         bytes: archive.length,
         excluded: ['node_modules/'],
@@ -4091,8 +4091,8 @@ export const features: Feature[] = [
       assert.equal(app?.type === 'file' && app.data.toString(), 'export const answer = 42\n')
       const env = readTar(gunzipSync(archive)).find((e) => e.path === '.env')
       assert.ok(env?.type === 'file' && !env.data.toString().includes('ghp_'), 'masked')
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
-      assert.equal(canary?.workspace?.files, 4, 'a failed attempt keeps its workspace too')
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]
+      assert.equal(canary?.workspace?.files, 4, 'a failed trial keeps its workspace too')
     },
   },
   {
@@ -4101,7 +4101,7 @@ export const features: Feature[] = [
     env: 'plain',
     canary: /the build fails/,
     record: ({ run, stdout }) => {
-      const failure = (name: string) => run.evals.find((e) => e.name === name)?.attempts[0]?.failure
+      const failure = (name: string) => run.evals.find((e) => e.name === name)?.trials[0]?.failure
       assert.equal(failure('lands'), undefined, 'a task that throws nothing has no failure')
       const thrown = failure('canary')
       assert.deepEqual(
@@ -4130,10 +4130,10 @@ export const features: Feature[] = [
     env: 'plain',
     canary: /^score 0\.75 below 1: answers-41 scored 0\.00$/,
     record: ({ run }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.equal(attempt?.score, 1)
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      assert.equal(trial?.score, 1)
       assert.deepEqual(
-        attempt?.grades?.map((g) => [g.grader, g.kind, g.grade, g.score, g.error]),
+        trial?.grades?.map((g) => [g.grader, g.kind, g.grade, g.score, g.error]),
         [
           ['answers-42', 'code', true, 1, undefined],
           ['masked', 'code', true, 1, undefined],
@@ -4142,7 +4142,7 @@ export const features: Feature[] = [
           ['turns', 'code', 1, null, undefined],
         ],
       )
-      const [answers, masked, observed] = attempt?.grades ?? []
+      const [answers, masked, observed] = trial?.grades ?? []
       assert.deepEqual(
         answers?.reads.files?.map((f) => f.path),
         ['src/app.js'],
@@ -4152,7 +4152,7 @@ export const features: Feature[] = [
         { name: 'lines', sha256: sha256(JSON.stringify(1)) },
       ])
       assert.match(answers?.fingerprint.digest ?? '', /^[0-9a-f]{64}$/)
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]
       assert.equal(canary?.score, 0.75)
       assert.equal(
         canary?.grades?.find((g) => g.grader === 'masked')?.fingerprint.digest,
@@ -4167,24 +4167,24 @@ export const features: Feature[] = [
     env: 'plain',
     canary: /^score 0\.50 below 1: hidden-wrong scored 0\.50$/,
     record: ({ run, tier }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.equal(attempt?.score, 1)
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      assert.equal(trial?.score, 1)
       assert.deepEqual(
-        attempt?.grades?.map((g) => [g.grader, g.grade, g.score, g.error]),
+        trial?.grades?.map((g) => [g.grader, g.grade, g.score, g.error]),
         [
           ['hidden-add', 2, 1, undefined],
           ['scoped', true, 1, undefined],
           ...(tier === 'docker' ? [['offline', 3, 1, undefined]] : []),
         ],
       )
-      const [hidden] = attempt?.grades ?? []
+      const [hidden] = trial?.grades ?? []
       assert.deepEqual(
         hidden?.reads.files?.map((f) => f.path),
         ['package.json', 'src/add.js'],
       )
       assert.match(hidden?.fingerprint.image ?? '', /^[0-9a-f]{64}$/)
       assert.match(hidden?.fingerprint.data ?? '', /^[0-9a-f]{64}$/)
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]
       const wrong = canary?.grades?.[0]
       assert.equal(wrong?.grade, 1)
       assert.equal(
@@ -4205,10 +4205,10 @@ export const features: Feature[] = [
     },
     canary: /^score 0\.00 below 1: tests scored 0\.00; strict \(required\) scored 0\.50$/,
     record: ({ run }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.equal(attempt?.score, 0.75)
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      assert.equal(trial?.score, 0.75)
       assert.deepEqual(
-        attempt?.grades?.map((g) => [g.grader, g.group, g.score, g.weight, g.required]),
+        trial?.grades?.map((g) => [g.grader, g.group, g.score, g.weight, g.required]),
         [
           ['builds', ['builds', 'tests'], 1, 3, false],
           ['tests', ['builds', 'tests'], 0, 1, false],
@@ -4216,11 +4216,11 @@ export const features: Feature[] = [
           ['note', undefined, null, 1, false],
         ],
       )
-      const [builds, tests] = attempt?.grades ?? []
+      const [builds, tests] = trial?.grades ?? []
       assert.deepEqual(builds?.grade, { built: true, passed: 0 }, "the group's one grade")
       assert.deepEqual(tests?.grade, builds?.grade)
       assert.notEqual(builds?.scoreDigest, tests?.scoreDigest, 'each scores it its own way')
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]
       assert.equal(canary?.score, 0)
     },
   },
@@ -4230,10 +4230,10 @@ export const features: Feature[] = [
     env: 'skilled',
     canary: zeroBy('called-tool:Edit (required)'),
     record: ({ run }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.equal(attempt?.score, 1)
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      assert.equal(trial?.score, 1)
       assert.deepEqual(
-        attempt?.grades?.map((g) => [g.grader, g.kind, g.grade, g.score]),
+        trial?.grades?.map((g) => [g.grader, g.kind, g.grade, g.score]),
         [
           ['used-skill:foo', 'builtin', true, 1],
           ['used-skill', 'builtin', ['foo'], 1],
@@ -4243,10 +4243,10 @@ export const features: Feature[] = [
           ['wrote:src/client.ts', 'builtin', ['src/client.ts'], 1],
         ],
       )
-      const [skill] = attempt?.grades ?? []
+      const [skill] = trial?.grades ?? []
       assert.equal(skill?.fingerprint.version, 1)
       assert.equal(skill?.scoreDigest, undefined, 'a natural pass has no score function')
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]
       assert.equal(
         canary?.grades?.[0]?.fingerprint.digest,
         skill?.fingerprint.digest,
@@ -4260,9 +4260,9 @@ export const features: Feature[] = [
     env: 'app',
     canary: zeroBy('not-in-diff:src/** (required)'),
     record: async ({ run, runDir }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.equal(attempt?.score, 1)
-      const live = attempt?.grades?.map((g) => [g.grader, g.grade, g.score, g.weight])
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      assert.equal(trial?.score, 1)
+      const live = trial?.grades?.map((g) => [g.grader, g.grade, g.score, g.weight])
       assert.deepEqual(live, [
         ['has-file:src/retry.ts', true, 1, 1],
         ['has-file:src/missing.ts', false, 0, 0],
@@ -4279,11 +4279,11 @@ export const features: Feature[] = [
         inDiff('**/*.js', { weight: 0 }),
         notInDiff('**/package.json', { required: true }),
       ].map((g) => graderDef(g) as GraderDef)
-      const stored = attempt && {
+      const stored = trial && {
         case: { key: '' },
         turns: [],
         skills: [],
-        stored: await readStoredAttempt(runDir, attempt),
+        stored: await readStoredTrial(runDir, trial),
       }
       const regraded = stored && (await runGraders(graders, stored, new AbortController().signal))
       assert.deepEqual(
@@ -4292,7 +4292,7 @@ export const features: Feature[] = [
         'a regrade from the stored record gives the live grades',
       )
       assert.deepEqual(
-        attempt?.grades?.[0]?.reads.files?.map((f) => f.path),
+        trial?.grades?.[0]?.reads.files?.map((f) => f.path),
         ['src/retry.ts'],
         'hasFile reads the kept file with no files declared',
       )
@@ -4304,10 +4304,10 @@ export const features: Feature[] = [
     env: 'plain',
     canary: zeroBy('succeeded:tests'),
     record: ({ run }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.equal(attempt?.score, 1)
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      assert.equal(trial?.score, 1)
       assert.deepEqual(
-        attempt?.grades?.map((g) => [g.grader, g.grade, g.score]),
+        trial?.grades?.map((g) => [g.grader, g.grade, g.score]),
         [
           ['succeeded:tests', 0, 1],
           ['succeeded:echo built', 0, 1],
@@ -4316,13 +4316,13 @@ export const features: Feature[] = [
           ['observed:lines', 3, null],
         ],
       )
-      const health = attempt?.grades?.[2]
+      const health = trial?.grades?.[2]
       assert.match(
         health?.scoreDigest ?? '',
         /^[0-9a-f]{64}$/,
         "the predicate is the grader's score",
       )
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]
       assert.equal(canary?.grades?.[0]?.grade, 3)
     },
   },
@@ -4332,9 +4332,9 @@ export const features: Feature[] = [
     env: 'plain',
     canary: zeroBy('within-limits (required)'),
     record: ({ run }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.equal(attempt?.score, 1)
-      const grades = attempt?.grades ?? []
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      assert.equal(trial?.score, 1)
+      const grades = trial?.grades ?? []
       assert.deepEqual(
         grades.map((g) => [g.grader, g.score, g.weight]),
         [
@@ -4363,10 +4363,10 @@ export const features: Feature[] = [
     env: 'ui',
     canary: zeroBy('page-status:old (required)'),
     record: ({ run }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.equal(attempt?.score, 1)
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      assert.equal(trial?.score, 1)
       assert.deepEqual(
-        attempt?.grades?.map((g) => [g.grader, g.grade, g.score, g.reads.artifacts?.[0]?.name]),
+        trial?.grades?.map((g) => [g.grader, g.grade, g.score, g.reads.artifacts?.[0]?.name]),
         [
           ['page-status:home', 200, 1, 'home'],
           ['page-status:old', 404, 1, 'old'],
@@ -4381,9 +4381,9 @@ export const features: Feature[] = [
     env: 'plain',
     canary: /^score 0\.50 below 1: says-41 scored 0\.00$/,
     record: ({ run }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.equal(attempt?.score, 1)
-      const [grade] = attempt?.grades ?? []
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      assert.equal(trial?.score, 1)
+      const [grade] = trial?.grades ?? []
       assert.deepEqual(
         [grade?.grader, grade?.kind, grade?.grade, grade?.score, grade?.scoreDigest],
         ['judge:Does src/app.js export answer?', 'judge', true, 1, undefined],
@@ -4395,7 +4395,7 @@ export const features: Feature[] = [
         ['src/app.js'],
         'contents reads the kept workspace',
       )
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]
       assert.equal(
         canary?.grades?.[0]?.fingerprint.digest,
         grade?.fingerprint.digest,
@@ -4416,15 +4416,15 @@ export const features: Feature[] = [
         env: { ...judgeProviderEnv('down'), REEVAL_FIXTURE_SANDBOX: 'fake' },
       })
       assert.equal(r.code, 3, r.stdout + r.stderr)
-      for (const a of readRun(dir).run.evals.flatMap((e) => e.attempts)) {
+      for (const a of readRun(dir).run.evals.flatMap((e) => e.trials)) {
         assert.equal(a.outcome, 'infra_error')
         assert.match(a.error?.message ?? '', JUDGE_OUTAGE)
         assert.equal(a.grades, undefined, 'the outage is no grade, so no 0')
       }
-      assert.equal(judgeProvider.calls.down, 12, "each attempt's judge tried six times")
+      assert.equal(judgeProvider.calls.down, 12, "each trial's judge tried six times")
     },
     record: ({ run, stdout }) => {
-      for (const a of run.evals.flatMap((e) => e.attempts)) {
+      for (const a of run.evals.flatMap((e) => e.trials)) {
         assert.deepEqual(
           a.retries?.map((r) => r.error.kind),
           ['infra'],
@@ -4435,7 +4435,7 @@ export const features: Feature[] = [
           [['typesafe-ai/jev-1.14.0', true]],
         )
       }
-      assert.match(stdout, /^retried 2 errored attempts: 1 now passes, 1 fails, 0 still error$/m)
+      assert.match(stdout, /^retried 2 errored trials: 1 now passes, 1 fails, 0 still error$/m)
     },
   },
   {
@@ -4444,24 +4444,24 @@ export const features: Feature[] = [
     env: 'plain',
     canary: /^score 0\.50 below 1: harsh scored 0\.50$/,
     record: ({ run }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.equal(attempt?.score, 1)
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      assert.equal(trial?.score, 1)
       assert.deepEqual(
-        attempt?.grades?.map((g) => [g.grader, g.grade, g.score]),
+        trial?.grades?.map((g) => [g.grader, g.grade, g.score]),
         [
           ['judge:How readable is the change?', ['good', 'good'], 1],
           ['judge:What tone does the reply take?', 'terse', null],
         ],
         'one answer per model, and answers with no score record only',
       )
-      const [readable, tone] = attempt?.grades ?? []
+      const [readable, tone] = trial?.grades ?? []
       assert.match(readable?.scoreDigest ?? '', /^[0-9a-f]{64}$/, 'the score map is digested apart')
       assert.equal(tone?.scoreDigest, undefined)
       assert.deepEqual(
         readable?.judge?.calls?.map((c) => c.answer),
         ['good', 'good'],
       )
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]
       assert.deepEqual(canary?.grades?.[0]?.grade, ['good', 'poor'])
       assert.equal(canary?.grades?.[0]?.score, 0.5, "the mean of each model's answer's score")
     },
@@ -4472,10 +4472,10 @@ export const features: Feature[] = [
     env: 'plain',
     canary: zeroBy('matches-reference'),
     evals: {
-      lands: { outcome: 'pass', attempts: ['fake/plain/fake#answer#1'] },
+      lands: { outcome: 'pass', trials: ['fake/plain/fake#answer#1'] },
       canary: {
         outcome: 'fail',
-        attempts: ['fake/plain/fake#answer#1'],
+        trials: ['fake/plain/fake#answer#1'],
         error: {
           kind: 'assertion',
           message: zeroBy('matches-reference'),
@@ -4483,11 +4483,11 @@ export const features: Feature[] = [
       },
     },
     record: ({ run }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
-      const [grade] = attempt?.grades ?? []
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]
+      const [grade] = trial?.grades ?? []
       const [missed] = canary?.grades ?? []
-      assert.equal(grade?.grade, true, "the case's reference matches the attempt")
+      assert.equal(grade?.grade, true, "the case's reference matches the trial")
       assert.equal(grade?.judge?.reference?.files, 1)
       assert.match(grade?.fingerprint.reference ?? '', /^[0-9a-f]{64}$/)
       assert.equal(grade?.judge?.reference?.digest, grade?.fingerprint.reference)
@@ -4510,9 +4510,9 @@ export const features: Feature[] = [
     env: 'plain',
     canary: /^score 0\.50 below 1: judge:Does the change touch test\/\? scored 0\.00$/,
     record: async ({ run, runDir }) => {
-      const attempt = run.evals.find((e) => e.name === 'lands')?.attempts[0]
-      assert.equal(attempt?.score, 1)
-      const live = attempt?.grades?.map((g) => [g.grader, g.kind, g.grade, g.score])
+      const trial = run.evals.find((e) => e.name === 'lands')?.trials[0]
+      assert.equal(trial?.score, 1)
+      const live = trial?.grades?.map((g) => [g.grader, g.kind, g.grade, g.score])
       assert.deepEqual(
         live,
         [
@@ -4533,11 +4533,11 @@ export const features: Feature[] = [
       const graders = [twoDependencyFiles, inDiff('src/**'), hasFile('src/retry.ts')].map(
         (g) => graderDef(g) as GraderDef,
       )
-      const stored: GradeInputs | undefined = attempt && {
+      const stored: GradeInputs | undefined = trial && {
         case: { key: '' },
         turns: [],
         skills: [],
-        stored: await readStoredAttempt(runDir, attempt),
+        stored: await readStoredTrial(runDir, trial),
         judge: {
           ask: (q, a, state, model, signal) => askJudge(q, a, state, { model }, signal),
         },
@@ -4545,7 +4545,7 @@ export const features: Feature[] = [
       const regraded = stored && (await runGraders(graders, stored, new AbortController().signal))
       assert.deepEqual(
         regraded?.map((g) => [g.grader, g.kind, g.grade, g.score, g.fingerprint.digest]),
-        attempt?.grades
+        trial?.grades
           ?.slice(1)
           .map((g) => [g.grader, g.kind, g.grade, g.score, g.fingerprint.digest]),
         'a regrade from the stored record gives the live grades, the judge seeing the same files',
@@ -4566,7 +4566,7 @@ export const features: Feature[] = [
     canary: zeroBy('succeeded:flaky passes'),
     canaryGraded: { 'succeeded:flaky passes': 1 },
     record: ({ run, runDir }) => {
-      const check = (name: string) => run.evals.find((e) => e.name === name)?.attempts[0]?.checks[0]
+      const check = (name: string) => run.evals.find((e) => e.name === name)?.trials[0]?.checks[0]
       const lands = check('lands')
       assert.equal(lands?.exitCode, 0)
       assert.equal(lands?.retries, 2)
@@ -4647,7 +4647,7 @@ export const features: Feature[] = [
       assert.match(grade?.error ?? '', /no token usage/)
       assert.equal(
         (
-          run.evals.find((e) => e.name === 'canary')?.attempts[0]?.grades?.[0]?.grade as {
+          run.evals.find((e) => e.name === 'canary')?.trials[0]?.grades?.[0]?.grade as {
             toolCalls?: number
           }
         )?.toolCalls,
@@ -4969,7 +4969,7 @@ export const features: Feature[] = [
       const clones = hosts.flatMap(
         (h) => readFileSync(join(root, 'hosts', h, 'log'), 'utf8').match(/^clone /gm) ?? [],
       )
-      assert.equal(clones.length, 2, 'one clone per attempt, on the hosts')
+      assert.equal(clones.length, 2, 'one clone per trial, on the hosts')
       for (const h of hosts) {
         assert.deepEqual(readdirSync(join(root, 'hosts', h, 'vms')), [], `${h} keeps no VM`)
       }
@@ -4977,7 +4977,7 @@ export const features: Feature[] = [
   },
   {
     // tart({ hosts }): the run's lease counts the hosts preflight kept, at the VMs each has memory
-    // for, so an attempt waits for its lease rather than on a full host.
+    // for, so a trial waits for its lease rather than on a full host.
     dir: 'sandbox/tart-hosts-cap',
     tiers: ['fake'],
     env: 'mac',
@@ -4996,11 +4996,11 @@ export const features: Feature[] = [
       return fake.env
     },
     record: ({ run, project }) => {
-      for (const e of run.evals) assert.notEqual(e.attempts[0]?.outcome, 'infra_error', e.name)
+      for (const e of run.evals) assert.notEqual(e.trials[0]?.outcome, 'infra_error', e.name)
       const logs = filesUnder(join(project, '.reeval', 'debug'))
         .filter((f) => f.endsWith('debug.log'))
         .map((f) => readFileSync(f, 'utf8'))
-      assert.equal(logs.length, 2, 'both attempts ran')
+      assert.equal(logs.length, 2, 'both trials ran')
       assert.doesNotMatch(logs.join('\n'), /every host is at its VM limit/)
       const root = fakeTarts.get(project) ?? ''
       assert.doesNotMatch(readFileSync(join(root, 'hosts', 'small', 'log'), 'utf8'), /^clone /m)
@@ -5023,7 +5023,7 @@ export const features: Feature[] = [
       return fake.env
     },
     record: ({ run, project }) => {
-      for (const e of run.evals) assert.notEqual(e.attempts[0]?.outcome, 'infra_error', e.name)
+      for (const e of run.evals) assert.notEqual(e.trials[0]?.outcome, 'infra_error', e.name)
       const root = fakeTarts.get(project) ?? ''
       const full = readFileSync(join(root, 'hosts', 'full', 'log'), 'utf8')
       assert.match(full, /^run reeval-\S+ --no-graphics$/m, 'full was tried first')
@@ -5032,7 +5032,7 @@ export const features: Feature[] = [
   },
   {
     // tart() on the fake `tart`: preflight bakes the agent's bootstrap into an image of its own,
-    // which every attempt clones.
+    // which every trial clones.
     dir: 'sandbox/tart-baked-harness',
     tiers: ['fake'],
     env: 'mac',
@@ -5052,7 +5052,7 @@ export const features: Feature[] = [
       const log = readFileSync(join(fakeTarts.get(project) ?? '', 'log'), 'utf8')
       const baked = /^rename \S+ (reeval-sandbox-fake-\S+)$/m.exec(log)?.[1]
       assert.ok(baked, `preflight baked an image\n${log}`)
-      assert.equal(log.match(/^rename /gm)?.length, 1, 'once for both attempts')
+      assert.equal(log.match(/^rename /gm)?.length, 1, 'once for both trials')
       assert.equal(log.match(new RegExp(`^clone ${baked} `, 'gm'))?.length, 2)
       const vms = readdirSync(join(fakeTarts.get(project) ?? '', 'vms'))
       assert.deepEqual(vms, [baked], 'the baked image stays, and every clone is deleted')
@@ -5091,7 +5091,7 @@ export const features: Feature[] = [
       assert.match(
         traced,
         /"bin":"tart","args":\["clone"/,
-        "the failed attempt's trace has its tart commands",
+        "the failed trial's trace has its tart commands",
       )
     },
   },
@@ -5443,10 +5443,10 @@ export const features: Feature[] = [
     canary: zeroBy('observed:api'),
     canarySaw: { api: 'define-eval' },
     evals: {
-      lands: { outcome: 'pass', attempts: ['fake/-/fake#1'] },
+      lands: { outcome: 'pass', trials: ['fake/-/fake#1'] },
       canary: {
         outcome: 'fail',
-        attempts: ['fake/-/fake#1'],
+        trials: ['fake/-/fake#1'],
         error: { kind: 'assertion', message: zeroBy('observed:api') },
       },
     },
@@ -5458,10 +5458,10 @@ export const features: Feature[] = [
     canary: zeroBy('word'),
     canarySaw: { word: 'ahoy' },
     evals: {
-      lands: { outcome: 'pass', attempts: ['fake/cases/fake#ahoy#1'] },
+      lands: { outcome: 'pass', trials: ['fake/cases/fake#ahoy#1'] },
       canary: {
         outcome: 'fail',
-        attempts: ['fake/cases/fake#hello#1'],
+        trials: ['fake/cases/fake#hello#1'],
         error: { kind: 'assertion', message: zeroBy('word') },
       },
     },
@@ -5485,10 +5485,10 @@ export const features: Feature[] = [
     canary: zeroBy('observed:stack'),
     canarySaw: { stack: 'vite' },
     evals: {
-      lands: { outcome: 'pass', attempts: ['fake/next-app/fake#1'] },
+      lands: { outcome: 'pass', trials: ['fake/next-app/fake#1'] },
       canary: {
         outcome: 'fail',
-        attempts: ['fake/next-app/fake#1', 'fake/vite-app/fake#1'],
+        trials: ['fake/next-app/fake#1', 'fake/vite-app/fake#1'],
         error: { kind: 'assertion', message: zeroBy('observed:stack') },
         clean: ['fake/next-app/fake#1'],
       },
@@ -5512,11 +5512,11 @@ export const features: Feature[] = [
     evals: {
       lands: {
         outcome: 'pass',
-        attempts: ['fake/next-app/fake#next#1', 'fake/vite-app/fake#vite#1'],
+        trials: ['fake/next-app/fake#next#1', 'fake/vite-app/fake#vite#1'],
       },
       canary: {
         outcome: 'fail',
-        attempts: [
+        trials: [
           'fake/next-app/fake#next#1',
           'fake/next-app/fake#vite#1',
           'fake/vite-app/fake#vite#1',
@@ -5589,7 +5589,7 @@ export const features: Feature[] = [
       )
       assert.match(
         stdout,
-        /^└─ · lands {2}mean 0% · 0\/1 run at 100% \(pass@1\) {2}capability\(1\)$/m,
+        /^└─ · lands {2}mean 0% · 0\/1 trial at 100% \(pass@1\) {2}capability\(1\)$/m,
       )
       assert.match(stdout, /^Done in \S+ · 2 evals · 1 below · 1 report only$/m)
     },
@@ -5601,7 +5601,7 @@ export const features: Feature[] = [
     canary: /^score 0\.75 below 0\.8: half scored 0\.50$/,
     record: ({ run }) => {
       const lands = run.evals.find((e) => e.name === 'lands')
-      assert.equal(lands?.attempts[0]?.score, 0.75)
+      assert.equal(lands?.trials[0]?.score, 0.75)
       assert.deepEqual(lands?.target, { kind: 'regression', threshold: 0.7 })
       assert.deepEqual(lands?.scores, { meanScore: 0.75, passAtK: 1, passHatK: 1 })
       const canary = run.evals.find((e) => e.name === 'canary')
@@ -5612,19 +5612,19 @@ export const features: Feature[] = [
     dir: 'run/target-capability',
     tiers: ['fake'],
     env: '-',
-    canary: zeroBy('observed:attempt'),
-    canarySaw: { attempt: 1 },
+    canary: zeroBy('observed:trial'),
+    canarySaw: { trial: 1 },
     evals: {
       lands: {
         outcome: 'pass',
-        attempts: ['fake/-/fake#1', 'fake/-/fake#2'],
-        error: { kind: 'assertion', message: zeroBy('observed:attempt') },
+        trials: ['fake/-/fake#1', 'fake/-/fake#2'],
+        error: { kind: 'assertion', message: zeroBy('observed:trial') },
         clean: ['fake/-/fake#2'],
       },
       canary: {
         outcome: 'fail',
-        attempts: ['fake/-/fake#1', 'fake/-/fake#2'],
-        error: { kind: 'assertion', message: zeroBy('observed:attempt') },
+        trials: ['fake/-/fake#1', 'fake/-/fake#2'],
+        error: { kind: 'assertion', message: zeroBy('observed:trial') },
       },
     },
     record: ({ run }) => {
@@ -5632,7 +5632,7 @@ export const features: Feature[] = [
       assert.deepEqual(
         [lands?.cells[0]?.gate, lands?.scores],
         ['any', { meanScore: 0.5, passAtK: 1, passHatK: 0 }],
-        'one passing attempt of two is pass@k',
+        'one passing trial of two is pass@k',
       )
     },
   },
@@ -5657,7 +5657,7 @@ export const features: Feature[] = [
         'export const built = true\n',
       )
       assert.equal(existsSync(join(at(final?.path), 'node_modules')), false)
-      const canary = run.evals.find((e) => e.name === 'canary')?.attempts[0]
+      const canary = run.evals.find((e) => e.name === 'canary')?.trials[0]
       assert.equal(canary?.snapshots, undefined, 'snapshot: false takes none')
     },
   },
@@ -5671,7 +5671,7 @@ export const features: Feature[] = [
       const at = (path: string | null | undefined) =>
         join(project, '.reeval', 'runs', run.runId, ...(path ?? '').split('/'))
       const names = (name: string) =>
-        (run.evals.find((e) => e.name === name)?.attempts[0]?.snapshots ?? []).map((s) => [
+        (run.evals.find((e) => e.name === name)?.trials[0]?.snapshots ?? []).map((s) => [
           s.name,
           s.form,
           s.path?.split('/').at(-1),
@@ -5703,10 +5703,10 @@ export const features: Feature[] = [
     args: ['-v'],
     canary: zeroBy('observed:diff-files'),
     record: ({ run, stdout }) => {
-      const attempt = landed(run)
-      assert.equal(attempt?.activity.fileEdits, 0, 'the shell write is no edit tool call')
+      const trial = landed(run)
+      assert.equal(trial?.activity.fileEdits, 0, 'the shell write is no edit tool call')
       assert.deepEqual(
-        attempt?.changedFiles.map((f) => f.path),
+        trial?.changedFiles.map((f) => f.path),
         ['note.txt', 'setup.txt'],
       )
       const turn = stdout.split('\n').find((l) => l.includes('lands') && /turn 1 done/.test(l))
@@ -5727,18 +5727,18 @@ export const features: Feature[] = [
     evals: {
       lands: {
         outcome: 'pass',
-        attempts: ['reporter/-/fake#1', 'listed/-/fake#1', 'unknown/-/fake#1'],
+        trials: ['reporter/-/fake#1', 'listed/-/fake#1', 'unknown/-/fake#1'],
       },
       canary: {
         outcome: 'fail',
-        attempts: ['silent/-/fake#1'],
+        trials: ['silent/-/fake#1'],
         error: { kind: 'assertion', message: zeroBy('tokens') },
         clean: [],
       },
     },
     record: ({ run, stdout }) => {
       const lands = run.evals.find((e) => e.name === 'lands')
-      const of = (id: string) => lands?.attempts.find((a) => a.id.startsWith(`${id}/`))
+      const of = (id: string) => lands?.trials.find((a) => a.id.startsWith(`${id}/`))
       const reported = { usd: 0.25, basis: 'reported', source: 'fake' }
       assert.deepEqual(of('reporter')?.turns[0]?.cost, reported, "the harness's cost wins")
       assert.deepEqual(of('reporter')?.cost, reported)
@@ -5772,13 +5772,13 @@ export const features: Feature[] = [
     evals: {
       lands: {
         outcome: 'pass',
-        attempts: ['fake/best-of/fake#1', 'fake/best-of/fake#2', 'fake/best-of/fake#3'],
+        trials: ['fake/best-of/fake#1', 'fake/best-of/fake#2', 'fake/best-of/fake#3'],
         error: { kind: 'assertion', message: zeroBy('observed:word') },
         clean: ['fake/best-of/fake#1', 'fake/best-of/fake#3'],
       },
       canary: {
         outcome: 'fail',
-        attempts: ['fake/best-of/fake#1', 'fake/best-of/fake#2', 'fake/best-of/fake#3'],
+        trials: ['fake/best-of/fake#1', 'fake/best-of/fake#2', 'fake/best-of/fake#3'],
         error: { kind: 'assertion', message: zeroBy('observed:word') },
         clean: ['fake/best-of/fake#3'],
       },
@@ -5787,7 +5787,7 @@ export const features: Feature[] = [
       const marks = (name: string) =>
         run.evals
           .find((e) => e.name === name)
-          ?.attempts.map((a) => [a.n, a.outcome, a.bestOf ?? null])
+          ?.trials.map((a) => [a.n, a.outcome, a.bestOf ?? null])
       assert.deepEqual(marks('lands'), [
         [1, 'pass', null],
         [2, 'fail', null],
@@ -5804,11 +5804,11 @@ export const features: Feature[] = [
       }
       assert.match(
         entryOf(stdout, 'canary'),
-        /✗ canary {2}mean 0% · 0\/2 runs at 100% \(best of 3\) {2}regression\(1\)$/m,
+        /✗ canary {2}mean 0% · 0\/2 trials at 100% \(best of 3\) {2}regression\(1\)$/m,
       )
       assert.match(
         entryOf(stdout, 'lands'),
-        /✓ lands {2}mean \d+% · 2\/3 runs at 100% \(best of 3\) {2}regression\(1\)$/m,
+        /✓ lands {2}mean \d+% · 2\/3 trials at 100% \(best of 3\) {2}regression\(1\)$/m,
       )
     },
   },
@@ -5820,12 +5820,12 @@ export const features: Feature[] = [
     record: ({ stdout }) => {
       assert.equal(
         entryOf(stdout, 'lands').trim(),
-        '✓ lands  mean 100% · 1/1 run at 100%  regression(1)',
+        '✓ lands  mean 100% · 1/1 trial at 100%  regression(1)',
       )
       assert.equal(
         entryOf(stdout, 'canary'),
         [
-          '✗ canary  mean 0% · 0/1 run at 100%  regression(1)',
+          '✗ canary  mean 0% · 0/1 trial at 100%  regression(1)',
           '  #1  0%  second try 1 !== 2',
           '    before the first turn',
           '    at task (evals/canary.eval.ts:7:21)',
@@ -5838,8 +5838,8 @@ export const features: Feature[] = [
     dir: 'output/events',
     tiers: ['fake'],
     env: '-',
-    canary: zeroBy('observed:attempt'),
-    canarySaw: { attempt: 1 },
+    canary: zeroBy('observed:trial'),
+    canarySaw: { trial: 1 },
     args: ['--events-file', 'out/events.ndjson'],
     async record({ run, project, stdout }) {
       const file = join(project, 'out', 'events.ndjson')
@@ -5913,11 +5913,11 @@ export const features: Feature[] = [
     record: ({ stdout }) => {
       assert.match(
         entryOf(stdout, 'lands'),
-        /✓ lands {2}mean 100% · 1\/1 run at 100% {2}regression\(1\)\n +arm +pass\n +plain +0 of 1\n +error {2}score 0\.00 below 1: has-file:marker\.txt scored 0\.00\n +marked +1 of 1 {2}helped\n/,
+        /✓ lands {2}mean 100% · 1\/1 trial at 100% {2}regression\(1\)\n +environment +pass\n +plain +0 of 1\n +error {2}score 0\.00 below 1: has-file:marker\.txt scored 0\.00\n +marked +1 of 1 {2}helped\n/,
       )
       assert.match(
         entryOf(stdout, 'lands'),
-        /\n +Worth knowing: 1 run per side; set runs: 4 at evals\/lands\.eval\.ts to confirm this difference\.$/,
+        /\n +Worth knowing: 1 trial per side; set trials: 4 at evals\/lands\.eval\.ts to confirm this difference\.$/,
       )
       assert.match(entryOf(stdout, 'canary'), /^ +marked +0 of 1 {2}same$/m)
       assert.doesNotMatch(
@@ -5926,7 +5926,7 @@ export const features: Feature[] = [
           .replace(/ {2}mean \d+% · /g, '  ')
           .replace(/^ +#\S+ {2}\d+% .*$/gm, ''),
         /%|pass@1/,
-        'only the mean and an attempt row read a score',
+        'only the mean and a trial row read a score',
       )
     },
   },
@@ -5936,10 +5936,10 @@ export const features: Feature[] = [
     env: '-',
     canary: zeroBy('has-file:out.txt'),
     evals: {
-      lands: { outcome: 'pass', attempts: ['writer/-/fake#1', 'copier/-/fake#1'] },
+      lands: { outcome: 'pass', trials: ['writer/-/fake#1', 'copier/-/fake#1'] },
       canary: {
         outcome: 'fail',
-        attempts: ['writer/-/fake#1', 'idler/-/fake#1'],
+        trials: ['writer/-/fake#1', 'idler/-/fake#1'],
         error: { kind: 'assertion', message: zeroBy('has-file:out.txt') },
         clean: ['writer/-/fake#1'],
       },
@@ -5947,11 +5947,11 @@ export const features: Feature[] = [
     record: ({ stdout }) => {
       assert.equal(
         entryOf(stdout, 'lands').trim(),
-        '✓ lands  mean 100% · 2/2 runs at 100%  regression(1)',
+        '✓ lands  mean 100% · 2/2 trials at 100%  regression(1)',
       )
       assert.match(
         entryOf(stdout, 'canary'),
-        /✗ canary {2}mean \d+% · 1\/2 runs at 100%, worst 0% {2}regression\(1\)\n +idler {2}0% {2}has-file:out\.txt 0%$/,
+        /✗ canary {2}mean \d+% · 1\/2 trials at 100%, worst 0% {2}regression\(1\)\n +idler {2}0% {2}has-file:out\.txt 0%$/,
       )
     },
   },
@@ -5963,7 +5963,7 @@ export const features: Feature[] = [
     evals: {
       lands: {
         outcome: 'pass',
-        attempts: [
+        trials: [
           'writer/plain/fake#1',
           'writer/marked/fake#1',
           'copier/plain/fake#1',
@@ -5974,7 +5974,7 @@ export const features: Feature[] = [
       },
       canary: {
         outcome: 'fail',
-        attempts: [
+        trials: [
           'writer/plain/fake#1',
           'writer/marked/fake#1',
           'copier/plain/fake#1',
@@ -5987,15 +5987,15 @@ export const features: Feature[] = [
       const lands = entryOf(stdout, 'lands')
       assert.match(
         lands,
-        /✓ lands {2}mean 100% · 2\/2 runs at 100% {2}regression\(1\)\n {2}writer\n +arm +pass\n +plain +0 of 1\n +error {2}score 0\.00 below 1: has-file:marker\.txt scored 0\.00\n +marked +1 of 1 {2}helped\n/,
+        /✓ lands {2}mean 100% · 2\/2 trials at 100% {2}regression\(1\)\n {2}writer\n +environment +pass\n +plain +0 of 1\n +error {2}score 0\.00 below 1: has-file:marker\.txt scored 0\.00\n +marked +1 of 1 {2}helped\n/,
       )
       assert.match(
         lands,
-        /\n {2}copier\n +arm +pass\n +plain +0 of 1\n +error {2}score 0\.00 below 1: has-file:marker\.txt scored 0\.00\n +marked +1 of 1 {2}helped\n/,
+        /\n {2}copier\n +environment +pass\n +plain +0 of 1\n +error {2}score 0\.00 below 1: has-file:marker\.txt scored 0\.00\n +marked +1 of 1 {2}helped\n/,
       )
       assert.match(
         lands,
-        /\n +Worth knowing: 1 run per side; set runs: 4 at evals\/lands\.eval\.ts to confirm these differences\.$/,
+        /\n +Worth knowing: 1 trial per side; set trials: 4 at evals\/lands\.eval\.ts to confirm these differences\.$/,
       )
     },
   },
@@ -6005,19 +6005,19 @@ export const features: Feature[] = [
     env: '-',
     canary: /is red\n\n'green' !== 'red'/,
     evals: {
-      lands: { outcome: 'pass', attempts: ['fake/-/fake#red#1', 'fake/-/fake#blue#1'] },
+      lands: { outcome: 'pass', trials: ['fake/-/fake#red#1', 'fake/-/fake#blue#1'] },
       canary: {
         outcome: 'fail',
-        attempts: ['fake/-/fake#red#1', 'fake/-/fake#green#1'],
+        trials: ['fake/-/fake#red#1', 'fake/-/fake#green#1'],
         error: { kind: 'assertion', message: /is red\n\n'green' !== 'red'/ },
         clean: ['fake/-/fake#red#1'],
       },
     },
     record: ({ stdout }) => {
-      assert.match(stdout, /✓ lands {2}mean 100% · 2\/2 runs at 100% {2}regression\(1\)\n\n/)
+      assert.match(stdout, /✓ lands {2}mean 100% · 2\/2 trials at 100% {2}regression\(1\)\n\n/)
       assert.match(
         stdout,
-        /✗ canary {2}mean \d+% · 1\/2 runs at 100%, worst 0% {2}regression\(1\)\n +#green {2}0% {2}is red 'green' !== 'red'\n +before the first turn\n +at task \(evals\/canary\.eval\.ts:8:21\)/,
+        /✗ canary {2}mean \d+% · 1\/2 trials at 100%, worst 0% {2}regression\(1\)\n +#green {2}0% {2}is red 'green' !== 'red'\n +before the first turn\n +at task \(evals\/canary\.eval\.ts:8:21\)/,
       )
       assert.match(stdout, /\nDone in \S+ · 2 evals · 1 on target · 1 below\n/)
     },
@@ -6031,8 +6031,8 @@ export const features: Feature[] = [
       outcome: 'infra_error',
       error: { kind: 'infra', message: /^setup step 1\/1 "touch ran" in environment missing/ },
     },
-    canary: zeroBy('observed:attempt'),
-    canarySaw: { attempt: 1 },
+    canary: zeroBy('observed:trial'),
+    canarySaw: { trial: 1 },
     record: ({ stdout }) => {
       assert.match(
         entryOf(stdout, 'lands'),
@@ -6045,8 +6045,8 @@ export const features: Feature[] = [
     dir: 'output/run-error',
     tiers: ['fake'],
     env: '-',
-    canary: zeroBy('observed:attempt'),
-    canarySaw: { attempt: 1 },
+    canary: zeroBy('observed:trial'),
+    canarySaw: { trial: 1 },
     args: ['--json'],
     record: ({ run, runDir, stdout }) => {
       const message = 'stray rejection outside the evals'
@@ -6058,7 +6058,7 @@ export const features: Feature[] = [
       const summary = readFileSync(join(runDir, 'summary.md'), 'utf8')
       assert.match(summary, /^## lands$/m)
       assert.match(summary, /^## canary$/m)
-      assert.match(summary, /^## Attempt index$/m)
+      assert.match(summary, /^## Trial index$/m)
       assert.doesNotMatch(summary, /\[object Object\]/)
     },
   },
@@ -6070,13 +6070,13 @@ export const features: Feature[] = [
     args: ['--output-logs', 'errors-only'],
     prepare: (dir) => syncPythonFixtureProject(dir),
     record: ({ run, stdout }) => {
-      const [lands] = run.evals.find((e) => e.name === 'lands')?.attempts ?? []
+      const [lands] = run.evals.find((e) => e.name === 'lands')?.trials ?? []
       assert.equal(lands?.outcome, 'pass', 'the plain asserts in a Python body hold')
-      const [canary] = run.evals.find((e) => e.name === 'canary')?.attempts ?? []
+      const [canary] = run.evals.find((e) => e.name === 'canary')?.trials ?? []
       assert.equal(
         canary?.failure?.reason,
         'missing-greet.py exists',
-        "a Python body's failed assert is its attempt's failure",
+        "a Python body's failed assert is its trial's failure",
       )
       assert.deepEqual(
         canary?.checks.map((c) => c.command),
@@ -6086,38 +6086,38 @@ export const features: Feature[] = [
       assert.match(
         stdout,
         /canary#1[^\n]*stdout \| looking for missing-greet\.py/,
-        "a Python body's print is its attempt's output",
+        "a Python body's print is its trial's output",
       )
     },
   },
   {
-    dir: 'python-sdk/attempt-isolation',
+    dir: 'python-sdk/trial-isolation',
     tiers: ['fake'],
     env: '-',
     args: ['--concurrency', '1'],
     canary: /zombie\.txt exists/,
     evals: {
-      lands: { outcome: 'pass', attempts: ['fake/-/fake#1'] },
+      lands: { outcome: 'pass', trials: ['fake/-/fake#1'] },
       canary: {
         outcome: 'fail',
-        attempts: ['fake/-/fake#1'],
+        trials: ['fake/-/fake#1'],
         error: { kind: 'assertion', message: /zombie\.txt exists/ },
       },
       'times out': {
         outcome: 'fail',
-        attempts: ['fake/-/fake#1'],
+        trials: ['fake/-/fake#1'],
         error: { kind: 'timeout', message: /timed out/ },
       },
     },
     prepare: (dir) => syncPythonFixtureProject(dir),
     record: ({ run }) => {
-      const [lands] = run.evals.find((e) => e.name === 'lands')?.attempts ?? []
+      const [lands] = run.evals.find((e) => e.name === 'lands')?.trials ?? []
       assert.deepEqual(
         lands?.checks.map((c) => c.command),
         ['test ! -f zombie.txt'],
-        "a timed-out body's late call doesn't run in the next attempt on its cell",
+        "a timed-out body's late call doesn't run in the next trial on its cell",
       )
-      const [timedOut] = run.evals.find((e) => e.name === 'times out')?.attempts ?? []
+      const [timedOut] = run.evals.find((e) => e.name === 'times out')?.trials ?? []
       assert.deepEqual(timedOut?.checks, [], 'nor in its own, which reeval already ended')
     },
   },
@@ -6127,16 +6127,16 @@ export const features: Feature[] = [
     env: '-',
     canary: /missing file/,
     evals: {
-      'assert retries': { outcome: 'pass', attempts: ['fake/-/fake#1'] },
+      'assert retries': { outcome: 'pass', trials: ['fake/-/fake#1'] },
       canary: {
         outcome: 'fail',
-        attempts: ['fake/-/fake#1'],
+        trials: ['fake/-/fake#1'],
         error: { kind: 'assertion', message: /^missing file$/ },
       },
     },
     prepare: (dir) => syncPythonFixtureProject(dir),
     record: ({ run }) => {
-      const [retries] = run.evals.find((e) => e.name === 'assert retries')?.attempts ?? []
+      const [retries] = run.evals.find((e) => e.name === 'assert retries')?.trials ?? []
       assert.deepEqual(
         retries?.checks.map((c) => [c.command, c.exitCode]),
         [
@@ -6154,14 +6154,14 @@ export const features: Feature[] = [
     env: '-',
     canary: /ran: 'ran' is not 'skipped'/,
     evals: {
-      lands: { outcome: 'pass', attempts: ['fake/-/fake#1'] },
+      lands: { outcome: 'pass', trials: ['fake/-/fake#1'] },
       canary: {
         outcome: 'fail',
-        attempts: ['fake/-/fake#1'],
+        trials: ['fake/-/fake#1'],
         error: { kind: 'assertion', message: /ran: 'ran' is not 'skipped'/ },
       },
-      parked: { outcome: 'skipped', attempts: ['fake/-/fake#1'] },
-      shelved: { outcome: 'skipped', attempts: ['fake/-/fake#1'] },
+      parked: { outcome: 'skipped', trials: ['fake/-/fake#1'] },
+      shelved: { outcome: 'skipped', trials: ['fake/-/fake#1'] },
     },
     prepare: (dir) => syncPythonFixtureProject(dir),
     record: ({ run, stdout }) => {
@@ -6209,13 +6209,13 @@ export const features: Feature[] = [
         readdirSync(join(project, '.reeval/runs')).filter((n) => n.endsWith('.json')).length,
         1,
       )
-      for (const a of run.evals.flatMap((e) => e.attempts)) {
+      for (const a of run.evals.flatMap((e) => e.trials)) {
         assert.deepEqual(
           a.retries?.map((r) => r.error),
           [{ kind: 'infra', message: 'fixture outage before the first turn' }],
         )
       }
-      assert.match(stdout, /^retried 2 errored attempts: 1 now passes, 1 fails, 0 still error$/m)
+      assert.match(stdout, /^retried 2 errored trials: 1 now passes, 1 fails, 0 still error$/m)
     },
   },
 ]
@@ -6250,7 +6250,7 @@ const dockerReady = imageBuilt(DEFAULT_IMAGE)
 const requireDocker = process.env.REEVAL_TEST_REQUIRE_DOCKER === '1'
 const podmanReady = imageBuilt(DEFAULT_IMAGE, 'podman')
 const requirePodman = process.env.REEVAL_TEST_REQUIRE_PODMAN === '1'
-/** Real Cursor, for the attempt ledger (support/harnesses.ts). */
+/** Real Cursor, for the trial ledger (support/harnesses.ts). */
 const cursorRow = harnesses.find((h) => h.id === 'cursor') as (typeof harnesses)[number]
 /** The contract row a fixture's real tier runs on: Cursor, or its `realHarness`. */
 const realRowOf = (f: Feature) =>
@@ -6298,7 +6298,7 @@ function removeProjectContainers(project: string, cli: string): void {
   }
 }
 
-/** Each attempt's debug.log, as lines. */
+/** Each trial's debug.log, as lines. */
 function debugLogs(project: string): string[][] {
   const root = join(project, '.reeval', 'debug')
   if (!existsSync(root)) return []
@@ -6307,8 +6307,8 @@ function debugLogs(project: string): string[][] {
     .map((f) => readFileSync(join(root, f), 'utf8').trimEnd().split('\n'))
 }
 
-/** The end of each attempt's debug.log, which says where a stopped run was stuck. */
-function attemptTrails(project: string): string {
+/** The end of each trial's debug.log, which says where a stopped run was stuck. */
+function trialTrails(project: string): string {
   const root = join(project, '.reeval', 'debug')
   if (!existsSync(root)) return ''
   return readdirSync(root, { recursive: true, encoding: 'utf8' })
@@ -6365,7 +6365,7 @@ function fixtureTests(tiers: Tier[], pick: (f: Feature) => boolean = () => true)
       }, async (t) => {
         const row = realRowOf(f)
         if (tier === 'real') {
-          reserveAttempts(row, 2, `fixture ${rowName(f)}`)
+          reserveTrials(row, 2, `fixture ${rowName(f)}`)
         }
         if (f.loopback) {
           const release = await holdLoopback()
@@ -6399,7 +6399,7 @@ function fixtureTests(tiers: Tier[], pick: (f: Feature) => boolean = () => true)
           },
         ).catch((error: Error) => {
           if (tier !== 'fake') removeProjectContainers(p.dir, cliOf(tier))
-          error.message += attemptTrails(p.dir)
+          error.message += trialTrails(p.dir)
           throw error
         })
         const sandbox = f.sandbox ?? (tier === 'real' ? 'docker' : tier)
@@ -6413,12 +6413,12 @@ function fixtureTests(tiers: Tier[], pick: (f: Feature) => boolean = () => true)
             lands: {
               outcome: 'pass',
               ...f.lands,
-              attempts: ids(f.cells ?? [f.env]),
+              trials: ids(f.cells ?? [f.env]),
               ...(f.landsPass ? { clean: ids(f.landsPass) } : {}),
             },
             canary: {
               outcome: 'fail',
-              attempts: ids(f.canaryCells ?? f.cells ?? [f.canaryEnv ?? f.env]),
+              trials: ids(f.canaryCells ?? f.cells ?? [f.canaryEnv ?? f.env]),
               error: {
                 kind: 'assertion',
                 message: typeof f.canary === 'function' ? f.canary(tier) : f.canary,
@@ -6427,7 +6427,7 @@ function fixtureTests(tiers: Tier[], pick: (f: Feature) => boolean = () => true)
             },
           },
         })
-        const failed = canaryAttempt(run)
+        const failed = canaryTrial(run)
         for (const [name, want] of Object.entries(f.canarySaw ?? {})) {
           const saw = failed?.observations?.find((o) => o.name === name)?.value
           sawMatches(saw, want, `the canary's ${name}`)
@@ -6454,10 +6454,10 @@ describe('feature fixtures', { concurrency: 4 }, () =>
 describe('feature fixtures on the loopback', { concurrency: 1 }, () =>
   fixtureTests(['fake', 'docker', 'podman'], (f) => !!f.loopback),
 )
-// Real attempts run one at a time, each within its own timeout.
+// Real trials run one at a time, each within its own timeout.
 describe('feature fixtures on real Cursor', { concurrency: 1 }, () => fixtureTests(['real']))
 
-test("cloud(): a recipe that doesn't build fails its attempts as config, building once and keeping the VM", {
+test("cloud(): a recipe that doesn't build fails its trials as config, building once and keeping the VM", {
   skip: skipTier('docker'),
   timeout: 240_000,
 }, async () => {
@@ -6470,7 +6470,7 @@ import { cloud } from 'reeval/internal/vm'
 export default defineConfig({
   agents: fakeAgent({ script: [[{ exec: 'true' }]] }),
   sandbox: cloud({ install: ['echo no such package >&2; exit 7'], reuse: true }),
-  runs: 2,
+  trials: 2,
   concurrency: 1,
 })
 `,
@@ -6489,15 +6489,15 @@ export default defineEval({
   })
   assert.equal(r.code, 3, r.stdout + r.stderr)
   const { run } = readRun(p.dir)
-  const attempts = run.evals.flatMap((e) => e.attempts)
-  assert.equal(attempts.length, 2)
-  for (const a of attempts) {
+  const trials = run.evals.flatMap((e) => e.trials)
+  assert.equal(trials.length, 2)
+  for (const a of trials) {
     assert.equal(a.error?.prepare?.class, 'config', JSON.stringify(a.error))
     assert.equal(a.error?.prepare?.stage, 'install')
     assert.match(String(a.error?.message), /^cloud VM bx_\w+ couldn't prepare the sandbox image: /)
   }
   const builds = debugLogs(p.dir).filter((log) => log.some((l) => /Installing 1 command/.test(l)))
-  assert.equal(builds.length, 1, 'the second attempt fails without building again')
+  assert.equal(builds.length, 1, 'the second trial fails without building again')
   const prefix = runPrefix(CLOUD_VM, run.runId)
   const creates = dockerBoatApi.requests.filter(
     (q) => q.call === 'POST /sandboxes' && String(q.body?.name).startsWith(prefix),

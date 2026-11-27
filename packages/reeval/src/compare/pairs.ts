@@ -1,4 +1,4 @@
-// Pairs for pairwise questions, as pure data: which attempts are judged against which, the order
+// Pairs for pairwise questions, as pure data: which trials are judged against which, the order
 // each is shown in, and how the blinded picks map back to names and win rates. A run's staging
 // records and recorded runs both feed it.
 import type { JudgeSubagent } from '../judge/trajectory.ts'
@@ -26,12 +26,12 @@ export type PairTurn = {
   subagents?: readonly JudgeSubagent[]
 }
 
-/** One attempt, as a question sees it. */
-export type PairAttempt = {
+/** One trial, as a question sees it. */
+export type PairTrial = {
   /** The harness id, e.g. `cursor:composer-2.5`. */
   harness: string
-  /** The arm: the environment the attempt ran, e.g. `with-skill`. */
-  arm: string
+  /** The environment: the environment the trial ran, e.g. `with-skill`. */
+  environment: string
   /** The run number within its cell, from 1. */
   run: number
   /** The workspace changes, as a unified diff; empty when the agent changed nothing. */
@@ -40,8 +40,8 @@ export type PairAttempt = {
   files?: FileChange[]
   /** Passed, or failed only on a judge: its deterministic checks held. */
   checksPassed: boolean
-  /** The compare's baseline arm, which goes first within a harness. */
-  control?: boolean
+  /** The compare's baseline environment, which goes first within a harness. */
+  baseline?: boolean
   /** The turns it ran, for the task both sides were given and what `state` shows of each. */
   turns?: PairTurn[]
   /** Its `c.exec` results, in call order. */
@@ -50,9 +50,9 @@ export type PairAttempt = {
   observations?: Observation[]
   /** Its captures, in capture order, with each PNG's bytes when it was read. */
   captures?: Array<{ name: string; data: Uint8Array }>
-  /** The attempt's id, e.g. `cursor/-/docker#1`; never shown to the model. */
+  /** The trial's id, e.g. `cursor/-/docker#1`; never shown to the model. */
   id?: string
-  /** `AttemptRecord.key` when known; written onto each vote as `attempts`. */
+  /** `TrialRecord.key` when known; written onto each vote as `trials`. */
   key?: string
 }
 
@@ -60,16 +60,16 @@ export type Pair = {
   cut: CompareCut
   /** Within: the harness both sides ran on. */
   harness?: string
-  /** Across: the arm both sides ran. */
-  arm?: string
+  /** Across: the environment both sides ran. */
+  environment?: string
   run: number
-  a: PairAttempt
-  b: PairAttempt
+  a: PairTrial
+  b: PairTrial
 }
 
-/** The side a pair names: an arm within a harness, a harness across them. */
-export const sideName = (cut: CompareCut, side: PairAttempt) =>
-  cut === 'within' ? side.arm : side.harness
+/** The side a pair names: an environment within a harness, a harness across them. */
+export const sideName = (cut: CompareCut, side: PairTrial) =>
+  cut === 'within' ? side.environment : side.harness
 
 /** Every two-element combination, in the order given. */
 function combinations<T>(items: T[]): Array<[T, T]> {
@@ -89,7 +89,7 @@ export const ALL_CUTS: CompareCut[] = ['within', 'across']
 const normalizePairFactor = (factor: PairFactor | 'harness'): PairFactor =>
   factor === 'harness' ? 'agent' : factor
 
-/** A question's `across` as a list: empty when it's asked of each attempt on its own. */
+/** A question's `across` as a list: empty when it's asked of each trial on its own. */
 export const pairFactors = (
   across?: PairFactor | 'harness' | readonly (PairFactor | 'harness')[],
 ): PairFactor[] => {
@@ -108,7 +108,7 @@ export const acrossOf = (across: PairFactor | readonly PairFactor[]): CompareCut
 }
 
 /**
- * Whether an attempt's deterministic checks held, so a pair can include it: it passed, or a
+ * Whether a trial's deterministic checks held, so a pair can include it: it passed, or a
  * judge's call or verdict failed it (`error.kind` is `judge` only then).
  */
 export function checksHeld(outcome: Outcome, error: { kind: ErrorKind } | null): boolean {
@@ -117,27 +117,27 @@ export function checksHeld(outcome: Outcome, error: { kind: ErrorKind } | null):
 
 /**
  * The pairs to judge. Within a harness, for each run, every two environments; across harnesses,
- * for each environment and run, every two harnesses. Attempts that failed their deterministic
+ * for each environment and run, every two harnesses. Trials that failed their deterministic
  * checks are left out (they still count in the pass rate), so a pair missing a side isn't
- * judged. The control environment comes first, then environments and harnesses in the order they
+ * judged. The baseline environment comes first, then environments and harnesses in the order they
  * first appear. `kinds` keeps one pair kind; omitted or empty, both run.
  */
-export function pairsOf(attempts: PairAttempt[], kinds?: readonly CompareCut[]): Pair[] {
-  const eligible = attempts.filter((a) => a.checksPassed)
-  const find = (harness: string, arm: string, run: number) =>
-    eligible.find((a) => a.harness === harness && a.arm === arm && a.run === run)
-  const harnesses = distinct(attempts.map((a) => a.harness))
-  const arms = distinct([
-    ...attempts.filter((a) => a.control).map((a) => a.arm),
-    ...attempts.map((a) => a.arm),
+export function pairsOf(trials: PairTrial[], kinds?: readonly CompareCut[]): Pair[] {
+  const eligible = trials.filter((a) => a.checksPassed)
+  const find = (harness: string, environment: string, run: number) =>
+    eligible.find((a) => a.harness === harness && a.environment === environment && a.run === run)
+  const harnesses = distinct(trials.map((a) => a.harness))
+  const environments = distinct([
+    ...trials.filter((a) => a.baseline).map((a) => a.environment),
+    ...trials.map((a) => a.environment),
   ])
-  const runs = [...new Set(attempts.map((a) => a.run))].sort((x, y) => x - y)
+  const runs = [...new Set(trials.map((a) => a.run))].sort((x, y) => x - y)
   const want = new Set(kinds?.length ? kinds : ALL_CUTS)
   const pairs: Pair[] = []
   if (want.has('within')) {
     for (const harness of harnesses) {
       for (const run of runs) {
-        for (const [x, y] of combinations(arms)) {
+        for (const [x, y] of combinations(environments)) {
           const a = find(harness, x, run)
           const b = find(harness, y, run)
           if (a && b) pairs.push({ cut: 'within', harness, run, a, b })
@@ -146,12 +146,12 @@ export function pairsOf(attempts: PairAttempt[], kinds?: readonly CompareCut[]):
     }
   }
   if (want.has('across')) {
-    for (const arm of arms) {
+    for (const environment of environments) {
       for (const run of runs) {
         for (const [x, y] of combinations(harnesses)) {
-          const a = find(x, arm, run)
-          const b = find(y, arm, run)
-          if (a && b) pairs.push({ cut: 'across', arm, run, a, b })
+          const a = find(x, environment, run)
+          const b = find(y, environment, run)
+          if (a && b) pairs.push({ cut: 'across', environment, run, a, b })
         }
       }
     }
@@ -159,25 +159,25 @@ export function pairsOf(attempts: PairAttempt[], kinds?: readonly CompareCut[]):
   return pairs
 }
 
-/** Optimistic pair sides from planned attempts: every check is assumed to pass. */
+/** Optimistic pair sides from planned trials: every check is assumed to pass. */
 export function plannedSides(
-  attempts: Array<{
+  trials: Array<{
     cell: { harness: string; environment: string; role: string }
     n: number
   }>,
-): PairAttempt[] {
-  return attempts.map((a) => ({
+): PairTrial[] {
+  return trials.map((a) => ({
     harness: a.cell.harness,
-    arm: a.cell.environment,
+    environment: a.cell.environment,
     run: a.n,
     diff: '',
     checksPassed: true,
-    control: a.cell.role === 'control',
+    baseline: a.cell.role === 'baseline',
   }))
 }
 
 /** The two sides in the order the model sees them: `a` first, or `b` first when swapped. */
-export const slots = (pair: Pair, swapped: boolean): [PairAttempt, PairAttempt] =>
+export const slots = (pair: Pair, swapped: boolean): [PairTrial, PairTrial] =>
   swapped ? [pair.b, pair.a] : [pair.a, pair.b]
 
 /** Maps a blinded pick (`A` is the first slot) back to the side's name. */
@@ -219,21 +219,21 @@ export function voteOf(
   reason?: string,
 ): PairVote {
   const why = voteReason(reason)
-  const attempts =
+  const trials =
     pair.a.key !== undefined && pair.b.key !== undefined
       ? ([pair.a.key, pair.b.key] as [string, string])
       : undefined
   return {
     question,
     cut: pair.cut,
-    ...(pair.cut === 'within' ? { harness: pair.harness } : { arm: pair.arm }),
+    ...(pair.cut === 'within' ? { harness: pair.harness } : { environment: pair.environment }),
     run: pair.run,
     a: sideName(pair.cut, pair.a),
     b: sideName(pair.cut, pair.b),
     winner: winnerOf(pair, swapped, pick),
     swapped,
     ...(why ? { reason: why } : {}),
-    ...(attempts ? { attempts } : {}),
+    ...(trials ? { trials } : {}),
   }
 }
 
@@ -271,7 +271,7 @@ export function ratesOf(votes: PairVote[]): CompareAnswer['rates'] {
  */
 export type PairTally = {
   cut: CompareCut
-  /** What both sides held: the harness within, the arm across. */
+  /** What both sides held: the harness within, the environment across. */
   held: string
   a: string
   b: string
@@ -289,16 +289,16 @@ export type PairTally = {
 export function pairTallies(votes: PairVote[]): PairTally[] {
   const byPair = new Map<string, PairVote[]>()
   for (const v of votes) {
-    const key = [v.cut, v.harness ?? v.arm ?? '', v.a, v.b, v.run].join('\0')
+    const key = [v.cut, v.harness ?? v.environment ?? '', v.a, v.b, v.run].join('\0')
     byPair.set(key, [...(byPair.get(key) ?? []), v])
   }
   const tallies = new Map<string, PairTally>()
   for (const pair of byPair.values()) {
     const v = pair[0] as PairVote
-    const key = [v.cut, v.harness ?? v.arm ?? '', v.a, v.b].join('\0')
+    const key = [v.cut, v.harness ?? v.environment ?? '', v.a, v.b].join('\0')
     const t = tallies.get(key) ?? {
       cut: v.cut,
-      held: v.harness ?? v.arm ?? '',
+      held: v.harness ?? v.environment ?? '',
       a: v.a,
       b: v.b,
       pairs: 0,

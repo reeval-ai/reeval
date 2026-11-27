@@ -1,8 +1,8 @@
 // The project `node scripts/corpus/add.ts <name>` records into a new corpus entry: one run that
 // covers what a record can hold (a pooled family with lift, answered and failed pairwise questions,
-// questions asked of each attempt, judge graders that pass and fail, a failed grader, an infra
+// questions asked of each trial, judge graders that pass and fail, a failed grader, an infra
 // error, todo and skipped evals, tool calls and reasoning, named and default-named graders), and
-// a saved analysis. Each is one eval with as few attempts as it needs, so an entry stays small.
+// a saved analysis. Each is one eval with as few trials as it needs, so an entry stays small.
 import { defineConfig, defineEnvironment } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis, fakeJudge } from 'reeval/judge'
@@ -26,11 +26,11 @@ export default defineConfig({
   judge: { model: fakeJudge({ score: 0.8 }) },
   analysis: {
     model: fakeAnalysis({
-      // Pairwise questions favor the attempt whose diff greets with Ahoy; one fails at the model.
-      // Asked of one attempt, the choice says whether its diff greets with Ahoy.
+      // Pairwise questions favor the trial whose diff greets with Ahoy; one fails at the model.
+      // Asked of one trial, the choice says whether its diff greets with Ahoy.
       answer: (a) =>
         a.choices
-          ? { choice: a.attempt.diff?.includes('Ahoy') ? 'yes' : 'no', text: 'From the diff.' }
+          ? { choice: a.trial.diff?.includes('Ahoy') ? 'yes' : 'no', text: 'From the diff.' }
           : 'It followed the prompt.',
       vote: (p) => {
         if (p.question.includes('missing name')) throw new Error('Rate limit exceeded (429)')
@@ -46,7 +46,7 @@ export default defineConfig({
           tldr: 'The house-style skill lifts the pass rate.',
           whatHappened: [{ text: 'Every eval ran once.', cites, confidence: 'high' }],
           results: [
-            { text: 'The variant passed where the control failed.', cites, confidence: 'medium' },
+            { text: 'The variant passed where the baseline failed.', cites, confidence: 'medium' },
           ],
           why: [],
           anomalies: [{ text: 'The broken harness never started.', kind: 'noise', cites }],
@@ -57,7 +57,7 @@ export default defineConfig({
               kind: 'eval',
               change: 'Run it three times.',
               expectedEffect: 'A tighter interval.',
-              verify: 'reeval run skill --runs 3',
+              verify: 'reeval run skill --trials 3',
               impact: 'medium',
               effort: 'low',
               cites,

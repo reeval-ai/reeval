@@ -1,6 +1,6 @@
-// Where an attempt's sandbox runs: `place()` puts the sandbox an eval resolved on the run's
+// Where a trial's sandbox runs: `place()` puts the sandbox an eval resolved on the run's
 // provider's machines, on a cloud run's own machines, or leaves it on the machine reeval runs on.
-// Every attempt still runs in a sandbox of its own; the provider or the cloud only picks the
+// Every trial still runs in a sandbox of its own; the provider or the cloud only picks the
 // machines.
 import { UsageError } from '../errors.ts'
 import type {
@@ -12,7 +12,7 @@ import type {
   SandboxDescriptor,
 } from '../types.ts'
 
-/** Where the run's attempts start: this machine, or the run's own machines on a cloud run. */
+/** Where the run's trials start: this machine, or the run's own machines on a cloud run. */
 export type Target = 'here' | 'cloud'
 
 /** A sandbox a cloud run has no machines for, refused before anything is uploaded. */
@@ -27,8 +27,8 @@ const isDefault = (key: string, value: unknown) =>
   ((key === 'capabilities' || key === 'devices') && Array.isArray(value) && value.length === 0)
 
 /**
- * The sandbox `sandbox` runs as for an attempt that starts at `target`; `where` names the eval in
- * a refusal. With a provider, on its machines wherever the attempt starts: it takes `docker()`
+ * The sandbox `sandbox` runs as for a trial that starts at `target`; `where` names the eval in
+ * a refusal. With a provider, on its machines wherever the trial starts: it takes `docker()`
  * sandboxes only, each a container of the sandbox's image on a machine (reeval's sandbox image for
  * the harness with no recipe). Without one, on a cloud run's machines as the same container, or
  * here as written. The fake sandbox and the machine kinds are placed already.
@@ -76,7 +76,7 @@ function onCloud(sandbox: SandboxDescriptor, where: string): SandboxDescriptor {
   if (sandbox.kind !== 'docker') return sandbox
   if (sandbox.engine === 'podman') {
     throw new CloudUnsupported(
-      `${where}: podman() runs containers on this machine's Podman, and a cloud run runs each attempt's container on a machine of its own. Use docker(), or run it here with --local.`,
+      `${where}: podman() runs containers on this machine's Podman, and a cloud run runs each trial's container on a machine of its own. Use docker(), or run it here with --local.`,
     )
   }
   if (sandbox.devices?.length) {
@@ -84,7 +84,7 @@ function onCloud(sandbox: SandboxDescriptor, where: string): SandboxDescriptor {
       `${where}: docker({ devices }) passes this machine's devices into the container, and a cloud run's machines pass none. Run it here with --local.`,
     )
   }
-  // The scheduler sets the machine's size and how many attempts share it.
+  // The scheduler sets the machine's size and how many trials share it.
   const { kind: _, engine: __, id: ___, devices: ____, ...container } = sandbox
   return { kind: 'cloud', ...container } satisfies CloudSandboxDescriptor
 }

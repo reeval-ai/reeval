@@ -1,0 +1,6 @@
+{
+  "eval": "plan/compare/evals/questions-trials",
+  "treeRoot": "plan/compare",
+  "plan": "plan/compare/expected/questions-trials.txt",
+  "args": []
+}

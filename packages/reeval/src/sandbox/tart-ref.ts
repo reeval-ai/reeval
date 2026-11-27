@@ -40,5 +40,5 @@ export function tartTagWarning(image: string): string | null {
   const ref = parseTartRef(image)
   if (!ref.oci || ref.digest || (ref.tag !== null && ref.tag !== 'latest')) return null
   const which = ref.tag ? 'the moving tag "latest"' : 'no tag (so "latest")'
-  return `tart(${image}) uses ${which}: the image can change between runs, so results aren't comparable over time. Pin a digest (${ref.host}/${ref.repo}@sha256:…), or a version tag the registry publishes; each attempt records the digest it cloned either way.`
+  return `tart(${image}) uses ${which}: the image can change between runs, so results aren't comparable over time. Pin a digest (${ref.host}/${ref.repo}@sha256:…), or a version tag the registry publishes; each trial records the digest it cloned either way.`
 }

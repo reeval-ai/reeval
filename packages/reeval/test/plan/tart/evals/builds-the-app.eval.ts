@@ -12,4 +12,4 @@ const small = defineEnvironment('small', {
 })
 
 // At most two macOS VMs at once, whatever --concurrency asks for; one for the small environment.
-export default defineEval({ runs: 3, task: async () => {} })
+export default defineEval({ trials: 3, task: async () => {} })

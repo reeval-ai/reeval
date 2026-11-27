@@ -1,6 +1,6 @@
 // What a journey can tell about the page between moves: the URL, the focused element and its
 // value, the form controls, the text, and a viewport shot. A move's effect is the difference.
-import { debugLog } from '../debug/attempt.ts'
+import { debugLog } from '../debug/trial.ts'
 import type { ChromeSession } from './browser.ts'
 import { pageChanged } from './png.ts'
 

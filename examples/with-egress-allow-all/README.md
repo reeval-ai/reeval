@@ -30,16 +30,16 @@ the connection fail:
 
 ```text
 with-egress-allow-all.eval.ts
-  · with-egress-allow-all  mean 0% · 0/1 run at 100% (pass@1)  capability(1)
+  · with-egress-allow-all  mean 0% · 0/1 trial at 100% (pass@1)  capability(1)
     #1  0%  succeeded:bash banner.sh 0%, observed:banner 0%
     …
 ```
 
-The attempt's `execs.jsonl` has the run's stderr: `github.com: Temporary failure in name
+The trial's `execs.jsonl` has the run's stderr: `github.com: Temporary failure in name
 resolution`.
 
 Under `'allow-all'` that traffic goes out directly, unfiltered and unrecorded, and can reach your
-LAN and cloud metadata; the record marks the attempt's egress `partial`. Set it on the evals that
+LAN and cloud metadata; the record marks the trial's egress `partial`. Set it on the evals that
 need it, not the config.
 
 | File | What it is |

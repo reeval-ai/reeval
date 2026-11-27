@@ -3,7 +3,7 @@ import { hasFile, observed, succeeded } from 'reeval/graders'
 
 const math = defineEnvironment('math', ({ directory }) => ({ files: directory('./project') }))
 
-// deny-all still lets through what the attempt needs: the harness's API, brokered secrets'
+// deny-all still lets through what the trial needs: the harness's API, brokered secrets'
 // hosts and MCP servers' hosts. Every other request gets a 403 from the gateway and is recorded.
 export default defineEval({
   environment: math,

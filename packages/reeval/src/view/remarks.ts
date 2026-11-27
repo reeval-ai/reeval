@@ -8,7 +8,7 @@ export const REMARKS_FILE = 'remarks.json'
 /** A run's remarks, `<history>/<run>/remarks.json`. Written only when the run raised one. */
 export type RunRemarks = {
   kind: 'reeval-remarks'
-  schemaVersion: 1
+  schemaVersion: 2
   runId: string
   createdAt: string
   /**
@@ -20,7 +20,7 @@ export type RunRemarks = {
 
 /** Each remark kind's severity. */
 export const REMARK_KINDS: Record<Remark['kind'], { severity: 'concern' | 'suggestion' }> = {
-  'too-few-tries': { severity: 'concern' },
+  'too-few-trials': { severity: 'concern' },
   'cant-tell-apart': { severity: 'concern' },
   'check-never-fails': { severity: 'suggestion' },
   'flaky-check': { severity: 'concern' },
@@ -46,7 +46,7 @@ export type Remark = {
    */
   evalKey?: string
   kind:
-    | 'too-few-tries'
+    | 'too-few-trials'
     | 'cant-tell-apart'
     | 'check-never-fails'
     | 'flaky-check'
@@ -61,7 +61,7 @@ export type Remark = {
   /** One plain sentence: what's wrong. */
   text: string
   /**
-   * The remark as one short line, with its fix and where (`1 run per side; set runs: 4 at
+   * The remark as one short line, with its fix and where (`1 trial per side; set trials: 4 at
    * evals/a.eval.ts:12 to confirm these differences.`), which `reeval run`'s list prints without
    * `-v`; absent when the kind has none.
    */

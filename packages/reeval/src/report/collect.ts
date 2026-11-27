@@ -5,19 +5,19 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import type { Flags } from '../cli-spec.ts'
 import { configPathFor, loadConfig } from '../config.ts'
-import { attemptDebugDir, parseAttemptKey } from '../debug/files.ts'
+import { trialDebugDir, parseTrialKey } from '../debug/files.ts'
 import type { DoctorReport } from '../doctor.ts'
 import { inCI, loadEnvFiles } from '../env.ts'
 import { environmentSandbox, placedSandbox, profileSandbox } from '../environment.ts'
 import { UsageError } from '../errors.ts'
-import type { AttemptRecord, RunRecord } from '../history/types.ts'
+import type { TrialRecord, RunRecord } from '../history/types.ts'
 import { SECRET_NAME } from '../redact.ts'
 import { PACKAGE_VERSION } from '../root.ts'
 import type { ResolvedConfig } from '../types.ts'
 import { readInvocations } from './invocations.ts'
 import { masks, registerEnvFileValues, type Scrubber, scrubber } from './scrub.ts'
 import type { TarEntry } from './tar.ts'
-import type { CliInvocation, ReportAttempt, ReportBundle } from './types.ts'
+import type { CliInvocation, ReportTrial, ReportBundle } from './types.ts'
 
 export type ReportDeps = {
   env: NodeJS.ProcessEnv
@@ -34,7 +34,7 @@ export type ReportDeps = {
   now: () => Date
 }
 
-/** Failing attempts inlined in the bundle; the rest are counted, and their logs attached. */
+/** Failing trials inlined in the bundle; the rest are counted, and their logs attached. */
 export const MAX_FAILURES = 5
 const LOG_LINES = 60
 const TRACE_LINES = 20
@@ -44,7 +44,7 @@ export const MAX_ATTACHED_BYTES = 20 * 1024 * 1024
 
 export type Collected = {
   bundle: ReportBundle
-  /** Each failing attempt's full debug files, scrubbed, for `report-logs.tar.gz`. */
+  /** Each failing trial's full debug files, scrubbed, for `report-logs.tar.gz`. */
   attachments: TarEntry[]
   root: string
   scrub: Scrubber
@@ -137,9 +137,9 @@ function filesIn(dir: string): string[] {
     .sort()
 }
 
-function failedAttempts(record: RunRecord): AttemptRecord[] {
+function failedTrials(record: RunRecord): TrialRecord[] {
   return record.evals.flatMap((e) =>
-    e.attempts.filter((a) => a.outcome === 'fail' || a.outcome === 'infra_error'),
+    e.trials.filter((a) => a.outcome === 'fail' || a.outcome === 'infra_error'),
   )
 }
 
@@ -161,15 +161,15 @@ export function traceTail(text: string, scrub: Scrubber, masked = { added: 0 }):
     })
 }
 
-function attemptSlice(
+function trialSlice(
   root: string,
   runId: string,
-  attempt: AttemptRecord,
+  trial: TrialRecord,
   scrub: Scrubber,
   masked: { added: number },
-): ReportAttempt {
-  const key = parseAttemptKey(attempt.key)
-  const dir = key ? attemptDebugDir(root, runId, key.evalId, key.cell, key.n) : ''
+): ReportTrial {
+  const key = parseTrialKey(trial.key)
+  const dir = key ? trialDebugDir(root, runId, key.evalId, key.cell, key.n) : ''
   const requests = tail(read(join(dir, 'requests.ndjson')), 500).filter((line) => {
     try {
       const r = JSON.parse(line) as { allowed?: boolean; status?: number }
@@ -179,10 +179,10 @@ function attemptSlice(
     }
   })
   return {
-    key: attempt.key,
-    outcome: attempt.outcome,
-    error: attempt.error,
-    turnErrors: attempt.turns.flatMap((t) => (t.error ? [t.error] : [])),
+    key: trial.key,
+    outcome: trial.outcome,
+    error: trial.error,
+    turnErrors: trial.turns.flatMap((t) => (t.error ? [t.error] : [])),
     debugFiles: dir ? filesIn(dir) : [],
     debugLog: tail(read(join(dir, 'debug.log')), LOG_LINES).filter(Boolean),
     trace: traceTail(read(join(dir, 'trace.ndjson')), scrub, masked),
@@ -254,7 +254,7 @@ export async function collectReport(
     if ('error' in found) runError = found.error
     else {
       const { record } = found
-      const failed = failedAttempts(record)
+      const failed = failedTrials(record)
       const { runOutcome } = await import('../view/model.ts')
       run = {
         runId: record.runId,
@@ -262,7 +262,7 @@ export async function collectReport(
         outcome: runOutcome(record),
         summary: {
           evals: record.summary.evals,
-          attempts: record.summary.attempts,
+          trials: record.summary.trials,
           pass: record.summary.pass,
           fail: record.summary.fail,
           notGated: record.summary.notGated,
@@ -276,14 +276,14 @@ export async function collectReport(
         stack: record.stack,
         failures: failed
           .slice(0, MAX_FAILURES)
-          .map((a) => attemptSlice(root, record.runId, a, scrub, traceMasks)),
+          .map((a) => trialSlice(root, record.runId, a, scrub, traceMasks)),
         moreFailures: Math.max(0, failed.length - MAX_FAILURES),
       }
       let bytes = 0
-      for (const attempt of failed) {
-        const key = parseAttemptKey(attempt.key)
+      for (const trial of failed) {
+        const key = parseTrialKey(trial.key)
         if (!key) continue
-        const dir = attemptDebugDir(root, record.runId, key.evalId, key.cell, key.n)
+        const dir = trialDebugDir(root, record.runId, key.evalId, key.cell, key.n)
         for (const file of filesIn(dir)) {
           const path = join(dir, file)
           const size = statSync(path).size

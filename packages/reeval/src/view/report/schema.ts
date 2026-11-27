@@ -1,15 +1,15 @@
 import { z } from 'zod'
 import { type Assert, dataProblem, type Same } from '../../contract/shared.ts'
-import type { AttemptFacts } from '../classify.ts'
+import type { TrialFacts } from '../classify.ts'
 import { fillDefaults, MIGRATIONS, NewerSchemaError } from '../record.ts'
 import { REPORT_VERSION } from './split.ts'
 import type {
-  Arm,
-  ArmRef,
-  ArmRow,
+  CompareEnvironment,
+  EnvironmentRef,
+  EnvironmentRow,
   AssertionRow,
-  AttemptIndexRow,
-  AttemptRef,
+  TrialIndexRow,
+  TrialRef,
   BehaviorRow,
   BreakdownRow,
   CaptureGallery,
@@ -90,13 +90,13 @@ const rateSchema: z.ZodType<Rate> = z.strictObject({
   interval: intervalSchema.nullable(),
 })
 
-const attemptRefSchema: z.ZodType<AttemptRef> = z.strictObject({
+const trialRefSchema: z.ZodType<TrialRef> = z.strictObject({
   id: z.string(),
   key: z.string(),
   href: z.string(),
 })
 
-const armRefSchema: z.ZodType<ArmRef> = z.strictObject({
+const environmentRefSchema: z.ZodType<EnvironmentRef> = z.strictObject({
   id: z.string(),
   label: z.string(),
 })
@@ -127,15 +127,15 @@ const measureCellsSchema: z.ZodType<MeasureCells> = z.strictObject({
 
 const quoteSchema: z.ZodType<Quote> = z.strictObject({
   text: z.string(),
-  attempt: attemptRefSchema,
+  trial: trialRefSchema,
   harness: z.string(),
-  arm: z.string().nullable(),
+  environment: z.string().nullable(),
   case: z.string().nullable(),
   input: z.string().nullable(),
 })
 
 const otherVariantSchema = z.strictObject({
-  variant: armRefSchema,
+  variant: environmentRefSchema,
   points: deltaSchema,
   interval: intervalSchema,
   rate: rateSchema,
@@ -180,8 +180,8 @@ export const headlinePrimarySchema: z.ZodType<HeadlinePrimary> = z.discriminated
   }),
   z.strictObject({
     kind: z.literal('lift'),
-    baseline: armRefSchema,
-    variant: armRefSchema,
+    baseline: environmentRefSchema,
+    variant: environmentRefSchema,
     points: deltaSchema,
     interval: intervalSchema,
     baselineRate: rateSchema,
@@ -190,8 +190,8 @@ export const headlinePrimarySchema: z.ZodType<HeadlinePrimary> = z.discriminated
   }),
   z.strictObject({
     kind: z.literal('tied-ceiling'),
-    baseline: armRefSchema,
-    variant: armRefSchema,
+    baseline: environmentRefSchema,
+    variant: environmentRefSchema,
     rate: rateSchema,
     assertions: z.number().int().positive(),
     lead: tiedLeadSchema,
@@ -202,7 +202,7 @@ export const headlinePrimarySchema: z.ZodType<HeadlinePrimary> = z.discriminated
     options: z
       .array(z.strictObject({ label: z.string(), count: z.number().int().nonnegative() }))
       .min(2),
-    attempts: z.number().int().positive(),
+    trials: z.number().int().positive(),
     noPick: z.number().int().nonnegative(),
   }),
   z.strictObject({
@@ -241,7 +241,7 @@ export const headlinePrimarySchema: z.ZodType<HeadlinePrimary> = z.discriminated
   }),
 ])
 
-const fairnessSchema = z.enum(['clear', 'within-noise', 'too-few-runs'])
+const fairnessSchema = z.enum(['clear', 'within-noise', 'too-few-trials'])
 const evalShapeSchema = z.enum(['task', 'ab', 'discoverability', 'regression'])
 
 const evalHeadlineSchema: z.ZodType<EvalHeadline> = z.strictObject({
@@ -285,7 +285,7 @@ const taskResultsSchema = z.strictObject({
   median: breakdownRowSchema.nullable(),
 })
 
-const armSchema: z.ZodType<Arm> = z.strictObject({
+const compareEnvironmentSchema: z.ZodType<CompareEnvironment> = z.strictObject({
   id: z.string(),
   label: z.string(),
   environment: z.string(),
@@ -314,19 +314,19 @@ const measureVsBaselineRecordSchema: z.ZodType<
   linesRemoved: measureVsBaselineSchema,
 })
 
-const armRowSchema: z.ZodType<ArmRow> = z.strictObject({
-  arm: z.string(),
+const environmentRowSchema: z.ZodType<EnvironmentRow> = z.strictObject({
+  environment: z.string(),
   rate: rateSchema,
   lift: deltaSchema.nullable(),
   interval: intervalSchema.nullable(),
-  verdict: z.enum(['baseline', 'helped', 'made-worse', 'within-noise', 'too-few-runs']),
+  verdict: z.enum(['baseline', 'helped', 'made-worse', 'within-noise', 'too-few-trials']),
   verdictScope: z.literal('pass-rate'),
   measures: measureVsBaselineRecordSchema,
 })
 
 const effortPivotRowSchema: z.ZodType<EffortPivotRow> = z.strictObject({
   harness: z.string(),
-  arm: z.string(),
+  environment: z.string(),
   rate: rateSchema,
   measures: measureVsBaselineRecordSchema,
 })
@@ -343,16 +343,16 @@ const contrastRowSchema: z.ZodType<ContrastRow> = z.strictObject({
   measure: z.union([z.literal('pass-rate'), measureKeySchema]),
   delta: deltaSchema,
   interval: intervalSchema.nullable(),
-  verdict: z.enum(['helped', 'made-worse', 'within-noise', 'too-few-runs', 'fewer', 'more']),
+  verdict: z.enum(['helped', 'made-worse', 'within-noise', 'too-few-trials', 'fewer', 'more']),
   verdictScope: z.enum(['pass-rate', 'measure']),
 })
 
 const variantComparisonSchema = z.strictObject({
   kind: z.literal('comparison'),
-  arms: z.array(armSchema),
+  environments: z.array(compareEnvironmentSchema),
   uniformLead: z.string().nullable(),
-  summary: z.array(armRowSchema),
-  assertionsByArm: z.array(assertionRowSchema),
+  summary: z.array(environmentRowSchema),
+  assertionsByEnvironment: z.array(assertionRowSchema),
   behavior: z.array(behaviorRowSchema),
   contrasts: z.array(contrastRowSchema),
   effortByHarness: z.array(effortPivotRowSchema),
@@ -385,11 +385,11 @@ const choiceBreakdownSchema: z.ZodType<ChoiceBreakdown> = z.strictObject({
   noPick: z.number().int().nonnegative(),
   rows: z.array(
     z.strictObject({
-      arm: z.string().nullable(),
+      environment: z.string().nullable(),
       prompt: z.string().nullable(),
       harness: z.string(),
       counts: z.record(z.string(), z.number().int().nonnegative()),
-      attempts: z.number().int().nonnegative(),
+      trials: z.number().int().nonnegative(),
       text: z.string(),
     }),
   ),
@@ -431,7 +431,7 @@ const pairwiseRowSchema: z.ZodType<PairwiseRow> = z.strictObject({
   reasons: z.array(
     z.strictObject({
       text: z.string(),
-      cites: z.tuple([attemptRefSchema, attemptRefSchema]),
+      cites: z.tuple([trialRefSchema, trialRefSchema]),
       input: z.string().nullable(),
     }),
   ),
@@ -454,7 +454,7 @@ const captureShotSchema: z.ZodType<CaptureShot> = z.strictObject({
   name: z.string(),
   href: z.string().nullable(),
   meta: z.string().nullable(),
-  attempt: attemptRefSchema,
+  trial: trialRefSchema,
   status: z.number().nullable(),
   pageErrors: z.number().nullable(),
   consoleErrors: z.number().nullable(),
@@ -464,7 +464,7 @@ const captureGallerySchema: z.ZodType<CaptureGallery> = z.strictObject({
   rows: z.array(
     z.strictObject({
       harness: z.string(),
-      arm: z.string().nullable(),
+      environment: z.string().nullable(),
       case: z.string().nullable(),
       shots: z.array(captureShotSchema),
     }),
@@ -476,7 +476,7 @@ const failureClusterSchema: z.ZodType<FailureCluster> = z.strictObject({
   label: z.string(),
   at: z.string().nullable(),
   count: countSchema,
-  attempts: z.array(attemptRefSchema),
+  trials: z.array(trialRefSchema),
 })
 
 const failureClustersSchema: z.ZodType<FailureClusters> = z.strictObject({
@@ -484,7 +484,7 @@ const failureClustersSchema: z.ZodType<FailureClusters> = z.strictObject({
   remarks: z.array(
     z.strictObject({
       kind: z.enum([
-        'too-few-tries',
+        'too-few-trials',
         'cant-tell-apart',
         'check-never-fails',
         'flaky-check',
@@ -506,7 +506,7 @@ const reportClaimSchema: z.ZodType<ReportClaim> = z.strictObject({
   role: z.enum(['finding', 'caveat', 'action']),
   text: z.string(),
   confidence: z.enum(['high', 'medium', 'low']),
-  cites: z.array(attemptRefSchema),
+  cites: z.array(trialRefSchema),
   action: z
     .strictObject({
       kind: z.enum(['skill', 'docs', 'eval', 'judge', 'reeval', 'harness']),
@@ -566,7 +566,7 @@ const runHeaderSchema: z.ZodType<RunHeader> = z.strictObject({
       configKey: z.string().regex(/^[0-9a-f]{64}$/),
     })
     .optional(),
-  runsPerCell: z.number().int().positive().nullable(),
+  trialsPerCell: z.number().int().positive().nullable(),
   wall: figureSchema,
   tally: runTallySchema,
   tokens: z
@@ -609,7 +609,7 @@ const integrityIssueSchema: z.ZodType<IntegrityIssue> = z.strictObject({
   severity: z.enum(['error', 'warn']),
   text: z.string(),
   evalId: z.string().nullable(),
-  cites: z.array(attemptRefSchema),
+  cites: z.array(trialRefSchema),
 })
 
 const executiveRollupSchema: z.ZodType<ExecutiveRollup> = z.strictObject({
@@ -634,7 +634,7 @@ const rosterRowSchema: z.ZodType<RosterRow> = z.strictObject({
   effort: z.string().nullable(),
   servedModels: z.array(z.string()),
   gateway: z.string().nullable(),
-  attempts: z.number().int().nonnegative(),
+  trials: z.number().int().nonnegative(),
 })
 
 const provenanceStateSchema: z.ZodType<ProvenanceState> = z.strictObject({
@@ -648,7 +648,7 @@ const provenanceStateSchema: z.ZodType<ProvenanceState> = z.strictObject({
   warnings: z.array(z.string()),
 })
 
-const attemptFactsSchema: z.ZodType<AttemptFacts> = z.strictObject({
+const trialFactsSchema: z.ZodType<TrialFacts> = z.strictObject({
   toolCalls: z.number().int().nonnegative(),
   byClass: z.strictObject({
     context: z.number().int().nonnegative(),
@@ -684,12 +684,12 @@ const gradeRowSchema = z.strictObject({
   error: z.string().nullable(),
 })
 
-const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
+const trialIndexRowSchema: z.ZodType<TrialIndexRow> = z.strictObject({
   id: z.string(),
   key: z.string(),
   evalId: z.string(),
   harness: z.string(),
-  arm: z.string().nullable(),
+  environment: z.string().nullable(),
   case: z.string().nullable(),
   outcome: z.enum(['pass', 'fail', 'infra_error', 'canceled']),
   reclassified: z.boolean(),
@@ -707,7 +707,7 @@ const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
   agentMs: figureSchema,
   toolCalls: figureSchema,
   llmCalls: figureSchema.optional(),
-  facts: attemptFactsSchema.optional(),
+  facts: trialFactsSchema.optional(),
   score: z.number().min(0).max(1).optional(),
   grades: z.array(gradeRowSchema).optional(),
   diff: z
@@ -728,7 +728,7 @@ const attemptIndexRowSchema: z.ZodType<AttemptIndexRow> = z.strictObject({
 })
 
 export const runReportSchema: z.ZodType<RunReport> = z.strictObject({
-  reportVersion: z.literal(4),
+  reportVersion: z.literal(5),
   runId: z.string(),
   single: z.boolean(),
   header: runHeaderSchema,
@@ -738,7 +738,7 @@ export const runReportSchema: z.ZodType<RunReport> = z.strictObject({
   evals: z.array(evalSectionSchema).min(1, 'must hold at least one eval'),
   actions: z.array(reportClaimSchema),
   provenance: provenanceStateSchema,
-  attempts: z.array(attemptIndexRowSchema),
+  trials: z.array(trialIndexRowSchema),
 })
 
 export type _SameAsSchema = [
@@ -758,7 +758,7 @@ export type _SameAsSchema = [
 ]
 
 export {
-  attemptRefSchema,
+  trialRefSchema,
   countSchema,
   deltaSchema,
   figureSchema,
@@ -773,13 +773,13 @@ export {
  * Schema snapshot (`pnpm schema:update`), which takes each def's descriptions from that type.
  */
 export const REPORT_SCHEMAS: Record<string, z.ZodType> = {
-  Arm: armSchema,
-  ArmRef: armRefSchema,
-  ArmRow: armRowSchema,
+  CompareEnvironment: compareEnvironmentSchema,
+  EnvironmentRef: environmentRefSchema,
+  EnvironmentRow: environmentRowSchema,
   AssertionRow: assertionRowSchema,
-  AttemptFacts: attemptFactsSchema,
-  AttemptIndexRow: attemptIndexRowSchema,
-  AttemptRef: attemptRefSchema,
+  TrialFacts: trialFactsSchema,
+  TrialIndexRow: trialIndexRowSchema,
+  TrialRef: trialRefSchema,
   BehaviorRow: behaviorRowSchema,
   BreakdownRow: breakdownRowSchema,
   CaptureGallery: captureGallerySchema,

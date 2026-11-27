@@ -24,7 +24,7 @@ type Call = {
   expect: { usage: TokenUsage | null; model: string | null; role: 'main' | 'side' }
 }
 type Turn = { startMs: number; durationMs: number; model: string | null; steps: TokenUsage[] }
-type Capture = { harness: string; attempts: Array<{ eval: string; turns: Turn[]; calls: Call[] }> }
+type Capture = { harness: string; trials: Array<{ eval: string; turns: Turn[]; calls: Call[] }> }
 
 const dir = join(testDir, 'replay', 'model-calls')
 const captures = readdirSync(dir)
@@ -58,8 +58,8 @@ test('there are model-call captures for every harness whose calls the gateway re
 for (const capture of captures) {
   describe(`model calls: ${capture.harness}`, () => {
     const brokering = brokeringFor(HARNESS[capture.harness] as HarnessDescriptor)
-    for (const attempt of capture.attempts) {
-      const calls = attempt.calls.map((c): ModelCall => {
+    for (const trial of capture.trials) {
+      const calls = trial.calls.map((c): ModelCall => {
         const [method, target] = c.request.split(' ') as [string, string]
         const slash = target.indexOf('/')
         const request = {
@@ -82,8 +82,8 @@ for (const capture of captures) {
         }
       })
 
-      test(`${attempt.eval}: the catalog takes every call for a model call`, () => {
-        for (const c of attempt.calls) {
+      test(`${trial.eval}: the catalog takes every call for a model call`, () => {
+        for (const c of trial.calls) {
           const [method, target] = c.request.split(' ') as [string, string]
           const slash = target.indexOf('/')
           const request = { method, host: target.slice(0, slash), path: target.slice(slash) }
@@ -91,16 +91,16 @@ for (const capture of captures) {
         }
       })
 
-      test(`${attempt.eval}: each call's tokens, whole or in chunks, and model`, () => {
-        attempt.calls.forEach((c, i) => {
+      test(`${trial.eval}: each call's tokens, whole or in chunks, and model`, () => {
+        trial.calls.forEach((c, i) => {
           assert.deepEqual(callUsage(read(c.body, c.body.length || 1)), c.expect.usage, c.request)
           assert.deepEqual(calls[i]?.usage, c.expect.usage, c.request)
           assert.equal(calls[i]?.model, c.expect.model, c.request)
         })
       })
 
-      test(`${attempt.eval}: each call's role`, () => {
-        const got = attempt.turns.flatMap((t) =>
+      test(`${trial.eval}: each call's role`, () => {
+        const got = trial.turns.flatMap((t) =>
           modelCallEvents(calls, {
             startedAt: t.startMs,
             durationMs: t.durationMs,
@@ -108,12 +108,12 @@ for (const capture of captures) {
             steps: t.steps,
           }).map((e) => `${e.atMs + t.startMs} ${e.request} ${e.role}`),
         )
-        const want = attempt.calls.map((c) => `${c.atMs} ${c.request} ${c.expect.role}`)
+        const want = trial.calls.map((c) => `${c.atMs} ${c.request} ${c.expect.role}`)
         assert.deepEqual(got.sort(), want.sort())
       })
 
-      test(`${attempt.eval}: its LLM calls are its main model calls`, () => {
-        const turns = attempt.turns.map((t) => ({
+      test(`${trial.eval}: its LLM calls are its main model calls`, () => {
+        const turns = trial.turns.map((t) => ({
           trajectory: modelCallEvents(calls, {
             startedAt: t.startMs,
             durationMs: t.durationMs,
@@ -121,7 +121,7 @@ for (const capture of captures) {
             steps: t.steps,
           }),
         }))
-        const main = attempt.calls.filter((c) => c.expect.role === 'main').length
+        const main = trial.calls.filter((c) => c.expect.role === 'main').length
         assert.equal(llmCalls(turns as never, false), main)
       })
     }
@@ -131,9 +131,9 @@ for (const capture of captures) {
 test('a harness whose catalog counts its steps as model calls reported one step per main call', () => {
   for (const capture of captures) {
     const kind = HARNESS[capture.harness]?.kind
-    for (const attempt of capture.attempts.filter((a) => a.eval !== 'aborted')) {
-      const steps = attempt.turns.reduce((n, t) => n + t.steps.length, 0)
-      const main = attempt.calls.filter((c) => c.expect.role === 'main').length
+    for (const trial of capture.trials.filter((a) => a.eval !== 'aborted')) {
+      const steps = trial.turns.reduce((n, t) => n + t.steps.length, 0)
+      const main = trial.calls.filter((c) => c.expect.role === 'main').length
       const perCall = isAgentKind(kind) && AGENTS[kind].stepPerCall === true
       assert.equal(
         steps === main,

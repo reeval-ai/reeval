@@ -1,5 +1,5 @@
 // boat.dev VMs as sandboxes: Boat's API (@reeval/vm-api, over @boatdev/sdk) creates and deletes them, and
-// every process runs over SSH with a per-attempt key, the egress gateway's forwarder included, so
+// every process runs over SSH with a per-trial key, the egress gateway's forwarder included, so
 // credentials stay on the host as they do for Docker.
 import { createHash, randomBytes } from 'node:crypto'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -63,18 +63,18 @@ export type VmService = {
   ttlLimit?: string
   /**
    * A refused start is waited on for as long as the service asks, and only an answer with one of
-   * these codes and its status, which says the service ended the run, stops the run's attempts.
+   * these codes and its status, which says the service ended the run, stops the run's trials.
    */
   endsRun?: Readonly<Record<string, number>>
   /**
    * The spec `spec` becomes under the layout the service's `/limits` names, which decides the
-   * machine type, reuse and attempts per machine in place of the eval's; null, for no layout or
+   * machine type, reuse and trials per machine in place of the eval's; null, for no layout or
    * one it can't read, keeps `spec`.
    */
   laidOut?(spec: VmSpec, layout: unknown): VmSpec | null
   /**
    * The `409` code a keep-alive answers with when the service takes a reused machine back before
-   * its next attempt, which the pool gives up without counting it a failure.
+   * its next trial, which the pool gives up without counting it a failure.
    */
   reclaims?: string
 }
@@ -89,7 +89,7 @@ export type VmSpec = {
   size: string
   maxConcurrent?: number
   reuse?: boolean
-  attemptsPerMachine?: number
+  trialsPerMachine?: number
   /** The saved snapshot each machine starts from, rather than the service's own base. */
   from?: string
 }
@@ -110,8 +110,8 @@ const boatSpec = (sandbox: BoatSandboxDescriptor): VmSpec => ({
   size: sandbox.type ?? 'small',
   ...(sandbox.maxConcurrent !== undefined && { maxConcurrent: sandbox.maxConcurrent }),
   ...(sandbox.reuse !== undefined && { reuse: sandbox.reuse }),
-  ...(sandbox.attemptsPerMachine !== undefined && {
-    attemptsPerMachine: sandbox.attemptsPerMachine,
+  ...(sandbox.trialsPerMachine !== undefined && {
+    trialsPerMachine: sandbox.trialsPerMachine,
   }),
 })
 
@@ -199,19 +199,19 @@ const endsRun = (service: VmService, error: unknown) => {
 }
 
 /**
- * The attempt can't finish on a machine granted `granted` seconds of the `asked` it asked for,
+ * The trial can't finish on a machine granted `granted` seconds of the `asked` it asked for,
  * which leaves `TTL_MARGIN_S` for teardown: an error saying so, rather than the machine stopping
- * mid-attempt.
+ * mid-trial.
  */
 function tooShort(service: VmService, id: string, asked: number, granted?: number | null) {
   const needs = asked - TTL_MARGIN_S
   if (typeof granted !== 'number' || granted >= needs) return null
   return new InfraError(
-    `${service.name} gave sandbox ${id} ${granted}s to live, and the attempt needs ${needs}s, its timeout and setup${service.ttlLimit ?? ''}`,
+    `${service.name} gave sandbox ${id} ${granted}s to live, and the trial needs ${needs}s, its timeout and setup${service.ttlLimit ?? ''}`,
   )
 }
 
-/** `error` from `doing` as an attempt's infra error, a refused credential saying so. */
+/** `error` from `doing` as a trial's infra error, a refused credential saying so. */
 function serviceFailed(service: VmService, error: unknown, doing: string, why?: string) {
   why ??= boatError(error)
   if (status(error) === 401) {
@@ -317,8 +317,8 @@ export async function firstReachable(
     const round = new AbortController()
     const tries = routes.map((r) => probe(r, probeMs, round.signal))
     const results: Array<true | string> = []
-    for (const [i, attempt] of tries.entries()) {
-      results.push(await attempt)
+    for (const [i, trial] of tries.entries()) {
+      results.push(await trial)
       if (results[i] === true) {
         round.abort()
         return { route: routes[i] as SshRoute }
@@ -366,7 +366,7 @@ export async function openVmPool(
 ): ReturnType<OpenPool<BoatSandboxDescriptor>> {
   const limits = await readLimits(service, api)
   const spec = laidOut(service, asked, limits)
-  const k = spec.attemptsPerMachine ?? 1
+  const k = spec.trialsPerMachine ?? 1
   const free = limits ? Math.max(1, limits.maxLive - limits.live) : 1
   const hourUsed = limits?.startsThisHour ?? 0
   const left = limits?.startsPerHour === undefined ? null : limits.startsPerHour - hourUsed
@@ -382,7 +382,7 @@ export async function openVmPool(
       },
       ...(spec.maxConcurrent && { machines: Math.ceil(spec.maxConcurrent / k) }),
       ...(service.endsRun && { maxRateWaitMs: Number.POSITIVE_INFINITY }),
-      attemptsPerMachine: k,
+      trialsPerMachine: k,
       reuse: spec.reuse ?? false,
     },
   }
@@ -407,7 +407,7 @@ async function readLimits(service: VmService, api: BoatClient | null): Promise<V
     if (!limitsWarned.has(service.kind)) {
       limitsWarned.add(service.kind)
       console.warn(
-        `warning: ${service.helper} couldn't read the account's limits (${(error as Error)?.message ?? error}), so the run starts one machine at a time and runs its attemptsPerMachine attempts on it`,
+        `warning: ${service.helper} couldn't read the account's limits (${(error as Error)?.message ?? error}), so the run starts one machine at a time and runs its trialsPerMachine trials on it`,
       )
     }
     return null
@@ -436,7 +436,7 @@ export function vmPoolProvider(
         }
         if (endsRun(service, error)) {
           throw new RunStopped(
-            `${service.name} ended the run, so its machines take no more attempts: ${boatError(error)}`,
+            `${service.name} ended the run, so its machines take no more trials: ${boatError(error)}`,
           )
         }
         throw error
@@ -467,7 +467,7 @@ export function vmPoolProvider(
         id: vm.id,
         info: {
           ...vm.info,
-          attemptsPerMachine: spec.attemptsPerMachine ?? 1,
+          trialsPerMachine: spec.trialsPerMachine ?? 1,
           reuse: spec.reuse ?? false,
         },
       }
@@ -643,22 +643,22 @@ export const boatCapacity = async (sandbox: BoatSandboxDescriptor) =>
 
 /**
  * Machines the service would still start for the account (its cap on sandboxes at once, less
- * what's running), and the attempts the run's pool keeps going on them: a minute's starts' worth
- * of machines at most, each running `attemptsPerMachine`.
+ * what's running), and the trials the run's pool keeps going on them: a minute's starts' worth
+ * of machines at most, each running `trialsPerMachine`.
  */
 export async function vmCapacity(
   service: VmService,
   asked: VmSpec,
   api: BoatClient | null,
-): Promise<{ machines: number; attempts: number }> {
+): Promise<{ machines: number; trials: number }> {
   const limits = await readLimits(service, api)
   const spec = laidOut(service, asked, limits)
-  const k = spec.attemptsPerMachine ?? 1
-  if (!limits) return { machines: 1, attempts: Math.min(k, spec.maxConcurrent ?? k) }
+  const k = spec.trialsPerMachine ?? 1
+  if (!limits) return { machines: 1, trials: Math.min(k, spec.maxConcurrent ?? k) }
   const machines = Math.max(0, limits.maxLive - limits.live)
   const perMinute = limits.startsPerMinute
-  const attempts = Math.min(machines, perMinute ?? machines) * k
-  return { machines, attempts: Math.max(1, Math.min(attempts, spec.maxConcurrent ?? attempts)) }
+  const trials = Math.min(machines, perMinute ?? machines) * k
+  return { machines, trials: Math.max(1, Math.min(trials, spec.maxConcurrent ?? trials)) }
 }
 
 /**

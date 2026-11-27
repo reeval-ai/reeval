@@ -295,16 +295,16 @@ check('reeval query (node:sqlite)', query.status === 0, why(query))
 
 const docker = sh('docker', ['image', 'inspect', 'reeval-sandbox-base:latest'])
 if (docker.status === 0) {
-  // The egress gateway and a Docker attempt: the lands eval passes and its canary fails.
+  // The egress gateway and a Docker trial: the lands eval passes and its canary fails.
   const fixture = project(join(pkg, 'test/features/egress/blocked-host-recorded'), false)
   const r = compiled(fixture, ['run'], { REEVAL_FIXTURE_SANDBOX: 'docker' })
   check(
-    'a Docker attempt behind the gateway',
+    'a Docker trial behind the gateway',
     r.status === 1 && outcome(r) === '2 evals · 1 on target · 1 below',
     outcome(r) ?? why(r),
   )
   rmSync(fixture, { recursive: true, force: true })
-} else console.log('skip a Docker attempt: no Docker, or no sandbox images (reeval image build)')
+} else console.log('skip a Docker trial: no Docker, or no sandbox images (reeval image build)')
 const copied = existsSync(cache) ? readdirSync(join(cache, 'reeval')).sort() : []
 check('what it copied out of itself', copied.length > 0, copied.join(', '))
 

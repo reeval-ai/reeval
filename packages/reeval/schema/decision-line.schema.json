@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "Generated from DecisionRecord in src/types.ts by `pnpm schema:update`; don't edit. One line of an attempt's decisions.jsonl, each c.decide call, in its run's directory.",
+  "$comment": "Generated from DecisionRecord in src/types.ts by `pnpm schema:update`; don't edit. One line of a trial's decisions.jsonl, each c.decide call, in its run's directory.",
   "title": "DecisionRecord",
   "$ref": "#/$defs/DecisionRecord",
   "$defs": {
@@ -89,7 +89,7 @@
       ]
     },
     "DecisionFileRecord": {
-      "description": "A file part of a decision's state as it's recorded: its bytes' hash and size instead of the bytes, and the capture it is, when it's one of the attempt's.",
+      "description": "A file part of a decision's state as it's recorded: its bytes' hash and size instead of the bytes, and the capture it is, when it's one of the trial's.",
       "type": "object",
       "properties": {
         "bytes": {
@@ -197,7 +197,7 @@
           ]
         },
         "turn": {
-          "description": "How many turns the attempt had sent when it was asked: 0 before the first.",
+          "description": "How many turns the trial had sent when it was asked: 0 before the first.",
           "type": "number"
         },
         "usage": {

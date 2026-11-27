@@ -1,5 +1,5 @@
-// `cases` on an eval: each case's key, and the name its attempts plan under. A case plans as an
-// entry of its own named `<eval>#<key>`, so its attempts keep their keys, and the record folds
+// `cases` on an eval: each case's key, and the name its trials plan under. A case plans as an
+// entry of its own named `<eval>#<key>`, so its trials keep their keys, and the record folds
 // the entries back into one eval with cases (`history/cases.ts`).
 import { UsageError } from './errors.ts'
 import { isObjectLike } from './object.ts'
@@ -9,7 +9,7 @@ import { redactSecrets } from './redact.ts'
 export const CASE_KEY_MAX = 80
 
 /**
- * Characters a case key can't hold: attempt ids split on `#` and eval ids on `›`, and control
+ * Characters a case key can't hold: trial ids split on `#` and eval ids on `›`, and baseline
  * characters. A `/` is allowed: a key is its own path segment wherever it's in one.
  */
 // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are what it refuses

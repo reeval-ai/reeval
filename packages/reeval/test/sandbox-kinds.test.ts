@@ -1,4 +1,4 @@
-// The sandbox kind registry: every kind answers for itself, and what planning and the attempt ask
+// The sandbox kind registry: every kind answers for itself, and what planning and the trial ask
 // of a sandbox (egress, brokering, a harness session, the platform) comes from its capabilities.
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
@@ -7,12 +7,12 @@ import { tmpdir } from 'node:os'
 import { describe, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { fakeAgent } from '../src/agent.ts'
-import { setupAllowance } from '../src/attempt/index.ts'
+import { setupAllowance } from '../src/trial/index.ts'
 import { neededCredentials, resolveConfig } from '../src/config.ts'
 import { SANDBOX_EGRESS } from '../src/egress.ts'
 import { agentSandboxProblem } from '../src/harness/agent.ts'
 import { AGENTS } from '../src/harness/agents.ts'
-import type { PlannedAttempt } from '../src/options.ts'
+import type { PlannedTrial } from '../src/options.ts'
 import { planEval } from '../src/plan-eval.ts'
 import {
   capabilitiesOf,
@@ -138,7 +138,7 @@ describe('sandbox kinds', () => {
     assert.equal(sandboxKind(tart({ image: 'mine' })).provider(tart({ image: 'mine' })), 'tart')
   })
 
-  test("Boat runs each attempt in a container on an isolated Linux VM, holding docker()'s egress", () => {
+  test("Boat runs each trial in a container on an isolated Linux VM, holding docker()'s egress", () => {
     assert.deepEqual(capabilitiesOf(boat()), {
       platform: 'linux',
       egress: { enforce: 'allowlist', record: true, switches: true },
@@ -153,13 +153,13 @@ describe('sandbox kinds', () => {
     })
   })
 
-  test("a sandbox that boots a VM or builds an image at start widens the attempt's limit", () => {
+  test("a sandbox that boots a VM or builds an image at start widens the trial's limit", () => {
     const allowance = (sandbox: SandboxDescriptor) =>
       setupAllowance({
         sandbox,
         harness: fakeAgent(),
         environment: { layers: [] },
-      } as unknown as PlannedAttempt)
+      } as unknown as PlannedTrial)
     const plain = allowance(docker())
     const booting = [boat(), boat({ type: 'large' }), tart({ image: IMAGE }), docker({ from: 'x' })]
     for (const sandbox of booting)
@@ -251,7 +251,7 @@ describe('how many sandboxes run at once', () => {
     assert.match(maxConcurrentProblem({ ...macs, maxConcurrent: 4 }, 'e') ?? '', /is 4, but/)
   })
 
-  test("each attempt's gate holds Tart to its limit, whatever the run's concurrency", () => {
+  test("each trial's gate holds Tart to its limit, whatever the run's concurrency", () => {
     const plan = (sandbox: SandboxDescriptor) => {
       const config = resolveConfig(
         { agents: fakeAgent(), sandbox, egress: 'allow-all' },
@@ -264,16 +264,16 @@ describe('how many sandboxes run at once', () => {
       )
       return tests?.[0]?.gate.limits
     }
-    assert.deepEqual(plan(tart({ image: IMAGE })), { attempts: 8, 'sandbox:tart': 2 })
+    assert.deepEqual(plan(tart({ image: IMAGE })), { trials: 8, 'sandbox:tart': 2 })
     assert.deepEqual(plan(tart({ image: IMAGE, maxConcurrent: 1 })), {
-      attempts: 8,
+      trials: 8,
       'sandbox:tart': 1,
     })
     assert.deepEqual(plan(tart({ image: IMAGE, hosts: ['a', 'b', { host: 'c', vms: 1 }] })), {
-      attempts: 8,
+      trials: 8,
       'sandbox:tart': 5,
     })
-    assert.deepEqual(plan(docker()), { attempts: 8 })
+    assert.deepEqual(plan(docker()), { trials: 8 })
   })
 
   test('Docker and the fake sandbox have no limit of their own', () => {
@@ -404,9 +404,9 @@ describe('machine providers', () => {
   })
 
   test('only a Tart sandbox on hosts reads a cap from preflight', () => {
-    assert.equal(SANDBOX_KINDS.tart.attemptCap?.(tartVm()), null)
-    assert.equal(typeof SANDBOX_KINDS.tart.attemptCap?.(tartVm({ hosts: ['mac-1'] })), 'function')
-    assert.equal(SANDBOX_KINDS.boat.attemptCap, undefined)
+    assert.equal(SANDBOX_KINDS.tart.trialCap?.(tartVm()), null)
+    assert.equal(typeof SANDBOX_KINDS.tart.trialCap?.(tartVm({ hosts: ['mac-1'] })), 'function')
+    assert.equal(SANDBOX_KINDS.boat.trialCap, undefined)
     assert.ok(SANDBOX_KINDS.boat.doctor, "boat()'s account checks")
     assert.equal(SANDBOX_KINDS.tart.doctor, undefined)
   })
@@ -446,7 +446,7 @@ describe('machine providers', () => {
       'doctor.ts',
       'evaluate.ts',
       'options.ts',
-      'attempt/environment.ts',
+      'trial/environment.ts',
     ]
     for (const file of files) {
       const text = readFileSync(`${src}${file}`, 'utf8')

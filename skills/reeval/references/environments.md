@@ -10,7 +10,7 @@
 
 ## Environments: skills, files, rules, MCP, setup
 
-What the agent runs *in*, per attempt: the code the workspace starts as, skills, MCP servers,
+What the agent runs *in*, per trial: the code the workspace starts as, skills, MCP servers,
 files, rules, env vars, secrets and setup steps. Pass a spec, or a synchronous callback that
 destructures the helpers it needs:
 
@@ -32,7 +32,7 @@ export const withDocs = houseStyle.extendEnvironment(
     rules: file('../rules/house.md'),
     // or mcp.http(url) / mcp.sse(url) (not on OpenCode, Goose, pi, Codex or fx)
     mcp: { docs: mcp.stdio('npx', ['-y', '@acme/docs-mcp@1.0.0']) },
-    // every attempt, before the agent
+    // every trial, before the agent
     setup: [{ run: 'npm ci', timeout: '5m' }],
   }),
 )
@@ -65,7 +65,7 @@ them, except `.git`). `glob` is ordered gitignore-style patterns where the last 
 Executable files stay executable; empty directories aren't seeded.
 
 `workspace: git(repo, { ref, path })` takes a URL, `github:owner/repo`, a GitHub `/tree/` URL or
-a local path (relative to the file). reeval fetches it on the host before any attempt, with the
+a local path (relative to the file). reeval fetches it on the host before any trial, with the
 host's git credentials or `token: 'GITHUB_TOKEN'` (a host variable's name; never a token in the
 URL or the eval). It copies the tree in before `files` (which win) and `setup`, and records the
 commit and tree hash.
@@ -74,7 +74,7 @@ commit and tree hash.
 repo. Pin `ref` to a tag or full SHA; a branch warns. The agent's diff starts after setup, so the
 repo never counts as its change.
 
-A bad ref, path, URL or token fails only the attempts that use it (infra error, exit 3).
+A bad ref, path, URL or token fails only the trials that use it (infra error, exit 3).
 Submodules and LFS files aren't fetched.
 
 ## Skills and composition
@@ -142,7 +142,7 @@ podman({ from: 'python:3.12-slim' })
 Use `podman()` only where the user runs Podman instead of Docker: it takes every `docker()`
 option and confines the container the same way (bridge network, Docker's seccomp profile).
 
-`tart({ image })` (an OCI macOS image or a local Tart VM) runs each attempt in a cloned macOS VM
+`tart({ image })` (an OCI macOS image or a local Tart VM) runs each trial in a cloned macOS VM
 on an Apple Silicon Mac, at most two at once. It needs `egress: 'allow-all'`: under the default
 `proxy` or a restricted policy the plan exits 2. Of the real harnesses only `cursor()` runs in it
 so far (any other exits 2 at plan time), and it needs Node 22.21 or later in the image; the fake
@@ -151,12 +151,12 @@ harness runs too.
 <image>`. Run `npx reeval image build` first, which pulls every `tart()` image the plan needs (and
 refuses, exit 3, when the disk can't hold them even once Tart prunes its cache). Pin a digest
 (`ghcr.io/cirruslabs/macos-sequoia-base@sha256:…`): Cirrus Labs publishes only `latest`, so a
-version tag isn't there to pin. `:latest` or no tag warns, and each attempt records the digest it
+version tag isn't there to pin. `:latest` or no tag warns, and each trial records the digest it
 cloned in `vmImage`.
 
 ```ts
 import { boat, createBoat } from 'reeval/provider/boat'
-// in reeval.config.ts or a profile: each docker() sandbox on a boat.dev VM per attempt, over SSH
+// in reeval.config.ts or a profile: each docker() sandbox on a boat.dev VM per trial, over SSH
 // (the cell id stays the sandbox's, such as `docker`)
 export default defineConfig({ provider: boat({ type: 'large' }) })
 ```
@@ -164,11 +164,11 @@ export default defineConfig({ provider: boat({ type: 'large' }) })
 `boat()` needs `npm i @boatdev/sdk`, `BOAT_API_KEY` (or `createBoat({ apiKey, prefix })` for
 another account) and an OpenSSH client. Preflight saves the `docker()` sandbox's image, or reeval's
 image for the harness without `image`, `from`, `dockerfile` or `install`, in a Boat snapshot and
-each attempt runs in a container of it, under any egress policy.
+each trial runs in a container of it, under any egress policy.
 
 The agent, setup and `c.exec` run as `reeval` (home `/home/reeval`) with no capabilities; builds
 run as root. `root: true` or `capabilities` print a warning at the start of every run, so prefer
-`install`. A process killed at the memory limit makes the attempt an infra error
+`install`. A process killed at the memory limit makes the trial an infra error
 (`error.resource.cause: 'oom'`), not a failed check: raise `memory` rather than loosening it.
 
 Put a specific machine on `defineEnvironment`, or `sandbox` on `defineConfig`, a profile, group
@@ -201,7 +201,7 @@ user, can read it: broker it with `hosts`, or start the process from `c.exec` af
 
 `egress: 'proxy' | 'allow-all' | 'deny-all' | { allow: [hosts] }` limits where the sandbox may
 connect (the harness's API, brokered hosts and MCP hosts are always allowed; `DEFAULT_EGRESS_ALLOW`
-is npm, Yarn, PyPI and GitHub). A blocked request doesn't fail the attempt; it's recorded, and your
+is npm, Yarn, PyPI and GitHub). A blocked request doesn't fail the trial; it's recorded, and your
 checks decide. The record's `egress.blocked` is what the policy refused; a name that didn't resolve
 (`metadata.google.internal` outside Google Cloud) is in `egress.unresolved` instead.
 

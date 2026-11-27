@@ -175,7 +175,7 @@ for (const row of [scripted.row, dockerRow]) {
       }
     }
 
-    test('one handle per distinct sandbox, however many attempts use it', async () => {
+    test('one handle per distinct sandbox, however many trials use it', async () => {
       const p = prepare([use(row.sandbox('ok')), use(row.sandbox('ok')), use(row.sandbox('ok', 1))])
       assert.equal(p.targets.length, 2)
       const outcomes = await p.run()

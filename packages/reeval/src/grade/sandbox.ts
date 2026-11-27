@@ -29,10 +29,10 @@ export type SandboxStarter = (
   held: () => AbortSignal,
 ) => Promise<StartedSandbox>
 
-/** The starter for the graders of `attempt`, on `attemptSandbox`, in this run. */
-export function sandboxStarter(attempt: string, attemptSandbox: SandboxDescriptor): SandboxStarter {
+/** The starter for the graders of `trial`, on `trialSandbox`, in this run. */
+export function sandboxStarter(trial: string, trialSandbox: SandboxDescriptor): SandboxStarter {
   const { runId, config, concurrency } = getRunContext()
-  const slot = graderSlots(concurrency, attemptSandbox)
+  const slot = graderSlots(concurrency, trialSandbox)
   return async (env, timeoutMs, waiting, held) => {
     const lease = await slot(env.sandbox, waiting)
     const signal = held()
@@ -40,7 +40,7 @@ export function sandboxStarter(attempt: string, attemptSandbox: SandboxDescripto
       const image = await graderImage(config.root, runId, env.sandbox)
       const box = await createSandbox(env.sandbox, {
         runId,
-        attempt,
+        trial,
         timeoutMs: timeoutMs + 60_000,
         signal,
         env: {},
@@ -67,7 +67,7 @@ export function sandboxStarter(attempt: string, attemptSandbox: SandboxDescripto
 
 /**
  * Looks up the image of each grader's sandbox in `runs`, so one that failed to prepare fails the
- * attempt before its agent starts.
+ * trial before its agent starts.
  */
 export async function checkGraderImages(runs: readonly GradeRun[]): Promise<void> {
   const { runId, config } = getRunContext()
@@ -81,26 +81,26 @@ export async function graderImage(root: string, runId: string, sandbox: SandboxD
   const kind = sandboxKind(sandbox)
   if (!kind.capabilities.images) return undefined
   const { preparedFor } = await import('../sandbox/preflight.ts')
-  const { attemptImage, createProviders } = await import('../sandbox/providers.ts')
-  // Preflight prepared it with the attempt's own image.
+  const { trialImage, createProviders } = await import('../sandbox/providers.ts')
+  // Preflight prepared it with the trial's own image.
   const provider = createProviders()[kind.provider(sandbox)]
   const prepared = provider && preparedFor(root, runId, provider, sandbox, GRADER_HARNESS)
   if (!prepared) {
     throw new InfraError("A grader's sandbox image wasn't prepared before the run started")
   }
-  return attemptImage(prepared)
+  return trialImage(prepared)
 }
 
 /**
- * Slots for the grader sandboxes of an attempt on `attemptSandbox`. On the attempt's provider, the
- * first takes the slot of the attempt's own sandbox, gone by now while its lease holds until the
- * attempt ends, and another waits for that slot or a new lease on the run's concurrency, whichever
+ * Slots for the grader sandboxes of a trial on `trialSandbox`. On the trial's provider, the
+ * first takes the slot of the trial's own sandbox, gone by now while its lease holds until the
+ * trial ends, and another waits for that slot or a new lease on the run's concurrency, whichever
  * comes first. On another provider, each leases only that provider's limit: the run's concurrency
- * is the attempts', which a grader waiting on it while its attempt holds one could deadlock.
+ * is the trials', which a grader waiting on it while its trial holds one could deadlock.
  */
 export function graderSlots(
   concurrency: number,
-  attemptSandbox: SandboxDescriptor,
+  trialSandbox: SandboxDescriptor,
 ): (sandbox: SandboxDescriptor, signal: AbortSignal) => Promise<Lease> {
   let free = true
   const waiting: Array<() => void> = []
@@ -120,14 +120,14 @@ export function graderSlots(
     signal.throwIfAborted()
     const provider = sandboxProvider(sandbox)
     const cap = providerLimit(sandbox)
-    if (provider !== sandboxProvider(attemptSandbox)) {
+    if (provider !== sandboxProvider(trialSandbox)) {
       return cap ? acquire({ [`sandbox:${provider}`]: cap }, { signal }) : { release() {} }
     }
     if (free) {
       free = false
       return own()
     }
-    const limits: Limits = { attempts: concurrency }
+    const limits: Limits = { trials: concurrency }
     if (cap) limits[`sandbox:${provider}`] = cap
     let handed = false
     let wake = () => {}

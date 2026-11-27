@@ -4,7 +4,7 @@ import { base, skilled, terse } from '../../../plan/compare/evals/envs.ts'
 evaluate(
   'one question',
   {
-    compare: { control: base, variants: [skilled] },
+    compare: { baseline: base, variants: [skilled] },
     questions: [
       { question: 'Which handles state more cleanly?', across: 'environment', diff: true },
     ],
@@ -14,7 +14,7 @@ evaluate(
 evaluate(
   'two questions, one with its own model',
   {
-    compare: { control: base, variants: [skilled, terse] },
+    compare: { baseline: base, variants: [skilled, terse] },
     questions: [
       {
         question: 'Which handles state more cleanly?',
@@ -34,7 +34,7 @@ evaluate(
 evaluate(
   'pinned',
   {
-    compare: { control: base, variants: [skilled] },
+    compare: { baseline: base, variants: [skilled] },
     questions: [{ question: 'Which is shorter?', across: 'environment', diff: true }],
     pin: ['compare'],
   },

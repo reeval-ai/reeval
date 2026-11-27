@@ -33,7 +33,7 @@ export default defineEval({
 })
 ```
 
-The build check runs before the app starts, so a build error fails the attempt with the compiler's output instead of a blank capture.
+The build check runs before the app starts, so a build error fails the trial with the compiler's output instead of a blank capture.
 
 </Step>
 <Step title="Judge the rendered page">
@@ -82,10 +82,10 @@ With `-v`, reeval prints each grade and its score during the run. The score can 
 At the end, the block for the evaluation reads its mean score:
 
 ```text
-└─ · chat  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
+└─ · chat  mean 100% · 1/1 trial at 100% (pass@1)  capability(1)
 ```
 
-A score below 1 from the `renders` grader lowers the attempt's score, and the block prints it. To see what the judge saw, open the `artifacts/chat.png` file under the run's directory in the `.reeval/runs/` directory. For more information about the outcomes and the tally, see [Read a run's output](/results/output).
+A score below 1 from the `renders` grader lowers the trial's score, and the block prints it. To see what the judge saw, open the `artifacts/chat.png` file under the run's directory in the `.reeval/runs/` directory. For more information about the outcomes and the tally, see [Read a run's output](/results/output).
 
 </Step>
 </Steps>

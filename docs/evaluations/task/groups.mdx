@@ -59,7 +59,7 @@ The billing evaluation spreads `billing` and keeps `shared`'s `plain` environmen
 
 ## Override an option in one evaluation
 
-An `environment`, `timeout`, `runs`, `target`, or `sandbox` on one `defineEval` call replaces the spread value for that evaluation. The other evaluations keep the shared value. In the `evals/shoehorn/build-only-fields.eval.ts` file, give one evaluation a longer timeout:
+An `environment`, `timeout`, `trials`, `target`, or `sandbox` on one `defineEval` call replaces the spread value for that evaluation. The other evaluations keep the shared value. In the `evals/shoehorn/build-only-fields.eval.ts` file, give one evaluation a longer timeout:
 
 ```ts title="evals/shoehorn/build-only-fields.eval.ts"
 export default defineEval({
@@ -79,7 +79,7 @@ The `reeval run --dry-run` command plans the run without starting a sandbox or a
 npx reeval run --dry-run
 ```
 
-The header counts the evaluations, cells, and attempts, and estimates the time. Each row names an evaluation by its file id. If an evaluation is missing, check that its file ends in `.eval.ts` or `.eval.py` and sits under the `evals/` folder.
+The header counts the evaluations, cells, and trials, and estimates the time. Each row names an evaluation by its file id. If an evaluation is missing, check that its file ends in `.eval.ts` or `.eval.py` and sits under the `evals/` folder.
 
 ## Skip or plan an eval
 

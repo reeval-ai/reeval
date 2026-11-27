@@ -7,6 +7,6 @@ export default defineEval({
   environment: python,
   graders: [observed('sandbox', (id) => id === 'python')],
   task: async (c) => {
-    c.observe('sandbox', c.attempt.cell.sandbox)
+    c.observe('sandbox', c.trial.cell.sandbox)
   },
 })

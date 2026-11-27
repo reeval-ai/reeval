@@ -8,5 +8,5 @@ const listed = defineEnvironment('listed', ({ plugin }) => ({
 }))
 
 group('marketplace plugins', { environments: listed }, () => {
-  evaluate('entries read at the attempt', async () => {})
+  evaluate('entries read at the trial', async () => {})
 })

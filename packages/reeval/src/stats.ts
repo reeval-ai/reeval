@@ -1,4 +1,4 @@
-// Uncertainty for pass rates and lift. Attempts are few (2–10 is typical), so intervals are wide;
+// Uncertainty for pass rates and lift. Trials are few (2–10 is typical), so intervals are wide;
 // the point is to say so, not to hide it behind a single number.
 
 /** Two-sided 95%. */
@@ -8,7 +8,7 @@ export type Interval = { low: number; high: number }
 
 /**
  * The Wilson score interval for `pass` successes out of `n`. Unlike the normal approximation it
- * stays inside [0, 1] and is sensible at 0/n and n/n. With no attempts it's [0, 1].
+ * stays inside [0, 1] and is sensible at 0/n and n/n. With no trials it's [0, 1].
  */
 export function wilson(pass: number, n: number): Interval {
   if (n === 0) return { low: 0, high: 1 }
@@ -21,17 +21,17 @@ export function wilson(pass: number, n: number): Interval {
 }
 
 /**
- * The difference of two pass rates (variant minus control), with Newcombe's hybrid score
+ * The difference of two pass rates (variant minus baseline), with Newcombe's hybrid score
  * interval: each rate's Wilson interval combined, so it inherits Wilson's behavior at 0 and 1.
  */
 export function liftInterval(
   variant: { pass: number; n: number },
-  control: { pass: number; n: number },
+  baseline: { pass: number; n: number },
 ): Interval & { points: number } {
   const p1 = variant.n ? variant.pass / variant.n : 0
-  const p2 = control.n ? control.pass / control.n : 0
+  const p2 = baseline.n ? baseline.pass / baseline.n : 0
   const a = wilson(variant.pass, variant.n)
-  const b = wilson(control.pass, control.n)
+  const b = wilson(baseline.pass, baseline.n)
   const points = p1 - p2
   return {
     points,
@@ -137,7 +137,7 @@ export function mannWhitney(
 
 /**
  * The smallest two-sided p an exact rank test can reach with these group sizes and no ties: for
- * planning `runs` before there's data. On data, `mannWhitney`'s `floor` counts the ties.
+ * planning `trials` before there's data. On data, `mannWhitney`'s `floor` counts the ties.
  */
 export const minimumP = (n1: number, n2: number) =>
   n1 === 0 || n2 === 0 ? 1 : Math.min(1, 2 / choose(n1 + n2, n1))
@@ -149,27 +149,27 @@ export const minimumP = (n1: number, n2: number) =>
 export const PAIRED_MIN = 6
 
 /**
- * The runs a side a compare defaults to and the plan suggests. It doesn't gate the effect: a lift
+ * The trials a side a compare defaults to and the plan suggests. It doesn't gate the effect: a lift
  * always reads as its observed direction, and whether its interval excludes 0 decides whether it
  * holds. At 4 a side, a 4/4 against 0/4 split happens by chance about 7% of the time when nothing
  * changed.
  */
-export const COMPARE_RUNS = 4
+export const COMPARE_TRIALS = 4
 
-/** The most runs a side `runsToHold` searches before it calls a difference too small to settle. */
-export const RUNS_TO_HOLD_MAX = 200
+/** The most trials a side `trialsToHold` searches before it calls a difference too small to settle. */
+export const TRIALS_TO_HOLD_MAX = 200
 
 /**
- * The fewest runs a side at which a difference at these observed rates would hold: the
+ * The fewest trials a side at which a difference at these observed rates would hold: the
  * Newcombe interval excludes 0. Null when the rates are equal (no run count separates them) or
- * when even `RUNS_TO_HOLD_MAX` doesn't.
+ * when even `TRIALS_TO_HOLD_MAX` doesn't.
  */
-export function runsToHold(variantRate: number, controlRate: number, from = 1): number | null {
-  if (variantRate === controlRate) return null
-  for (let n = Math.max(1, from); n <= RUNS_TO_HOLD_MAX; n++) {
+export function trialsToHold(variantRate: number, baselineRate: number, from = 1): number | null {
+  if (variantRate === baselineRate) return null
+  for (let n = Math.max(1, from); n <= TRIALS_TO_HOLD_MAX; n++) {
     const { low, high } = liftInterval(
       { pass: Math.round(variantRate * n), n },
-      { pass: Math.round(controlRate * n), n },
+      { pass: Math.round(baselineRate * n), n },
     )
     if (!containsZero(low, high)) return n
   }
@@ -188,12 +188,12 @@ export const widerThanMargin = (low: number, high: number) =>
 
 /**
  * Whether a pass-rate contrast rests on a small sample: either side counted fewer than
- * `COMPARE_RUNS`, or the interval on the difference spans 0 and still reaches past
+ * `COMPARE_TRIALS`, or the interval on the difference spans 0 and still reaches past
  * `SMALL_SAMPLE_MARGIN`. The observed direction shows either way; this says not to trust it far.
  */
-export function smallSample(variant: { pass: number; n: number }, control: typeof variant) {
-  if (Math.min(variant.n, control.n) < COMPARE_RUNS) return true
-  const { low, high } = liftInterval(variant, control)
+export function smallSample(variant: { pass: number; n: number }, baseline: typeof variant) {
+  if (Math.min(variant.n, baseline.n) < COMPARE_TRIALS) return true
+  const { low, high } = liftInterval(variant, baseline)
   return widerThanMargin(low, high)
 }
 
@@ -206,28 +206,28 @@ export const familySmallSample = (pairs: number, low: number, high: number) =>
   pairs < PAIRED_MIN || widerThanMargin(low, high)
 
 /**
- * The fewest runs a side, from `from`, at which these observed rates would stop being a small
+ * The fewest trials a side, from `from`, at which these observed rates would stop being a small
  * sample (`smallSample`). Equal or near rates always do, since the interval narrows toward 0: the
  * widest, two rates near 50%, settles at 45.
  */
-export function runsToSettle(variantRate: number, controlRate: number, from = 1): number {
+export function runsToSettle(variantRate: number, baselineRate: number, from = 1): number {
   for (let n = Math.max(1, from); ; n++) {
     const a = { pass: Math.round(variantRate * n), n }
-    const b = { pass: Math.round(controlRate * n), n }
+    const b = { pass: Math.round(baselineRate * n), n }
     if (!smallSample(a, b)) return n
   }
 }
 
-/** Binary pairs over cases: both pass, only the variant, only the control, neither. */
-export type PairCounts = { both: number; variantOnly: number; controlOnly: number; neither: number }
+/** Binary pairs over cases: both pass, only the variant, only the baseline, neither. */
+export type PairCounts = { both: number; variantOnly: number; baselineOnly: number; neither: number }
 
 /**
- * The difference of two paired pass rates (variant minus control) with Newcombe's score interval
+ * The difference of two paired pass rates (variant minus baseline) with Newcombe's score interval
  * for paired proportions (his method 10): each marginal rate's Wilson interval, combined with the
  * correlation between the sides, so concordant pairs narrow the interval.
  */
 export function pairedLiftInterval(c: PairCounts): Interval & { points: number } {
-  const { both: a, variantOnly: b, controlOnly: k, neither: d } = c
+  const { both: a, variantOnly: b, baselineOnly: k, neither: d } = c
   const n = a + b + k + d
   if (n === 0) return { points: 0, low: -1, high: 1 }
   const p1 = (a + b) / n
@@ -249,10 +249,10 @@ export function pairedLiftInterval(c: PairCounts): Interval & { points: number }
 }
 
 /** McNemar's exact test: the two-sided binomial p of the discordant pairs' split at ½. */
-export function mcnemar(variantOnly: number, controlOnly: number): number {
-  const n = variantOnly + controlOnly
+export function mcnemar(variantOnly: number, baselineOnly: number): number {
+  const n = variantOnly + baselineOnly
   if (n === 0) return 1
-  const low = Math.min(variantOnly, controlOnly)
+  const low = Math.min(variantOnly, baselineOnly)
   // In log space: 2 ** n overflows from n = 1024, and 2 ** -n underflows to 0 above n = 1074.
   let logTerm = -n * Math.LN2
   let logTail = logTerm
@@ -280,7 +280,7 @@ export function t975(df: number): number {
 }
 
 /**
- * The mean of `values` with a 95% t interval over them: with each value one case, attempts
+ * The mean of `values` with a 95% t interval over them: with each value one case, trials
  * within a case are never counted as independent. A single value gives an unbounded interval.
  */
 export function meanInterval(values: readonly number[]): Interval & { mean: number } {

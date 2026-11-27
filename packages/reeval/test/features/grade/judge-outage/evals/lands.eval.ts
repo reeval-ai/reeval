@@ -3,7 +3,7 @@ import { judge } from 'reeval/graders'
 import { plain } from './env.ts'
 
 // The judge's provider fails the first run's calls: an infra error, so --retry-errors runs the
-// attempt again, and this time the judge answers.
+// trial again, and this time the judge answers.
 export default defineEval({
   environment: plain,
   graders: [

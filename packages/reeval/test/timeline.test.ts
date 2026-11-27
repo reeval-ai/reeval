@@ -43,7 +43,7 @@ const model = (atMs: number, durationMs: number, stream = false): TrajectoryEven
   ...(stream ? { stream: true as const } : {}),
 })
 
-/** A captured attempt's trajectory, from the older run's transcript.jsonl: its first turn's events. */
+/** A captured trial's trajectory, from the older run's transcript.jsonl: its first turn's events. */
 function captured(harness: string): { events: TrajectoryEvent[]; turnMs: number } {
   const run = join(
     import.meta.dirname,
@@ -345,16 +345,16 @@ export default defineEval({
     const run = await runCli(p.dir)
     assert.equal(run.code, 0, run.stdout + run.stderr)
     const { evals, read } = readRun(p.dir)
-    const attempt = evals[0]?.trial
-    assert.ok(attempt?.timeSplit)
-    const turn = attempt.turns[0]
-    assert.deepEqual(attempt.timeSplit, turn?.timeSplit)
-    const { modelMs, toolMs, waitingMs, otherMs } = attempt.timeSplit
+    const trial = evals[0]?.trial
+    assert.ok(trial?.timeSplit)
+    const turn = trial.turns[0]
+    assert.deepEqual(trial.timeSplit, turn?.timeSplit)
+    const { modelMs, toolMs, waitingMs, otherMs } = trial.timeSplit
     assert.equal(modelMs, null, 'the fake sandbox has no gateway to see model calls')
     assert.ok(waitingMs >= 1000, `waited ${waitingMs}ms`)
     assert.equal(toolMs + waitingMs + otherMs, turn?.durationMs)
-    assert.ok(attempt.files.trajectory)
-    const trajectory = read(attempt.files.trajectory.path)
+    assert.ok(trial.files.trajectory)
+    const trajectory = read(trial.files.trajectory.path)
     const readCall = trajectory
       .split('\n')
       .filter(Boolean)
@@ -364,7 +364,7 @@ export default defineEval({
     assert.equal(typeof readCall.durationMs, 'number')
     assert.match(
       read('summary.md'),
-      /^\| <a id="attempt-[a-z0-9-]+"><\/a>A1 \| w \| fake \| fake \| pass \| not reported \| 1s \| 3 \|/m,
+      /^\| <a id="trial-[a-z0-9-]+"><\/a>A1 \| w \| fake \| fake \| pass \| not reported \| 1s \| 3 \|/m,
     )
     const effort = await runCli(p.dir, [
       'query',

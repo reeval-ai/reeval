@@ -9,6 +9,6 @@ const installs = defineEnvironment('installs', {
 const plain = defineEnvironment('plain', {})
 
 export default defineEval({
-  compare: { control: plain, variants: [closed] },
+  compare: { baseline: plain, variants: [closed] },
   task: async () => {},
 })

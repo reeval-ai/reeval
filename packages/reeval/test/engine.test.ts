@@ -39,7 +39,7 @@ describe('engine', () => {
     })
     const r = await runCli(p.dir)
     assert.equal(r.code, 0, r.stderr)
-    assert.match(r.stdout, /^└─ ✓ math {2}mean 100% · 1\/1 run at 100% {2}regression\(1\)$/m)
+    assert.match(r.stdout, /^└─ ✓ math {2}mean 100% · 1\/1 trial at 100% {2}regression\(1\)$/m)
     assert.match(r.stdout, /^Done in \S+ · 1 eval · 1 on target$/m)
     assert.match(
       r.stdout,
@@ -53,7 +53,7 @@ describe('engine', () => {
     assert.equal(run.status, 'complete')
     assert.deepEqual(run.summary, {
       evals: 1,
-      attempts: 1,
+      trials: 1,
       pass: 1,
       fail: 0,
       notGated: 0,
@@ -78,7 +78,7 @@ describe('engine', () => {
     assert.equal(r.code, 1)
     assert.match(
       r.stdout,
-      /^└─ ✗ math {2}mean 0% · 0\/1 run at 100% {2}regression\(1\)\n {5}#1 {2}0% {2}expected 1 to be 2\n {7}before the first turn$/m,
+      /^└─ ✗ math {2}mean 0% · 0\/1 trial at 100% {2}regression\(1\)\n {5}#1 {2}0% {2}expected 1 to be 2\n {7}before the first turn$/m,
     )
     assert.doesNotMatch(r.stdout + r.stderr, /vitest/i)
     const [e] = readRun(p.dir).evals
@@ -120,14 +120,14 @@ export default defineEval({ async task() {} })
     })
     const byPath = await runCli(p.dir, ['run', 'a.eval.ts'])
     assert.equal(byPath.code, 0)
-    assert.match(byPath.stdout, /^└─ ✓ a +mean 100% · 1\/1 run at 100% +regression\(1\)$/m)
+    assert.match(byPath.stdout, /^└─ ✓ a +mean 100% · 1\/1 trial at 100% +regression\(1\)$/m)
     assert.doesNotMatch(byPath.stdout, /named thing/)
 
     const byName = await runCli(p.dir, ['run', 'named-thing'])
     assert.equal(byName.code, 0)
     assert.match(
       byName.stdout,
-      /^└─ ✓ named-thing +mean 100% · 1\/1 run at 100% +regression\(1\)$/m,
+      /^└─ ✓ named-thing +mean 100% · 1\/1 trial at 100% +regression\(1\)$/m,
     )
     assert.doesNotMatch(byName.stdout, / ✓ a /)
 
@@ -250,7 +250,7 @@ export default defineConfig({
     assert.equal(r.code, 0)
     assert.deepEqual(readRun(p.dir).run.summary, {
       evals: 2,
-      attempts: 2,
+      trials: 2,
       pass: 1,
       fail: 0,
       notGated: 0,
@@ -489,8 +489,8 @@ export default defineEval({
     assert.deepEqual(run.errors?.sort(), ['stray rejection', 'stray throw'])
   })
 
-  test("an error outside any attempt makes --json's outcome fail, as the exit code does", async () => {
-    const p = await project('outside-attempts', {
+  test("an error outside any trial makes --json's outcome fail, as the exit code does", async () => {
+    const p = await project('outside-trials', {
       'reeval.config.ts': fakeConfig(),
       'evals/stray.eval.ts': `import { defineEval } from 'reeval'
 void Promise.reject(new Error('stray rejection at load'))
@@ -516,7 +516,7 @@ export default defineEval({ async task() {} })
     assert.deepEqual(JSON.parse(fine.stdout).errors, [])
   })
 
-  test('a worker killed mid-attempt fails its attempts, names the file, and the run goes on', async () => {
+  test('a worker killed mid-trial fails its trials, names the file, and the run goes on', async () => {
     const p = await project('worker-killed', {
       'reeval.config.ts': fakeConfig(),
       'evals/dies.eval.ts': `import { defineEval } from 'reeval'
@@ -546,7 +546,7 @@ export default defineEval({
     )
   })
 
-  test('a file that loads for the plan but not for its run fails its attempts with the load error', async () => {
+  test('a file that loads for the plan but not for its run fails its trials with the load error', async () => {
     const flaky = `import { existsSync, writeFileSync } from 'node:fs'
 import { defineEval } from 'reeval'
 const marker = new URL('../loaded-once', import.meta.url)
@@ -564,13 +564,13 @@ export default defineEval({ async task() {} })
     assert.match(r.stdout, /^error: evals\/flaky\.eval\.ts: fixture service unavailable$/m)
     const record = readRun(p.dir)
     assert.deepEqual(
-      record.evals.map((e) => [e.id, e.outcome, e.attempts[0]?.error?.message ?? null]),
+      record.evals.map((e) => [e.id, e.outcome, e.trials[0]?.error?.message ?? null]),
       [
         ['flaky', 'fail', 'fixture service unavailable'],
         ['lives', 'pass', null],
       ],
     )
-    // On its own, the file is still its failed attempt, not "No evals matched".
+    // On its own, the file is still its failed trial, not "No evals matched".
     rmSync(join(p.dir, 'loaded-once'))
     const alone = await runCli(p.dir, ['run', 'evals/flaky.eval.ts'])
     assert.equal(alone.code, 1, alone.stdout + alone.stderr)
@@ -607,17 +607,17 @@ export default defineEval({
     const r = await runCli(p.dir)
     assert.equal(r.code, 3, r.stdout + r.stderr)
     for (const e of readRun(p.dir).evals) {
-      const [attempt] = e.attempts
-      assert.equal(attempt?.outcome, 'infra_error', e.name)
+      const [trial] = e.trials
+      assert.equal(trial?.outcome, 'infra_error', e.name)
       assert.match(
-        attempt?.error?.message ?? '',
+        trial?.error?.message ?? '',
         /setup step 1\/1 "exit 7" in environment broken exited 7/,
       )
-      assert.deepEqual(attempt?.checks, [], `${e.name}: no check ran`)
+      assert.deepEqual(trial?.checks, [], `${e.name}: no check ran`)
     }
   })
 
-  test('a worker that runs out of memory fails its attempts too', async () => {
+  test('a worker that runs out of memory fails its trials too', async () => {
     const p = await project('worker-oom', {
       'reeval.config.ts': fakeConfig(),
       'evals/oom.eval.ts': `import { defineEval } from 'reeval'
@@ -812,11 +812,11 @@ export default defineEval({
       ],
     )
     assert.match(r.stdout, /^\[agent#1 fake\] ▶ agent$/m)
-    assert.match(r.stdout, /^└─ ✓ agent {2}mean 100% · 1\/1 run at 100% {2}regression\(1\)$/m)
+    assert.match(r.stdout, /^└─ ✓ agent {2}mean 100% · 1\/1 trial at 100% {2}regression\(1\)$/m)
   })
 
   test('--log-order, --log-prefix and --output-logs shape what reeval run prints', async () => {
-    // Two attempts of one file run at once in one worker; each logs after the other has started.
+    // Two trials of one file run at once in one worker; each logs after the other has started.
     const p = await project('output-flags', {
       'reeval.config.ts': fakeConfig(),
       'evals/passes.eval.ts': `import { defineEval } from 'reeval'
@@ -859,7 +859,7 @@ export default defineEval({
     assert.deepEqual(
       logs.map((l) => l.replace(/ {2}\+0:\d\d /, ' ')).sort(),
       ['[fails#1 fake] stderr | log from fails', '[passes#1 fake] stdout | log from passes'],
-      'each console line is prefixed with the attempt that logged it',
+      'each console line is prefixed with the trial that logged it',
     )
 
     const grouped = await run(
@@ -871,9 +871,9 @@ export default defineEval({
       'errors-only',
     )
     assert.equal(grouped.code, 1, grouped.stdout + grouped.stderr)
-    assert.match(grouped.stdout, /^ {2}◆ {2}Running; logs print for failed attempts only\.\.\.$/m)
+    assert.match(grouped.stdout, /^ {2}◆ {2}Running; logs print for failed trials only\.\.\.$/m)
     const out = lines(grouped.stdout)
-    assert.ok(!out.some((l) => l.includes('log from passes')), 'a passing attempt prints no detail')
+    assert.ok(!out.some((l) => l.includes('log from passes')), 'a passing trial prints no detail')
     const head = out.indexOf('[fails#1 fake] ▶ fails')
     const rest = out.slice(head + 1)
     const next = rest.findIndex((l) => l.startsWith('['))
@@ -881,7 +881,7 @@ export default defineEval({
     assert.ok(head >= 0, grouped.stdout)
     assert.ok(
       block.some((l) => /^ \+0:\d\d stderr \| log from fails$/.test(l)),
-      `the failing attempt's detail follows its header, unprefixed:\n${grouped.stdout}`,
+      `the failing trial's detail follows its header, unprefixed:\n${grouped.stdout}`,
     )
 
     const none = await run('--output-logs', 'none')
@@ -893,7 +893,7 @@ export default defineEval({
     })
     assert.match(
       byEnv.stdout,
-      /^ {2}◆ {2}Running; each attempt's logs print as it ends\.\.\.$/m,
+      /^ {2}◆ {2}Running; each trial's logs print as it ends\.\.\.$/m,
       'REEVAL_LOG_ORDER stands in for the flag',
     )
     const bad = await run('--log-order', 'sideways')
@@ -914,7 +914,7 @@ export default defineEval({
     const all = r.stdout.trimEnd().split('\n')
     assert.match(all[0] ?? '', /^REEVAL v\S+$/, 'the header block a terminal prints')
     assert.ok(
-      all.includes('  ➜  Scope:     2 eval files · 2 evals · 2 cells · 2 attempts'),
+      all.includes('  ➜  Scope:     2 eval files · 2 evals · 2 cells · 2 trials'),
       r.stdout,
     )
     const out = all.slice(all.indexOf('  ◆  Running...'))
@@ -923,14 +923,14 @@ export default defineEval({
       [
         '',
         'evals/agent.eval.ts',
-        '  ✗ agent  mean 0% · 0/1 run at 100%  regression(1)',
+        '  ✗ agent  mean 0% · 0/1 trial at 100%  regression(1)',
         '    #1  0%  not ok',
         '      after turn 1',
         '      at task (evals/agent.eval.ts:8:11)',
         '    Snapshot: <path>',
         '',
         'evals/passes.eval.ts',
-        '  ✓ passes  mean 100% · 1/1 run at 100%  regression(1)',
+        '  ✓ passes  mean 100% · 1/1 trial at 100%  regression(1)',
         '',
       ],
     )
@@ -1187,14 +1187,14 @@ export default defineEval({
     assert.ok(screen.length < 200_000, `the screen got ${screen.length} characters`)
     const { run } = readRun(p.dir)
     for (const e of run.evals) {
-      const message = e.attempts[0]?.error?.message ?? ''
+      const message = e.trials[0]?.error?.message ?? ''
       assert.ok(message.length <= 20_000, `${e.name}: a ${message.length}-character error`)
     }
     // The canary: what tells you why is still there, on screen and in the record.
     assert.match(screen, /exit code 3/)
     assert.match(screen, /boom/)
     assert.match(screen, /Expected values to be strictly equal/)
-    const noisy = run.evals.find((e) => e.name === 'noisy-check')?.attempts[0]?.error?.message
+    const noisy = run.evals.find((e) => e.name === 'noisy-check')?.trials[0]?.error?.message
     assert.match(noisy ?? '', /exit code 3[\s\S]*boom[\s\S]*bbbb/)
   })
 
@@ -1211,7 +1211,7 @@ export default defineEval({
       new RegExp(`^ {5}✗ 1 run ended a turn with an error\n {7}${billing}$`, 'm'),
     )
     const { run, read } = readRun(p.dir)
-    assert.equal(run.evals[0]?.attempts[0]?.turns[0]?.error, billing)
+    assert.equal(run.evals[0]?.trials[0]?.turns[0]?.error, billing)
     assert.match(
       read('summary.md'),
       new RegExp(`\\| turn-error \\| ${billing.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\|`),
@@ -1236,7 +1236,7 @@ export default defineEval({
       / harness {3}turn 1 completed in \S+ · .* · model composer-2\.5\[fast=true\]$/m,
     )
     const { run, read } = readRun(p.dir)
-    assert.equal(run.evals[0]?.attempts[0]?.turns[0]?.model, served)
+    assert.equal(run.evals[0]?.trials[0]?.turns[0]?.model, served)
     assert.deepEqual(run.stack.harnesses, [
       {
         id: 'fake',
@@ -1276,9 +1276,9 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
 import { hasFile } from 'reeval/graders'
 import { plain, skilled } from './compare-env.ts'
 export default defineEval({
-  compare: { control: plain, variants: [skilled] },
+  compare: { baseline: plain, variants: [skilled] },
   graders: [hasFile('ok.txt')],
-  runs: 2,
+  trials: 2,
   async task(c) {
     await c.send('go')
   },
@@ -1286,10 +1286,10 @@ export default defineEval({
 `,
       'evals/repeated.eval.ts': `import { defineEval, EvalError } from 'reeval'
 export default defineEval({
-  runs: 4,
+  trials: 4,
   async task(c) {
     await c.send('go')
-    if (c.attempt.n % 4 === 0) throw new EvalError('every fourth fails')
+    if (c.trial.n % 4 === 0) throw new EvalError('every fourth fails')
   },
 })
 `,
@@ -1297,10 +1297,10 @@ export default defineEval({
 import { hasFile } from 'reeval/graders'
 import { plain, skilled } from './compare-env.ts'
 export default defineEval({
-  compare: { control: plain, variants: [skilled] },
+  compare: { baseline: plain, variants: [skilled] },
   target: capability(),
   graders: [hasFile('nope.txt')],
-  runs: 2,
+  trials: 2,
   async task(c) {
     await c.send('go')
   },
@@ -1308,27 +1308,27 @@ export default defineEval({
 `,
     })
     const r = await runCli(p.dir)
-    // The control's two failures don't fail it: only the gated variant's 2 of 2 gate.
+    // The baseline's two failures don't fail it: only the gated variant's 2 of 2 gate.
     assert.match(
       r.stdout,
-      /evals\/compared\.eval\.ts\n└─ ✓ compared {2}mean 100% · 2\/2 runs at 100% {2}regression\(1\)$/m,
+      /evals\/compared\.eval\.ts\n└─ ✓ compared {2}mean 100% · 2\/2 trials at 100% {2}regression\(1\)$/m,
     )
     assert.match(
       r.stdout,
-      /^ {5}arm +pass\n {5}plain +0 of 2\n {7}error {2}score 0\.00 below 1: has-file:ok\.txt scored 0\.00 \(2 runs\)\n {5}skilled +2 of 2 {2}helped$/m,
+      /^ {5}environment +pass\n {5}plain +0 of 2\n {7}error {2}score 0\.00 below 1: has-file:ok\.txt scored 0\.00 \(2 runs\)\n {5}skilled +2 of 2 {2}helped$/m,
     )
     assert.match(
       r.stdout,
-      /evals\/repeated\.eval\.ts\n└─ ✗ repeated {2}mean \d+% · 3\/4 runs at 100%, worst 0% {2}regression\(1\)\n {5}#4 {2}0%/,
+      /evals\/repeated\.eval\.ts\n└─ ✗ repeated {2}mean \d+% · 3\/4 trials at 100%, worst 0% {2}regression\(1\)\n {5}#4 {2}0%/,
     )
     // A target that only reports reads ·, never ✓ beside 0%.
     assert.match(
       r.stdout,
-      /evals\/studied\.eval\.ts\n└─ · studied {2}mean 0% · 0\/2 runs at 100% \(pass@2\) {2}capability\(1\)$/m,
+      /evals\/studied\.eval\.ts\n└─ · studied {2}mean 0% · 0\/2 trials at 100% \(pass@2\) {2}capability\(1\)$/m,
     )
     assert.match(
       r.stdout,
-      /studied {2}mean 0% · 0\/2 runs at 100% \(pass@2\) {2}capability\(1\)\n {5}#1–2 {2}0% {2}has-file:nope\.txt 0%\n {5}arm +pass\n {5}plain +0 of 2\n {7}error .*\n {5}skilled +0 of 2 {2}same$/m,
+      /studied {2}mean 0% · 0\/2 trials at 100% \(pass@2\) {2}capability\(1\)\n {5}#1–2 {2}0% {2}has-file:nope\.txt 0%\n {5}environment +pass\n {5}plain +0 of 2\n {7}error .*\n {5}skilled +0 of 2 {2}same$/m,
     )
   })
 
@@ -1474,7 +1474,7 @@ export default defineEval({ async task() {} })
     assert.match(out, /^ {5}#1 {2}0% {2}timed out: The eval timed out$/m)
     assert.doesNotMatch(out, /Hook timed out|hookTimeout/)
     const [e] = readRun(p.dir).evals
-    const [turn] = e?.attempts[0]?.turns ?? []
+    const [turn] = e?.trials[0]?.turns ?? []
     // The canary: the stuck turn is still in the record, marked as cut off.
     assert.equal(turn?.status, 'aborted')
     assert.equal(e?.error?.kind, 'timeout')
@@ -1580,11 +1580,11 @@ export default defineEval({ async task() {} })
         r.stdout,
         /^└─ ○ agent {2}canceled\n {5}#1 {2}canceled {2}The run was canceled$/m,
       )
-      assert.match(r.stdout, /^Interrupted: attempts that hadn’t finished were canceled$/m)
+      assert.match(r.stdout, /^Interrupted: trials that hadn’t finished were canceled$/m)
       assert.match(
         r.stdout,
         /^Done in \S+ · 1 eval · 1 canceled$/m,
-        'a canceled attempt is not a fail',
+        'a canceled trial is not a fail',
       )
       assert.deepEqual(liveSandboxes(p), [])
     })
@@ -1734,7 +1734,7 @@ export default defineEval({
     assert.equal(r.code, 130, r.stdout + r.stderr)
     const runId = /quit without writing run (\S+)'s record/.exec(r.stderr)?.[1]
     assert.ok(runId, r.stderr)
-    assert.match(r.stderr, new RegExp(`^ {2}reeval run --resume ${runId} keeps the attempts`, 'm'))
+    assert.match(r.stderr, new RegExp(`^ {2}reeval run --resume ${runId} keeps the trials`, 'm'))
     assert.equal(existsSync(join(p.dir, '.reeval/runs', `${runId}.json`)), false)
     const logged = readFileSync(join(p.dir, '.reeval/cli.jsonl'), 'utf8').trim().split('\n')
     assert.equal(JSON.parse(logged.at(-1) as string).exitCode, 130, 'the command is still logged')
@@ -1754,7 +1754,7 @@ export default defineEval({
     assert.match(history.stdout, /^1 run stopped without writing a record:$/m)
     assert.match(
       history.stdout,
-      new RegExp(`^ {2}${runId} {2}canceled, 1 of 2 attempts finished$`, 'm'),
+      new RegExp(`^ {2}${runId} {2}canceled, 1 of 2 trials finished$`, 'm'),
     )
     const json = JSON.parse((await runCli(p.dir, ['history', '--json'])).stdout)
     assert.deepEqual(
@@ -1767,7 +1767,7 @@ export default defineEval({
     const { run } = readRun(p.dir)
     assert.equal(run.runId, runId)
     assert.equal(run.status, 'complete')
-    assert.deepEqual(run.evals.map((e) => [e.name, e.attempts[0]?.outcome]).sort(), [
+    assert.deepEqual(run.evals.map((e) => [e.name, e.trials[0]?.outcome]).sort(), [
       ['fast', 'pass'],
       ['slow', 'pass'],
     ])
@@ -1858,7 +1858,7 @@ export default defineEval({
     })
   }
 
-  test('Ctrl-C while the worker boots still cancels the attempt before it starts', {
+  test('Ctrl-C while the worker boots still cancels the trial before it starts', {
     skip: noSignals,
   }, async () => {
     const p = await project('sigint-early', {

@@ -13,7 +13,7 @@ import {
 } from './sandbox/preflight.ts'
 import { imageHarness } from './sandbox/prepare.ts'
 import { PrepareError, type SandboxProvider } from './sandbox/provider.ts'
-import { attemptImage, createProviders } from './sandbox/providers.ts'
+import { trialImage, createProviders } from './sandbox/providers.ts'
 
 export type SandboxImage = {
   ref: string
@@ -46,9 +46,9 @@ export class PreflightInfraError extends Error {
 
 /**
  * Before any eval starts: checks each sandbox provider, then prepares every distinct sandbox the
- * planned attempts need (building Docker images), in parallel, and writes the results for the
+ * planned trials need (building Docker images), in parallel, and writes the results for the
  * run's workers. A config-level sandbox that fails stops the run (exit 2 for a mistake in the
- * config, exit 3 otherwise); any other failure fails only the attempts that need it.
+ * config, exit 3 otherwise); any other failure fails only the trials that need it.
  */
 export async function preflight(
   uses: PrepareUse[],
@@ -92,7 +92,7 @@ export async function preflight(
   for (const o of outcomes) {
     const { sandbox } = o.target
     if (!o.ok || sandbox.kind !== 'docker' || !sandbox.devices?.length) continue
-    const { ref } = attemptImage(o.handle)
+    const { ref } = trialImage(o.handle)
     for (const device of sandbox.devices) {
       await deviceGid(device, ref, { engine: sandbox.engine, root: !!sandbox.root }).catch(
         (error: unknown) => {
@@ -105,7 +105,7 @@ export async function preflight(
   const images: SandboxImage[] = []
   for (const o of outcomes) {
     if (!o.ok || o.target.sandbox.kind !== 'docker') continue
-    const { ref, id, agentCli } = attemptImage(o.handle)
+    const { ref, id, agentCli } = trialImage(o.handle)
     if (images.some((i) => i.id === id)) continue
     const info = await imageInfo(ref, o.target.sandbox.engine)
     images.push({

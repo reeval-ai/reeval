@@ -1,5 +1,5 @@
 // The digest `reeval explain` hands a model: facts computed by reeval (ids F1…), evidence excerpts chosen
-// by rule (ids E1…, trajectory lines keep their numbers as L<n>), and an attempts table with short
+// by rule (ids E1…, trajectory lines keep their numbers as L<n>), and a trials table with short
 // ids. Deterministic: the same records give the same digest, byte for byte, so it can be cached.
 import { readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
@@ -8,10 +8,10 @@ import { headToHeadLines, pairTallies, sampleReasons, splitsLabel } from '../com
 import { questionShows, UNRECORDED_QUESTION_STATE } from '../compare/state.ts'
 import { caseEntries, familyOf } from '../history/cases.ts'
 import type { HistoryDb } from '../history/db.ts'
-import { FLAKY_MIN_ATTEMPTS } from '../history/facts.ts'
+import { FLAKY_MIN_TRIALS } from '../history/facts.ts'
 import { TOOL_CLASSES } from '../history/tool-class.ts'
 import type {
-  AttemptRecord,
+  TrialRecord,
   CheckTally,
   EvalEntry,
   FamilyLift,
@@ -19,7 +19,7 @@ import type {
 } from '../history/types.ts'
 import { sha256 } from '../ids.ts'
 import {
-  COMPARE_RUNS,
+  COMPARE_TRIALS,
   familySmallSample,
   PAIRED_MIN,
   SMALL_SAMPLE_MARGIN,
@@ -27,7 +27,7 @@ import {
 } from '../stats.ts'
 import { blocks } from '../target.ts'
 import { clip } from '../text.ts'
-import type { AttemptAnswer } from '../types.ts'
+import type { TrialAnswer } from '../types.ts'
 import { formatTokens } from '../usage.ts'
 import { DIGEST_VERSION } from '../view/analysis.ts'
 import { compare } from '../view/compare.ts'
@@ -58,7 +58,7 @@ type EffortRow = Row<{
   run_id: string
   eval_key: string
   cell_key: string
-  control_key: string | null
+  baseline_key: string | null
   tools_ratio: number | null
 }>
 
@@ -71,15 +71,15 @@ export type DigestEvidence = {
   /** 1 is kept longest when the digest is over its cap. */
   priority: number
 }
-export type DigestAttempt = {
+export type DigestTrial = {
   run: string
   runId: string
   key: string
   eval: string
   evalSlug: string
   cell: string
-  attempt: string
-  outcome: AttemptRecord['outcome']
+  trial: string
+  outcome: TrialRecord['outcome']
   tools: number
   agentS: number
   /** Calls to the agent's file-editing tools; an edit made from the shell isn't one. */
@@ -99,7 +99,7 @@ export type DigestAttempt = {
    * only where their harness streams them.
    */
   subagents?: number
-  /** `c.exec` calls; `<attempt id>:exec<n>` cites the n-th. */
+  /** `c.exec` calls; `<trial id>:exec<n>` cites the n-th. */
   execs: number
   artifacts: string | null
 }
@@ -108,8 +108,8 @@ export type Digest = {
   digestVersion: number
   scope: { kind: 'run'; head: string; base: string | null; evals: string | null }
   /**
-   * `study` when every cell in scope is ungated (`gate: 'none'`): the run measures how its arms
-   * differ, and no attempt failing is a failed gate. `gate` otherwise.
+   * `study` when every cell in scope is ungated (`gate: 'none'`): the run measures how its environments
+   * differ, and no trial failing is a failed gate. `gate` otherwise.
    */
   frame: 'study' | 'gate'
   runs: Record<
@@ -125,7 +125,7 @@ export type Digest = {
   rules: string[]
   cli: string[]
   instructions: string | null
-  attempts: Record<string, DigestAttempt>
+  trials: Record<string, DigestTrial>
   facts: DigestFact[]
   evidence: DigestEvidence[]
   /** Evidence dropped to fit the cap, by id. */
@@ -144,26 +144,26 @@ export type DigestInput = {
 }
 
 export const RULES = [
-  'Lift (variant pass@1 minus control pass@1) is an effect only when its 95% interval (Newcombe) excludes 0, and within noise when the interval spans 0, whatever the point estimate or the number of attempts.',
-  `smallSample: true beside a lift's verdict means it rests on few attempts (fewer than ${COMPARE_RUNS} counted a side, fewer than ${PAIRED_MIN} cases for a family, or an interval that still reaches past ${Math.round(SMALL_SAMPLE_MARGIN * 100)} points either way): don't over-trust it. Report its direction with the n as directional; never as an established effect, or as showing no difference when the rates are equal.`,
+  'Lift (variant pass@1 minus baseline pass@1) is an effect only when its 95% interval (Newcombe) excludes 0, and within noise when the interval spans 0, whatever the point estimate or the number of trials.',
+  `smallSample: true beside a lift's verdict means it rests on few trials (fewer than ${COMPARE_TRIALS} counted a side, fewer than ${PAIRED_MIN} cases for a family, or an interval that still reaches past ${Math.round(SMALL_SAMPLE_MARGIN * 100)} points either way): don't over-trust it. Report its direction with the n as directional; never as an established effect, or as showing no difference when the rates are equal.`,
   `When sources or the eval fingerprint differ across the compared runs, the pass@1 difference is not comparable: the eval changed. Never call it an effect. Do not put those mixed counts on a results line. The first line of the analysis says the eval changed. A lift is an effect only when sources match.`,
-  `Effort (tool calls, agent time, and tokens when both sides have usage samples) is compared with an exact Mann-Whitney test: "fewer"/"more" at p < 0.05; "insufficient" when no split of the attempts' values can reach it (2 vs 2 cannot, and ties raise the floor) — never because a harness dropped usage. Attempts without usage are left out of the token sample only. If either side then has no token sample, the token metric is omitted (no line, not insufficient). A Goose cell does not blank tokens on Cursor cells in the same study. Pooled across evals, tokens are an effect only when at least 2/3 of the strata that reported usage agree. Effort's separated (given from ${DIRECTIONAL_MIN} vs ${DIRECTIONAL_MIN}) says, per metric, that the two sides' ranges do not overlap: every attempt on one side beat every attempt on the other. insufficient with separated true is a directional signal: report the ratio, the n and "no overlap, not significant" as directional, never as an effect. separated false is no direction at all.`,
-  "A cases fact is one eval with cases: its cases are paired samples of one suite, so its lift (Newcombe paired interval and McNemar at one attempt a case, a t interval over cases otherwise) is the result for those cases; its pass-rate fact carries no lift. insufficient (fewer than 6 discordant pairs or 6 cases) is not measured. Its minLift gates the paired lift's lower bound.",
+  `Effort (tool calls, agent time, and tokens when both sides have usage samples) is compared with an exact Mann-Whitney test: "fewer"/"more" at p < 0.05; "insufficient" when no split of the trials' values can reach it (2 vs 2 cannot, and ties raise the floor) — never because a harness dropped usage. Trials without usage are left out of the token sample only. If either side then has no token sample, the token metric is omitted (no line, not insufficient). A Goose cell does not blank tokens on Cursor cells in the same study. Pooled across evals, tokens are an effect only when at least 2/3 of the strata that reported usage agree. Effort's separated (given from ${DIRECTIONAL_MIN} vs ${DIRECTIONAL_MIN}) says, per metric, that the two sides' ranges do not overlap: every trial on one side beat every trial on the other. insufficient with separated true is a directional signal: report the ratio, the n and "no overlap, not significant" as directional, never as an effect. separated false is no direction at all.`,
+  "A cases fact is one eval with cases: its cases are paired samples of one suite, so its lift (Newcombe paired interval and McNemar at one trial a case, a t interval over cases otherwise) is the result for those cases; its pass-rate fact carries no lift. insufficient (fewer than 6 discordant pairs or 6 cases) is not measured. Its minLift gates the paired lift's lower bound.",
   'Each factor claim has a tier: controlled (two cells in one run that differ in one factor), pooled (the same contrast over comparable runs, and across evals), observed (a change between runs, which is weaker; "confounded" when several parts changed), not_measured (one level only).',
-  `A cell with mixed outcomes is flaky only with at least ${FLAKY_MIN_ATTEMPTS} counted attempts over comparable runs; below that it is "mixed": it passed and failed, too few times to call it flaky.`,
+  `A cell with mixed outcomes is flaky only with at least ${FLAKY_MIN_TRIALS} counted trials over comparable runs; below that it is "mixed": it passed and failed, too few times to call it flaky.`,
   "Drift marked noise changed only an agent CLI's own runtime state (e.g. ~/.cursor/cli-config.json): not a real change, and those runs stay comparable.",
-  "Drift on the gate is a policy change: the gate scores the same attempts, so the runs stay comparable. A compare row with status gate flipped only because its gate did (gate.rescored, base's attempts under head's gate, matches head): never call it a regression or a fix.",
+  "Drift on the gate is a policy change: the gate scores the same trials, so the runs stay comparable. A compare row with status gate flipped only because its gate did (gate.rescored, base's trials under head's gate, matches head): never call it a regression or a fix.",
   'An eval where every cell passes at least 95% is saturated: pass@1 cannot tell cells apart there, effort can.',
   'Judge verdicts carry no recorded reason; an explanation of a failed verdict is your reading of the cited output, and must say so.',
-  "A criteria fact lists each check (expect label, judges included) per cell: rows only for labels whose rate differs between cells, or is mixed within one; neverMet labels failed on every counted attempt of every cell, alwaysMet passed on all of them. A neverMet or alwaysMet label is the same in every arm: it can't explain a difference between arms.",
-  'frame study means no eval in scope has a target that can fail the run: the run measures how its arms differ, so attempts that fail are data, not a failed gate.',
-  'setup, rules and cli give context and are not citable: cite facts, evidence and attempts.',
-  "A context-use fact counts each attempt's tool calls by class (context, dependency, web, verify, workspace) and lists which placed files each arm opened: how much an arm leaned on what its environment declared versus digging in installed packages. The classes are a heuristic over tool names and paths; cite them as counts, not as proof of intent.",
-  'A contrast fact (kind contrast) is one pair of arms on one harness, a against b, when an eval has two variants or more: pass rate and lift of a over b, the checks that tell them apart (discriminates or mixed; sameOnBoth counts the rest) and effort. It answers how two variants differ from each other, not only from the control; gating stays each variant against its control.',
-  'A check (kind checks) whose verdict is both-pass or both-fail passes, or fails, on both the variant and its control: it is no evidence for or against the variant. Only discriminates rows say which requirement separated them.',
-  "Compare-question win rates annotate the run: they never change pass, fail or the exit code. Cite them as annotation, never as a result that gates the run. A vote's reason is the model's wording: do not treat it as a check. Each pair is voted in both orders; splits counts pairs whose two orders picked opposite sides (the position decided, not the work), and rates count such a pair as one win each. With more than two arms, read headToHead (a–b wins per pair, splits apart), not the pooled rates. shows lists what each side was shown: a question that shows output or trajectory can favor the better-written account rather than the better work, and one that shows artifacts rests on screenshots.",
-  "An observed fact is a value the eval's own code recorded with c.observe (what the agent installed, a count): counts tallies strings and each item of an array once per attempt, numbers summarizes number values. Observations never change pass, fail or the exit code: cite them as what happened, not as a check.",
-  `tie beside a lift's verdict means both sides passed every attempt (both always pass: pass@1 can't tell them apart) or failed every attempt (both always fail: the task may be too hard, or the eval broken), on at least ${COMPARE_RUNS} a side. More runs won't separate them, smallSample or not: never say it needs more runs. Both always fail: say the eval needs checking (an oracle agent should pass it). Both always pass: say the task needs to be harder. measures beside a lift is its comparison on every other measure (each check's pass rate, judge scores, compare-question votes, tool calls, agent time, tokens), each with its own test: better and worse hold, leans is a difference that doesn't; one that says "N runs a side can't confirm it; M is the least that can" was measured on too few runs for its test to show anything, so say it needs M runs, never that the arms are the same. A ceiling with a better or worse measure has no tie: that measure is the result, so never call the arms the same. A ceiling with only leans has looks instead of tie: say it looks different and needs that many runs (or cases) to confirm, not that the task needs to be harder. looks "too faint to confirm" means no affordable number of runs would confirm it: say so, and that if a difference that faint doesn't matter, the task needs to be harder so the control can fail.`,
+  "A criteria fact lists each check (expect label, judges included) per cell: rows only for labels whose rate differs between cells, or is mixed within one; neverMet labels failed on every counted trial of every cell, alwaysMet passed on all of them. A neverMet or alwaysMet label is the same in every environment: it can't explain a difference between environments.",
+  'frame study means no eval in scope has a target that can fail the run: the run measures how its environments differ, so trials that fail are data, not a failed gate.',
+  'setup, rules and cli give context and are not citable: cite facts, evidence and trials.',
+  "A context-use fact counts each trial's tool calls by class (context, dependency, web, verify, workspace) and lists which placed files each environment opened: how much an environment leaned on what its environment declared versus digging in installed packages. The classes are a heuristic over tool names and paths; cite them as counts, not as proof of intent.",
+  'A contrast fact (kind contrast) is one pair of environments on one harness, a against b, when an eval has two variants or more: pass rate and lift of a over b, the checks that tell them apart (discriminates or mixed; sameOnBoth counts the rest) and effort. It answers how two variants differ from each other, not only from the baseline; gating stays each variant against its baseline.',
+  'A check (kind checks) whose verdict is both-pass or both-fail passes, or fails, on both the variant and its baseline: it is no evidence for or against the variant. Only discriminates rows say which requirement separated them.',
+  "Compare-question win rates annotate the run: they never change pass, fail or the exit code. Cite them as annotation, never as a result that gates the run. A vote's reason is the model's wording: do not treat it as a check. Each pair is voted in both orders; splits counts pairs whose two orders picked opposite sides (the position decided, not the work), and rates count such a pair as one win each. With more than two environments, read headToHead (a–b wins per pair, splits apart), not the pooled rates. shows lists what each side was shown: a question that shows output or trajectory can favor the better-written account rather than the better work, and one that shows artifacts rests on screenshots.",
+  "An observed fact is a value the eval's own code recorded with c.observe (what the agent installed, a count): counts tallies strings and each item of an array once per trial, numbers summarizes number values. Observations never change pass, fail or the exit code: cite them as what happened, not as a check.",
+  `tie beside a lift's verdict means both sides passed every trial (both always pass: pass@1 can't tell them apart) or failed every trial (both always fail: the task may be too hard, or the eval broken), on at least ${COMPARE_TRIALS} a side. More runs won't separate them, smallSample or not: never say it needs more runs. Both always fail: say the eval needs checking (an oracle agent should pass it). Both always pass: say the task needs to be harder. measures beside a lift is its comparison on every other measure (each check's pass rate, judge scores, compare-question votes, tool calls, agent time, tokens), each with its own test: better and worse hold, leans is a difference that doesn't; one that says "N trials a side can't confirm it; M is the least that can" was measured on too few trials for its test to show anything, so say it needs M runs, never that the environments are the same. A ceiling with a better or worse measure has no tie: that measure is the result, so never call the environments the same. A ceiling with only leans has looks instead of tie: say it looks different and needs that many runs (or cases) to confirm, not that the task needs to be harder. looks "too faint to confirm" means no affordable number of runs would confirm it: say so, and that if a difference that faint doesn't matter, the task needs to be harder so the baseline can fail.`,
 ]
 
 const pts = (x: number | null | undefined) =>
@@ -171,7 +171,7 @@ const pts = (x: number | null | undefined) =>
 const liftText = (points: number, lo: number, hi: number) =>
   `${pts(points)} pts (95% ${pts(lo)}…${pts(hi)})`
 
-/** Digest lift copy: the point estimate and its interval, at any number of attempts. */
+/** Digest lift copy: the point estimate and its interval, at any number of trials. */
 const digestLift = (points: number, lo: number, hi: number) => liftText(points, lo, hi)
 
 const digestLiftVerdict = (withinNoise: boolean): 'within noise' | 'effect' =>
@@ -198,18 +198,18 @@ function measureFlags(bound: 'pass' | 'fail' | null, measures: readonly Measure[
 }
 
 /**
- * Beside a lift's verdict: `smallSample: true` when it rests on few attempts, and `measureFlags`
- * over the variant's comparison, a tie needing at least `COMPARE_RUNS` counted attempts a side.
+ * Beside a lift's verdict: `smallSample: true` when it rests on few trials, and `measureFlags`
+ * over the variant's comparison, a tie needing at least `COMPARE_TRIALS` counted trials a side.
  */
-const sampleFlags = (variant: Counts, control: Counts, measures: Measure[] | null) => {
+const sampleFlags = (variant: Counts, baseline: Counts, measures: Measure[] | null) => {
   const small = smallSample(
     { pass: variant.pass, n: variant.counted },
-    { pass: control.pass, n: control.counted },
+    { pass: baseline.pass, n: baseline.counted },
   )
   const side = (c: Counts) => ({ pass: c.pass, fail: c.counted - c.pass })
   const both =
-    Math.min(variant.counted, control.counted) >= COMPARE_RUNS
-      ? boundOf([side(variant), side(control)])
+    Math.min(variant.counted, baseline.counted) >= COMPARE_TRIALS
+      ? boundOf([side(variant), side(baseline)])
       : null
   return {
     ...(small ? { smallSample: true } : {}),
@@ -255,52 +255,52 @@ function evalTags(evals: EvalEntry[]): Map<string, string> {
   return tags
 }
 
-/** A cell's tag within its eval: its variant or `control`, prefixed by harness when there are several. */
+/** A cell's tag within its eval: its variant or `baseline`, prefixed by harness when there are several. */
 function cellTags(e: EvalEntry): Map<string, string> {
   const harnesses = [...new Set(e.cells.map((c) => c.harness))]
   const kinds = [...new Set(e.cells.map((c) => c.harnessKind))]
   const prefix = (c: EvalEntry['cells'][number]) =>
     harnesses.length < 2 ? '' : `${kinds.length === harnesses.length ? c.harnessKind : c.harness}:`
-  return new Map(e.cells.map((c) => [c.key, `${prefix(c)}${c.variant ?? 'control'}`]))
+  return new Map(e.cells.map((c) => [c.key, `${prefix(c)}${c.variant ?? 'baseline'}`]))
 }
 
 /**
- * Cell names for facts: each tag, with a compare's control named by its environment
- * (`no-skill (control)`) so a reading can name the arm. Attempt ids keep the tag.
+ * Cell names for facts: each tag, with a compare's baseline named by its environment
+ * (`no-skill (baseline)`) so a reading can name the environment. Trial ids keep the tag.
  */
 function cellNames(e: EvalEntry, tags: Map<string, string>): Map<string, string> {
   const compare = e.cells.some((c) => c.role === 'variant')
   return new Map(
     e.cells.map((c) => {
       const tag = tags.get(c.key) ?? c.key
-      const named = compare && c.role === 'control' && c.environment && c.environment !== '-'
-      return [c.key, named ? tag.replace(/control$/, `${c.environment} (control)`) : tag]
+      const named = compare && c.role === 'baseline' && c.environment && c.environment !== '-'
+      return [c.key, named ? tag.replace(/baseline$/, `${c.environment} (baseline)`) : tag]
     }),
   )
 }
 
-const counted = (a: AttemptRecord) => a.outcome === 'pass' || a.outcome === 'fail'
+const counted = (a: TrialRecord) => a.outcome === 'pass' || a.outcome === 'fail'
 
 const LABEL_CHARS = 60
 const round2 = (x: number) => Math.round(x * 100) / 100
 const round1 = (x: number) => Math.round(x * 10) / 10
 const ratioText = (r: unknown) => (r == null ? '×–' : `×${Number(r).toFixed(2)}`)
 
-/** The labels of an attempt's assertions that failed or couldn't answer. */
-const failedLabels = (a: AttemptRecord) =>
+/** The labels of a trial's assertions that failed or couldn't answer. */
+const failedLabels = (a: TrialRecord) =>
   (a.assertions ?? []).filter((x) => x.status !== 'pass').map((x) => clip(x.label, LABEL_CHARS))
 
-/** The counted attempts that reached a check: one stopped before it by a hard failure didn't. */
+/** The counted trials that reached a check: one stopped before it by a hard failure didn't. */
 const answered = (t: CheckTally) => t.pass + t.fail + t.error
 
-/** Every counted attempt passed (`all`), none did, or some; undefined when none answered. */
+/** Every counted trial passed (`all`), none did, or some; undefined when none answered. */
 const sideOf = (t: CheckTally): 'all' | 'none' | 'some' | undefined => {
   const n = answered(t)
   if (n === 0) return undefined
   return t.pass === n ? 'all' : t.pass === 0 ? 'none' : 'some'
 }
 
-/** `2/3`, or `not run` when no counted attempt reached the check. */
+/** `2/3`, or `not run` when no counted trial reached the check. */
 const rateOf = (t: CheckTally) => (answered(t) ? `${t.pass}/${answered(t)}` : 'not run')
 
 /** A side of a check with a verdict, counted as the verdict counts it: passes over pass or fail. */
@@ -317,21 +317,21 @@ function roundRobin<T>(items: T[], key: (item: T) => string): T[] {
   return out
 }
 
-/** `study` when no eval in scope can fail the run, so the run compares arms rather than gating them. */
+/** `study` when no eval in scope can fail the run, so the run compares environments rather than gating them. */
 const frameOf = (evals: EvalEntry[]): Digest['frame'] =>
   evals.some((e) => e.cells.length) && !evals.some((e) => blocks(e.target)) ? 'study' : 'gate'
 
 /**
  * One eval's checks per cell: a row with each cell's rate (and mean judge score) for each label
  * that differs between cells or is mixed within one, and the labels every cell failed, or passed,
- * on every counted attempt.
+ * on every counted trial.
  */
 function criteriaOf(e: EvalEntry, tag: (cell: string) => string) {
   const cells = e.cells.filter((c) => c.checks?.length)
   const labels = [...new Set(cells.flatMap((c) => (c.checks ?? []).map((k) => k.label)))]
   if (!labels.length) return null
   const scores = new Map<string, number[]>()
-  for (const a of e.attempts) {
+  for (const a of e.trials) {
     if (!counted(a)) continue
     for (const j of labeledJudgments(a)) {
       if (j.check === undefined) continue
@@ -384,7 +384,7 @@ export async function buildDigestKeepingDropped(
   const tagOf = (key: string) => tags.get(key) ?? key
   const runIds = runs.map((r) => r.record.runId)
 
-  const attempts: Record<string, DigestAttempt> = {}
+  const trials: Record<string, DigestTrial> = {}
   const idOf = new Map<string, string>()
   const cellTagOf = new Map<string, string>()
   for (const r of runs) {
@@ -393,21 +393,21 @@ export async function buildDigestKeepingDropped(
       const cells = cellTags(e)
       const names = cellNames(e, cells)
       for (const [key, name] of names) cellTagOf.set(`${r.record.runId}\0${e.key}\0${key}`, name)
-      for (const a of e.attempts) {
+      for (const a of e.trials) {
         const id = `${short.get(r.record.runId)}/${tagOf(e.key)}/${cells.get(a.cell)}#${a.n}`
         idOf.set(`${r.record.runId}\0${a.key}`, id)
         const any = a.files.trajectory ?? a.files.judgeInput ?? a.checks.find((c) => c.log)?.log
         const assertions = a.assertions ?? []
         const failed = failedLabels(a)
         const judges = labeledJudgments(a)
-        attempts[id] = {
+        trials[id] = {
           run: short.get(r.record.runId) as string,
           runId: r.record.runId,
           key: a.key,
           eval: tagOf(e.key),
           evalSlug: e.slug,
           cell: names.get(a.cell) as string,
-          attempt: a.id,
+          trial: a.id,
           outcome: a.outcome,
           tools: a.activity.tools,
           agentS: Math.round(a.timings.agentMs / 1000),
@@ -463,7 +463,7 @@ export async function buildDigestKeepingDropped(
             ? {
                 lift: digestLift(c.lift.points, c.lift.interval.lo, c.lift.interval.hi),
                 verdict: digestLiftVerdict(c.lift.withinNoise),
-                ...sampleFlags(c.lift.variant, c.lift.control, cellMeasures(e, c.key, c.lift.vs)),
+                ...sampleFlags(c.lift.variant, c.lift.baseline, cellMeasures(e, c.key, c.lift.vs)),
               }
             : {}),
         })),
@@ -498,7 +498,7 @@ export async function buildDigestKeepingDropped(
     }
   }
 
-  // Effort per run and eval: every cell, and each variant against its control.
+  // Effort per run and eval: every cell, and each variant against its baseline.
   const effort = q<EffortRow>(
     `SELECT * FROM effort_m WHERE run_id IN (${runList}) AND eval_key IN (${evalList}) ORDER BY run_id, rowid`,
   )
@@ -525,28 +525,28 @@ export async function buildDigestKeepingDropped(
           medianAgentS: row.agent_s_median,
           ...(row.tokens_median != null ? { medianTokens: row.tokens_median } : {}),
           ...(byClass.length ? { medianCallsByClass: Object.fromEntries(byClass) } : {}),
-          ...(row.control_key
+          ...(row.baseline_key
             ? {
-                vsControl: {
-                  n: `${row.n} vs ${row.control_n}`,
-                  toolCalls: `${row.tools_median} vs ${row.control_tools_median} (${ratioText(row.tools_ratio)})`,
+                vsBaseline: {
+                  n: `${row.n} vs ${row.baseline_n}`,
+                  toolCalls: `${row.tools_median} vs ${row.baseline_tools_median} (${ratioText(row.tools_ratio)})`,
                   agentS: bothUnderATenth(
                     Number(row.agent_s_median) * 1000,
-                    Number(row.control_agent_s_median) * 1000,
+                    Number(row.baseline_agent_s_median) * 1000,
                   )
                     ? '<0.1 vs <0.1'
-                    : `${row.agent_s_median} vs ${row.control_agent_s_median} (${ratioText(row.agent_s_ratio)})`,
+                    : `${row.agent_s_median} vs ${row.baseline_agent_s_median} (${ratioText(row.agent_s_ratio)})`,
                   p: row.tools_p,
                   verdict: row.verdict,
                   timeVerdict: row.time_verdict,
                   ...(row.tokens_verdict
                     ? {
-                        tokens: `${formatTokens(row.tokens_median as number)} vs ${formatTokens(row.control_tokens_median as number)} (${ratioText(row.tokens_ratio)})`,
+                        tokens: `${formatTokens(row.tokens_median as number)} vs ${formatTokens(row.baseline_tokens_median as number)} (${ratioText(row.tokens_ratio)})`,
                         tokensP: row.tokens_p,
                         tokensVerdict: row.tokens_verdict,
                       }
                     : {}),
-                  ...(Math.min(Number(row.n), Number(row.control_n)) >= DIRECTIONAL_MIN
+                  ...(Math.min(Number(row.n), Number(row.baseline_n)) >= DIRECTIONAL_MIN
                     ? {
                         separated: {
                           tools: row.separated === 1,
@@ -585,7 +585,7 @@ export async function buildDigestKeepingDropped(
     eval_key: string | null
     strata: number | null
     variant_counted: number
-    control_counted: number
+    baseline_counted: number
     points: number
     lo: number
     hi: number
@@ -632,7 +632,7 @@ export async function buildDigestKeepingDropped(
             passVerdict: 'not comparable',
           }
         : {
-            passRate: `${f.variant_pass}/${f.variant_counted} vs ${f.control_pass}/${f.control_counted}`,
+            passRate: `${f.variant_pass}/${f.variant_counted} vs ${f.baseline_pass}/${f.baseline_counted}`,
             lift: digestLift(f.points, f.lo, f.hi),
             passVerdict: f.pass_verdict,
             ...(f.small_sample ? { smallSample: true } : {}),
@@ -658,17 +658,17 @@ export async function buildDigestKeepingDropped(
     })
   }
 
-  // Did each attempt read the skills it had, placed or found?
+  // Did each trial read the skills it had, placed or found?
   const reads = q<{
     run_id: string
     eval_key: string
     cell_key: string
     skill: string
     source: string
-    attempts: number
+    trials: number
     read: number
   }>(
-    `SELECT run_id, eval_key, cell_key, skill, source, COUNT(*) AS attempts,
+    `SELECT run_id, eval_key, cell_key, skill, source, COUNT(*) AS trials,
        SUM(read_line IS NOT NULL) AS read, GROUP_CONCAT(DISTINCT read_line) AS lines
      FROM skill_reads WHERE run_id IN (${runList}) AND eval_key IN (${evalList})
      GROUP BY run_id, eval_key, cell_key, skill ORDER BY run_id, eval_key, cell_key, skill`,
@@ -679,7 +679,7 @@ export async function buildDigestKeepingDropped(
       cell: string
       skill: string
       source: string
-      attempts: number
+      trials: number
       read: number
       lines: Set<number>
     }
@@ -691,11 +691,11 @@ export async function buildDigestKeepingDropped(
       cell,
       skill: r.skill,
       source: r.source,
-      attempts: 0,
+      trials: 0,
       read: 0,
       lines: new Set(),
     }
-    entry.attempts += r.attempts
+    entry.trials += r.trials
     entry.read += r.read
     for (const l of String(r.lines ?? '')
       .split(',')
@@ -705,26 +705,26 @@ export async function buildDigestKeepingDropped(
   }
   if (byCell.size) {
     fact('skill-reads', {
-      note: 'Attempts that read each skill they had (a load by name, or a tool call on skills/<name>/), and the trajectory lines of the first read. source: placed by the environment, found in a skill directory the agent reads (skill-dir: a setup step, the workspace or a package manager put it there), or a SKILL.md read elsewhere (such as a package cache).',
+      note: 'Trials that read each skill they had (a load by name, or a tool call on skills/<name>/), and the trajectory lines of the first read. source: placed by the environment, found in a skill directory the agent reads (skill-dir: a setup step, the workspace or a package manager put it there), or a SKILL.md read elsewhere (such as a package cache).',
       cells: [...byCell.values()].map((c) => ({
         cell: c.cell,
         skill: c.skill,
         ...(c.source === 'placed' ? {} : { source: c.source }),
-        read: `${c.read}/${c.attempts}`,
+        read: `${c.read}/${c.trials}`,
         firstReadAtLines: [...c.lines].sort((a, b) => a - b),
       })),
     })
   }
 
-  // What each arm's tool calls were for, per attempt, and which placed files it opened.
+  // What each environment's tool calls were for, per trial, and which placed files it opened.
   const classRows = q<{ n: number; class: string; calls: number }>(
     `SELECT t.run_id, a.eval_key, a.cell_key, a.n, t.class, COUNT(*) AS calls
-     FROM tool_calls t JOIN attempts a ON a.run_id = t.run_id AND a.key = t.attempt_key
+     FROM tool_calls t JOIN trials a ON a.run_id = t.run_id AND a.key = t.trial_key
      WHERE t.run_id IN (${runList}) AND a.eval_key IN (${evalList}) AND a.outcome IN ('pass', 'fail')
      GROUP BY t.run_id, a.key, t.class ORDER BY t.run_id, a.eval_key, a.cell_key, a.n`,
   )
   const fileRows = q(
-    `SELECT run_id, eval_key, cell_key, path, COUNT(*) AS attempts, SUM(reads > 0) AS read
+    `SELECT run_id, eval_key, cell_key, path, COUNT(*) AS trials, SUM(reads > 0) AS read
      FROM skill_files WHERE run_id IN (${runList}) AND eval_key IN (${evalList})
      GROUP BY run_id, eval_key, cell_key, path ORDER BY run_id, eval_key, cell_key, path`,
   )
@@ -742,23 +742,23 @@ export async function buildDigestKeepingDropped(
     per.set(r.n, r.calls)
     entry.classes.set(r.class, per)
   }
-  for (const r of fileRows) useEntry(r).files.push(`${r.path} ${r.read}/${r.attempts}`)
+  for (const r of fileRows) useEntry(r).files.push(`${r.path} ${r.read}/${r.trials}`)
   if (classRows.length) {
-    const attemptNs = new Map<string, number[]>()
+    const trialNs = new Map<string, number[]>()
     for (const r of classRows) {
       const id = `${r.run_id}\0${r.eval_key}\0${r.cell_key}`
-      attemptNs.set(id, [...new Set([...(attemptNs.get(id) ?? []), r.n])])
+      trialNs.set(id, [...new Set([...(trialNs.get(id) ?? []), r.n])])
     }
     fact('context-use', {
-      note: 'Tool calls per counted attempt by class (context: a skill, placed or found, rules or MCP tool; dependency: node_modules, site-packages, vendor, --help; web; verify: a check command or test/build/lint; workspace: the rest), a heuristic. files: each placed file, opened in k/n attempts.',
+      note: 'Tool calls per counted trial by class (context: a skill, placed or found, rules or MCP tool; dependency: node_modules, site-packages, vendor, --help; web; verify: a check command or test/build/lint; workspace: the rest), a heuristic. files: each placed file, opened in k/n trials.',
       cells: [...useOf].map(([id, u]) => {
         const [runId, evalKey, cellKey] = id.split('\0') as [string, string, string]
-        const ns = (attemptNs.get(id) ?? []).sort((a, b) => a - b)
+        const ns = (trialNs.get(id) ?? []).sort((a, b) => a - b)
         return {
           run: short.get(runId),
           eval: tagOf(evalKey),
           cell: cellTag(runId, evalKey, cellKey),
-          perAttempt: Object.fromEntries(
+          perTrial: Object.fromEntries(
             [...u.classes].map(([k, per]) => [k, ns.map((n) => per.get(n) ?? 0).join(' ')]),
           ),
           ...(u.files.length ? { files: u.files } : {}),
@@ -793,7 +793,7 @@ export async function buildDigestKeepingDropped(
     saturated,
   })
 
-  // Every check per cell: what differs between arms, and what no arm met (or every arm met).
+  // Every check per cell: what differs between environments, and what no environment met (or every environment met).
   const differing = new Map<string, Set<string>>()
   for (const r of runs) {
     for (const e of r.record.evals) {
@@ -814,7 +814,7 @@ export async function buildDigestKeepingDropped(
   const judged = runs.flatMap((r) =>
     r.record.evals
       .filter((e) => evalKeys.has(e.key))
-      .flatMap((e) => e.attempts.flatMap((a) => a.judgements)),
+      .flatMap((e) => e.trials.flatMap((a) => a.judgements)),
   )
   if (judged.length) {
     fact('judge', {
@@ -828,7 +828,7 @@ export async function buildDigestKeepingDropped(
     })
   }
 
-  // Failed attempts, every cell before a second from any: the head run first, then the base.
+  // Failed trials, every cell before a second from any: the head run first, then the base.
   const failures = roundRobin(
     runs
       .slice()
@@ -837,7 +837,7 @@ export async function buildDigestKeepingDropped(
         r.record.evals
           .filter((e) => evalKeys.has(e.key))
           .flatMap((e) =>
-            e.attempts
+            e.trials
               .filter((a) => a.outcome === 'fail' || a.outcome === 'infra_error')
               .map((a) => ({ r, e, a })),
           ),
@@ -857,7 +857,7 @@ export async function buildDigestKeepingDropped(
     const failed = failedLabels(a)
     const judges = labeledJudgments(a).filter((j) => j.judgment.verdict === 'fail')
     fact('failure', {
-      attempt: idOf.get(`${r.record.runId}\0${a.key}`),
+      trial: idOf.get(`${r.record.runId}\0${a.key}`),
       outcome: a.outcome,
       errorKind: a.error?.kind ?? null,
       message: a.error ? clip(a.error.message.split('\n')[0] ?? '', 300) : null,
@@ -926,7 +926,7 @@ export async function buildDigestKeepingDropped(
         verdict: d.noise
           ? 'noise: agent runtime state only'
           : d.real_changed === 'gate'
-            ? 'policy change: the gate scores the same attempts differently'
+            ? 'policy change: the gate scores the same trials differently'
             : `real change: ${d.real_changed}`,
       })
     }
@@ -984,7 +984,7 @@ export async function buildDigestKeepingDropped(
           ...(headToHead.length ? { headToHead } : {}),
           ...(a.error ? { error: clip(a.error, 200) } : {}),
           ...(a.votes.length === 0 && a.error === undefined
-            ? { note: 'no pairs to judge: attempts that failed their checks are left out' }
+            ? { note: 'no pairs to judge: trials that failed their checks are left out' }
             : {}),
           ...(reasons.length ? { reasons } : {}),
         })
@@ -992,24 +992,24 @@ export async function buildDigestKeepingDropped(
     }
   }
 
-  // Questions asked of each attempt on its own: each choice's count, or a few answers. Annotation.
+  // Questions asked of each trial on its own: each choice's count, or a few answers. Annotation.
   for (const r of runs) {
     for (const e of r.record.evals) {
       if (!evalKeys.has(e.key)) continue
-      const byQuestion = new Map<string, Array<{ attempt: string; answer: AttemptAnswer }>>()
-      for (const a of e.attempts) {
+      const byQuestion = new Map<string, Array<{ trial: string; answer: TrialAnswer }>>()
+      for (const a of e.trials) {
         for (const q of a.answers ?? []) {
           byQuestion.set(q.question, [
             ...(byQuestion.get(q.question) ?? []),
-            { attempt: idOf.get(`${r.record.runId}\0${a.key}`) ?? a.id, answer: q },
+            { trial: idOf.get(`${r.record.runId}\0${a.key}`) ?? a.id, answer: q },
           ])
         }
       }
       for (const [question, asked] of byQuestion) {
-        const first = asked[0]?.answer as AttemptAnswer
+        const first = asked[0]?.answer as TrialAnswer
         const answered = asked.filter((x) => x.answer.error === undefined)
         const failed = asked.find((x) => x.answer.error !== undefined)?.answer.error
-        fact('attempt-question', {
+        fact('trial-question', {
           run: short.get(r.record.runId),
           eval: tagOf(e.key),
           question: clip(question, 120),
@@ -1025,7 +1025,7 @@ export async function buildDigestKeepingDropped(
               }
             : {}),
           answers: answered.slice(0, 5).map((x) => ({
-            attempt: x.attempt,
+            trial: x.trial,
             ...(x.answer.choice !== undefined ? { choice: x.answer.choice } : {}),
             text: clip(x.answer.text, 300),
           })),
@@ -1039,13 +1039,13 @@ export async function buildDigestKeepingDropped(
   for (const r of runs) {
     for (const e of r.record.evals) {
       if (!evalKeys.has(e.key)) continue
-      for (const o of observedTallies(e.attempts)) {
+      for (const o of observedTallies(e.trials)) {
         fact('observed', {
           run: short.get(r.record.runId),
           eval: tagOf(e.key),
           cell: cellTag(r.record.runId, e.key, o.cell),
           name: o.name,
-          attempts: o.attempts,
+          trials: o.trials,
           ...(o.counts.length
             ? {
                 counts: o.counts
@@ -1060,8 +1060,8 @@ export async function buildDigestKeepingDropped(
     }
   }
 
-  // With two variants or more, each pair of arms on one harness; otherwise each variant cell's
-  // checks (expect labels) beside its control's, and whether each tells them apart.
+  // With two variants or more, each pair of environments on one harness; otherwise each variant cell's
+  // checks (expect labels) beside its baseline's, and whether each tells them apart.
   for (const r of runs) {
     for (const e of r.record.evals) {
       if (!evalKeys.has(e.key)) continue
@@ -1077,10 +1077,10 @@ export async function buildDigestKeepingDropped(
           b: tag(x.b),
           ...(x.lift
             ? {
-                passRate: `${x.lift.variant.pass}/${x.lift.variant.counted} vs ${x.lift.control.pass}/${x.lift.control.counted}`,
+                passRate: `${x.lift.variant.pass}/${x.lift.variant.counted} vs ${x.lift.baseline.pass}/${x.lift.baseline.counted}`,
                 lift: digestLift(x.lift.points, x.lift.interval.lo, x.lift.interval.hi),
                 liftVerdict: digestLiftVerdict(x.lift.withinNoise),
-                ...sampleFlags(x.lift.variant, x.lift.control, cellMeasures(e, x.a, x.b)),
+                ...sampleFlags(x.lift.variant, x.lift.baseline, cellMeasures(e, x.a, x.b)),
               }
             : {}),
           checks: apart.map((k) => ({
@@ -1093,20 +1093,20 @@ export async function buildDigestKeepingDropped(
           ...(ef
             ? {
                 effort: {
-                  n: `${ef.variant.n} vs ${ef.control.n}`,
-                  toolCalls: `${ef.variant.tools.median} vs ${ef.control.tools.median} (${ratioText(ef.toolsRatio)})`,
-                  agentS: bothUnderATenth(ef.variant.agentMs.median, ef.control.agentMs.median)
+                  n: `${ef.variant.n} vs ${ef.baseline.n}`,
+                  toolCalls: `${ef.variant.tools.median} vs ${ef.baseline.tools.median} (${ratioText(ef.toolsRatio)})`,
+                  agentS: bothUnderATenth(ef.variant.agentMs.median, ef.baseline.agentMs.median)
                     ? '<0.1 vs <0.1'
-                    : `${round1(ef.variant.agentMs.median / 1000)} vs ${round1(ef.control.agentMs.median / 1000)} (${ratioText(ef.agentMsRatio)})`,
+                    : `${round1(ef.variant.agentMs.median / 1000)} vs ${round1(ef.baseline.agentMs.median / 1000)} (${ratioText(ef.agentMsRatio)})`,
                   verdict: ef.verdict,
                   timeVerdict: ef.timeVerdict,
-                  ...(ef.tokensVerdict && ef.variant.tokens && ef.control.tokens
+                  ...(ef.tokensVerdict && ef.variant.tokens && ef.baseline.tokens
                     ? {
-                        tokens: `${formatTokens(ef.variant.tokens.median)} vs ${formatTokens(ef.control.tokens.median)} (${ratioText(ef.tokensRatio)})`,
+                        tokens: `${formatTokens(ef.variant.tokens.median)} vs ${formatTokens(ef.baseline.tokens.median)} (${ratioText(ef.tokensRatio)})`,
                         tokensVerdict: ef.tokensVerdict,
                       }
                     : {}),
-                  ...(Math.min(ef.variant.n, ef.control.n) >= DIRECTIONAL_MIN
+                  ...(Math.min(ef.variant.n, ef.baseline.n) >= DIRECTIONAL_MIN
                     ? {
                         separated: {
                           tools: ef.separated,
@@ -1123,7 +1123,7 @@ export async function buildDigestKeepingDropped(
       if (contrasts.length) continue
       for (const c of e.cells) {
         const rows = (c.checks ?? []).flatMap((k) =>
-          k.control && k.verdict ? [{ ...k, control: k.control }] : [],
+          k.baseline && k.verdict ? [{ ...k, baseline: k.baseline }] : [],
         )
         if (!rows.length) continue
         fact('checks', {
@@ -1133,7 +1133,7 @@ export async function buildDigestKeepingDropped(
           rows: rows.map((k) => ({
             label: clip(k.label, 80),
             variant: verdictRate(k),
-            control: verdictRate(k.control),
+            baseline: verdictRate(k.baseline),
             verdict: k.verdict,
           })),
         })
@@ -1147,14 +1147,14 @@ export async function buildDigestKeepingDropped(
     if (lines.length) evidence.push({ id: `E${evidence.length + 1}`, ref, why, lines, priority })
   }
   const runOf = new Map(runs.map((r) => [r.record.runId, r]))
-  const trajectoryOf = async (runId: string, a: AttemptRecord) => {
+  const trajectoryOf = async (runId: string, a: TrialRecord) => {
     const r = runOf.get(runId)
     if (!r || !a.files.trajectory) return null
     return readFile(join(r.dir, runId, ...a.files.trajectory.path.split('/')), 'utf8').catch(
       () => null,
     )
   }
-  const lastText = async (runId: string, a: AttemptRecord) => {
+  const lastText = async (runId: string, a: TrialRecord) => {
     const text = await trajectoryOf(runId, a)
     if (!text)
       return a.turns.at(-1)?.text ? [`final: ${clip(a.turns.at(-1)?.text ?? '', 1400)}`] : []
@@ -1167,7 +1167,7 @@ export async function buildDigestKeepingDropped(
     }
     return []
   }
-  // One failing attempt per cell, preferring one that failed a check whose rate differs by cell.
+  // One failing trial per cell, preferring one that failed a check whose rate differs by cell.
   const discriminating = ({ r, e, a }: (typeof failures)[number]) =>
     failedLabels(a).some((l) => differing.get(`${r.record.runId}\0${e.key}`)?.has(l))
   const perCell = new Map<string, (typeof failures)[number]>()
@@ -1202,18 +1202,18 @@ export async function buildDigestKeepingDropped(
       )
     }
     add(
-      `attempt:${id}`,
-      `a failing attempt of ${cellTag(r.record.runId, e.key, a.cell)}: its final message${judges.length ? ' and the judge questions it failed' : ''}`,
+      `trial:${id}`,
+      `a failing trial of ${cellTag(r.record.runId, e.key, a.cell)}: its final message${judges.length ? ' and the judge questions it failed' : ''}`,
       lines,
       1,
     )
     const j = judges[0]
     if (j && i < 3) {
-      const twin = e.attempts.find((x) => x.cell === a.cell && x.outcome === 'pass')
+      const twin = e.trials.find((x) => x.cell === a.cell && x.outcome === 'pass')
       if (twin) {
         const twinId = idOf.get(`${r.record.runId}\0${twin.key}`) as string
         add(
-          `attempt:${twinId}`,
+          `trial:${twinId}`,
           `the passing twin of ${id} (same cell): its final message`,
           await lastText(r.record.runId, twin),
           2,
@@ -1221,11 +1221,11 @@ export async function buildDigestKeepingDropped(
       }
     }
   }
-  const strip = (runId: string, a: AttemptRecord) =>
+  const strip = (runId: string, a: TrialRecord) =>
     q(
-      `SELECT line, tool, target FROM tool_calls WHERE run_id = '${runId}' AND attempt_key = '${a.key.replace(/'/g, "''")}' ORDER BY line LIMIT 20`,
+      `SELECT line, tool, target FROM tool_calls WHERE run_id = '${runId}' AND trial_key = '${a.key.replace(/'/g, "''")}' ORDER BY line LIMIT 20`,
     ).map((t) => `L${t.line} ${t.tool} ${clip(String(t.target), 90)}`)
-  const medianAttempt = (list: AttemptRecord[]) =>
+  const medianTrial = (list: TrialRecord[]) =>
     [...list].sort((x, y) => x.activity.tools - y.activity.tools)[Math.floor((list.length - 1) / 2)]
   let strips = 0
   for (const e of scopeEvals) {
@@ -1234,20 +1234,20 @@ export async function buildDigestKeepingDropped(
       (row) =>
         row.run_id === head.record.runId &&
         row.eval_key === e.key &&
-        row.control_key &&
+        row.baseline_key &&
         (row.verdict === 'fewer' ||
           row.verdict === 'more' ||
           (row.tools_ratio !== null && (row.tools_ratio <= 0.5 || row.tools_ratio >= 2))),
     )
     if (!contrast) continue
     strips++
-    for (const cell of [contrast.cell_key, contrast.control_key] as string[]) {
-      const a = medianAttempt(e.attempts.filter((x) => x.cell === cell && counted(x)))
+    for (const cell of [contrast.cell_key, contrast.baseline_key] as string[]) {
+      const a = medianTrial(e.trials.filter((x) => x.cell === cell && counted(x)))
       if (!a) continue
       const id = idOf.get(`${head.record.runId}\0${a.key}`) as string
       add(
         `tool-strip:${id}`,
-        `the median-effort attempt of ${cellTag(head.record.runId, e.key, cell)} on ${tagOf(e.key)}: its first tool calls`,
+        `the median-effort trial of ${cellTag(head.record.runId, e.key, cell)} on ${tagOf(e.key)}: its first tool calls`,
         strip(head.record.runId, a),
         3,
       )
@@ -1271,7 +1271,7 @@ export async function buildDigestKeepingDropped(
           commit: r.record.git?.sha.slice(0, 7) ?? null,
           branch: r.record.git?.branch ?? null,
           status: r.record.status,
-          summary: `${r.record.summary.pass}/${r.record.summary.attempts} attempts passed (${r.record.summary.notGated} failed in ungated cells)`,
+          summary: `${r.record.summary.pass}/${r.record.summary.trials} trials passed (${r.record.summary.notGated} failed in ungated cells)`,
         },
       ]),
     ),
@@ -1285,14 +1285,14 @@ export async function buildDigestKeepingDropped(
       evals: scopeEvals.map((e) => ({
         tag: tagOf(e.key),
         id: e.id,
-        task: clip(e.attempts[0]?.turns[0]?.prompt ?? '', 400),
+        task: clip(e.trials[0]?.turns[0]?.prompt ?? '', 400),
         tags: e.tags,
       })),
     },
     rules: RULES,
     cli: commandSummary(),
     instructions: input.instructions ?? null,
-    attempts,
+    trials,
     facts,
     evidence,
     dropped: [],
@@ -1317,7 +1317,7 @@ export function citable(d: Digest) {
   const ids = new Set<string>([
     ...d.facts.map((f) => f.id),
     ...d.evidence.map((e) => e.id),
-    ...Object.keys(d.attempts),
+    ...Object.keys(d.trials),
   ])
   const lines = new Map(
     d.evidence.map((e) => [

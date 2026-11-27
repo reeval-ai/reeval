@@ -8,7 +8,7 @@ skilled = base.extend("skilled", {"env": {"MODE": "skilled"}})
     "pooled",
     {
         "cases": [{"key": "ada"}, {"key": "grace"}, {"key": "linus"}],
-        "compare": {"control": base, "variants": [skilled], "min_lift": 0.2},
+        "compare": {"baseline": base, "variants": [skilled], "min_lift": 0.2},
         "target": regression(),
     },
 )
@@ -22,7 +22,7 @@ async def pooled(c, who): ...
             {"key": "ada", "who": "Ada Lovelace"},
             {"key": "grace", "who": "Grace Hopper"},
         ],
-        "compare": {"control": base, "variants": [skilled]},
+        "compare": {"baseline": base, "variants": [skilled]},
     },
 )
 async def keyed(c, case): ...

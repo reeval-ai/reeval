@@ -3,7 +3,7 @@ import { fakeAgent } from 'reeval/agent'
 import { createDaytona } from 'reeval/provider/daytona'
 
 // Docker tier only: daytona({ reuse: true }) on the fake Daytona API, one machine at a time. As the
-// agent: whether the attempt before left a file in its home or /tmp, or a process running, then
+// agent: whether the trial before left a file in its home or /tmp, or a process running, then
 // leave all three for the next.
 export default defineConfig({
   target: regression(),

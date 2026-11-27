@@ -7,7 +7,7 @@ import { defineEnvironment, type Environment } from 'reeval'
  */
 const tarball = { '~/reeval.tgz': '../skill/vendor/reeval.tgz' }
 
-/** Pinned public repositories with skills, fetched on the host before any attempt. */
+/** Pinned public repositories with skills, fetched on the host before any trial. */
 const SUPABASE = {
   repo: 'https://github.com/supabase/agent-skills',
   ref: 'c9be0e931b7930f7d02126d04774d904c381e7d7',
@@ -54,16 +54,16 @@ function start(target: Target): Environment {
 }
 
 /**
- * Each target twice: the control has the reeval skill, which teaches the API; the variant adds
+ * Each target twice: the baseline has the reeval skill, which teaches the API; the variant adds
  * the setup skill on top, which is what it should add.
  */
-export function arms(target: Target) {
+export function environments(target: Target) {
   const base = start(target)
-  const control = base.extendEnvironment(`${target}-reeval-skill`, ({ skill }) => ({
+  const baseline = base.extendEnvironment(`${target}-reeval-skill`, ({ skill }) => ({
     skills: [skill.local('../../skills/reeval')],
   }))
   const variant = base.extendEnvironment(`${target}-setup`, ({ skill }) => ({
     skills: [skill.local('../../skills/reeval'), skill.local('../../skills/setup')],
   }))
-  return { control: control, variants: [variant] }
+  return { baseline: baseline, variants: [variant] }
 }

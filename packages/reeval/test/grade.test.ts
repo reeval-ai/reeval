@@ -1,5 +1,5 @@
-// Graders: their definition and refusals, the context they read an attempt through, their grades
-// and scores, the attempt's score, their code digests, and running them on an attempt end to end.
+// Graders: their definition and refusals, the context they read a trial through, their grades
+// and scores, the trial's score, their code digests, and running them on a trial end to end.
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -9,10 +9,10 @@ import { writeTar } from '@reeval/sandbox-docker'
 import type { GradeInputs } from '../src/grade/context.ts'
 import { defineGrader, defineGraders, type GraderDef, graderDef } from '../src/grade/define.ts'
 import { functionDigest } from '../src/grade/digest.ts'
-import { attemptScore, runGraders, scoreFailure } from '../src/grade/run.ts'
+import { trialScore, runGraders, scoreFailure } from '../src/grade/run.ts'
 import { graderSlots, type SandboxStarter } from '../src/grade/sandbox.ts'
 import type { Grader } from '../src/grade/types.ts'
-import { keptFiles } from '../src/history/stored-attempt.ts'
+import { keptFiles } from '../src/history/stored-trial.ts'
 import { sha256 } from '../src/ids.ts'
 import { registerSecret } from '../src/redact.ts'
 import { createSandbox, InfraError } from '../src/sandbox/index.ts'
@@ -97,10 +97,10 @@ const record = (over: Partial<GradeRecord>): GradeRecord => ({
   ...over,
 })
 
-describe('the attempt score', () => {
+describe('the trial score', () => {
   test('is the scored grades weighted mean', () => {
     const grades = [record({ score: 1, weight: 3 }), record({ score: 0, weight: 1 })]
-    assert.equal(attemptScore(grades), 0.75)
+    assert.equal(trialScore(grades), 0.75)
   })
   test('leaves out weight 0 and grades with no score', () => {
     const grades = [
@@ -108,18 +108,18 @@ describe('the attempt score', () => {
       record({ score: null }),
       record({ score: 0.5 }),
     ]
-    assert.equal(attemptScore(grades), 0.5)
+    assert.equal(trialScore(grades), 0.5)
   })
   test('is 1 when nothing scored', () => {
-    assert.equal(attemptScore([]), 1)
-    assert.equal(attemptScore([record({ score: null })]), 1)
+    assert.equal(trialScore([]), 1)
+    assert.equal(trialScore([record({ score: null })]), 1)
   })
   test('is 0 when a required grader scored under 1, whatever its weight', () => {
     const grades = [
       record({ score: 1, weight: 9 }),
       record({ score: 0.9, weight: 0, required: true }),
     ]
-    assert.equal(attemptScore(grades), 0)
+    assert.equal(trialScore(grades), 0)
   })
   test('names what cost it', () => {
     const grades = [
@@ -165,14 +165,14 @@ describe('the grader context', () => {
     })
   })
 
-  test('throws for an observation or capture the attempt has none of', async () => {
+  test('throws for an observation or capture the trial has none of', async () => {
     const observed = await grade(defineGrader('o', { grade: (c) => c.observation('missing') }))
-    assert.match(observed.error ?? '', /the attempt made no c\.observe\("missing", …\)/)
+    assert.match(observed.error ?? '', /the trial made no c\.observe\("missing", …\)/)
     assert.equal(observed.score, 0)
     const captured = await grade(
       defineGrader('a', { grade: async (c) => !!(await c.artifact('x')) }),
     )
-    assert.match(captured.error ?? '', /the attempt has no capture named "x"/)
+    assert.match(captured.error ?? '', /the trial has no capture named "x"/)
   })
 
   test('reads kept files within files, by gitignore-style globs', async () => {
@@ -204,10 +204,10 @@ describe('the grader context', () => {
     assert.match(none.error ?? '', /it isn't in its files \(none\)\. Add it to files\./)
   })
 
-  test('throws for a file the attempt did not keep', async () => {
+  test('throws for a file the trial did not keep', async () => {
     const g = defineGrader('gone', { files: ['**'], grade: (c) => c.readFile('lib/app.js') })
     assert.match((await grade(g, { 'src/app.js': 'x' })).error ?? '', /has no file lib\/app\.js/)
-    assert.match((await grade(g)).error ?? '', /the attempt kept no workspace/)
+    assert.match((await grade(g)).error ?? '', /the trial kept no workspace/)
   })
 
   test('reads data files from the host, which fingerprint the grader', async () => {
@@ -400,7 +400,7 @@ describe('graders with env', () => {
     assert.deepEqual(started, [])
   })
 
-  test("that don't start fail the attempt with the infra error, recording no grade", async () => {
+  test("that don't start fail the trial with the infra error, recording no grade", async () => {
     const dir = tempDir('grade-env-down')
     const g = defineGrader('down', { ...env(dir), grade: () => true })
     const failing: SandboxStarter = async () => {
@@ -417,13 +417,13 @@ describe('graders with env', () => {
     assert.match(r.error ?? '', /grader bare has no env, so it has no c\.sandbox/)
   })
 
-  test("take the attempt's own slot first, then the run's or the attempt's freed one", async () => {
+  test("take the trial's own slot first, then the run's or the trial's freed one", async () => {
     const box = docker()
     const slot = graderSlots(1, box)
     const signal = new AbortController().signal
     const first = await slot(box, signal)
-    // The run's only slot is someone else's, so the second waits for the attempt's.
-    const other = await acquire({ attempts: 1 })
+    // The run's only slot is someone else's, so the second waits for the trial's.
+    const other = await acquire({ trials: 1 })
     let second: Awaited<ReturnType<typeof slot>> | undefined
     const waiting = slot(box, signal).then((lease) => {
       second = lease
@@ -434,16 +434,16 @@ describe('graders with env', () => {
     await waiting
     assert.ok(second)
     other.release()
-    // The run's slot, free now, isn't held: a third takes it while the second holds the attempt's.
+    // The run's slot, free now, isn't held: a third takes it while the second holds the trial's.
     const third = await slot(box, signal)
     third.release()
     second.release()
   })
 
-  test("on another provider than the attempt's, lease that provider's maxConcurrent", async () => {
+  test("on another provider than the trial's, lease that provider's maxConcurrent", async () => {
     const box = docker({ maxConcurrent: 1 })
     const signal = new AbortController().signal
-    // Two attempts on the fake sandbox, each grading in Docker.
+    // Two trials on the fake sandbox, each grading in Docker.
     const one = graderSlots(4, fakeSandbox())
     const two = graderSlots(4, fakeSandbox())
     const first = await one(box, signal)
@@ -673,7 +673,7 @@ describe('the code digest', () => {
   })
 })
 
-describe('graders on an attempt', () => {
+describe('graders on a trial', () => {
   const config = fakeConfig({ harness: "{ script: [[{ write: { 'out.txt': 'hello' } }]] }" })
 
   test('read the case and the kept workspace once the task returns, into the record', async (t) => {
@@ -702,8 +702,8 @@ export default defineEval({ graders: [key], task: async (c) => void (await c.sen
     const r = await runCli(p.dir, ['run', '--output-logs', 'full'], { signal: t.signal })
     assert.equal(r.code, 1, r.stdout + r.stderr)
     const { run } = readRun(p.dir)
-    const attempts = run.evals.flatMap((e) => e.attempts.map((a) => ({ name: e.name, ...a })))
-    const of = (name: string, c?: string) => attempts.find((a) => a.name === name && a.case === c)
+    const trials = run.evals.flatMap((e) => e.trials.map((a) => ({ name: e.name, ...a })))
+    const of = (name: string, c?: string) => trials.find((a) => a.name === name && a.case === c)
     assert.deepEqual(
       of('cased', 'hi')?.grades?.map((g) => [g.grader, g.grade, g.score]),
       [
@@ -757,10 +757,10 @@ export default defineEval({
     const r = await runCli(p.dir, ['run'], { signal: t.signal })
     assert.equal(r.code, 1, r.stdout + r.stderr)
     const { run } = readRun(p.dir)
-    const throws = run.evals.find((e) => e.name === 'throws')?.attempts[0]
+    const throws = run.evals.find((e) => e.name === 'throws')?.trials[0]
     assert.equal(throws?.grades, undefined)
     assert.equal(throws?.score, 0, 'a task that threw scores 0')
-    const slow = run.evals.find((e) => e.name === 'slow')?.attempts[0]
+    const slow = run.evals.find((e) => e.name === 'slow')?.trials[0]
     assert.equal(slow?.error?.kind, 'timeout')
     assert.equal(slow?.grades, undefined)
     assert.equal(slow?.score, undefined, 'a timeout has no score')

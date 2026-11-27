@@ -1,6 +1,6 @@
 # with-setup
 
-**Shows:** setup steps that run in every attempt before the agent starts, and don't count as its
+**Shows:** setup steps that run in every trial before the agent starts, and don't count as its
 change. `setup` seeds `data/users.json` with a script and runs the tests (one step a string, one `{
 run, timeout }`); the agent writes a script that counts the active users; the task runs it and
 observes the count, and a `notInDiff` grader checks the seeded file isn't in the diff.
@@ -24,8 +24,8 @@ Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../p
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** each attempt's `setup.log`, in its directory under `.reeval/runs/<run>/`. A
-step that fails stops the attempt as an infra error, before the agent runs:
+**What to look at:** each trial's `setup.log`, in its directory under `.reeval/runs/<run>/`. A
+step that fails stops the trial as an infra error, before the agent runs:
 
 ```text
 $ node scripts/seed.mjs
@@ -46,5 +46,5 @@ ok 1 - loadUsers reads the seeded users
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, and the real agents from `../profiles.ts` |
 
-`setup` and the order an attempt applies an environment in are in the
+`setup` and the order a trial applies an environment in are in the
 [defineEnvironment](../../docs/reference/environment-helpers.mdx) reference.

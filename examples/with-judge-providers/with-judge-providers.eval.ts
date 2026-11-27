@@ -18,7 +18,7 @@ export default defineEval({
   task: async (c) => {
     await c.send('Add an average(xs) function to src/math.js. It returns 0 for an empty list.')
 
-    // Failing tests end the attempt at 0, before either judge costs anything.
+    // Failing tests end the trial at 0, before either judge costs anything.
     const tests = await c.exec('node --test')
     if (tests.exitCode !== 0) throw new EvalError('the tests fail')
   },

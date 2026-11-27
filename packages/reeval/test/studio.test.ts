@@ -27,7 +27,7 @@ import { capability } from '../src/target.ts'
 import {
   activityLabel,
   answerRows,
-  attemptAnswerRows,
+  trialAnswerRows,
   buildRunReport,
   cellJudgeRates,
   cellRows,
@@ -66,11 +66,11 @@ import {
 } from '../src/view/index.ts'
 import { readableRunReport } from '../src/view/report/index.ts'
 import { baseEnv, fakeConfig, pkgRoot, project, runCli } from './helpers.ts'
-import { e2eNewlineAnswer, realAttempts } from './support/real-runs.ts'
+import { e2eNewlineAnswer, realTrials } from './support/real-runs.ts'
 
 const RUN = '20260924T220414Z_f7e1b53_elliot-hesp_k3f9'
 
-// A real history: three recorded runs of the fake agent (pass, fail, a control and a variant ×
+// A real history: three recorded runs of the fake agent (pass, fail, a baseline and a variant ×
 // two runs, with a compare question) and one scratch run.
 const evalFile = `import assert from 'node:assert/strict'
 import { defineEnvironment, defineEval } from 'reeval'
@@ -82,11 +82,11 @@ const other = defineEnvironment('other', { sandbox })
 export default defineEval({
   ...(process.env.REEVAL_TEST_COMPARE
     ? {
-        compare: { control: plain, variants: [other] },
+        compare: { baseline: plain, variants: [other] },
         questions: [
           { question: 'Which wrote hello.txt?', across: 'environment', task: true, diff: true },
         ],
-        runs: 2,
+        trials: 2,
       }
     : {}),
   graders: [judge('Did it write hello.txt?', { inputs: { diff: true } })],
@@ -107,7 +107,7 @@ const records = new Map<string, RunRecord>()
 before(async () => {
   const p = await project('studio', {
     '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
-    // The question's model picks whichever attempt it's shown first. Passing attempts keep their
+    // The question's model picks whichever trial it's shown first. Passing trials keep their
     // files, which the studio serves.
     'reeval.config.ts': fakeConfig({
       harness: agent,
@@ -149,9 +149,9 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   sandbox,
   skills: [skill.inline({ name: 'ok', description: 'Writes ok.txt', content: 'Write ok.txt.' })],
 }))
-const compare = process.env.REEVAL_TEST_GATED ? undefined : { control: plain, variants: [skilled] }
+const compare = process.env.REEVAL_TEST_GATED ? undefined : { baseline: plain, variants: [skilled] }
 export default defineEval({
-  runs: 1, compare,
+  trials: 1, compare,
   async task(c) {
     await c.send('write ok.txt')
     assert.equal((await c.exec('test -f ok.txt')).exitCode, 0)
@@ -176,7 +176,7 @@ export default defineEval({
     assert.equal(runOutcome(header), 'pass')
     const recordOf = (h: HistoryEntry) =>
       JSON.parse(readFileSync(join(p.dir, '.reeval/runs', `${h.runId}.json`), 'utf8')) as RunRecord
-    // The studio's tree counts the control's miss apart, so the file doesn't read as failed.
+    // The studio's tree counts the baseline's miss apart, so the file doesn't read as failed.
     assert.deepEqual(evalTree(recordOf(header))[0]?.tally, {
       pass: 1,
       fail: 0,
@@ -241,41 +241,41 @@ export default defineEval({
       model: 'fake',
       key: question,
     })
-    const attempt = (
+    const trial = (
       outcome: 'pass' | 'fail' | 'infra_error',
       judgements: ReturnType<typeof judgment>[] = [],
-    ) => ({ outcome, judgements }) as RunRecord['evals'][number]['attempts'][number]
+    ) => ({ outcome, judgements }) as RunRecord['evals'][number]['trials'][number]
     const record = (
       summary: Pick<RunRecord['summary'], 'pass' | 'fail' | 'infraError'>,
-      attempts: RunRecord['evals'][number]['attempts'],
+      trials: RunRecord['evals'][number]['trials'],
     ) =>
       ({
-        summary: { evals: 1, attempts: attempts.length, notGated: 0, skipped: 0, ...summary },
-        evals: [{ attempts }] as RunRecord['evals'],
+        summary: { evals: 1, trials: trials.length, notGated: 0, skipped: 0, ...summary },
+        evals: [{ trials }] as RunRecord['evals'],
       }) as Pick<RunRecord, 'summary' | 'evals'>
 
     const mixed = record({ pass: 9, fail: 2, infraError: 1 }, [
-      attempt('pass', [judgment('login?', 'pass')]),
-      attempt('fail', [judgment('login?', 'fail')]),
-      attempt('fail', [judgment('login?', 'fail'), judgment('checkout?', 'fail')]),
-      attempt('infra_error'),
+      trial('pass', [judgment('login?', 'pass')]),
+      trial('fail', [judgment('login?', 'fail')]),
+      trial('fail', [judgment('login?', 'fail'), judgment('checkout?', 'fail')]),
+      trial('infra_error'),
     ])
     assert.deepEqual(failedJudgeLabels(mixed), ['login', 'checkout'])
     assert.equal(
       runLead(mixed),
-      '9 of 11 counted attempts passed; 2 failed the login and checkout judges; 1 infra error.',
+      '9 of 11 counted trials passed; 2 failed the login and checkout judges; 1 infra error.',
     )
     assert.equal(
-      runLead(record({ pass: 12, fail: 0, infraError: 0 }, [attempt('pass')])),
-      '12 of 12 counted attempts passed.',
+      runLead(record({ pass: 12, fail: 0, infraError: 0 }, [trial('pass')])),
+      '12 of 12 counted trials passed.',
     )
     assert.equal(
-      runLead(record({ pass: 0, fail: 2, infraError: 0 }, [attempt('fail'), attempt('fail')])),
-      '0 of 2 counted attempts passed; 2 failed.',
+      runLead(record({ pass: 0, fail: 2, infraError: 0 }, [trial('fail'), trial('fail')])),
+      '0 of 2 counted trials passed; 2 failed.',
     )
     assert.equal(
-      runLead(record({ pass: 0, fail: 0, infraError: 3 }, [attempt('infra_error')])),
-      'No counted attempts; 3 infra errors.',
+      runLead(record({ pass: 0, fail: 0, infraError: 3 }, [trial('infra_error')])),
+      'No counted trials; 3 infra errors.',
     )
   })
 
@@ -308,7 +308,7 @@ describe('view-models over a real history', () => {
     const evalHeader = headers[0]?.evals[0]
     assert.match(evalHeader?.slug ?? '', /^hello-/)
     assert.deepEqual(
-      evalHeader?.cells.map((c) => [c.key, c.pass, c.runs]),
+      evalHeader?.cells.map((c) => [c.key, c.pass, c.trials]),
       [['fake/fake/fake', 1, 1]],
     )
   })
@@ -324,7 +324,7 @@ describe('view-models over a real history', () => {
         [1, 1],
       ],
     )
-    // The compare run adds a variant cell: new coverage, while the control it shares is unchanged.
+    // The compare run adds a variant cell: new coverage, while the baseline it shares is unchanged.
     assert.deepEqual(rows[1]?.drift, [])
     assert.equal(rows[1]?.changedEvals, 0)
     assert.deepEqual(rows[2]?.drift, [])
@@ -412,9 +412,9 @@ describe('view-models over a real history', () => {
     )
     const rows = cellRows(matrix.evals[0] as RunRecord['evals'][number])
     assert.deepEqual(
-      rows.map((r) => [r.environment, r.role, r.gated, r.pass, r.runs, r.lift, r.attempts.length]),
+      rows.map((r) => [r.environment, r.role, r.gated, r.pass, r.trialCount, r.lift, r.trials.length]),
       [
-        ['plain', 'control', false, 2, 2, null, 2],
+        ['plain', 'baseline', false, 2, 2, null, 2],
         ['other', 'variant', true, 2, 2, 0, 2],
       ],
     )
@@ -440,7 +440,7 @@ describe('view-models over a real history', () => {
       key,
     })
     const tokens = { input: 50, output: 5, cacheRead: 0, cacheWrite: 0, reasoning: null }
-    const attempt = (
+    const trial = (
       cell: string,
       n: number,
       outcome: 'pass' | 'fail',
@@ -458,8 +458,8 @@ describe('view-models over a real history', () => {
           j('login', login, login === 'pass' ? 0.9 : 0.2, '0:login'),
           j('checkout', 'fail', 0.1, '1:checkout'),
         ],
-      }) as RunRecord['evals'][number]['attempts'][number]
-    const cell = (key: string, role: 'control' | 'variant', env: string) =>
+      }) as RunRecord['evals'][number]['trials'][number]
+    const cell = (key: string, role: 'baseline' | 'variant', env: string) =>
       ({
         key,
         harness: 'fake',
@@ -469,19 +469,19 @@ describe('view-models over a real history', () => {
       }) as RunRecord['evals'][number]['cells'][number]
     const entry = {
       cells: [
-        cell('fake/plain/fake', 'control', 'plain'),
+        cell('fake/plain/fake', 'baseline', 'plain'),
         cell('fake/skill/fake', 'variant', 'skill'),
       ],
-      attempts: [
-        attempt('fake/plain/fake', 1, 'fail', 'fail', tokens),
-        attempt('fake/plain/fake', 2, 'fail', 'pass', tokens),
-        attempt('fake/skill/fake', 1, 'pass', 'pass', tokens),
-        attempt('fake/skill/fake', 2, 'pass', 'pass', null),
+      trials: [
+        trial('fake/plain/fake', 1, 'fail', 'fail', tokens),
+        trial('fake/plain/fake', 2, 'fail', 'pass', tokens),
+        trial('fake/skill/fake', 1, 'pass', 'pass', tokens),
+        trial('fake/skill/fake', 2, 'pass', 'pass', null),
       ],
     } as RunRecord['evals'][number]
 
-    const first = entry.attempts.find((a) => a.id === 'fake/plain/fake#1')
-    const skillOne = entry.attempts.find((a) => a.id === 'fake/skill/fake#1')
+    const first = entry.trials.find((a) => a.id === 'fake/plain/fake#1')
+    const skillOne = entry.trials.find((a) => a.id === 'fake/skill/fake#1')
     assert.ok(first && skillOne)
     assert.equal(judgeLabel('login?'), 'login')
     assert.equal(judgeLabel('Does this change implement email sign-in?'), 'Does this change…')
@@ -497,19 +497,19 @@ describe('view-models over a real history', () => {
         r.counted,
         r.lift && Math.round(r.lift.points * 100),
       ])
-    // A key's lift is its direction at any number of attempts; the interval says whether it holds.
+    // A key's lift is its direction at any number of trials; the interval says whether it holds.
     assert.deepEqual(keyLifts(entry), [
       ['login', 2, 2, 50],
       ['checkout', 0, 2, 0],
     ])
     const four = {
       ...entry,
-      attempts: [
-        ...entry.attempts,
-        attempt('fake/plain/fake', 3, 'fail', 'fail', null),
-        attempt('fake/plain/fake', 4, 'fail', 'fail', null),
-        attempt('fake/skill/fake', 3, 'pass', 'pass', null),
-        attempt('fake/skill/fake', 4, 'pass', 'pass', null),
+      trials: [
+        ...entry.trials,
+        trial('fake/plain/fake', 3, 'fail', 'fail', null),
+        trial('fake/plain/fake', 4, 'fail', 'fail', null),
+        trial('fake/skill/fake', 3, 'pass', 'pass', null),
+        trial('fake/skill/fake', 4, 'pass', 'pass', null),
       ],
     }
     assert.deepEqual(keyLifts(four), [
@@ -518,7 +518,7 @@ describe('view-models over a real history', () => {
     ])
     const thin = {
       ...entry,
-      attempts: [skillOne],
+      trials: [skillOne],
     }
     assert.equal(
       cellJudgeRates(thin, 'fake/skill/fake').every((r) => r.lift === null),
@@ -534,7 +534,7 @@ describe('view-models over a real history', () => {
     assert.deepEqual(cellUsage(entry, 'fake/skill/fake'), tokens)
     const rows = cellRows({
       ...four,
-      attempts: four.attempts.map((a) => ({
+      trials: four.trials.map((a) => ({
         ...a,
         activity: {
           tools: 1,
@@ -593,17 +593,17 @@ describe('view-models over a real history', () => {
       model: 'fake',
       key,
     })
-    const attempt = (n: number, emailVerdict: 'pass' | 'fail') =>
+    const trial = (n: number, emailVerdict: 'pass' | 'fail') =>
       ({
         id: `fake/plain/fake#${n}`,
         cell: 'fake/plain/fake',
         n,
         outcome: 'fail',
         judgements: [j(email, '0:email', emailVerdict), j(social, '1:social', 'fail')],
-      }) as RunRecord['evals'][number]['attempts'][number]
+      }) as RunRecord['evals'][number]['trials'][number]
     const entry = {
       cells: [{ key: 'fake/plain/fake' }],
-      attempts: [attempt(1, 'fail'), attempt(2, 'pass')],
+      trials: [trial(1, 'fail'), trial(2, 'pass')],
     } as RunRecord['evals'][number]
     assert.deepEqual(
       cellJudgeRates(entry, 'fake/plain/fake').map((r) => [r.label, r.pass, r.counted]),
@@ -622,7 +622,7 @@ describe('view-models over a real history', () => {
 
   test("compare answers: each question's win rates per cut, and nothing without one", () => {
     const matrix = records.get(headers[2]?.runId as string) as RunRecord
-    // Both arms pass on both runs: two within pairs, each voted in both orders. The model picks
+    // Both environments pass on both runs: two within pairs, each voted in both orders. The model picks
     // the first slot, so each side wins the order it was shown first in.
     assert.deepEqual(answerRows(matrix.evals[0] as RunRecord['evals'][number]), [
       {
@@ -647,14 +647,14 @@ describe('view-models over a real history', () => {
     }
     const withReason = structuredClone(matrix.evals[0] as RunRecord['evals'][number])
     const first = withReason.answers?.[0]?.votes[0]
-    if (first) first.reason = 'the other arm writes hello.txt'
-    assert.deepEqual(answerRows(withReason)[0]?.reasons, ['the other arm writes hello.txt'])
+    if (first) first.reason = 'the other environment writes hello.txt'
+    assert.deepEqual(answerRows(withReason)[0]?.reasons, ['the other environment writes hello.txt'])
     const unkept = structuredClone(matrix.evals[0] as RunRecord['evals'][number])
     for (const a of unkept.answers ?? []) delete a.input
     assert.equal(answerRows(unkept)[0]?.input, null, 'a record that kept no files links nothing')
   })
 
-  test('attempt answers: one row per question, choices tallied over the answers that came back', () => {
+  test('trial answers: one row per question, choices tallied over the answers that came back', () => {
     const asked = (choice: string | undefined, error?: string) =>
       ({
         question: 'Did it pass?',
@@ -665,22 +665,22 @@ describe('view-models over a real history', () => {
         text: error ? '' : 'it wrote ok.txt',
         ...(error ? { error } : {}),
         input: { path: 'e/c/1/questions/1.json', sha256: '', bytes: 0 },
-      }) as NonNullable<RunRecord['evals'][number]['attempts'][number]['answers']>[number]
-    const attempt = (id: string, outcome: 'pass' | 'fail', answers = [asked('yes')]) =>
-      ({ id, outcome, answers }) as RunRecord['evals'][number]['attempts'][number]
-    const rows = attemptAnswerRows({
-      attempts: [
-        attempt('a#1', 'pass'),
-        attempt('a#2', 'fail', [asked('no'), { ...asked(undefined), question: 'Why?' }]),
-        attempt('a#3', 'pass', [asked(undefined, 'over quota')]),
-        { id: 'a#4', outcome: 'infra' } as RunRecord['evals'][number]['attempts'][number],
+      }) as NonNullable<RunRecord['evals'][number]['trials'][number]['answers']>[number]
+    const trial = (id: string, outcome: 'pass' | 'fail', answers = [asked('yes')]) =>
+      ({ id, outcome, answers }) as RunRecord['evals'][number]['trials'][number]
+    const rows = trialAnswerRows({
+      trials: [
+        trial('a#1', 'pass'),
+        trial('a#2', 'fail', [asked('no'), { ...asked(undefined), question: 'Why?' }]),
+        trial('a#3', 'pass', [asked(undefined, 'over quota')]),
+        { id: 'a#4', outcome: 'infra' } as RunRecord['evals'][number]['trials'][number],
       ],
     })
     assert.deepEqual(
       rows.map((r) => [
         r.question,
         r.choices,
-        r.answers.map((a) => [a.attempt, a.choice, a.error]),
+        r.answers.map((a) => [a.trial, a.choice, a.error]),
       ]),
       [
         [
@@ -709,7 +709,7 @@ describe('view-models over a real history', () => {
   })
 
   test("compare answers over real harnesses' diffs (real-e2e-pairs), a failed one and one with no pairs", async () => {
-    const [real] = realAttempts('real-e2e-pairs')
+    const [real] = realTrials('real-e2e-pairs')
     assert.ok(real)
     const answer = await e2eNewlineAnswer()
     const failed = { ...answer, question: 'Which is shorter?', votes: [], rates: [], error: '429' }
@@ -761,7 +761,7 @@ describe('view-models over a real history', () => {
 
   test('trajectories parse into turns and events, skipping broken lines', async () => {
     const run = records.get(headers[0]?.runId as string) as RunRecord
-    const ref = run.evals[0]?.attempts[0]?.files.trajectory
+    const ref = run.evals[0]?.trials[0]?.files.trajectory
     assert.ok(ref)
     const text = await readFile(join(source.historyDir, run.runId, ref.path), 'utf8')
     const items = trajectoryItems(parseTrajectory(`${text}{"truncated`))
@@ -975,8 +975,8 @@ describe('studio API contract', () => {
       `${STUDIO_API_PREFIX}/runs/not-a-run/report`,
       `${STUDIO_API_PREFIX}/runs/${RUN}`,
       `${STUDIO_API_PREFIX}/runs/${RUN}/view`,
-      `${STUDIO_API_PREFIX}/runs/${RUN}/attempts/x`,
-      `${STUDIO_API_PREFIX}/runs/${RUN}/attempts/x/trajectory`,
+      `${STUDIO_API_PREFIX}/runs/${RUN}/trials/x`,
+      `${STUDIO_API_PREFIX}/runs/${RUN}/trials/x/trajectory`,
       `${STUDIO_API_PREFIX}/other`,
       '/api/v2/runs',
       '/studio.json',
@@ -1069,7 +1069,7 @@ describe('studio data server', () => {
     const api = await paired()
     const runId = headers[0]?.runId as string
     const record = records.get(runId) as RunRecord
-    const trajectory = record.evals[0]?.attempts[0]?.files.trajectory?.path as string
+    const trajectory = record.evals[0]?.trials[0]?.files.trajectory?.path as string
     const routes = [
       studioPaths.handshake(),
       studioPaths.runs(),
@@ -1177,7 +1177,7 @@ describe('studio data server', () => {
       })
       assert.deepEqual(report, JSON.parse(JSON.stringify(built)), h.runId)
       assert.equal(index.reportVersion, REPORT_VERSION)
-      assert.equal('attempts' in index, false, 'the attempt rows are in the details')
+      assert.equal('trials' in index, false, 'the trial rows are in the details')
       assert.deepEqual(
         details.map((d) => d.eval.id),
         (records.get(h.runId) as RunRecord).evals.map((e) => e.key),
@@ -1194,13 +1194,13 @@ describe('studio data server', () => {
     const { report } = await servedReport(api.get, runId)
     const record = await json<RunRecord>(await api.get(report.provenance.record as string))
     assert.equal(record.runId, runId)
-    const links = report.attempts.flatMap((a) => [
+    const links = report.trials.flatMap((a) => [
       a.links.trajectory,
       a.links.diff,
       ...a.links.captures.map((c) => c.href),
     ])
-    const trajectories = report.attempts.flatMap((a) => (a.links.trajectory ? [a] : []))
-    assert.equal(trajectories.length, report.attempts.length, "artifacts: 'all' keeps every one")
+    const trajectories = report.trials.flatMap((a) => (a.links.trajectory ? [a] : []))
+    assert.equal(trajectories.length, report.trials.length, "artifacts: 'all' keeps every one")
     for (const href of links) {
       if (href) assert.equal((await api.get(href)).status, 200, href)
     }
@@ -1227,8 +1227,8 @@ describe('studio data server', () => {
       studioPaths.artifact(runId, 'no-such-file.txt'),
       studioPaths.artifact(runId, `${unknown}.json`),
       `${STUDIO_API_PREFIX}/runs/${runId}/view`,
-      `${STUDIO_API_PREFIX}/runs/${runId}/attempts/${encodeURIComponent(key)}`,
-      `${STUDIO_API_PREFIX}/runs/${runId}/attempts/${encodeURIComponent(key)}/trajectory`,
+      `${STUDIO_API_PREFIX}/runs/${runId}/trials/${encodeURIComponent(key)}`,
+      `${STUDIO_API_PREFIX}/runs/${runId}/trials/${encodeURIComponent(key)}/trajectory`,
     ]) {
       assert.equal((await api.get(path)).status, 404, path)
     }
@@ -1525,7 +1525,7 @@ describe('studio data server', () => {
     assert.equal(index.runId, runId)
   })
 
-  test("a run recorded at evidence links only the trajectories it kept: a passing attempt's is null", async () => {
+  test("a run recorded at evidence links only the trajectories it kept: a passing trial's is null", async () => {
     const p = await project('studio-evidence', {
       '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
       'reeval.config.ts': fakeConfig({
@@ -1561,12 +1561,12 @@ export default defineEval({
     assert.equal(report.provenance.artifacts, 'evidence')
     assert.deepEqual(validate(reportSchema(), report), [])
     assert.deepEqual(readableRunReport(report), report)
-    const outcomes = report.attempts.map((a) => [a.evalId, a.outcome, !!a.links.trajectory])
+    const outcomes = report.trials.map((a) => [a.evalId, a.outcome, !!a.links.trajectory])
     assert.deepEqual(outcomes.sort(), [
       ['hello', 'pass', false],
       ['writes-bye', 'fail', true],
     ])
-    const failed = report.attempts.find((a) => a.outcome === 'fail')?.links.trajectory as string
+    const failed = report.trials.find((a) => a.outcome === 'fail')?.links.trajectory as string
     const page = await json<TrajectoryPage>(
       await api.get(`${failed}?limit=${TRAJECTORY_LIMIT.max}`),
     )

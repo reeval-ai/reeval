@@ -1,13 +1,13 @@
 # Conformance goldens
 
 The test suite another language's SDK runs to prove it speaks reeval: what its eval files must
-declare, and what its runner must send and accept during an attempt. They are data, so any test
+declare, and what its runner must send and accept during a trial. They are data, so any test
 runner can read them. `test/conformance.test.ts` holds them to the real TypeScript code.
 
 ```text
 declare/<case>/case.json       the TypeScript eval file, its plan case and that case's arguments
 declare/<case>/expected.json   the declaration tree that file records
-context/<case>.ndjson          one attempt, message by message, then its record
+context/<case>.ndjson          one trial, message by message, then its record
 runner.ts                      the TypeScript reference runner the context scripts run under
 launcher/                      the cases every SDK's `reeval` launcher passes (its own README)
 ```
@@ -31,13 +31,13 @@ Each line is one JSON object:
 | Line | What it is |
 |---|---|
 | `{"case", "about", "options"}` | The header: the eval's name, what it covers and its options |
-| `{"reeval": …}` | reeval to the runner: `attempt-start`, `attempt-abort` or a reply (`attempt-reply`) |
-| `{"runner": …}` | The runner to reeval: a request (`attempt-request`) or `attempt-done` |
-| `{"record": …}` | The attempt's record afterwards: outcome, error, checks and observations |
+| `{"reeval": …}` | reeval to the runner: `trial-start`, `trial-abort` or a reply (`trial-reply`) |
+| `{"runner": …}` | The runner to reeval: a request (`trial-request`) or `trial-done` |
+| `{"record": …}` | The trial's record afterwards: outcome, error, checks and observations |
 
-The shapes are in `src/contract/attempt.ts`, with JSON Schemas in `schema/protocol/`. The test runs
+The shapes are in `src/contract/trial.ts`, with JSON Schemas in `schema/protocol/`. The test runs
 every script as one eval of a fake-harness, fake-sandbox project: `runner.ts` hands each request to
-reeval's attempt host on the attempt's `c`, as another language's requests reach it, and writes
+reeval's trial host on the trial's `c`, as another language's requests reach it, and writes
 down what came back. Timestamps are `2026-01-01T00:00:00.000Z` and
 durations `0`.
 

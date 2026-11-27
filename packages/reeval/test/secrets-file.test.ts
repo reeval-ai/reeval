@@ -66,7 +66,7 @@ describe('REEVAL_SECRETS_FILE', () => {
     assert.doesNotMatch(r.stdout, /from-the-file-1234/)
   })
 
-  test('a brokered secret on a sandbox with no gateway fails its attempt as an infra error', async () => {
+  test('a brokered secret on a sandbox with no gateway fails its trial as an infra error', async () => {
     const r = await withFile("{ API_KEY: secret.fromEnv('API_KEY') }", {
       version: 1,
       secrets: { API_KEY: { mode: 'brokered', hosts: ['api.example.com'], value: 'v-123456789' } },
@@ -78,7 +78,7 @@ describe('REEVAL_SECRETS_FILE', () => {
     )
   })
 
-  test('a brokered secret sent to hosts it isn’t brokered to fails its attempt', async () => {
+  test('a brokered secret sent to hosts it isn’t brokered to fails its trial', async () => {
     const r = await withFile(
       "{ API_KEY: secret.fromEnv('API_KEY', { hosts: ['api.other.test'] }) }",
       {
@@ -697,7 +697,7 @@ await call.fetch(call.baseURL + '/redirect', { method: 'POST', headers: { 'x-api
     process.env.LOST_KEY = holder
     await assert.rejects(
       resolve(({ secret }) => ({ env: { K: secret.fromEnv('LOST_KEY') } })),
-      /LOST_KEY for .* is held from REEVAL_SECRETS_FILE, and this attempt couldn't get its value/,
+      /LOST_KEY for .* is held from REEVAL_SECRETS_FILE, and this trial couldn't get its value/,
     )
   })
 })

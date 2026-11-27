@@ -30,7 +30,7 @@ export type TartOptions = {
   on?: TartTarget
 }
 
-/** Runs `bin` (`tart`, or `ssh` into a VM), into the attempt's trace as a docker command is. */
+/** Runs `bin` (`tart`, or `ssh` into a VM), into the trial's trace as a docker command is. */
 export async function tracedRun(
   bin: string,
   args: string[],

@@ -481,7 +481,7 @@ def project_python() -> str:
 
 def spawn(command: list[str], env: dict[str, str]) -> int:
     """Runs reeval as a child and returns its exit code; Ctrl-C reaches it from the console."""
-    # Ignored here, so reeval gets the whole Ctrl-C to stop its attempts and save the run.
+    # Ignored here, so reeval gets the whole Ctrl-C to stop its trials and save the run.
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     if sys.platform == "win32":
         signal.signal(signal.SIGBREAK, signal.SIG_IGN)

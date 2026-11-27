@@ -17,7 +17,7 @@ import { tartTagWarning } from './tart-ref.ts'
 
 /**
  * A Tart VM keeps Tart's network, so nothing it sends around the gateway's proxy is refused or
- * recorded; what goes through the proxy is. Its one policy holds for the whole attempt.
+ * recorded; what goes through the proxy is. Its one policy holds for the whole trial.
  */
 const TART_EGRESS: EgressCapabilities = { enforce: 'none', record: true, switches: false }
 
@@ -52,7 +52,7 @@ export const TART_MACHINE: MachineProvider<TartSandboxDescriptor> = {
     const tag = tartTagWarning(s.image)
     return tag ? [tag] : []
   },
-  attemptCap: (s) =>
+  trialCap: (s) =>
     s.hosts
       ? async ({ harness, root, runId }) => {
           const { preparedFor } = await import('./preflight.ts')
@@ -64,14 +64,14 @@ export const TART_MACHINE: MachineProvider<TartSandboxDescriptor> = {
             const hosts = prepared ? preparedHosts(prepared) : null
             return hosts ? hosts.reduce((sum, h) => sum + h.vms, 0) : null
           } catch {
-            // A sandbox that failed to prepare fails in the attempt, which reads it again.
+            // A sandbox that failed to prepare fails in the trial, which reads it again.
             return null
           }
         }
       : null,
 }
 
-/** Each attempt is a container in the VM's Docker, as `docker()` runs one: the gateway can be its only way out. */
+/** Each trial is a container in the VM's Docker, as `docker()` runs one: the gateway can be its only way out. */
 const IN_CONTAINER = { egress: DOCKER_EGRESS, processTable: true, listeners: 'proc' as const }
 
 export const BOAT_MACHINE: MachineProvider<BoatSandboxDescriptor> = {
@@ -97,7 +97,7 @@ export const BOAT_MACHINE: MachineProvider<BoatSandboxDescriptor> = {
         s.prefix,
         s.type ?? 'small',
         s.reuse ?? false,
-        s.attemptsPerMachine ?? 1,
+        s.trialsPerMachine ?? 1,
         s.maxConcurrent ?? null,
         typeof image === 'string' ? image : null,
       ]),
@@ -117,7 +117,7 @@ export const BOAT_MACHINE: MachineProvider<BoatSandboxDescriptor> = {
   // A run's VMs are found only under a descriptor's account and prefix.
   cleanupScope: (s) => ({ key: JSON.stringify(s), atStart: true }),
   credentials: (s) => [{ names: [s.apiKey.from], line: `${s.apiKey.from} (for boat())` }],
-  slotsPerMachine: (s) => s.attemptsPerMachine ?? 1,
+  slotsPerMachine: (s) => s.trialsPerMachine ?? 1,
   slotNetworks: () => true,
   async doctor(sandboxes, ctx) {
     const { boatDoctor } = await import('./boat.ts')
@@ -157,7 +157,7 @@ export const DAYTONA_MACHINE: MachineProvider<DaytonaSandboxDescriptor> = {
         s.prefix,
         s.size ?? 'medium',
         s.reuse ?? false,
-        s.attemptsPerMachine ?? 1,
+        s.trialsPerMachine ?? 1,
         s.maxConcurrent ?? null,
         (image as { name?: string } | undefined)?.name ?? null,
       ]),
@@ -175,7 +175,7 @@ export const DAYTONA_MACHINE: MachineProvider<DaytonaSandboxDescriptor> = {
   },
   cleanupScope: (s) => ({ key: JSON.stringify(s), atStart: true }),
   credentials: (s) => [{ names: [s.apiKey.from], line: `${s.apiKey.from} (for daytona())` }],
-  slotsPerMachine: (s) => s.attemptsPerMachine ?? 1,
+  slotsPerMachine: (s) => s.trialsPerMachine ?? 1,
   async doctor(sandboxes, ctx) {
     const { daytonaDoctor } = await import('./daytona.ts')
     return daytonaDoctor(sandboxes, ctx)
@@ -203,7 +203,7 @@ export const CLOUD_MACHINE: MachineProvider<CloudSandboxDescriptor> = {
       JSON.stringify([
         s.size ?? 'small',
         s.reuse ?? false,
-        s.attemptsPerMachine ?? 1,
+        s.trialsPerMachine ?? 1,
         s.maxConcurrent ?? null,
         s.image ?? null,
         s.from ?? null,
@@ -226,7 +226,7 @@ export const CLOUD_MACHINE: MachineProvider<CloudSandboxDescriptor> = {
     { names: ['REEVAL_VM_URL'], line: 'REEVAL_VM_URL (for cloud())', cloudSets: true },
     { names: ['REEVAL_VM_TOKEN'], line: 'REEVAL_VM_TOKEN (for cloud())', cloudSets: true },
   ],
-  slotsPerMachine: (s) => s.attemptsPerMachine ?? 1,
+  slotsPerMachine: (s) => s.trialsPerMachine ?? 1,
   slotNetworks: () => true,
   preparesImage: () => true,
   privileges: (s) => ({ root: !!s.root, capabilities: s.capabilities ?? [] }),

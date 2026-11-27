@@ -10,15 +10,15 @@ block instead ([AGENTS.md](../../../../AGENTS.md#while-you-work)).
 
 **Does `reeval run --dry-run` show the change?** Then it's a plan case, not a fixture: an option,
 its cascade or default, a profile, selection, compare or an image is checked without running an
-attempt. Only a change that shows once an attempt runs gets a fixture here. CI enforces this through
+trial. Only a change that shows once a trial runs gets a fixture here. CI enforces this through
 [`eval-options.ts`](./eval-options.ts) and `matrix.test.ts`: each plan-affecting eval option must
 name an inventory entry with a plan case.
 
 | The feature changes… | Add |
 |---|---|
-| which evals, cells, attempts or notes a run plans (options and their cascade, profiles, selection, compare, images) | a plan case in `plan.test.ts`: a new directory under `test/plan/`, or a case on an existing one, then `REEVAL_UPDATE_SNAPSHOTS=1 pnpm test:plan` and review the diff |
+| which evals, cells, trials or notes a run plans (options and their cascade, profiles, selection, compare, images) | a plan case in `plan.test.ts`: a new directory under `test/plan/`, or a case on an existing one, then `REEVAL_UPDATE_SNAPSHOTS=1 pnpm test:plan` and review the diff |
 | what input reeval accepts or refuses (a new option or value) | rows in `test/refusals/cases.ts`, then `REEVAL_UPDATE_SNAPSHOTS=1` on `test/refusals.test.ts`; also the plan case above when `--dry-run` output changes |
-| what lands in or happens inside an attempt (environment fields, sandbox behavior, harness inputs, the `c` API) | a fixture here: one check and one canary |
+| what lands in or happens inside a trial (environment fields, sandbox behavior, harness inputs, the `c` API) | a fixture here: one check and one canary |
 | … and touches Docker, images, egress, ports or brokering | list it with `tiers: ['fake', 'docker']` (only `docker` if the fake can't model it) |
 | what a real harness receives (skills, MCP, rules, auth) | also list the `real` tier: the same fixture on real Cursor (see Running) |
 | runner behavior (exit codes, output, history, cancel, budget, redaction) | a plain `node:test` case in the matching existing test file |
@@ -31,7 +31,7 @@ eval/group options, a row in [`eval-options.ts`](./eval-options.ts), then
 ## What a fixture is
 
 Each directory here is a small reeval project that checks **one** behavior of one feature, from
-inside the attempt, with reeval's own API. `features.test.ts` runs it and checks the record from
+inside the trial, with reeval's own API. `features.test.ts` runs it and checks the record from
 outside.
 
 ## Shape of a fixture
@@ -56,9 +56,9 @@ outside.
   where one fits. Keep `expect` for fixtures whose subject is `expect` itself.
 - Then add a row to `features` in `features.test.ts`:
   - `dir` and `tiers`;
-  - `env`: the environment's name, since attempt ids are `fake/<env>/<sandbox>#1`;
+  - `env`: the environment's name, since trial ids are `fake/<env>/<sandbox>#1`;
   - `canary`: a regex for the canary's failure message; `zeroBy(grader)` is a grader canary's;
-  - `canarySaw`: what the canary's failed attempt observed (`canaryGraded`: what its graders
+  - `canarySaw`: what the canary's failed trial observed (`canaryGraded`: what its graders
     returned), so a grader canary proves it saw the wrong value rather than nothing;
   - optionally `prepare` (for example, making a git repo) and `record`, a host-side cross-check
     of the run record.
@@ -138,7 +138,7 @@ CI writes the same matrix to the job summary.
   fixture `REEVAL_EGRESS_HOST` (its address) and `REEVAL_EGRESS_TARGET` (address and port). Beside it, a
   DNS server answers every A query with `REEVAL_EGRESS_DNS_ANSWER` at `REEVAL_EGRESS_DNS` (address and
   port), so whether a name resolves doesn't hang on the machine's own resolver. The row's `record`
-  checks the attempt's `egress` from outside.
+  checks the trial's `egress` from outside.
 - **Per-harness behavior without a key:** `fakeAgent({ layout: 'claude-code' })` (or
   `'cursor'`) places rules and skills exactly where that agent reads them and runs in that
   agent's image, so a fixture under `harness/` covers what a real harness receives. List the

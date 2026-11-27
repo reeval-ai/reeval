@@ -7,8 +7,8 @@ const withJsdoc = math.extendEnvironment('jsdoc', ({ skill }) => ({
 }))
 
 export default defineEval({
-  compare: { control: math, variants: [withJsdoc], minLift: 0.2 },
-  runs: 4,
+  compare: { baseline: math, variants: [withJsdoc], minLift: 0.2 },
+  trials: 4,
   target: regression(),
   graders: [hasFile('src/math.js', /\*\/\s*export function multiply/)],
   task: async (c) => {

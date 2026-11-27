@@ -3,7 +3,7 @@
 import { resolve, type Schema, type ShapeSchema } from './generate.ts'
 
 export type Change = {
-  /** Where, e.g. `evals[].attempts[].egress` or `<type=tool>.ok`; empty for the whole shape. */
+  /** Where, e.g. `evals[].trials[].egress` or `<type=tool>.ok`; empty for the whole shape. */
   path: string
   kind:
     | 'added-optional'

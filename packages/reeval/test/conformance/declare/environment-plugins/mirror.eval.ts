@@ -17,6 +17,6 @@ const pinned = fetched.extendEnvironment('pinned', ({ plugin }) => ({
 }))
 
 group('remote plugins', { environments: fetched }, () => {
-  evaluate('git and npm read at the attempt', async () => {})
+  evaluate('git and npm read at the trial', async () => {})
   evaluate('a child adds another', { environments: pinned }, async () => {})
 })

@@ -1,8 +1,8 @@
-import type { AttemptContext, GraderContext } from 'reeval'
+import type { TrialContext, GraderContext } from 'reeval'
 
 /** What the graders read of `reeval run --dry-run --json`. */
 type Plan = {
-  totals: { evals: number; cells: number; attempts: number }
+  totals: { evals: number; cells: number; trials: number }
   evals: {
     target: { kind: string; blocking?: boolean }
     cells: { role: string; environment: string }[]
@@ -15,7 +15,7 @@ type Plan = {
  * Runs `reeval run --dry-run --json` in the agent's project, labeled `dry-run`, and observes what
  * the graders read of it as `plan`: null when it fails.
  */
-export async function dryRun(c: AttemptContext) {
+export async function dryRun(c: TrialContext) {
   const r = await c.exec('./node_modules/.bin/reeval run --dry-run --json', { label: 'dry-run' })
   let plan: Plan | null = null
   try {
@@ -26,7 +26,7 @@ export async function dryRun(c: AttemptContext) {
         })[]
       }
       plan = {
-        totals: { evals: totals.evals, cells: totals.cells, attempts: totals.attempts },
+        totals: { evals: totals.evals, cells: totals.cells, trials: totals.trials },
         evals: evals.map((e) => ({
           target: e.target,
           cells: e.cells.map(({ role, environment }) => ({ role, environment })),
@@ -47,9 +47,9 @@ export async function dryRun(c: AttemptContext) {
 export const planOf = (c: GraderContext) => c.observation('plan') as Plan | null
 
 /** `tsc -p .` in the agent's project, labeled `typechecks`. */
-export const typecheck = (c: AttemptContext) =>
+export const typecheck = (c: TrialContext) =>
   c.exec('./node_modules/.bin/tsc -p .', { label: 'typechecks' })
 
 /** `reeval run` on the project's fake config, labeled `passes-on-the-fake-config`. */
-export const runOnFake = (c: AttemptContext) =>
+export const runOnFake = (c: TrialContext) =>
   c.exec('./node_modules/.bin/reeval run --ui plain', { label: 'passes-on-the-fake-config' })

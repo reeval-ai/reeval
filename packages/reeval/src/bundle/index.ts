@@ -148,7 +148,7 @@ export type PlanDoc = Record<string, unknown> & {
   secrets?: string[]
   secretChoices?: string[][]
   cloudSets?: string[]
-  totals?: { attempts: number; fewest: number }
+  totals?: { trials: number; fewest: number }
   cost?: import('../cost.ts').PlanCost
   notCloud?: string[]
 }
@@ -159,7 +159,7 @@ export type BundleOptions = {
   /** Prices the plan's cost, which the dry run otherwise leaves to tokens. */
   prices?: boolean
   /**
-   * For a cloud run: the dry run places each attempt's sandbox on a machine of its own, and the
+   * For a cloud run: the dry run places each trial's sandbox on a machine of its own, and the
    * manifest's `secrets` leave out the plan's `cloudSets`, which the cloud platform sets itself.
    * Its plan keeps them, as the dry run there plans them too.
    */
@@ -182,14 +182,14 @@ const within = (dir: string, path: string) => path === dir || path.startsWith(di
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
 /** The `reeval run` arguments that plan `args`, for a dry run of the config at `config`. */
-function runArgs(args: Pick<BundleArgs, 'filters' | 'profile' | 'tags' | 'traits' | 'runs'>) {
+function runArgs(args: Pick<BundleArgs, 'filters' | 'profile' | 'tags' | 'traits' | 'trials'>) {
   return [
     'run',
     ...args.filters,
     ...(args.profile ? ['--profile', args.profile] : []),
     ...args.tags.flatMap((t) => ['--tag', t]),
     ...args.traits.flatMap((t) => ['--trait', t]),
-    ...(args.runs ? ['--runs', args.runs] : []),
+    ...(args.trials ? ['--trials', args.trials] : []),
   ]
 }
 
@@ -426,7 +426,7 @@ export async function bundleCommand(
   const target = resolve(flags.out ?? `${basename(project) || 'reeval'}.bundle.tar.gz`)
   await writeFile(target, archive)
   out(
-    `Bundled ${plural(manifest.files.length, 'file')}${links ? ` and ${plural(links, 'link')}` : ''} (${bytes} bytes) for ${plural(Number(plan.totals?.attempts ?? 0), 'attempt')} into ${relative(process.cwd(), target) || target}`,
+    `Bundled ${plural(manifest.files.length, 'file')}${links ? ` and ${plural(links, 'link')}` : ''} (${bytes} bytes) for ${plural(Number(plan.totals?.trials ?? 0), 'trial')} into ${relative(process.cwd(), target) || target}`,
   )
   const needs = [
     ...manifest.secrets,
@@ -460,7 +460,7 @@ export async function makeBundle(
     ...(flags.profile ? { profile: flags.profile } : {}),
     tags: flags.tag ?? [],
     traits: flags.trait ?? [],
-    ...(flags.runs ? { runs: flags.runs } : {}),
+    ...(flags.trials ? { trials: flags.trials } : {}),
   }
   const planned = await dryRun(project, runArgs(given), config, options)
   if ('code' in planned) return planned
@@ -565,7 +565,7 @@ export async function makeBundle(
   const git = await gitInfo(project, ignore)
   const patch = git?.dirty ? await worktreePatch(project, ignore) : null
   const manifest: BundleManifest = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     reeval: PACKAGE_VERSION,
     features: [...BUNDLE_FEATURES],
     createdAt: new Date().toISOString(),
@@ -779,7 +779,7 @@ const bundlePath = z
   .refine((p) => safeTarPath(p) === p && p !== MANIFEST, 'must be a path inside the bundle')
 
 const manifestSchema = z.object({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   reeval: z.string(),
   createdAt: z.string(),
   args: z.object({
@@ -788,7 +788,7 @@ const manifestSchema = z.object({
     profile: z.string().optional(),
     tags: z.array(z.string()),
     traits: z.array(z.string()),
-    runs: z.string().optional(),
+    trials: z.string().optional(),
   }),
   project: z.union([z.literal(''), bundlePath]),
   config: bundlePath,

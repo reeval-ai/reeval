@@ -10,7 +10,7 @@ const fakeFile = (path: string) =>
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  // A scripted agent that copies ./fake-agent's files into the workspace: both arms throw for a
+  // A scripted agent that copies ./fake-agent's files into the workspace: both environments throw for a
   // zero divisor, and only the one with the skill names the argument.
   agents: fakeAgent({
     files: { 'src/math.js': fakeFile('without-skill/src/math.js') },

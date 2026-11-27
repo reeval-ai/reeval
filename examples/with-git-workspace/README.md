@@ -1,6 +1,6 @@
 # with-git-workspace
 
-**Shows:** starting every attempt from a pinned repository. `workspace: git(repo, { ref, path,
+**Shows:** starting every trial from a pinned repository. `workspace: git(repo, { ref, path,
 init })` fetches one directory of a public GitHub repository at a full commit SHA, and
 `init: true` gives the workspace a `.git` with one commit of it. The agent adds `subtract(a, b)`,
 and the task runs the tests and observes `git status`, which an `observed` grader reads.
@@ -27,7 +27,7 @@ Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../p
 one profile you need.
 
 **What to look at:** the line under the run header. reeval fetches the repository once per run, on the
-host, before any attempt, and names the commit every attempt starts from:
+host, before any trial, and names the commit every trial starts from:
 
 ```text
 …
@@ -35,7 +35,7 @@ host, before any attempt, and names the commit every attempt starts from:
   ◆  Running...
 
 with-git-workspace.eval.ts
-  · with-git-workspace  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
+  · with-git-workspace  mean 100% · 1/1 trial at 100% (pass@1)  capability(1)
     Observed:
       git-status  M src/math.js M test/math.test.js ?? .g… 1
 ```

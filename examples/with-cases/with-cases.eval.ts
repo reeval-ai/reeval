@@ -11,7 +11,7 @@ const cases = [
   { key: 'power', a: 2, b: 5, want: '32' },
 ]
 
-// A grader reads the attempt's case as c.case, typed by defineGrader's parameter.
+// A grader reads the trial's case as c.case, typed by defineGrader's parameter.
 const answers = defineGrader<{ want: string }>('answers', {
   grade: (c) => c.observation('answer') === c.case.want,
 })

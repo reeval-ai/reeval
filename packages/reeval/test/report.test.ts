@@ -73,7 +73,7 @@ async function failingProject(name: string) {
   const p = await project(`${name}`, {
     'reeval.config.ts': fakeConfig({
       harness: `{ failWith: ['agent broke', process.env.MY_API_KEY, process.env.WEBHOOK, '${TOKEN}', '${FRAGMENT}', process.cwd(), process.env.HOME + '/elsewhere/cache'].join(' ') }`,
-      extra: 'profiles: { pr: { defaults: { runs: 1 } } },',
+      extra: 'profiles: { pr: { defaults: { trials: 1 } } },',
     }),
     'evals/agent.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({ async task(c) { await c.send('go') } })
@@ -253,7 +253,7 @@ describe('reeval report: the bundle', () => {
     ])
     assert.deepEqual(bundle.config?.harnesses, ['fake'])
     assert.deepEqual(bundle.config?.profiles, [
-      { name: 'pr', keys: ['defaults'], defaults: ['runs'] },
+      { name: 'pr', keys: ['defaults'], defaults: ['trials'] },
     ])
     assert.ok(Array.isArray((bundle.doctor as { checks: unknown[] }).checks))
     assert.ok(bundle.env.includes('MY_API_KEY'))
@@ -564,7 +564,7 @@ export default defineEval({ async task() { await new Promise((r) => setTimeout(r
     const logged = (JSON.parse(report.stdout) as ReportBundle).invocation?.unhandledErrors ?? []
     assert.match(logged.join('\n'), /stray rejection/)
     // Usage errors and passing runs are the user's to fix, not reeval's.
-    const usage = await runCli(p.dir, ['run', '--runs', 'x'], { env: p.env })
+    const usage = await runCli(p.dir, ['run', '--trials', 'x'], { env: p.env })
     assert.equal(usage.code, 2)
     assert.doesNotMatch(usage.stderr, hint)
     const ok = await project('report-hint-ok', {

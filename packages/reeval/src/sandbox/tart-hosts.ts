@@ -1,5 +1,5 @@
 // The Macs of `tart({ hosts })`: how reeval reaches each over SSH, what preflight checks on each,
-// and which one an attempt's VM starts on. Every `tart` command runs there over plain `ssh`; the
+// and which one a trial's VM starts on. Every `tart` command runs there over plain `ssh`; the
 // egress gateway stays on this machine and reaches the VM through the same SSH connection.
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -16,7 +16,7 @@ const HOST_PATH = '/opt/homebrew/bin:/usr/local/bin'
 const SSH_FAILED = 255
 /** The probe script's exit status when the host has no `tart`. */
 const NO_TART = 90
-/** Free space below which preflight skips a host: a clone's disk grows as the attempt writes. */
+/** Free space below which preflight skips a host: a clone's disk grows as the trial writes. */
 export const HOST_MIN_FREE_BYTES = 25e9
 /** Memory a host keeps for macOS and Tart, beside its VMs. */
 export const HOST_RESERVED_MEMORY = 4 * 1024 ** 3
@@ -24,7 +24,7 @@ export const HOST_RESERVED_MEMORY = 4 * 1024 ** 3
 const DEFAULT_VM_MEMORY = 8 * 1024 ** 3
 /** How long a host whose `tart run` said it's at its VM limit is passed over. */
 export const BUSY_COOLDOWN_MS = 30_000
-/** How long an attempt waits for a host with room before it fails as an infra error. */
+/** How long a trial waits for a host with room before it fails as an infra error. */
 export const BUSY_WAIT_MS = 20 * 60_000
 const BUSY_POLL_MS = 5_000
 /** How long counting one host's VMs may take before that host is passed over for a while. */
@@ -197,14 +197,14 @@ const memoryBytes = (memory: string | number) => {
   return Number(m?.[1] ?? 0) * UNITS[(m?.[2]?.toLowerCase() ?? 'b') as keyof typeof UNITS]
 }
 
-/** A host an attempt may start its VM on: where, how many at once, and the image it clones there. */
+/** A host a trial may start its VM on: where, how many at once, and the image it clones there. */
 export type HostSlot = { target: TartTarget; vms: number; image: string }
 
-/** What preflight prepared on one host, as an attempt reads it from the prepared handle. */
+/** What preflight prepared on one host, as a trial reads it from the prepared handle. */
 export type PreparedHost = { host: string; vms: number; image: string }
 
 /**
- * The hosts an attempt of `sandbox` may use: the ones preflight kept, each with the image it
+ * The hosts a trial of `sandbox` may use: the ones preflight kept, each with the image it
  * baked there, or every host of `sandbox` with `image` when preflight didn't say.
  */
 export function hostSlots(
@@ -292,11 +292,11 @@ const sleep = (ms: number, signal: AbortSignal) =>
   })
 
 /**
- * The host with the most room for one more VM, a random one of those tied, so attempts that
+ * The host with the most room for one more VM, a random one of those tied, so trials that
  * start together spread out. Hosts in `busy` until a time still to come are passed over. With
  * none free it waits while this run's own VMs hold the slots, since they end; once none does, it
  * waits until `deadline.at` ({@link BUSY_WAIT_MS} from the first claim), shared by every claim of
- * one attempt, and then fails: what holds the slots is outside the run.
+ * one trial, and then fails: what holds the slots is outside the run.
  */
 export async function claimHost(
   slots: readonly HostSlot[],
@@ -347,7 +347,7 @@ export async function claimHost(
   }
 }
 
-/** Another attempt took the host's last slot between counting its VMs and cloning: pick again. */
+/** Another trial took the host's last slot between counting its VMs and cloning: pick again. */
 export class HostTaken extends InfraError {
   override name = 'HostTaken'
 }
@@ -363,7 +363,7 @@ const UNLOCK = `rmdir ${CLAIM_LOCK} 2>/dev/null; true`
 const LOCK_POLL_MS = 250
 
 /**
- * Runs `step` holding `target`'s claim lock, a directory on the Mac itself, so that two attempts
+ * Runs `step` holding `target`'s claim lock, a directory on the Mac itself, so that two trials
  * (in any worker, or any reeval reaching that Mac) can't both count a free slot and clone into it.
  * The lock is held only from counting to cloning: once cloned, a VM counts as taken.
  */

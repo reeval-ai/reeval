@@ -10,7 +10,7 @@ import { RUN_ID, relativeFile, sha256 } from '../ids.ts'
 import { BUILD_ID, ownRequire } from '../root.ts'
 import { targetLabel } from '../target.ts'
 import type { JSONValue } from '../types.ts'
-import { classifyAttempt, declaredContext, isRuntimeState } from '../view/classify.ts'
+import { classifyTrial, declaredContext, isRuntimeState } from '../view/classify.ts'
 import { filesChanged } from '../view/effort.ts'
 import { cellMeasures, familyMeasures, type Measure } from '../view/measures.ts'
 import { trajectoryByLine } from '../view/model.ts'
@@ -19,7 +19,7 @@ import { DERIVED, DERIVED_TABLES, deriveFacts, PART_COLUMNS } from './facts.ts'
 import { readingStamp, readRecord, recordNames, scratchDir, warnUnreadable } from './files.ts'
 import { rowsOf } from './rows.ts'
 import type { ToolClass } from './tool-class.ts'
-import type { AttemptRecord, CellRecord, RunRecord } from './types.ts'
+import type { TrialRecord, CellRecord, RunRecord } from './types.ts'
 
 /** Bump when the tables or views change: a database from another version is rebuilt. */
 const DB_VERSION = 27
@@ -66,7 +66,7 @@ CREATE TABLE runs (
   run_id TEXT PRIMARY KEY, recorded INTEGER NOT NULL, status TEXT, started_at TEXT, ended_at TEXT,
   duration_ms INTEGER, author TEXT, git_sha TEXT, branch TEXT, dirty INTEGER, runner TEXT,
   ci_provider TEXT, ci_url TEXT, pr_number INTEGER, pr_base TEXT, reeval TEXT, judge_model TEXT,
-  judge_version TEXT, profile TEXT, evals INTEGER, attempts INTEGER, pass INTEGER, fail INTEGER,
+  judge_version TEXT, profile TEXT, evals INTEGER, trials INTEGER, pass INTEGER, fail INTEGER,
   not_gated INTEGER, infra_error INTEGER, skipped INTEGER
 );
 CREATE TABLE evals (
@@ -82,41 +82,41 @@ CREATE TABLE cases (
   name TEXT, outcome TEXT, verdict TEXT, pass_at_1 REAL, fingerprint TEXT, excluded TEXT,
   PRIMARY KEY (run_id, eval_key, case_key)
 );
--- Each cell of each case: its passes and counted attempts.
+-- Each cell of each case: its passes and counted trials.
 CREATE TABLE case_rates (
   run_id TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL, case_key TEXT NOT NULL,
   case_index INTEGER, pass INTEGER, counted INTEGER, pass_at_1 REAL, outcome TEXT,
   PRIMARY KEY (run_id, eval_key, cell_key, case_key)
 );
--- Each check (assertion label) per cell of each case, over that case's counted attempts.
+-- Each check (assertion label) per cell of each case, over that case's counted trials.
 CREATE TABLE case_checks (
   run_id TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL, case_key TEXT NOT NULL,
   label TEXT NOT NULL, pass INTEGER, fail INTEGER, error INTEGER, not_run INTEGER,
   not_applicable INTEGER
 );
--- Every answer to a question asked of one attempt on its own (one without across): the choice it
+-- Every answer to a question asked of one trial on its own (one without across): the choice it
 -- picked when the question has choices, its text, or the error when the call failed.
-CREATE TABLE attempt_answers_m (
-  run_id TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL, attempt_key TEXT NOT NULL,
-  attempt_id TEXT, outcome TEXT, question TEXT NOT NULL, choice TEXT, text TEXT, error TEXT,
+CREATE TABLE trial_answers_m (
+  run_id TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL, trial_key TEXT NOT NULL,
+  trial_id TEXT, outcome TEXT, question TEXT NOT NULL, choice TEXT, text TEXT, error TEXT,
   model TEXT, resolved_model TEXT, input_path TEXT, case_key TEXT
 );
--- Every c.observe(name, value) an attempt made, its last value per name: the JSON as text, its
+-- Every c.observe(name, value) a trial made, its last value per name: the JSON as text, its
 -- kind, and the value again as num when it's a number and as text when it's a string. A value
 -- over 4 KiB is kind 'file', with no value and its JSON's file_path in the run's folder.
-CREATE TABLE attempt_values_m (
-  run_id TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL, attempt_key TEXT NOT NULL,
-  attempt_id TEXT, outcome TEXT, name TEXT NOT NULL, value TEXT, kind TEXT, num REAL, text TEXT,
+CREATE TABLE trial_values_m (
+  run_id TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL, trial_key TEXT NOT NULL,
+  trial_id TEXT, outcome TEXT, name TEXT NOT NULL, value TEXT, kind TEXT, num REAL, text TEXT,
   turn INTEGER, file_path TEXT, case_key TEXT
 );
--- Each key of the meta an EvalError the task threw carried, as attempt_values_m holds a value:
+-- Each key of the meta an EvalError the task threw carried, as trial_values_m holds a value:
 -- the JSON as text, its kind, num for a number and text for a string.
 CREATE TABLE failure_meta_m (
-  run_id TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL, attempt_key TEXT NOT NULL,
-  attempt_id TEXT, outcome TEXT, key TEXT NOT NULL, value TEXT, kind TEXT, num REAL, text TEXT,
+  run_id TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL, trial_key TEXT NOT NULL,
+  trial_id TEXT, outcome TEXT, key TEXT NOT NULL, value TEXT, kind TEXT, num REAL, text TEXT,
   turn INTEGER, case_key TEXT
 );
--- Every pairwise question's vote: a pair of sides (arms within a harness, harnesses across an arm)
+-- Every pairwise question's vote: a pair of sides (environments within a harness, harnesses across an environment)
 -- on one run, shown in one order (swapped = 1: b first), and the side picked or 'tie'.
 CREATE TABLE votes (
   run_id TEXT NOT NULL, eval_key TEXT NOT NULL, question TEXT NOT NULL, cut TEXT, held TEXT,
@@ -130,18 +130,18 @@ CREATE TABLE question_pairs_m (
   a TEXT, b TEXT, pairs INTEGER, a_wins INTEGER, b_wins INTEGER, ties INTEGER, splits INTEGER,
   splits_first INTEGER, case_key TEXT
 );
--- Each variant against its control on every measure: one row per measure (pass, check, judge,
+-- Each variant against its baseline on every measure: one row per measure (pass, check, judge,
 -- question, tools, agentMs, tokens) and label, per eval per run.
 CREATE TABLE measure_effects_m (
   run_id TEXT NOT NULL, eval_key TEXT NOT NULL, pooled INTEGER, agent TEXT, variant TEXT,
-  cell_key TEXT, control TEXT, measure TEXT, label TEXT, variant_value REAL,
-  control_value REAL, estimate REAL, lo REAL, hi REAL, p REAL, verdict TEXT, leaning TEXT,
+  cell_key TEXT, baseline TEXT, measure TEXT, label TEXT, variant_value REAL,
+  baseline_value REAL, estimate REAL, lo REAL, hi REAL, p REAL, verdict TEXT, leaning TEXT,
   text TEXT, needed INTEGER, unit TEXT
 );
 CREATE TABLE case_lift_m (
   run_id TEXT NOT NULL, eval_key TEXT NOT NULL, name TEXT, agent TEXT, variant TEXT,
-  cell_key TEXT, control TEXT,
-  pairs INTEGER, variant_pass_at_1 REAL, control_pass_at_1 REAL, discordant_vc INTEGER,
+  cell_key TEXT, baseline TEXT,
+  pairs INTEGER, variant_pass_at_1 REAL, baseline_pass_at_1 REAL, discordant_vc INTEGER,
   discordant_cv INTEGER, points REAL, lo REAL, hi REAL, method TEXT, p REAL,
   within_noise INTEGER, verdict TEXT, min_lift REAL, outcome TEXT, tools_ratio REAL,
   tools_p REAL, effort_verdict TEXT, agent_s_ratio REAL, agent_s_p REAL, time_verdict TEXT,
@@ -154,13 +154,13 @@ CREATE TABLE cells (
   ${Object.values(PART_COLUMNS)
     .map(([, col]) => `${col} TEXT`)
     .join(', ')},
-  runs INTEGER, pass INTEGER, fail INTEGER, infra_error INTEGER, skipped INTEGER, pass_at_1 REAL,
+  trials INTEGER, pass INTEGER, fail INTEGER, infra_error INTEGER, skipped INTEGER, pass_at_1 REAL,
   outcome TEXT, lift_vs TEXT, lift_points REAL, lift_lo REAL, lift_hi REAL, within_noise INTEGER,
   min_lift REAL, comparable TEXT, cases INTEGER, rate_lo REAL, rate_hi REAL, rate_method TEXT,
   mean_score REAL, pass_at_k REAL, pass_hat_k REAL,
   PRIMARY KEY (run_id, eval_key, key)
 );
-CREATE TABLE attempts (
+CREATE TABLE trials (
   run_id TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL, key TEXT NOT NULL,
   id TEXT, n INTEGER, seq INTEGER, started_at TEXT, outcome TEXT, error_kind TEXT,
   error_message TEXT, duration_ms INTEGER, image_id TEXT, turns INTEGER, tools INTEGER,
@@ -177,10 +177,10 @@ CREATE TABLE attempts (
   PRIMARY KEY (run_id, key)
 );
 CREATE TABLE judgements (
-  run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, key TEXT NOT NULL, question TEXT,
+  run_id TEXT NOT NULL, trial_key TEXT NOT NULL, key TEXT NOT NULL, question TEXT,
   verdict TEXT, score REAL, threshold REAL, model TEXT, resolved_model TEXT, input_path TEXT,
   cost_usd REAL, cost_basis TEXT,
-  PRIMARY KEY (run_id, attempt_key, key)
+  PRIMARY KEY (run_id, trial_key, key)
 );
 CREATE TABLE environments (
   run_id TEXT NOT NULL, name TEXT NOT NULL, digest TEXT NOT NULL, parent TEXT, overrides TEXT,
@@ -192,30 +192,30 @@ CREATE TABLE env_skills (
   PRIMARY KEY (run_id, environment, digest, name)
 );
 CREATE TABLE artifacts (
-  run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, kind TEXT NOT NULL, path TEXT NOT NULL,
+  run_id TEXT NOT NULL, trial_key TEXT NOT NULL, kind TEXT NOT NULL, path TEXT NOT NULL,
   sha256 TEXT, bytes INTEGER
 );
 -- What the agent could see, by content hash; runtime = 1 for an agent CLI's own session state,
 -- declared = 1 for a file the environment declared (its skills' files, rules and config).
-CREATE TABLE attempt_context (
-  run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, path TEXT NOT NULL, sha256 TEXT, runtime INTEGER,
+CREATE TABLE trial_context (
+  run_id TEXT NOT NULL, trial_key TEXT NOT NULL, path TEXT NOT NULL, sha256 TEXT, runtime INTEGER,
   declared INTEGER
 );
--- Every tool call in each attempt's trajectory: its line in trajectory.jsonl (from 1), target,
+-- Every tool call in each trial's trajectory: its line in trajectory.jsonl (from 1), target,
 -- ok (null when the harness never reported its result), class (context, dependency, web,
 -- verify or workspace: a heuristic, see tool-class.ts) and subagent (the id of the subagent that
 -- made it, as in subagents; null for the agent's own).
 CREATE TABLE tool_calls (
-  run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, line INTEGER NOT NULL, turn INTEGER,
+  run_id TEXT NOT NULL, trial_key TEXT NOT NULL, line INTEGER NOT NULL, turn INTEGER,
   tool TEXT, target TEXT, ok INTEGER, duration_ms INTEGER, class TEXT, subagent TEXT
 );
--- Each subagent an attempt spawned (n from 1 in spawn order, turn from 0 as in tool_calls): id is
+-- Each subagent a trial spawned (n from 1 in spawn order, turn from 0 as in tool_calls): id is
 -- its spawn call's toolCallId, parent the id of the subagent that spawned it. status is null when
 -- unknown or the turn ended first. events is streamed (its own calls are in tool_calls) or none (only its spawn
 -- call and result are); tool_calls and file_edits are null then. Its tokens are its own model
 -- calls', its own subagents' left out; null when its harness doesn't report them apart.
 CREATE TABLE subagents (
-  run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, n INTEGER NOT NULL, id TEXT NOT NULL,
+  run_id TEXT NOT NULL, trial_key TEXT NOT NULL, n INTEGER NOT NULL, id TEXT NOT NULL,
   turn INTEGER, parent TEXT, agent TEXT, model TEXT, status TEXT, duration_ms INTEGER,
   background INTEGER, events TEXT, tool_calls INTEGER, file_edits INTEGER, input_tokens INTEGER,
   output_tokens INTEGER, cache_read_tokens INTEGER, cache_write_tokens INTEGER,
@@ -223,7 +223,7 @@ CREATE TABLE subagents (
 );
 -- Each placed file a tool call named (directly or through a glob), by the call's line.
 CREATE TABLE context_reads (
-  run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, line INTEGER NOT NULL, path TEXT NOT NULL
+  run_id TEXT NOT NULL, trial_key TEXT NOT NULL, line INTEGER NOT NULL, path TEXT NOT NULL
 );
 -- Each skill a tool call used, by the call's line: a load by name (Claude Code's Skill, OpenCode's
 -- and fx's skill, Goose's load_skill) or a target under skills/<name>. source: placed (by the
@@ -231,65 +231,65 @@ CREATE TABLE context_reads (
 -- skill directory some agent reads: a setup step, the workspace or a package manager put it there)
 -- or elsewhere (a skills/<name>/SKILL.md read anywhere else, such as a package cache).
 CREATE TABLE skill_uses (
-  run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, line INTEGER NOT NULL, skill TEXT NOT NULL,
+  run_id TEXT NOT NULL, trial_key TEXT NOT NULL, line INTEGER NOT NULL, skill TEXT NOT NULL,
   source TEXT NOT NULL
 );
--- Each skill an attempt had or used that its environment didn't place: in an agent's skill
+-- Each skill a trial had or used that its environment didn't place: in an agent's skill
 -- directory when the context was taken (source skill-dir, with its SKILL.md's path), or only seen
 -- in a tool call (that call's source, and a null path).
 CREATE TABLE found_skills (
-  run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, skill TEXT NOT NULL, source TEXT NOT NULL,
+  run_id TEXT NOT NULL, trial_key TEXT NOT NULL, skill TEXT NOT NULL, source TEXT NOT NULL,
   path TEXT
 );
--- Each stdio MCP server start in each attempt's turns (turn from 1): ms from spawning it to its
+-- Each stdio MCP server start in each trial's turns (turn from 1): ms from spawning it to its
 -- answer to initialize, null when it never answered.
 CREATE TABLE mcp_startup (
-  run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, turn INTEGER NOT NULL, server TEXT NOT NULL, ms INTEGER
+  run_id TEXT NOT NULL, trial_key TEXT NOT NULL, turn INTEGER NOT NULL, server TEXT NOT NULL, ms INTEGER
 );
--- Every expect / expect.require matcher call each attempt of an older reeval made, in call order (seq from 1).
+-- Every expect / expect.require matcher call each trial of an older reeval made, in call order (seq from 1).
 CREATE TABLE assertions (
-  run_id TEXT NOT NULL, attempt_key TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL,
+  run_id TEXT NOT NULL, trial_key TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL,
   seq INTEGER NOT NULL, label TEXT NOT NULL, labelled INTEGER, matcher TEXT, status TEXT,
   soft INTEGER, message TEXT, duration_ms INTEGER
 );
--- Each check (assertion label) per cell over its counted attempts; on a variant, its control's too.
+-- Each check (assertion label) per cell over its counted trials; on a variant, its baseline's too.
 CREATE TABLE cell_checks (
   run_id TEXT NOT NULL, eval_key TEXT NOT NULL, cell_key TEXT NOT NULL, label TEXT NOT NULL,
   pass INTEGER, fail INTEGER, error INTEGER, not_run INTEGER, not_applicable INTEGER,
-  control_pass INTEGER, control_fail INTEGER, control_error INTEGER, control_not_run INTEGER,
-  control_not_applicable INTEGER, verdict TEXT
+  baseline_pass INTEGER, baseline_fail INTEGER, baseline_error INTEGER, baseline_not_run INTEGER,
+  baseline_not_applicable INTEGER, verdict TEXT
 );
 ${DERIVED_TABLES}
-CREATE INDEX assertions_by_attempt ON assertions (run_id, attempt_key);
+CREATE INDEX assertions_by_trial ON assertions (run_id, trial_key);
 CREATE INDEX cells_by_eval ON cells (eval_key, key);
-CREATE INDEX tool_calls_by_attempt ON tool_calls (run_id, attempt_key);
-CREATE INDEX context_by_attempt ON attempt_context (run_id, attempt_key);
-CREATE INDEX context_reads_by_attempt ON context_reads (run_id, attempt_key);
-CREATE INDEX skill_uses_by_attempt ON skill_uses (run_id, attempt_key);
-CREATE INDEX found_skills_by_attempt ON found_skills (run_id, attempt_key);
-CREATE INDEX attempts_by_cell ON attempts (run_id, eval_key, cell_key);
+CREATE INDEX tool_calls_by_trial ON tool_calls (run_id, trial_key);
+CREATE INDEX context_by_trial ON trial_context (run_id, trial_key);
+CREATE INDEX context_reads_by_trial ON context_reads (run_id, trial_key);
+CREATE INDEX skill_uses_by_trial ON skill_uses (run_id, trial_key);
+CREATE INDEX found_skills_by_trial ON found_skills (run_id, trial_key);
+CREATE INDEX trials_by_cell ON trials (run_id, eval_key, cell_key);
 `
 
 /** Canned questions about the history, as views to filter. */
 const VIEWS = `
--- Variant against control, per agent, per run; points is the difference in mean score.
+-- Variant against baseline, per agent, per run; points is the difference in mean score.
 CREATE VIEW lift AS
   SELECT c.run_id, r.started_at, r.branch, c.eval_key, c.agent, c.model, c.variant,
-    c.lift_vs AS control, c.pass AS variant_pass, c.pass + c.fail AS variant_counted,
-    k.pass AS control_pass, k.pass + k.fail AS control_counted, c.pass_at_1 AS variant_pass_at_1,
-    k.pass_at_1 AS control_pass_at_1, c.mean_score AS variant_mean_score,
-    k.mean_score AS control_mean_score, c.lift_points AS points,
+    c.lift_vs AS baseline, c.pass AS variant_pass, c.pass + c.fail AS variant_counted,
+    k.pass AS baseline_pass, k.pass + k.fail AS baseline_counted, c.pass_at_1 AS variant_pass_at_1,
+    k.pass_at_1 AS baseline_pass_at_1, c.mean_score AS variant_mean_score,
+    k.mean_score AS baseline_mean_score, c.lift_points AS points,
     c.lift_lo AS lo, c.lift_hi AS hi, c.within_noise, c.min_lift, c.outcome, c.fingerprint
   FROM cells c JOIN runs r USING (run_id)
   JOIN cells k ON k.run_id = c.run_id AND k.eval_key = c.eval_key AND k.key = c.lift_vs
   WHERE c.role = 'variant';
 
--- Each variant against its control over an eval's cases, paired by case, per run.
+-- Each variant against its baseline over an eval's cases, paired by case, per run.
 CREATE VIEW case_lift AS
   SELECT f.*, r.started_at, r.branch
   FROM case_lift_m f JOIN runs r USING (run_id);
 
--- Each variant against its control on every measure, one row per measure, per eval (pooled = 1:
+-- Each variant against its baseline on every measure, one row per measure, per eval (pooled = 1:
 -- over its cases, on an eval with several) per run: verdict better or worse when the measure's own test holds,
 -- same at no difference, leans at a difference it doesn't hold; needed the runs (unit) to hold it.
 CREATE VIEW measure_effects AS
@@ -297,7 +297,7 @@ CREATE VIEW measure_effects AS
   FROM measure_effects_m m JOIN runs r USING (run_id);
 
 -- Cells with mixed outcomes, pooled over runs whose fingerprints match once agent runtime state is
--- left out; 'flaky' needs FLAKY_MIN_ATTEMPTS counted attempts, else 'mixed'.
+-- left out; 'flaky' needs FLAKY_MIN_TRIALS counted trials, else 'mixed'.
 CREATE VIEW flaky_cells AS SELECT * FROM flaky_m;
 
 -- Each run where a cell's fingerprint differs from its previous run: which parts, which context
@@ -310,34 +310,34 @@ CREATE VIEW drift AS SELECT * FROM drift_m;
 CREATE VIEW check_streaks AS SELECT * FROM check_streaks_m;
 
 -- Tool calls, agent time and where it went (model, tool, waiting, other), and tokens per cell, and
--- a variant's against its control in the same run.
+-- a variant's against its baseline in the same run.
 CREATE VIEW effort AS SELECT * FROM effort_m;
 
--- Each pair of arms (cells a and b) on one harness and sandbox, when an eval has two variants or
+-- Each pair of environments (cells a and b) on one harness and sandbox, when an eval has two variants or
 -- more: pass@1 lift of a over b, effort with its verdicts and separation, and the checks that
--- tell them apart. A variant against its control is here too; gating stays variant vs control.
+-- tell them apart. A variant against its baseline is here too; gating stays variant vs baseline.
 CREATE VIEW contrasts AS SELECT * FROM contrasts_m;
 
--- Each answer to a question asked of each attempt on its own, with the attempt's outcome and
--- cell: tally the choices with GROUP BY question, choice, or split them by harness or arm.
-CREATE VIEW attempt_answers AS
+-- Each answer to a question asked of each trial on its own, with the trial's outcome and
+-- cell: tally the choices with GROUP BY question, choice, or split them by harness or environment.
+CREATE VIEW trial_answers AS
   SELECT q.*, c.agent, c.environment, c.role, r.started_at, r.branch
-  FROM attempt_answers_m q JOIN runs r USING (run_id)
+  FROM trial_answers_m q JOIN runs r USING (run_id)
   JOIN cells c ON c.run_id = q.run_id AND c.eval_key = q.eval_key AND c.key = q.cell_key;
 
--- Each value an attempt observed with c.observe, with the attempt's outcome and cell: tally text
+-- Each value a trial observed with c.observe, with the trial's outcome and cell: tally text
 -- with GROUP BY name, text, summarize num, or read an array's items with json_each(value).
-CREATE VIEW attempt_values AS
+CREATE VIEW trial_values AS
   SELECT v.*, c.agent, c.environment, c.role, c.variant, r.started_at, r.branch
-  FROM attempt_values_m v JOIN runs r USING (run_id)
+  FROM trial_values_m v JOIN runs r USING (run_id)
   JOIN cells c ON c.run_id = v.run_id AND c.eval_key = v.eval_key AND c.key = v.cell_key;
 
--- Each key of the meta an attempt's EvalError carried, with the attempt's outcome and cell, its
+-- Each key of the meta a trial's EvalError carried, with the trial's outcome and cell, its
 -- reason beside it, and the turn the task threw after.
 CREATE VIEW failure_meta AS
   SELECT m.*, a.reason, c.agent, c.environment, c.role, c.variant, r.started_at, r.branch
   FROM failure_meta_m m JOIN runs r USING (run_id)
-  JOIN attempts a ON a.run_id = m.run_id AND a.key = m.attempt_key
+  JOIN trials a ON a.run_id = m.run_id AND a.key = m.trial_key
   JOIN cells c ON c.run_id = m.run_id AND c.eval_key = m.eval_key AND c.key = m.cell_key;
 
 -- Each pairwise question's pairs of sides, head to head: wins when both orders agree, and splits
@@ -349,10 +349,10 @@ CREATE VIEW question_pairs AS SELECT * FROM question_pairs_m;
 -- observed (over time), not_measured (one level).
 CREATE VIEW factor_effects AS SELECT * FROM factor_effects_m;
 
--- Whether each attempt read each skill it had, and at which trajectory line: the tool calls
+-- Whether each trial read each skill it had, and at which trajectory line: the tool calls
 -- skill_uses has for it. A cell's skills are the ones its environment placed (source placed, with
--- their placement) and the ones any of its attempts found (skill-dir or elsewhere, as found_skills
--- has them), so a found skill an attempt never opened reads 0. An attempt whose record has tool
+-- their placement) and the ones any of its trials found (skill-dir or elsewhere, as found_skills
+-- has them), so a found skill a trial never opened reads 0. A trial whose record has tool
 -- calls but whose trajectory wasn't kept (or couldn't be read) is left out: unknown, not unread.
 CREATE VIEW skill_reads AS
   WITH skills AS (
@@ -363,76 +363,76 @@ CREATE VIEW skill_reads AS
     UNION ALL
     SELECT a.run_id, a.eval_key, a.cell_key, f.skill, NULL AS placement,
       CASE WHEN MAX(f.source = 'skill-dir') THEN 'skill-dir' ELSE 'elsewhere' END AS source
-    FROM found_skills f JOIN attempts a ON a.run_id = f.run_id AND a.key = f.attempt_key
+    FROM found_skills f JOIN trials a ON a.run_id = f.run_id AND a.key = f.trial_key
     GROUP BY a.run_id, a.eval_key, a.cell_key, f.skill
   )
-  SELECT a.run_id, a.eval_key, a.cell_key, a.key AS attempt_key, a.id AS attempt_id, c.variant,
+  SELECT a.run_id, a.eval_key, a.cell_key, a.key AS trial_key, a.id AS trial_id, c.variant,
     s.skill, s.placement, s.source,
-    (SELECT MIN(u.line) FROM skill_uses u WHERE u.run_id = a.run_id AND u.attempt_key = a.key
+    (SELECT MIN(u.line) FROM skill_uses u WHERE u.run_id = a.run_id AND u.trial_key = a.key
       AND u.skill = s.skill) AS read_line,
-    (SELECT COUNT(*) FROM skill_uses u WHERE u.run_id = a.run_id AND u.attempt_key = a.key
+    (SELECT COUNT(*) FROM skill_uses u WHERE u.run_id = a.run_id AND u.trial_key = a.key
       AND u.skill = s.skill) AS reads
-  FROM attempts a
+  FROM trials a
   JOIN cells c ON c.run_id = a.run_id AND c.eval_key = a.eval_key AND c.key = a.cell_key
   JOIN skills s ON s.run_id = a.run_id AND s.eval_key = a.eval_key AND s.cell_key = a.cell_key
   WHERE a.tools = 0
-    OR EXISTS (SELECT 1 FROM tool_calls t WHERE t.run_id = a.run_id AND t.attempt_key = a.key);
+    OR EXISTS (SELECT 1 FROM tool_calls t WHERE t.run_id = a.run_id AND t.trial_key = a.key);
 
--- Tool calls per attempt by class: context (a skill, placed or found, a rules file or other
+-- Tool calls per trial by class: context (a skill, placed or found, a rules file or other
 -- placed file, an MCP tool of the environment), dependency (node_modules, site-packages, vendor,
 -- --help), web, verify (a command the eval's checks run, or test/build/lint/tsc) and workspace.
 -- A heuristic: shell commands are split into words and exclusions are not counted.
 CREATE VIEW context_use AS
-  SELECT a.run_id, a.eval_key, a.cell_key, c.environment, a.key AS attempt_key, a.id AS attempt_id,
+  SELECT a.run_id, a.eval_key, a.cell_key, c.environment, a.key AS trial_key, a.id AS trial_id,
     t.class, COUNT(*) AS calls, MIN(t.line) AS first_line,
-    (SELECT x.target FROM tool_calls x WHERE x.run_id = a.run_id AND x.attempt_key = a.key
+    (SELECT x.target FROM tool_calls x WHERE x.run_id = a.run_id AND x.trial_key = a.key
       AND x.class = t.class ORDER BY x.line LIMIT 1) AS example
   FROM tool_calls t
-  JOIN attempts a ON a.run_id = t.run_id AND a.key = t.attempt_key
+  JOIN trials a ON a.run_id = t.run_id AND a.key = t.trial_key
   JOIN cells c ON c.run_id = a.run_id AND c.eval_key = a.eval_key AND c.key = a.cell_key
   GROUP BY a.run_id, a.key, t.class;
 
--- Each file the environment declared (its skills' files, rules), per attempt: how many tool calls
+-- Each file the environment declared (its skills' files, rules), per trial: how many tool calls
 -- named it, directly or through a glob, and the first one's trajectory line (null: never read).
--- Left out, like skill_reads, for an attempt whose tool calls weren't read from a trajectory.
+-- Left out, like skill_reads, for a trial whose tool calls weren't read from a trajectory.
 CREATE VIEW skill_files AS
-  SELECT a.run_id, a.eval_key, a.cell_key, c.environment, a.key AS attempt_key,
-    a.id AS attempt_id, x.path,
-    (SELECT COUNT(*) FROM context_reads r WHERE r.run_id = a.run_id AND r.attempt_key = a.key
+  SELECT a.run_id, a.eval_key, a.cell_key, c.environment, a.key AS trial_key,
+    a.id AS trial_id, x.path,
+    (SELECT COUNT(*) FROM context_reads r WHERE r.run_id = a.run_id AND r.trial_key = a.key
       AND r.path = x.path) AS reads,
-    (SELECT MIN(r.line) FROM context_reads r WHERE r.run_id = a.run_id AND r.attempt_key = a.key
+    (SELECT MIN(r.line) FROM context_reads r WHERE r.run_id = a.run_id AND r.trial_key = a.key
       AND r.path = x.path) AS first_line
-  FROM attempt_context x
-  JOIN attempts a ON a.run_id = x.run_id AND a.key = x.attempt_key
+  FROM trial_context x
+  JOIN trials a ON a.run_id = x.run_id AND a.key = x.trial_key
   JOIN cells c ON c.run_id = a.run_id AND c.eval_key = a.eval_key AND c.key = a.cell_key
   WHERE x.declared = 1 AND (a.tools = 0
-    OR EXISTS (SELECT 1 FROM tool_calls t WHERE t.run_id = a.run_id AND t.attempt_key = a.key));
+    OR EXISTS (SELECT 1 FROM tool_calls t WHERE t.run_id = a.run_id AND t.trial_key = a.key));
 
--- Failed attempts and infra errors (an OOM kill among them) with the cell's harness, model, each
+-- Failed trials and infra errors (an OOM kill among them) with the cell's harness, model, each
 -- of its environment's skills, the reason the task threw (an EvalError's, or another error's
 -- message) and the label of the first check that failed.
-CREATE VIEW failing_attempts AS
-  SELECT a.run_id, r.started_at, a.eval_key, a.key AS attempt_key, a.cell_key, c.agent,
+CREATE VIEW failing_trials AS
+  SELECT a.run_id, r.started_at, a.eval_key, a.key AS trial_key, a.cell_key, c.agent,
     c.model, c.environment, s.name AS skill, a.outcome, a.score, a.error_kind, a.error_message,
     a.reason, a.duration_ms, a.oom_kills,
-    (SELECT x.label FROM assertions x WHERE x.run_id = a.run_id AND x.attempt_key = a.key
+    (SELECT x.label FROM assertions x WHERE x.run_id = a.run_id AND x.trial_key = a.key
       AND x.status = 'fail' ORDER BY x.seq LIMIT 1) AS first_failed_check
-  FROM attempts a JOIN runs r USING (run_id)
+  FROM trials a JOIN runs r USING (run_id)
   JOIN cells c ON c.run_id = a.run_id AND c.eval_key = a.eval_key AND c.key = a.cell_key
   LEFT JOIN env_skills s ON s.run_id = c.run_id AND s.environment = c.environment
     AND s.digest = c.environment_digest
   WHERE a.outcome IN ('fail', 'infra_error');
 
--- Each attempt's machine (its sandbox's provider and size, and the vCPUs and memory it gave) and
--- what the attempt used there: CPU seconds, average, 95th percentile and peak cores, peak memory,
+-- Each trial's machine (its sandbox's provider and size, and the vCPUs and memory it gave) and
+-- what the trial used there: CPU seconds, average, 95th percentile and peak cores, peak memory,
 -- a container's cgroup memory.peak and CPU throttling, and a VM's disk bytes; cpu_share and
 -- memory_share are average cores and peak memory over what it gave, throttled_share the share of
 -- a container's quota periods the quota held it back in. scope
 -- container counts the container's own processes, machine the whole VM. The fake sandbox's
--- attempts are left out; one whose sandbox had nothing to read (cgroup v1, a macOS VM) has its
+-- trials are left out; one whose sandbox had nothing to read (cgroup v1, a macOS VM) has its
 -- machine and null usage.
-CREATE VIEW attempt_resources AS
-  SELECT a.run_id, r.started_at, a.eval_key, a.cell_key, a.key AS attempt_key, c.agent,
+CREATE VIEW trial_resources AS
+  SELECT a.run_id, r.started_at, a.eval_key, a.cell_key, a.key AS trial_key, c.agent,
     c.model, c.environment, c.sandbox, a.resource_scope AS scope, a.machine_size,
     a.machine_vcpus, a.machine_memory_bytes, a.outcome, a.duration_ms, a.cpu_seconds,
     a.avg_cores, a.p95_cores, a.peak_cores, a.peak_memory_bytes, a.cgroup_peak_memory_bytes,
@@ -440,21 +440,21 @@ CREATE VIEW attempt_resources AS
     a.disk_write_bytes, a.avg_cores / a.machine_vcpus AS cpu_share,
     CAST(a.peak_memory_bytes AS REAL) / a.machine_memory_bytes AS memory_share,
     CAST(a.throttled_periods AS REAL) / NULLIF(a.cpu_periods, 0) AS throttled_share
-  FROM attempts a JOIN runs r USING (run_id)
+  FROM trials a JOIN runs r USING (run_id)
   JOIN cells c ON c.run_id = a.run_id AND c.eval_key = a.eval_key AND c.key = a.cell_key
   WHERE a.resource_scope IS NOT NULL;
 
--- Each check of a variant cell beside its control's: whether it tells them apart.
+-- Each check of a variant cell beside its baseline's: whether it tells them apart.
 CREATE VIEW check_discrimination AS
   SELECT k.run_id, k.eval_key, c.agent, c.variant, c.key AS cell_key, k.label,
     k.pass AS variant_pass, k.fail AS variant_fail, k.not_run AS variant_not_run,
-    k.control_pass, k.control_fail, k.control_not_run, k.verdict
+    k.baseline_pass, k.baseline_fail, k.baseline_not_run, k.verdict
   FROM cell_checks k
   JOIN cells c ON c.run_id = k.run_id AND c.eval_key = k.eval_key AND c.key = k.cell_key
   WHERE c.role = 'variant' AND k.verdict IS NOT NULL;
 
--- Each check (an older reeval's expect label) per cell per run, on every cell (control and variant alike), over the
--- cell's counted attempts. rate = pass / (pass + fail): an error (the matcher couldn't answer) and
+-- Each check (an older reeval's expect label) per cell per run, on every cell (baseline and variant alike), over the
+-- cell's counted trials. rate = pass / (pass + fail): an error (the matcher couldn't answer) and
 -- a not-run (an expect.require or a thrown error before it ended the body) are left out; null when neither passed nor failed.
 CREATE VIEW check_rates AS
   SELECT k.run_id, k.eval_key, k.cell_key, c.agent, c.environment, c.role, k.label, k.pass,
@@ -474,7 +474,7 @@ CREATE VIEW verdict_flips AS
   WITH rates AS (
     SELECT j.run_id, a.eval_key, a.cell_key, j.key AS judgment_key, j.question,
       AVG(j.verdict = 'pass') AS pass_rate, COUNT(*) AS n
-    FROM judgements j JOIN attempts a ON a.run_id = j.run_id AND a.key = j.attempt_key
+    FROM judgements j JOIN trials a ON a.run_id = j.run_id AND a.key = j.trial_key
     GROUP BY j.run_id, a.eval_key, a.cell_key, j.key
   ), ordered AS (
     SELECT *, LAG(pass_rate) OVER w AS prev_pass_rate, LAG(run_id) OVER w AS prev_run_id
@@ -491,8 +491,8 @@ export const VIEW_NAMES = [
   'effort',
   'contrasts',
   'question_pairs',
-  'attempt_answers',
-  'attempt_values',
+  'trial_answers',
+  'trial_values',
   'failure_meta',
   'factor_effects',
   'measure_effects',
@@ -501,8 +501,8 @@ export const VIEW_NAMES = [
   'skill_files',
   'flaky_cells',
   'drift',
-  'failing_attempts',
-  'attempt_resources',
+  'failing_trials',
+  'trial_resources',
   'eval_trend',
   'verdict_flips',
   'check_discrimination',
@@ -512,22 +512,22 @@ export const VIEW_NAMES = [
 
 const json = (value: unknown) => JSON.stringify(value)
 
-/** An observed value's JSON kind, as `attempt_values.kind` names it. */
+/** An observed value's JSON kind, as `trial_values.kind` names it. */
 const valueKind = (value: JSONValue) =>
   value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value
 
-/** `attempts.last_text` is the agent's final message, capped: most "why" questions start there. */
+/** `trials.last_text` is the agent's final message, capped: most "why" questions start there. */
 export const LAST_TEXT_LIMIT = 2048
 
 /**
  * What a cell's results can be pooled on across runs: its fingerprint parts, with the context
  * part replaced by the context files that aren't an agent CLI's own runtime state, and without
- * the gate, which scores the attempts but doesn't change them.
+ * the gate, which scores the trials but doesn't change them.
  */
-export function comparableFingerprint(cell: CellRecord, attempts: AttemptRecord[]): string {
+export function comparableFingerprint(cell: CellRecord, trials: TrialRecord[]): string {
   const { context: _context, gate: _gate, ...parts } = cell.fingerprintParts
   const files = new Map<string, string>()
-  for (const a of attempts) {
+  for (const a of trials) {
     if (a.cell !== cell.key) continue
     for (const c of a.context) if (!isRuntimeState(c.path)) files.set(c.path, c.sha256)
   }
@@ -564,7 +564,7 @@ function insertRun(
     record.stack.judge.version,
     record.profile?.name ?? null,
     summary.evals,
-    summary.attempts,
+    summary.trials,
     summary.pass,
     summary.fail,
     summary.notGated,
@@ -696,7 +696,7 @@ function insertRun(
         typeof c.gate === 'string' ? null : c.gate.passRate,
         c.fingerprint,
         ...PART_KEYS.map((k) => p[k] ?? null),
-        c.runs,
+        c.trials,
         c.pass,
         c.fail,
         c.infraError,
@@ -709,7 +709,7 @@ function insertRun(
         c.lift?.interval.hi ?? null,
         c.lift ? (c.lift.withinNoise ? 1 : 0) : null,
         c.lift?.minLift ?? null,
-        comparableFingerprint(c, e.attempts),
+        comparableFingerprint(c, e.trials),
         c.rate?.cases ?? null,
         c.rate?.interval.lo ?? null,
         c.rate?.interval.hi ?? null,
@@ -730,11 +730,11 @@ function insertRun(
           k.error,
           k.notRun,
           k.notApplicable,
-          k.control?.pass ?? null,
-          k.control?.fail ?? null,
-          k.control?.error ?? null,
-          k.control?.notRun ?? null,
-          k.control?.notApplicable ?? null,
+          k.baseline?.pass ?? null,
+          k.baseline?.fail ?? null,
+          k.baseline?.error ?? null,
+          k.baseline?.notRun ?? null,
+          k.baseline?.notApplicable ?? null,
           k.verdict ?? null,
         )
       }
@@ -753,7 +753,7 @@ function insertRun(
           e.key,
           answer.question,
           v.cut,
-          v.harness ?? v.arm ?? null,
+          v.harness ?? v.environment ?? null,
           v.run,
           v.a,
           v.b,
@@ -783,9 +783,9 @@ function insertRun(
         )
       }
     }
-    for (const a of e.attempts) {
+    for (const a of e.trials) {
       run(
-        `INSERT INTO attempts VALUES (${Array(57).fill('?').join(', ')})`,
+        `INSERT INTO trials VALUES (${Array(57).fill('?').join(', ')})`,
         record.runId,
         e.key,
         a.cell,
@@ -848,7 +848,7 @@ function insertRun(
       const skills = env?.skills.map((x) => x.name) ?? []
       for (const c of a.context) {
         run(
-          'INSERT INTO attempt_context VALUES (?, ?, ?, ?, ?, ?)',
+          'INSERT INTO trial_context VALUES (?, ?, ?, ?, ?, ?)',
           record.runId,
           a.key,
           c.path,
@@ -911,7 +911,7 @@ function insertRun(
         )
       }
       const trajectory = trajectories.get(a.key)
-      const classified = classifyAttempt(
+      const classified = classifyTrial(
         a,
         { skills, mcp: env?.mcp ?? [] },
         trajectory === undefined ? undefined : trajectoryByLine(trajectory),
@@ -956,7 +956,7 @@ function insertRun(
       }
       for (const q of a.answers ?? []) {
         run(
-          `INSERT INTO attempt_answers_m VALUES (${Array(14).fill('?').join(', ')})`,
+          `INSERT INTO trial_answers_m VALUES (${Array(14).fill('?').join(', ')})`,
           record.runId,
           e.key,
           a.cell,
@@ -975,7 +975,7 @@ function insertRun(
       }
       for (const o of a.observations ?? []) {
         run(
-          `INSERT INTO attempt_values_m VALUES (${Array(14).fill('?').join(', ')})`,
+          `INSERT INTO trial_values_m VALUES (${Array(14).fill('?').join(', ')})`,
           record.runId,
           e.key,
           a.cell,
@@ -1078,9 +1078,9 @@ function insertRun(
         l.vs,
         l.pairs,
         l.variantRate,
-        l.controlRate,
+        l.baselineRate,
         l.discordant?.variantOnly ?? null,
-        l.discordant?.controlOnly ?? null,
+        l.discordant?.baselineOnly ?? null,
         l.points,
         l.interval.lo,
         l.interval.hi,
@@ -1110,7 +1110,7 @@ function insertMeasures(
   evalKey: string,
   pooled: boolean,
   cell: CellRecord | undefined,
-  control: string,
+  baseline: string,
   measures: readonly Measure[] | null,
 ): void {
   for (const m of measures ?? [])
@@ -1122,11 +1122,11 @@ function insertMeasures(
       cell?.harness ?? null,
       cell?.variant ?? cell?.environment ?? null,
       cell?.key ?? null,
-      control,
+      baseline,
       m.measure,
       m.label,
       m.variant,
-      m.control,
+      m.baseline,
       m.estimate,
       m.lo,
       m.hi,
@@ -1146,18 +1146,18 @@ const DATA_TABLES = [
   'cases',
   'case_rates',
   'case_lift_m',
-  'attempt_answers_m',
-  'attempt_values_m',
+  'trial_answers_m',
+  'trial_values_m',
   'failure_meta_m',
   'votes',
   'question_pairs_m',
   'cells',
-  'attempts',
+  'trials',
   'judgements',
   'environments',
   'env_skills',
   'artifacts',
-  'attempt_context',
+  'trial_context',
   'tool_calls',
   'subagents',
   'context_reads',
@@ -1205,11 +1205,11 @@ function current(db: DatabaseSync): boolean {
   }
 }
 
-/** Each attempt's trajectory.jsonl, by attempt key, where the run kept it. */
+/** Each trial's trajectory.jsonl, by trial key, where the run kept it. */
 async function readTrajectories(dir: string, record: RunRecord): Promise<Map<string, string>> {
   const out = new Map<string, string>()
   for (const e of record.evals) {
-    for (const a of e.attempts) {
+    for (const a of e.trials) {
       const ref = a.files.trajectory
       if (!ref) continue
       const text = await readFile(join(dir, record.runId, ...ref.path.split('/')), 'utf8').catch(

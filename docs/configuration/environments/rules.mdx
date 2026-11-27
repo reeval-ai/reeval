@@ -1,15 +1,15 @@
 ---
 title: "Add project rules"
-description: "Give the harness project instructions it reads at the start of every attempt."
+description: "Give the harness project instructions it reads at the start of every trial."
 ---
 
-The `rules` field holds project instructions for the harness. reeval writes them into the file the harness reads at the start of every attempt, such as the `AGENTS.md` file. For more information about the file each harness reads, see [Rules and skills](/reference/options#rules-and-skills).
+The `rules` field holds project instructions for the harness. reeval writes them into the file the harness reads at the start of every trial, such as the `AGENTS.md` file. For more information about the file each harness reads, see [Rules and skills](/reference/options#rules-and-skills).
 
-You extend the `plain` environment in the `evals/environments.ts` file with a variant, `with-rules`. A comparison between the control and the variant shows whether the rules helped.
+You extend the `plain` environment in the `evals/environments.ts` file with a variant, `with-rules`. A comparison between the baseline and the variant shows whether the rules helped.
 
 ## Write rules
 
-In the `evals/environments.ts` file, declare the control and set `rules` to the instructions as a string.
+In the `evals/environments.ts` file, declare the baseline and set `rules` to the instructions as a string.
 
 ```ts title="evals/environments.ts"
 import { defineEnvironment } from '{{ pkg }}'
@@ -38,7 +38,7 @@ export const withRules = plain.extendEnvironment('with-rules', ({ file }) => ({
 }))
 ```
 
-reeval resolves the path against the `evals/environments.ts` file. reeval reads the `rules/sdk.md` file when the attempt starts, so the next run uses edits to that file without a change to the environment.
+reeval resolves the path against the `evals/environments.ts` file. reeval reads the `rules/sdk.md` file when the trial starts, so the next run uses edits to that file without a change to the environment.
 
 To check that reeval wrote the rules, grade the `AGENTS.md` file with the `hasFile` grader from `{{ pkg }}/graders`.
 

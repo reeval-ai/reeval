@@ -1,8 +1,8 @@
 # with-budget
 
 **Shows:** capping a run before it starts and while it runs. The agent adds `multiply(a, b)` to a
-small package, three times. `budget.attempts` refuses a plan that's too big before anything runs,
-`--force` runs it anyway, and `budget.duration` skips the attempts still queued when time runs
+small package, three times. `budget.trials` refuses a plan that's too big before anything runs,
+`--force` runs it anyway, and `budget.duration` skips the trials still queued when time runs
 out, ending the run with status `budget`.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -17,16 +17,16 @@ pnpm eval
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
-graders have something to grade; here it takes six seconds a turn, one attempt at a time, so the
-two-second budget, counted from the first attempt's start, runs out before the second can start. `pnpm eval --profile claude-code` runs the same eval on
+graders have something to grade; here it takes six seconds a turn, one trial at a time, so the
+two-second budget, counted from the first trial's start, runs out before the second can start. `pnpm eval --profile claude-code` runs the same eval on
 Claude Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../profiles.ts);
-raise `duration` to something like `'30m'` first, since a real attempt takes minutes.
+raise `duration` to something like `'30m'` first, since a real trial takes minutes.
 
 **Copying it out of the repo:** `reeval.config.ts` imports `../profiles.ts`. Copy
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the duration budget lets the first attempt finish, skips the other two, and
+**What to look at:** the duration budget lets the first trial finish, skips the other two, and
 the run exits 1:
 
 ```text
@@ -35,36 +35,36 @@ REEVAL v0.31.0
   ➜  Run:       20261126T080428Z_…
   ➜  Agent:     fake
   ➜  Sandbox:   fake
-  ➜  Scope:     1 eval file · 1 eval · 1 cell · 3 attempts (budget: 10 ✓, 2s)
+  ➜  Scope:     1 eval file · 1 eval · 1 cell · 3 trials (budget: 10 ✓, 2s)
   ➜  Est. Time: ~3s (serial)
   ➜  Record:    .reeval/runs/20261126T080428Z_….json
 
   ◆  Running...
-  ⚠  Budget: 2s reached; running attempts finish, queued ones are skipped
+  ⚠  Budget: 2s reached; running trials finish, queued ones are skipped
 
 with-budget.eval.ts
-  · with-budget  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
+  · with-budget  mean 100% · 1/1 trial at 100% (pass@1)  capability(1)
 
-Budget reached: attempts that hadn’t started were skipped
+Budget reached: trials that hadn’t started were skipped
 Done in 22s · 1 eval · 1 report only
 Browse it: reeval studio · summary .reeval/runs/…/summary.md
 ```
 
-Ask for more attempts than the budget allows and the run stops before it starts, with exit 2;
-`pnpm reeval run --runs 20 --force` runs it anyway:
+Ask for more trials than the budget allows and the run stops before it starts, with exit 2;
+`pnpm reeval run --trials 20 --force` runs it anyway:
 
 ```text
-$ pnpm reeval run --runs 20
+$ pnpm reeval run --trials 20
 …
-  ➜  Scope:     1 eval file · 1 eval · 1 cell · 20 attempts (budget: 10 ✗, 2s)
+  ➜  Scope:     1 eval file · 1 eval · 1 cell · 20 trials (budget: 10 ✗, 2s)
   ➜  Est. Time: ~2m 44s (serial)
 …
-reeval: this run plans 20 attempts, over budget.attempts 10 (reeval.config.ts). Narrow it with --tag or --runs, or raise the budget. (--force runs it anyway)
+reeval: this run plans 20 trials, over budget.trials 10 (reeval.config.ts). Narrow it with --tag or --trials, or raise the budget. (--force runs it anyway)
 ```
 
 | File | What it is |
 |---|---|
-| [`with-budget.eval.ts`](./with-budget.eval.ts) | The eval: one prompt, two graders, three runs and a mean-score target |
+| [`with-budget.eval.ts`](./with-budget.eval.ts) | The eval: one prompt, two graders, three trials and a mean-score target |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The slow fake agent, the budget, and the real agents from `../profiles.ts` |

@@ -6,7 +6,7 @@
       "mode": "run",
       "options": {
         "compare": {
-          "control": {
+          "baseline": {
             "kind": "environment",
             "name": "base",
             "layers": [
@@ -64,7 +64,7 @@
       "mode": "run",
       "options": {
         "compare": {
-          "control": {
+          "baseline": {
             "kind": "environment",
             "name": "base",
             "layers": [
@@ -105,7 +105,7 @@
         },
         "questions": [
           {
-            "question": "Which arm verified its work?",
+            "question": "Which environment verified its work?",
             "across": "environment",
             "trajectory": "tools"
           }
@@ -122,7 +122,7 @@
       "mode": "run",
       "options": {
         "compare": {
-          "control": {
+          "baseline": {
             "kind": "environment",
             "name": "base",
             "layers": [
@@ -176,7 +176,7 @@
     },
     {
       "type": "eval",
-      "name": "each attempt with the trajectory",
+      "name": "each trial with the trajectory",
       "mode": "run",
       "options": {
         "questions": [
@@ -196,7 +196,7 @@
     },
     {
       "type": "eval",
-      "name": "each attempt without the trajectory",
+      "name": "each trial without the trajectory",
       "mode": "run",
       "options": {
         "questions": [

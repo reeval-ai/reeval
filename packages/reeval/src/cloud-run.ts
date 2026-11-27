@@ -1,7 +1,7 @@
 // `reeval run` on the cloud platform. It bundles the project as `reeval bundle` does, creates the
 // run at `REEVAL_CLOUD_URL` (https://cloud.reeval.ai when that isn't set), uploads the bundle and
 // starts it, then follows the run's event stream as `reeval attach` does and exits with the run's
-// exit code. docker() attempts run on machines of their own, and tart() or podman() exit 2. A plan
+// exit code. docker() trials run on machines of their own, and tart() or podman() exit 2. A plan
 // the platform can't run otherwise (vertex(), files a bundle can't carry) runs on this machine
 // instead, with a one-line note.
 import { createHash } from 'node:crypto'
@@ -83,7 +83,7 @@ const CLOUD_FLAGS = new Set<FlagName>([
   'profile',
   'tag',
   'trait',
-  'runs',
+  'trials',
   'dry-run',
   'json',
   'cloud',
@@ -120,7 +120,7 @@ export const secretChoice = (names: readonly string[]) =>
   names.length > 1 && !names.some((name) => Object.values(ROUTED_KEYS).flat().includes(name))
 
 /**
- * Why the cloud platform can't run the planned attempts, one line per reason with the evals it
+ * Why the cloud platform can't run the planned trials, one line per reason with the evals it
  * holds back; empty when it can. `vertexAsks` are the evals whose questions go through `vertex()`.
  */
 export function notCloud(
@@ -128,11 +128,11 @@ export function notCloud(
   vertexAsks: ReadonlySet<string> = new Set(),
 ): string[] {
   const why = new Map<string, Set<string>>()
-  for (const { id, attempt } of planned) {
-    if (attempt.skip || attempt.plan.skip) continue
+  for (const { id, trial } of planned) {
+    if (trial.skip || trial.plan.skip) continue
     const reason =
-      attempt.gateway?.name === 'vertex' ||
-      attempt.judge?.gateway === 'vertex' ||
+      trial.gateway?.name === 'vertex' ||
+      trial.judge?.gateway === 'vertex' ||
       vertexAsks.has(id)
         ? "vertex() calls models on this machine's Google Cloud credentials"
         : undefined
@@ -172,7 +172,7 @@ export function cloudUrl(env: NodeJS.ProcessEnv = process.env): URL {
 export const shownCloudUrl = (base: URL) => base.href.replace(/\/$/, '')
 
 /**
- * `Running in the cloud (3 attempts, est. $0.10–0.30), --local to run here`, from the plan the
+ * `Running in the cloud (3 trials, est. $0.10–0.30), --local to run here`, from the plan the
  * bundle was made with. The estimate is left out when the plan has no prices for it or costs
  * nothing.
  */
@@ -181,16 +181,16 @@ export async function cloudLine(
   lead = 'Running in the cloud',
 ): Promise<string> {
   const { formatUsdRange } = await import('./cost.ts')
-  const totals = plan.totals ?? { attempts: 0, fewest: 0 }
-  const attempts =
-    totals.fewest < totals.attempts
-      ? `${totals.fewest}–${totals.attempts} attempts`
-      : plural(totals.attempts, 'attempt')
+  const totals = plan.totals ?? { trials: 0, fewest: 0 }
+  const trials =
+    totals.fewest < totals.trials
+      ? `${totals.fewest}–${totals.trials} trials`
+      : plural(totals.trials, 'trial')
   const { cost } = plan
   const priced =
     cost?.usd && cost.usd.high > 0 && !('why' in cost.prices) && cost.unpricedTokens.high === 0
   const est = priced && cost?.usd ? `, est. ${formatUsdRange(cost.usd)}` : ''
-  return `${lead} (${attempts}${est}), --local to run here`
+  return `${lead} (${trials}${est}), --local to run here`
 }
 
 /** What every platform request carries, and what to do when the platform refuses it. */
@@ -289,8 +289,8 @@ async function readRun(runId: string, base: URL, auth: CloudAuth): Promise<Platf
 
 /** Why the platform says a queued run waits, as a follower reads it. */
 const WAITING_FOR: Record<string, string> = {
-  org_limit: "the org's limit on attempts or runs at once",
-  project_cap: "the project's cap on attempts at once",
+  org_limit: "the org's limit on trials or runs at once",
+  project_cap: "the project's cap on trials at once",
   concurrency_group: 'another run of its concurrency group',
   capacity: 'shared capacity',
   start_rate: 'paced machine starts',
@@ -396,7 +396,7 @@ export async function watchQueue(
  * `code`, the exit code cloud run `runId`'s stream ended with, or 4 when the platform says it
  * stopped the run before it finished; a canceled run is named as such, since a cancel before the
  * run's header ends the stream with nothing to show. A stop can end the stream with any code (a
- * cancel's, or what the attempts it cut short left), so every run that ended is asked about,
+ * cancel's, or what the trials it cut short left), so every run that ended is asked about,
  * unless `read` is the platform's answer already. An answer that doesn't come keeps the stream's
  * code.
  */
@@ -555,10 +555,10 @@ export async function request(
 }
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point
-const CONTROL = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g
+const BASELINE = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g
 
 /** Text from the platform as it may reach a terminal: no escape sequences from its side. */
-export const printable = (text: string) => text.replace(CONTROL, '')
+export const printable = (text: string) => text.replace(BASELINE, '')
 
 /** The platform's own words for a refusal, in any of the shapes its routes answer with. */
 export function platformMessage(body: unknown): string | undefined {

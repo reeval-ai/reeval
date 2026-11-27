@@ -1,7 +1,7 @@
 // The run's plan: what it will start, how long that should take, and whether it fits the budget.
-import { acrossOf, type PairAttempt, pairFactors, pairsOf, plannedSides } from './compare/pairs.ts'
+import { acrossOf, type PairTrial, pairFactors, pairsOf, plannedSides } from './compare/pairs.ts'
 import { questionShows, resolveQuestionState } from './compare/state.ts'
-import { type CostedAttempt, type PlanCost, planCost } from './cost.ts'
+import { type CostedTrial, type PlanCost, planCost } from './cost.ts'
 import type { ExcludedEval, PlannedItem } from './engine/node.ts'
 import { inCI } from './env.ts'
 import { NO_ENVIRONMENT } from './environment.ts'
@@ -16,7 +16,7 @@ import { inputPath } from './inputs.ts'
 import { majorityOf } from './options.ts'
 import type { Prices } from './prices.ts'
 import { providerLimit, sandboxKind } from './sandbox/kinds.ts'
-import { COMPARE_RUNS, PAIRED_MIN } from './stats.ts'
+import { COMPARE_TRIALS, PAIRED_MIN } from './stats.ts'
 import { blocks, DEFAULT_TARGET, targetLabel } from './target.ts'
 import { clip, formatDuration, plural } from './text.ts'
 import type {
@@ -43,14 +43,14 @@ import type {
   Target,
 } from './types.ts'
 import type { RunHeader } from './ui/events.ts'
-import { EFFORT_MIN_RUNS } from './view/effort.ts'
+import { EFFORT_MIN_TRIALS } from './view/effort.ts'
 
 /**
- * With no history for a harness, an attempt is assumed to take this long. The fake agent takes
- * no time, so its attempt is the sandbox's: 1s in the fake sandbox, and in a container the start,
+ * With no history for a harness, a trial is assumed to take this long. The fake agent takes
+ * no time, so its trial is the sandbox's: 1s in the fake sandbox, and in a container the start,
  * the workspace, `setup` steps such as an install, and the checks.
  */
-const DEFAULT_ATTEMPT_MS = 3 * 60_000
+const DEFAULT_TRIAL_MS = 3 * 60_000
 const DEFAULT_FAKE_MS = 1000
 const DEFAULT_SANDBOX_SETUP_MS = 30_000
 /** The most recent runs whose durations and tokens feed the estimates. */
@@ -61,8 +61,8 @@ export type PlanRow = {
   plan: EvalPlan
   /** Set on each case of an eval with `cases`. */
   family?: FamilyMeta
-  /** Optimistic pair sides for `--dry-run`: every planned attempt is assumed to pass checks. */
-  sides: PairAttempt[]
+  /** Optimistic pair sides for `--dry-run`: every planned trial is assumed to pass checks. */
+  sides: PairTrial[]
 }
 
 export type RunPlan = {
@@ -73,13 +73,13 @@ export type RunPlan = {
   /** Evals none of whose rows run. */
   skipped: number
   cells: number
-  /** Every attempt the plan may start: with `runs: { bestOf }`, its upper bound. */
-  attempts: number
-  /** The attempts that start whatever the results: below `attempts` when best-of cells may stop early. */
+  /** Every trial the plan may start: with `trials: { bestOf }`, its upper bound. */
+  trials: number
+  /** The trials that start whatever the results: below `trials` when best-of cells may stop early. */
   fewest: number
-  /** Serial: every attempt one after another, best-of cells at their most. */
+  /** Serial: every trial one after another, best-of cells at their most. */
   estimateMs: number
-  /** How many attempts run at once: `concurrency`, held to the attempts and each provider's cap. */
+  /** How many trials run at once: `concurrency`, held to the trials and each provider's cap. */
   parallel: number
   /** Agent and judge tokens, and their cost when there are prices; only for `--dry-run`. */
   cost?: PlanCost
@@ -91,11 +91,11 @@ export type RunPlan = {
   /** Advice that doesn't stop the run, e.g. that an eval can't fail CI. */
   hints: string[]
   sandboxes: SandboxDescriptor[]
-  /** The sandboxes the planned attempts' graders start, which a killed run's cleanup sweeps too. */
+  /** The sandboxes the planned trials' graders start, which a killed run's cleanup sweeps too. */
   graderSandboxes: SandboxDescriptor[]
-  /** The harnesses the planned attempts run on, for their credentials. */
+  /** The harnesses the planned trials run on, for their credentials. */
   harnessDescriptors: HarnessDescriptor[]
-  /** The harness ids the planned attempts run on, for the run header. */
+  /** The harness ids the planned trials run on, for the run header. */
   harnesses: string[]
   /**
    * The effort each of those harnesses runs at, by id: its level, `none`, or `not checked` for
@@ -109,7 +109,7 @@ export type RunPlan = {
   runId?: string
   /**
    * Set when this plan continues a stopped, interrupted or budget-stopped run, or retries a
-   * finished one: the attempts it keeps, and how many of the ones it runs ended in an infra error.
+   * finished one: the trials it keeps, and how many of the ones it runs ended in an infra error.
    */
   resume?: { runId: string; completed: number; retried?: number }
 }
@@ -122,7 +122,7 @@ const median = (values: number[]) => {
     : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2
 }
 
-/** Attempt durations from the latest recorded and scratch runs, by eval and harness. */
+/** Trial durations from the latest recorded and scratch runs, by eval and harness. */
 function historyDurations(records: RunRecord[]) {
   const byEval = new Map<string, number[]>()
   const byHarness = new Map<string, number[]>()
@@ -130,7 +130,7 @@ function historyDurations(records: RunRecord[]) {
     map.set(key, [...(map.get(key) ?? []), ms])
   for (const record of records) {
     for (const e of record.evals ?? []) {
-      for (const a of e.attempts ?? []) {
+      for (const a of e.trials ?? []) {
         if (a.outcome !== 'pass' && a.outcome !== 'fail') continue
         const harness = e.cells?.find((c) => c.key === a.cell)?.harness
         if (!harness) continue
@@ -144,7 +144,7 @@ function historyDurations(records: RunRecord[]) {
     if (own?.length) return median(own)
     const any = byHarness.get(harness)
     if (any?.length) return median(any)
-    if (kind !== 'fake') return DEFAULT_ATTEMPT_MS
+    if (kind !== 'fake') return DEFAULT_TRIAL_MS
     return sandbox === 'fake' ? DEFAULT_FAKE_MS : DEFAULT_SANDBOX_SETUP_MS
   }
 }
@@ -167,7 +167,7 @@ export async function buildPlan(options: {
   const { planned } = options
   const records = await recentRecords([options.historyDir, scratchDir(options.root)], HISTORY_RUNS)
   const estimate = historyDurations(records)
-  const costed: CostedAttempt[] = []
+  const costed: CostedTrial[] = []
   const rows = new Map<string, PlanRow>()
   const cells = new Set<string>()
   const warnings = new Set<string>()
@@ -185,66 +185,66 @@ export async function buildPlan(options: {
       harnesses: Set<string>
       variants: Set<string>
       n: number
-      controls: Set<string>
+      baselines: Set<string>
       variantSides: Set<string>
     }
   >()
-  let attempts = 0
+  let trials = 0
   let fewest = 0
   let estimateMs = 0
   const limits = new Map<string, number>()
   let uncapped = false
-  for (const { id, attempt } of planned) {
+  for (const { id, trial } of planned) {
     const existing = rows.get(id)
     if (!existing || existing.plan.skip) {
       rows.set(id, {
         id,
-        plan: attempt.plan,
+        plan: trial.plan,
         sides: [],
-        ...(attempt.family ? { family: attempt.family } : {}),
+        ...(trial.family ? { family: trial.family } : {}),
       })
     }
-    for (const w of attempt.plan.warnings) warnings.add(w)
-    if (attempt.skip || attempt.plan.skip) continue
-    for (const w of attempt.plan.sandboxWarnings) {
+    for (const w of trial.plan.warnings) warnings.add(w)
+    if (trial.skip || trial.plan.skip) continue
+    for (const w of trial.plan.sandboxWarnings) {
       sandboxWarnings.set(`${w.file}\0${w.message}`, w)
     }
-    attempts++
-    if (attempt.bestOf === undefined || attempt.n <= majorityOf(attempt.bestOf)) fewest++
-    cells.add(`${attempt.family?.id ?? id}\0${attempt.cell.key}`)
-    estimateMs += estimate(id, attempt.cell.harness, attempt.harness.kind, attempt.sandbox.kind)
-    const provider = sandboxKind(attempt.sandbox).provider(attempt.sandbox)
-    const limit = providerLimit(attempt.sandbox)
+    trials++
+    if (trial.bestOf === undefined || trial.n <= majorityOf(trial.bestOf)) fewest++
+    cells.add(`${trial.family?.id ?? id}\0${trial.cell.key}`)
+    estimateMs += estimate(id, trial.cell.harness, trial.harness.kind, trial.sandbox.kind)
+    const provider = sandboxKind(trial.sandbox).provider(trial.sandbox)
+    const limit = providerLimit(trial.sandbox)
     if (limit === undefined) uncapped = true
     else limits.set(provider, Math.max(limits.get(provider) ?? limit, limit))
-    costed.push({ id, cell: attempt.cell, harness: attempt.harness })
-    sandboxes.set(JSON.stringify(attempt.sandbox), attempt.sandbox)
-    for (const { sandbox } of attempt.graderSandboxes ?? []) {
+    costed.push({ id, cell: trial.cell, harness: trial.harness })
+    sandboxes.set(JSON.stringify(trial.sandbox), trial.sandbox)
+    for (const { sandbox } of trial.graderSandboxes ?? []) {
       graderSandboxes.set(JSON.stringify(sandbox), sandbox)
     }
-    descriptors.set(JSON.stringify(attempt.harness), attempt.harness)
-    harnesses.add(attempt.cell.harness)
-    if (attempt.harness.kind !== 'fake') {
+    descriptors.set(JSON.stringify(trial.harness), trial.harness)
+    harnesses.add(trial.cell.harness)
+    if (trial.harness.kind !== 'fake') {
       const effort =
-        harnessEffort(attempt.harness) ??
-        (noDefaultEffort(attempt.harness, options.cursorEfforts) === 'unchecked'
+        harnessEffort(trial.harness) ??
+        (noDefaultEffort(trial.harness, options.cursorEfforts) === 'unchecked'
           ? 'not checked'
           : 'none')
-      const seen = efforts.get(attempt.cell.harness) ?? new Set<string>()
-      efforts.set(attempt.cell.harness, seen.add(effort))
+      const seen = efforts.get(trial.cell.harness) ?? new Set<string>()
+      efforts.set(trial.cell.harness, seen.add(effort))
     }
     const row = counted.get(id) ?? {
       harnesses: new Set(),
       variants: new Set(),
       n: 0,
-      controls: new Set(),
+      baselines: new Set(),
       variantSides: new Set(),
     }
-    row.harnesses.add(attempt.cell.harness)
-    if (attempt.cell.variant !== undefined) row.variants.add(attempt.cell.variant)
-    const side = `${attempt.cell.harness}\0${attempt.cell.sandbox}`
-    if (attempt.cell.role === 'control') row.controls.add(side)
-    else if (attempt.cell.role === 'variant') row.variantSides.add(side)
+    row.harnesses.add(trial.cell.harness)
+    if (trial.cell.variant !== undefined) row.variants.add(trial.cell.variant)
+    const side = `${trial.cell.harness}\0${trial.cell.sandbox}`
+    if (trial.cell.role === 'baseline') row.baselines.add(side)
+    else if (trial.cell.role === 'variant') row.variantSides.add(side)
     row.n++
     counted.set(id, row)
   }
@@ -256,18 +256,18 @@ export async function buildPlan(options: {
       ...row.plan,
       harnesses: c.harnesses.size,
       variants: variants && { run: c.variants.size, of: variants.of },
-      attempts: c.n,
+      totalTrials: c.n,
     }
     row.sides = plannedSides(
       planned
-        .filter((p) => p.id === row.id && !p.attempt.skip && !p.attempt.plan.skip)
-        .map((p) => p.attempt),
+        .filter((p) => p.id === row.id && !p.trial.skip && !p.trial.plan.skip)
+        .map((p) => p.trial),
     )
   }
-  // A lift needs a variant and the control on its harness and sandbox in the same run.
+  // A lift needs a variant and the baseline on its harness and sandbox in the same run.
   const lifted = (r: PlanRow) => {
     const c = counted.get(r.id)
-    return !r.plan.skip && !!c && [...c.variantSides].some((s) => c.controls.has(s))
+    return !r.plan.skip && !!c && [...c.variantSides].some((s) => c.baselines.has(s))
   }
   const units = evalUnits([...rows.values()])
   const running = units.filter((u) => u.some((r) => !r.plan.skip)).length
@@ -277,14 +277,14 @@ export async function buildPlan(options: {
     evals: running,
     skipped: units.length - running,
     cells: cells.size,
-    attempts,
+    trials,
     fewest,
     estimateMs,
     parallel: Math.max(
       1,
       Math.min(
         options.concurrency,
-        attempts,
+        trials,
         uncapped ? Number.POSITIVE_INFINITY : [...limits.values()].reduce((a, b) => a + b, 0),
       ),
     ),
@@ -316,13 +316,13 @@ export type PlanQuestion = {
   question: string
   /** Its own model, else the plan's question model; null when there's no language model. */
   model: string | null
-  /** The factors its pairs vary; unset when it's asked of each attempt on its own. */
+  /** The factors its pairs vary; unset when it's asked of each trial on its own. */
   across?: PairFactor[]
-  /** A pairwise question's pairs, assuming every attempt passes its checks. */
+  /** A pairwise question's pairs, assuming every trial passes its checks. */
   pairs?: number
-  /** A per-attempt question's attempts, assuming every attempt runs to a pass or a fail. */
-  attempts?: number
-  /** The answers a per-attempt question picks from; unset for a free-text answer. */
+  /** A per-trial question's trials, assuming every trial runs to a pass or a fail. */
+  trials?: number
+  /** The answers a per-trial question picks from; unset for a free-text answer. */
   choices?: string[]
   /** The parts each side shows: its `state` keys that are on, then `artifacts` when it sends captures. */
   shows: string[]
@@ -331,21 +331,21 @@ export type PlanQuestion = {
 const count = (n: number, one: string) => `${n} ${n === 1 ? one : `${one}s`}`
 
 /**
- * `environment · 2 pairs` for a pairwise question, `each attempt · 4 attempts · yes / no` for
- * one asked of each attempt on its own.
+ * `environment · 2 pairs` for a pairwise question, `each trial · 4 trials · yes / no` for
+ * one asked of each trial on its own.
  */
 export const questionPairLabel = (
-  q: Pick<PlanQuestion, 'across' | 'pairs' | 'attempts' | 'choices'>,
+  q: Pick<PlanQuestion, 'across' | 'pairs' | 'trials' | 'choices'>,
 ): string => {
   if (q.across) return `${q.across.join(', ')} · ${count(q.pairs ?? 0, 'pair')}`
   const choices = q.choices ? ` · ${q.choices.join(' / ')}` : ''
-  return `each attempt · ${count(q.attempts ?? 0, 'attempt')}${choices}`
+  return `each trial · ${count(q.trials ?? 0, 'trial')}${choices}`
 }
 
 /** An eval's questions, each with the model that will answer it and how many times it's asked. */
 export const planQuestions = (
   questions: PlannedQuestion[] | undefined,
-  sides: PairAttempt[],
+  sides: PairTrial[],
   questionModel: string | null,
   skip?: string,
 ): PlanQuestion[] =>
@@ -355,7 +355,7 @@ export const planQuestions = (
       model: q.model ?? questionModel,
       ...(q.across !== undefined
         ? { across: pairFactors(q.across), pairs: pairsOf(sides, acrossOf(q.across)).length }
-        : { attempts: sides.length }),
+        : { trials: sides.length }),
       ...(q.choices ? { choices: q.choices } : {}),
       shows: questionShows(resolveQuestionState(q.state), q.artifacts),
     }
@@ -363,7 +363,7 @@ export const planQuestions = (
 
 /**
  * `  question 1/2  Which is cleaner? · after the run · … · environment · 4 pairs · …`, or
- * `· after each attempt · … · each attempt · 4 attempts · …` for one asked of each attempt.
+ * `· after each trial · … · each trial · 4 trials · …` for one asked of each trial.
  */
 function questionLines(members: PlanRow[], questionModel: string | null): string[] {
   const [first] = members
@@ -375,11 +375,11 @@ function questionLines(members: PlanRow[], questionModel: string | null): string
     ...q,
     ...(q.across
       ? { pairs: asked.reduce((sum, list) => sum + (list[i]?.pairs ?? 0), 0) }
-      : { attempts: asked.reduce((sum, list) => sum + (list[i]?.attempts ?? 0), 0) }),
+      : { trials: asked.reduce((sum, list) => sum + (list[i]?.trials ?? 0), 0) }),
   }))
   return questions.map(
     (q, i) =>
-      `  question ${i + 1}/${questions.length}  ${clip(q.question, 80)} · ${q.across ? 'after the run' : 'after each attempt'} · shows ${q.shows.join(', ')} · ${questionPairLabel(q)} · ${q.model ?? 'needs a language model: set analysis.model'}`,
+      `  question ${i + 1}/${questions.length}  ${clip(q.question, 80)} · ${q.across ? 'after the run' : 'after each trial'} · shows ${q.shows.join(', ')} · ${questionPairLabel(q)} · ${q.model ?? 'needs a language model: set analysis.model'}`,
   )
 }
 
@@ -419,39 +419,39 @@ function targetHint(units: PlanRow[][]): string[] {
   ]
 }
 
-/** The runs a side the plan suggests, so a compare's lift can hold and its effort can be tested. */
-const VERDICT_MIN_RUNS = Math.max(COMPARE_RUNS, EFFORT_MIN_RUNS)
+/** The trials a side the plan suggests, so a compare's lift can hold and its effort can be tested. */
+const VERDICT_MIN_TRIALS = Math.max(COMPARE_TRIALS, EFFORT_MIN_TRIALS)
 
 /**
  * One line when compares outside a family run too few times per cell for their lift to hold: it
- * shows the direction the attempts went, and their effort can't be tested. `rows` are those that
+ * shows the direction the trials went, and their effort can't be tested. `rows` are those that
  * plan a lift.
  */
 function verdictHint(rows: PlanRow[]): string[] {
-  const few = rows.filter((r) => !pooledCase(r) && r.plan.runs < VERDICT_MIN_RUNS)
+  const few = rows.filter((r) => !pooledCase(r) && r.plan.trials < VERDICT_MIN_TRIALS)
   if (few.length === 0) return []
-  const counts = [...new Set(few.map((r) => r.plan.runs))].sort((a, b) => a - b)
-  const runs = counts.length === 1 && counts[0] === 1 ? 'once' : `${counts.join(' or ')} times`
+  const counts = [...new Set(few.map((r) => r.plan.trials))].sort((a, b) => a - b)
+  const trials = counts.length === 1 && counts[0] === 1 ? 'once' : `${counts.join(' or ')} times`
   const one = few.length === 1
   const capped = new Set(few.map((r) => r.plan.notes.map(cappedBy).find(Boolean)))
   const [profile] = capped
   const fix =
     capped.size === 1 && profile
-      ? `profile ${profile}'s limit.runs caps ${one ? 'it' : 'them'}; --runs ${VERDICT_MIN_RUNS} replaces it`
-      : `runs: ${VERDICT_MIN_RUNS}`
+      ? `profile ${profile}'s limit.trials caps ${one ? 'it' : 'them'}; --trials ${VERDICT_MIN_TRIALS} replaces it`
+      : `trials: ${VERDICT_MIN_TRIALS}`
   return [
-    `${plural(few.length, 'compare')} ${one ? 'runs' : 'run'} ${runs} per cell; below ${VERDICT_MIN_RUNS} runs a side ${one ? 'its' : 'their'} lift shows only a direction and ${one ? 'its' : 'their'} effort can't be tested (${fix})`,
+    `${plural(few.length, 'compare')} ${one ? 'runs' : 'run'} ${trials} per cell; below ${VERDICT_MIN_TRIALS} trials a side ${one ? 'its' : 'their'} lift shows only a direction and ${one ? 'its' : 'their'} effort can't be tested (${fix})`,
   ]
 }
 
-/** The profile whose `limit.runs` cut a row's runs, from its `runs a → b (profile name)` note. */
+/** The profile whose `limit.trials` cut a row's trials, from its `trials a → b (profile name)` note. */
 const cappedBy = (note: string): string | undefined =>
-  /^runs \d+ → \d+ \(profile (.+)\)$/.exec(note)?.[1]
+  /^trials \d+ → \d+ \(profile (.+)\)$/.exec(note)?.[1]
 
 /**
  * One line per compared eval with too few cases for its paired lift to get a verdict: one
- * attempt a case can't give more discordant cases than there are cases, and several need as many
- * cases, so more runs don't help. `rows` are those that plan a lift.
+ * trial a case can't give more discordant cases than there are cases, and several need as many
+ * cases, so more trials don't help. `rows` are those that plan a lift.
  */
 function familyHints(rows: PlanRow[]): string[] {
   const cases = new Map<string, { n: number; of: number }>()
@@ -465,22 +465,22 @@ function familyHints(rows: PlanRow[]): string[] {
     .map(([id, { n, of }]) => {
       const has = n === of ? `has ${plural(n, 'case')}` : `runs ${n} of its ${of} cases`
       const fix = of >= PAIRED_MIN ? 'run all its cases' : 'add cases'
-      return `${clip(id, 64)} ${has}; its lift needs ${PAIRED_MIN} to hold, so it shows only a direction whatever the runs (${fix})`
+      return `${clip(id, 64)} ${has}; its lift needs ${PAIRED_MIN} to hold, so it shows only a direction whatever the trials (${fix})`
     })
 }
 
 /** One line per harness whose cells fell past the first entries of the `gateway` list. */
 function gatewayHints(planned: PlannedItem[]): string[] {
   const hints = new Set<string>()
-  for (const { attempt } of planned) {
-    if (attempt.skip || attempt.plan.skip || !attempt.gateway?.skipped.length) continue
-    hints.add(fallbackHint(attempt.cell.harness, attempt.gateway))
+  for (const { trial } of planned) {
+    if (trial.skip || trial.plan.skip || !trial.gateway?.skipped.length) continue
+    hints.add(fallbackHint(trial.cell.harness, trial.gateway))
   }
   return [...hints]
 }
 
 /**
- * `plan  profile pr (auto: CI is set) · 3 evals · 4 cells · 12 attempts · ~9m serial · …`, led by
+ * `plan  profile pr (auto: CI is set) · 3 evals · 4 cells · 12 trials · ~9m serial · …`, led by
  * `config ../reeval.config.ts` when `config` is given (the config isn't in the current directory).
  */
 export function planLine(plan: RunPlan, config?: string, runId?: string): string {
@@ -489,30 +489,30 @@ export function planLine(plan: RunPlan, config?: string, runId?: string): string
   if (id) parts.push(`run ${id}`)
   if (config) parts.push(`config ${config}`)
   if (plan.resume) parts.push('resume')
-  if (plan.resume?.retried) parts.push(`retry ${plural(plan.resume.retried, 'errored attempt')}`)
+  if (plan.resume?.retried) parts.push(`retry ${plural(plan.resume.retried, 'errored trial')}`)
   if (plan.profile) parts.push(`profile ${plan.profile.name} (${plan.profile.reason})`)
   const { skipped } = plan
   parts.push(plural(plan.evals, 'eval') + (skipped ? ` (${skipped} skipped)` : ''))
   parts.push(
     plural(plan.cells, 'cell'),
-    plan.fewest < plan.attempts
-      ? `${plan.fewest}–${plan.attempts} attempts`
-      : plural(plan.attempts, 'attempt'),
+    plan.fewest < plan.trials
+      ? `${plan.fewest}–${plan.trials} trials`
+      : plural(plan.trials, 'trial'),
   )
   const effort = effortSummary(plan.efforts)
   if (effort) parts.push(effort)
   const serial = `~${formatDuration(plan.estimateMs)} serial`
   const { parallel } = plan
-  const capped = parallel < Math.min(plan.concurrency, plan.attempts) ? `, ${parallel} at once` : ''
+  const capped = parallel < Math.min(plan.concurrency, plan.trials) ? `, ${parallel} at once` : ''
   parts.push(
     parallel > 1
       ? `${serial} (~${formatDuration(plan.estimateMs / parallel)} at concurrency ${plan.concurrency}${capped})`
       : serial,
   )
-  const { attempts, duration } = plan.budget
+  const { trials, duration } = plan.budget
   const caps = [
-    attempts !== undefined
-      ? `${plural(attempts, 'attempt')} ${plan.attempts <= attempts ? '✓' : '✗'}`
+    trials !== undefined
+      ? `${plural(trials, 'trial')} ${plan.trials <= trials ? '✓' : '✗'}`
       : '',
     duration !== undefined ? `${duration}` : '',
   ].filter(Boolean)
@@ -543,8 +543,8 @@ export function runHeader(
     judge: string | null
   },
 ): RunHeader {
-  const live = planned.filter((p) => !p.attempt.plan.skip)
-  const judges = new Set(live.flatMap((p) => (p.attempt.judge ? [p.attempt.judge.model] : [])))
+  const live = planned.filter((p) => !p.trial.plan.skip)
+  const judges = new Set(live.flatMap((p) => (p.trial.judge ? [p.trial.judge.model] : [])))
   if (!judges.size && run.judge !== null) judges.add(run.judge)
   return {
     version: run.version,
@@ -563,10 +563,10 @@ export function runHeader(
     evals: plan.evals,
     skipped: plan.skipped,
     cells: plan.cells,
-    attempts: plan.attempts,
+    trials: plan.trials,
     fewest: plan.fewest,
     budget: {
-      ...(plan.budget.attempts !== undefined ? { attempts: plan.budget.attempts } : {}),
+      ...(plan.budget.trials !== undefined ? { trials: plan.budget.trials } : {}),
       ...(plan.budget.duration !== undefined ? { duration: `${plan.budget.duration}` } : {}),
     },
     estimateMs: plan.estimateMs,
@@ -575,10 +575,10 @@ export function runHeader(
   }
 }
 
-/** `6–10` for a best-of eval's attempts, which stop once a majority agrees; else the count. */
-function bestOfRange(p: EvalPlan, attempts: number): string {
-  if (p.bestOf === undefined) return String(attempts)
-  return `${(attempts / p.bestOf) * majorityOf(p.bestOf)}–${attempts}`
+/** `6–10` for a best-of eval's trials, which stop once a majority agrees; else the count. */
+function bestOfRange(p: EvalPlan, trials: number): string {
+  if (p.bestOf === undefined) return String(trials)
+  return `${(trials / p.bestOf) * majorityOf(p.bestOf)}–${trials}`
 }
 
 /**
@@ -586,7 +586,7 @@ function bestOfRange(p: EvalPlan, attempts: number): string {
  * with cases is one row, its cases counted in its notes.
  */
 export function planTable(plan: RunPlan, todos: readonly string[] = []): string[] {
-  const header = ['eval', 'agents', 'variants', 'runs', 'attempts', 'target', 'notes']
+  const header = ['eval', 'agents', 'variants', 'trials', 'total', 'target', 'notes']
   const egress = egressByEnvironment(plan.rows.filter((m) => !m.plan.skip))
   const groups = evalUnits(plan.rows).map((members) => ({
     id: (members[0] as PlanRow).family?.id ?? (members[0] as PlanRow).id,
@@ -596,7 +596,7 @@ export function planTable(plan: RunPlan, todos: readonly string[] = []): string[
     const p = (members.find((m) => !m.plan.skip) ?? (members[0] as PlanRow)).plan
     const family = members[0]?.family
     const live = members.filter((m) => !m.plan.skip)
-    const attempts = live.reduce((sum, m) => sum + m.plan.attempts, 0)
+    const trials = live.reduce((sum, m) => sum + m.plan.totalTrials, 0)
     // `where` can leave a case off some harnesses, so the eval runs on as many as its widest case.
     const harnesses = Math.max(p.harnesses, ...live.map((m) => m.plan.harnesses))
     const ran = live.length === family?.cases ? family.cases : `${live.length} of ${family?.cases}`
@@ -610,8 +610,8 @@ export function planTable(plan: RunPlan, todos: readonly string[] = []): string[
         : p.variants.run === p.variants.of
           ? String(p.variants.run)
           : `${p.variants.run} of ${p.variants.of}`,
-      p.bestOf !== undefined ? `best of ${p.bestOf}` : String(p.runs),
-      bestOfRange(p, family ? attempts : p.attempts),
+      p.bestOf !== undefined ? `best of ${p.bestOf}` : String(p.trials),
+      bestOfRange(p, family ? trials : p.totalTrials),
       targetLabel(p.target ?? DEFAULT_TARGET),
       [
         live.length === 0 && p.skip ? `skipped: ${p.skip}` : '',
@@ -712,11 +712,11 @@ export type PlanCell = Cell & {
    * default.
    */
   effort: string | null
-  /** With `bestOf`, the most attempts the cell runs. */
-  runs: number
-  /** Set by `runs: { bestOf }`: the cell stops once a majority of this many agree. */
+  /** With `bestOf`, the most trials the cell runs. */
+  trials: number
+  /** Set by `trials: { bestOf }`: the cell stops once a majority of this many agree. */
   bestOf?: number
-  /** Secrets its attempts broker, as `NAME → host, host`. */
+  /** Secrets its trials broker, as `NAME → host, host`. */
   brokered: string[]
   egress: PlannedEgress
   /** The git repository its workspace starts as; unset for an empty workspace. */
@@ -741,13 +741,13 @@ export type PlanEval = {
   target: Target
   notes: string[]
   cells: PlanCell[]
-  /** Its questions: pairwise ones answered after the run, the rest after each attempt; unset without any. */
+  /** Its questions: pairwise ones answered after the run, the rest after each trial; unset without any. */
   questions?: PlanQuestion[]
-  /** What grades each attempt, the config's and profile's graders included; unset without any. */
+  /** What grades each trial, the config's and profile's graders included; unset without any. */
   graders?: PlannedGrader[]
   /**
    * On an eval with `cases`, each case: its key, the cells it runs and why it doesn't run.
-   * `cells` above are the eval's over every case, `runs` summed.
+   * `cells` above are the eval's over every case, `trials` summed.
    */
   cases?: PlanCase[]
   /** With `cases`, how many the eval declares: more than `cases` when a filter or `where` left some out. */
@@ -788,13 +788,13 @@ export type PlanDocument = {
   runId?: string
   profile: { name: string; reason: string } | null
   /**
-   * Set when `--resume` continues a previous run or `--retry-errors` retries one: the attempts
+   * Set when `--resume` continues a previous run or `--retry-errors` retries one: the trials
    * it keeps, and how many of the ones it runs ended in an infra error.
    */
   resume?: { runId: string; completed: number; retried?: number }
-  /** `attempts` at most; `fewest` start whatever the results (fewer when best-of cells may stop early). */
-  totals: { evals: number; skipped: number; cells: number; attempts: number; fewest: number }
-  budget: { attempts: number | null; duration: Duration | null; fits: boolean }
+  /** `trials` at most; `fewest` start whatever the results (fewer when best-of cells may stop early). */
+  totals: { evals: number; skipped: number; cells: number; trials: number; fewest: number }
+  budget: { trials: number | null; duration: Duration | null; fits: boolean }
   concurrency: number
   estimateMs: number
   /** What the run should cost: token and USD ranges, how they were reached, and each cell's part. */
@@ -816,7 +816,7 @@ export type PlanDocument = {
   /**
    * The host variables the run reads secrets from, sorted, never their values: the harnesses',
    * judges' and `boat()` accounts' keys (every variable that can provide one) and the variables
-   * the config's, profile's and attempts' secrets read.
+   * the config's, profile's and trials' secrets read.
    */
   secrets: string[]
   /**
@@ -845,7 +845,7 @@ export type PlanInput = {
 }
 
 /**
- * The plan's `inputs`: the project's, then each planned attempt's, one entry per path and kind,
+ * The plan's `inputs`: the project's, then each planned trial's, one entry per path and kind,
  * so a path with two roles (a loaded `.env` that `file()` also places) is listed under both. A
  * `read` is listed only for a path that has no other kind: it's the load reading a file the
  * environment names.
@@ -875,7 +875,7 @@ export function planInputs(
     if (id !== undefined && !entry.evals.includes(id)) entry.evals.push(id)
   }
   for (const input of project) add(input)
-  for (const { id, attempt } of planned) for (const input of attempt.inputs ?? []) add(input, id)
+  for (const { id, trial } of planned) for (const input of trial.inputs ?? []) add(input, id)
   const order = (a: PlanInput, b: PlanInput) =>
     a.path < b.path ? -1 : a.path > b.path ? 1 : a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0
   return [...byPath.values()].flat().sort(order)
@@ -890,64 +890,64 @@ export function planDocument(
   secrets: string[] = [],
 ): PlanDocument {
   const evals = new Map<string, PlanEval & { family?: FamilyMeta }>()
-  for (const { id, file, attempt } of planned) {
+  for (const { id, file, trial } of planned) {
     let e = evals.get(id)
     if (!e) {
       const questions = planQuestions(
-        attempt.plan.questions,
+        trial.plan.questions,
         plan.rows.find((r) => r.id === id)?.sides ?? [],
         plan.questionModel,
-        attempt.plan.skip,
+        trial.plan.skip,
       )
-      const target = attempt.plan.target ?? DEFAULT_TARGET
+      const target = trial.plan.target ?? DEFAULT_TARGET
       // `metric` is only ever an older record's target; a run never plans it.
       if (target.kind === 'metric') throw new Error(`${id} planned a metric target`)
       e = {
         id,
         file,
-        groups: attempt.groups,
-        name: attempt.name,
-        tags: attempt.tags,
-        ...(attempt.revision !== undefined ? { revision: attempt.revision } : {}),
-        skip: attempt.plan.skip ?? null,
+        groups: trial.groups,
+        name: trial.name,
+        tags: trial.tags,
+        ...(trial.revision !== undefined ? { revision: trial.revision } : {}),
+        skip: trial.plan.skip ?? null,
         target,
-        notes: attempt.plan.notes,
+        notes: trial.plan.notes,
         cells: [],
         ...(questions.length ? { questions } : {}),
-        ...(attempt.plan.graders ? { graders: attempt.plan.graders } : {}),
-        ...(attempt.family ? { family: attempt.family } : {}),
-        ...(attempt.plan.excluded ? { whereExcluded: attempt.plan.excluded } : {}),
-        ...(attempt.plan.traitExcluded ? { traitExcluded: attempt.plan.traitExcluded } : {}),
+        ...(trial.plan.graders ? { graders: trial.plan.graders } : {}),
+        ...(trial.family ? { family: trial.family } : {}),
+        ...(trial.plan.excluded ? { whereExcluded: trial.plan.excluded } : {}),
+        ...(trial.plan.traitExcluded ? { traitExcluded: trial.plan.traitExcluded } : {}),
       }
       evals.set(id, e)
     }
-    if (attempt.skip || attempt.plan.skip) continue
-    const cell = e.cells.find((c) => c.key === attempt.cell.key)
-    if (cell) cell.runs++
+    if (trial.skip || trial.plan.skip) continue
+    const cell = e.cells.find((c) => c.key === trial.cell.key)
+    if (cell) cell.trials++
     else {
       e.cells.push({
-        ...attempt.cell,
-        ...(attempt.gateway ? { gateway: attempt.gateway } : {}),
-        gate: attempt.gate,
-        ...(attempt.minLift !== undefined ? { minLift: attempt.minLift } : {}),
-        effort: harnessEffort(attempt.harness) ?? null,
-        runs: 1,
-        ...(attempt.bestOf !== undefined ? { bestOf: attempt.bestOf } : {}),
-        brokered: attempt.brokered,
-        egress: attempt.egress,
-        ...(attempt.workspace && {
+        ...trial.cell,
+        ...(trial.gateway ? { gateway: trial.gateway } : {}),
+        gate: trial.gate,
+        ...(trial.minLift !== undefined ? { minLift: trial.minLift } : {}),
+        effort: harnessEffort(trial.harness) ?? null,
+        trials: 1,
+        ...(trial.bestOf !== undefined ? { bestOf: trial.bestOf } : {}),
+        brokered: trial.brokered,
+        egress: trial.egress,
+        ...(trial.workspace && {
           workspace: {
-            repo: attempt.workspace.repo,
-            ref: attempt.workspace.ref ?? null,
-            path: attempt.workspace.path ?? null,
+            repo: trial.workspace.repo,
+            ref: trial.workspace.ref ?? null,
+            path: trial.workspace.path ?? null,
           },
         }),
-        ...(attempt.files && { files: attempt.files }),
-        ...(attempt.plugins && { plugins: attempt.plugins }),
+        ...(trial.files && { files: trial.files }),
+        ...(trial.plugins && { plugins: trial.plugins }),
       })
     }
   }
-  const { attempts, duration } = plan.budget
+  const { trials, duration } = plan.budget
   return {
     ...(plan.runId ? { runId: plan.runId } : {}),
     profile: plan.profile && { name: plan.profile.name, reason: plan.profile.reason },
@@ -956,13 +956,13 @@ export function planDocument(
       evals: plan.evals,
       skipped: plan.skipped,
       cells: plan.cells,
-      attempts: plan.attempts,
+      trials: plan.trials,
       fewest: plan.fewest,
     },
     budget: {
-      attempts: attempts ?? null,
+      trials: trials ?? null,
       duration: duration ?? null,
-      fits: attempts === undefined || plan.attempts <= attempts,
+      fits: trials === undefined || plan.trials <= trials,
     },
     concurrency: plan.concurrency,
     estimateMs: plan.estimateMs,
@@ -984,9 +984,9 @@ function foldPlanCases(
   planned: PlannedItem[],
 ): PlanEval[] {
   const pooledExcluded = new Map<string, ExcludedPair[]>()
-  for (const { attempt } of planned) {
-    const f = attempt.family
-    if (f && attempt.plan.familyExcluded) pooledExcluded.set(f.id, attempt.plan.familyExcluded)
+  for (const { trial } of planned) {
+    const f = trial.family
+    if (f && trial.plan.familyExcluded) pooledExcluded.set(f.id, trial.plan.familyExcluded)
   }
   const out: PlanEval[] = []
   const folded = new Map<string, PlanEval>()
@@ -1021,19 +1021,19 @@ function foldPlanCases(
     if (!e.skip) into.skip = null
     for (const c of e.cells) {
       const cell = into.cells.find((x) => x.key === c.key)
-      if (cell) cell.runs += c.runs
+      if (cell) cell.trials += c.trials
       else into.cells.push({ ...c })
     }
   }
   return out
 }
 
-/** Exit 2 before anything starts when the plan is over `budget.attempts` (unless `--force`). */
-export function checkAttemptBudget(plan: RunPlan, force: boolean, configFile: string): void {
-  const cap = plan.budget.attempts
-  if (cap === undefined || plan.attempts <= cap || force) return
+/** Exit 2 before anything starts when the plan is over `budget.trials` (unless `--force`). */
+export function checkTrialBudget(plan: RunPlan, force: boolean, configFile: string): void {
+  const cap = plan.budget.trials
+  if (cap === undefined || plan.trials <= cap || force) return
   const where = plan.profile ? `profile ${plan.profile.name}` : configFile
   throw new UsageError(
-    `this run plans ${plan.attempts} attempts, over budget.attempts ${cap} (${where}). Narrow it with --tag or --runs, or raise the budget. (--force runs it anyway)`,
+    `this run plans ${plan.trials} trials, over budget.trials ${cap} (${where}). Narrow it with --tag or --trials, or raise the budget. (--force runs it anyway)`,
   )
 }

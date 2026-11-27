@@ -30,20 +30,20 @@ agents, and the second runs without the careful one.
 
 ```text
 adds-multiply.eval.ts
-  · adds-multiply  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
+  · adds-multiply  mean 100% · 1/1 trial at 100% (pass@1)  capability(1)
     fake-quick    100%
     fake-careful  100%
     oracle        100%
 
 adds-subtract.eval.ts
-  · adds-subtract  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
+  · adds-subtract  mean 100% · 1/1 trial at 100% (pass@1)  capability(1)
     #1  100%
 ```
 
 Under a profile, the profile's agents replace the eval's, and the plan notes it:
 
 ```text
-eval           agents  variants  runs  attempts  target         notes
+eval           agents  variants  runs  trials  target         notes
 adds-multiply  1       —         1     1         capability(1)  agents set by profile claude-code
 adds-subtract  1       —         1     1         capability(1)  agents set by profile claude-code
 ```

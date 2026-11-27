@@ -1,7 +1,7 @@
 // Snapshots: the tar reader and writer, what an archive leaves out and masks, each form's cap, and
-// through the CLI, every attempt's final workspace in its run directory by default, after each
+// through the CLI, every trial's final workspace in its run directory by default, after each
 // turn with 'turns', as a tar.gz with compress, merged field by field down the cascade, off at
-// each level, printed for a failed attempt, never recorded into the history, and pruned.
+// each level, printed for a failed trial, never recorded into the history, and pruned.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -18,10 +18,10 @@ import {
   writeTar,
 } from '@reeval/sandbox-docker'
 import { streamPreview } from '../../sandbox-docker/src/trace.ts'
-import { archiveWorkspace, cleanArchive, takeSnapshot } from '../src/attempt/snapshot.ts'
-import type { Attempt } from '../src/attempt/state.ts'
+import { archiveWorkspace, cleanArchive, takeSnapshot } from '../src/trial/snapshot.ts'
+import type { Trial } from '../src/trial/state.ts'
 import { optionsHash } from '../src/eval-source.ts'
-import type { AttemptRecord } from '../src/history/types.ts'
+import type { TrialRecord } from '../src/history/types.ts'
 import type { Sandbox } from '../src/sandbox/index.ts'
 import { fakeConfig, project, readRun, runCli, tempDir } from './helpers.ts'
 
@@ -200,14 +200,14 @@ const hostBox = (dir: string, env: NodeJS.ProcessEnv = process.env): Sandbox =>
 
 const LIMITS = { dir: 2 ** 20, tar: 2 ** 20, raw: 2 ** 20 }
 
-/** Enough of an attempt for takeSnapshot. */
-const attemptFor = (dir: string, signal: AbortSignal, compress = false) =>
+/** Enough of a trial for takeSnapshot. */
+const trialFor = (dir: string, signal: AbortSignal, compress = false) =>
   ({
     spec: { snapshot: { when: true, compress } },
     signal,
     snapshotDir: join(dir, 'staged'),
     record: {},
-  }) as unknown as Attempt
+  }) as unknown as Trial
 
 describe('archiveWorkspace', {
   skip: process.platform === 'win32' && 'runs the archive commands in sh, which Windows lacks',
@@ -270,7 +270,7 @@ describe('archiveWorkspace', {
     writeFileSync(join(work, 'src/app.js'), 'export {}\n')
     writeFileSync(join(work, '.env'), `GITHUB_TOKEN=${SECRET}\n`)
     const signal = new AbortController().signal
-    const plain = attemptFor(dir, signal)
+    const plain = trialFor(dir, signal)
     await takeSnapshot(plain, hostBox(work), 'final', 'teardown', LIMITS)
     const [taken] = plain.record.snapshots ?? []
     assert.deepEqual(
@@ -291,7 +291,7 @@ describe('archiveWorkspace', {
     assert.equal(readFileSync(join(dir, 'staged/final/src/app.js'), 'utf8'), 'export {}\n')
     assert.ok(!readFileSync(join(dir, 'staged/final/.env'), 'utf8').includes(SECRET))
 
-    const packed = attemptFor(dir, signal, true)
+    const packed = trialFor(dir, signal, true)
     await takeSnapshot(packed, hostBox(work), 'turn-1', 'harness', LIMITS)
     const [tarred] = packed.record.snapshots ?? []
     assert.equal(tarred?.form, 'tar.gz')
@@ -306,7 +306,7 @@ describe('archiveWorkspace', {
     )
   })
 
-  test('a snapshot that outlasts its time is recorded; a stopped attempt records nothing', async () => {
+  test('a snapshot that outlasts its time is recorded; a stopped trial records nothing', async () => {
     const dir = tempDir('archive-slow')
     const slow = {
       workdir: dir,
@@ -317,7 +317,7 @@ describe('archiveWorkspace', {
     } as unknown as Sandbox
     // AbortSignal.timeout doesn't hold the event loop open.
     const hold = setInterval(() => {}, 1000)
-    const late = attemptFor(dir, new AbortController().signal)
+    const late = trialFor(dir, new AbortController().signal)
     await takeSnapshot(late, slow, 'final', 'teardown', LIMITS, 50)
     clearInterval(hold)
     assert.equal(
@@ -325,7 +325,7 @@ describe('archiveWorkspace', {
       "couldn't archive the workspace: it took over 0s",
     )
     const stop = new AbortController()
-    const stopped = attemptFor(dir, stop.signal)
+    const stopped = trialFor(dir, stop.signal)
     const taking = takeSnapshot(stopped, slow, 'final', 'teardown', LIMITS, 60_000)
     stop.abort()
     await taking
@@ -362,21 +362,21 @@ export default defineEval({
 })
 `
 
-const snapshotsOf = (a: AttemptRecord | undefined) =>
+const snapshotsOf = (a: TrialRecord | undefined) =>
   (a?.snapshots ?? []).map((s) => `${s.name} ${s.form} ${s.path?.split('/').slice(-2).join('/')}`)
 
 describe('snapshots through the CLI', () => {
-  test('every attempt has its final workspace in its run directory, never in the history', async () => {
+  test('every trial has its final workspace in its run directory, never in the history', async () => {
     const p = await project('snapshots-default', {
       'reeval.config.ts': fakeConfig({ harness: WRITES }),
-      'evals/app.eval.ts': evalFile('runs: 2,'),
+      'evals/app.eval.ts': evalFile('trials: 2,'),
     })
     const run = await runCli(p.dir, ['run', '--record'])
     assert.equal(run.code, 0, run.stdout + run.stderr)
     const { run: record } = readRun(p.dir)
-    const attempts = record.evals[0]?.attempts ?? []
-    assert.equal(attempts.length, 2)
-    for (const a of attempts) {
+    const trials = record.evals[0]?.trials ?? []
+    assert.equal(trials.length, 2)
+    for (const a of trials) {
       assert.deepEqual(snapshotsOf(a), ['final dir snapshots/final'])
       const [final] = a.snapshots ?? []
       assert.equal(final?.files, 3)
@@ -407,20 +407,20 @@ describe('snapshots through the CLI', () => {
     const run = await runCli(p.dir, ['run'])
     assert.equal(run.code, 0, run.stdout + run.stderr)
     const { run: record } = readRun(p.dir)
-    const [attempt] = record.evals[0]?.attempts ?? []
-    assert.deepEqual(snapshotsOf(attempt), [
+    const [trial] = record.evals[0]?.trials ?? []
+    assert.deepEqual(snapshotsOf(trial), [
       'turn-1 tar.gz snapshots/turn-1.tar.gz',
       'turn-2 tar.gz snapshots/turn-2.tar.gz',
       'final tar.gz snapshots/final.tar.gz',
     ])
-    const final = attempt?.snapshots?.at(-1)
+    const final = trial?.snapshots?.at(-1)
     const archive = readFileSync(join(p.dir, '.reeval/runs', record.runId, final?.path ?? ''))
     assert.equal(final?.bytes, archive.length)
     const app = readTar(gunzipSync(archive)).find((e) => e.path === 'app/index.js')
     assert.equal(app?.type === 'file' && app.data.toString(), 'export const answer = 42\n')
   })
 
-  test("a failed attempt's result block prints its snapshot with -v", async () => {
+  test("a failed trial's result block prints its snapshot with -v", async () => {
     const p = await project('snapshots-failed', {
       'reeval.config.ts': fakeConfig({ harness: WRITES }),
       'evals/app.eval.ts': evalFile('', 'something else'),
@@ -445,7 +445,7 @@ describe('snapshots through the CLI', () => {
       p.dir,
       '.reeval/runs',
       first.runId,
-      first.evals[0]?.attempts[0]?.snapshots?.[0]?.path ?? '',
+      first.evals[0]?.trials[0]?.snapshots?.[0]?.path ?? '',
     )
     assert.ok(existsSync(firstPath))
     assert.equal((await runCli(p.dir, ['run'])).code, 0)
@@ -454,7 +454,7 @@ describe('snapshots through the CLI', () => {
       p.dir,
       '.reeval/runs',
       second.runId,
-      second.evals[0]?.attempts[0]?.snapshots?.[0]?.path ?? '',
+      second.evals[0]?.trials[0]?.snapshots?.[0]?.path ?? '',
     )
     assert.equal(existsSync(firstPath), false, 'the older run lost its snapshot')
     assert.ok(existsSync(join(p.dir, '.reeval/runs', first.runId, 'summary.md')), 'not the run')
@@ -486,7 +486,7 @@ describe('snapshots through the CLI', () => {
       const run = await runCli(p.dir, level === 'profile' ? ['run', '--profile', 'lean'] : ['run'])
       assert.equal(run.code, 0, run.stdout + run.stderr)
       const { run: record } = readRun(p.dir)
-      assert.equal(record.evals[0]?.attempts[0]?.snapshots, undefined)
+      assert.equal(record.evals[0]?.trials[0]?.snapshots, undefined)
     })
   }
 })

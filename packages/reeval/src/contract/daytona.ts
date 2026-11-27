@@ -10,7 +10,7 @@ import type {
   DaytonaSize,
 } from '../types.ts'
 import {
-  BOAT_ATTEMPTS_PER_MACHINE_MAX,
+  BOAT_TRIALS_PER_MACHINE_MAX,
   BOAT_PREFIX,
   BOAT_PREFIX_MAX,
   SANDBOX_KEYS,
@@ -20,23 +20,23 @@ import { VAR } from './plain.ts'
 import { oneRecipe, recipeFields } from './recipe.ts'
 import { type Assert, closest, got, type Issue, nonEmpty, refusal, type Same } from './shared.ts'
 
-/** reeval adds `-<run>-<attempt>` (16 characters) to a sandbox's prefix, as for Boat. */
+/** reeval adds `-<run>-<trial>` (16 characters) to a sandbox's prefix, as for Boat. */
 export const DAYTONA_PREFIX = BOAT_PREFIX
 export const DAYTONA_PREFIX_MAX = BOAT_PREFIX_MAX
 export const DAYTONA_SIZES = ['small', 'medium', 'large'] as const
 /** Slot `n` listens on the gateway's port plus `n`, as on Boat. */
-export const DAYTONA_ATTEMPTS_PER_MACHINE_MAX = BOAT_ATTEMPTS_PER_MACHINE_MAX
+export const DAYTONA_TRIALS_PER_MACHINE_MAX = BOAT_TRIALS_PER_MACHINE_MAX
 
 const apiKeySchema = z.strictObject({ kind: z.literal('secret'), from: z.string().regex(VAR) })
 const prefixSchema = z.string().max(DAYTONA_PREFIX_MAX).regex(DAYTONA_PREFIX)
 const sizeSchema = z.enum(DAYTONA_SIZES)
-const attemptsSchema = z.number().int().min(1).max(DAYTONA_ATTEMPTS_PER_MACHINE_MAX)
+const trialsSchema = z.number().int().min(1).max(DAYTONA_TRIALS_PER_MACHINE_MAX)
 
 const machineFields = {
   size: sizeSchema.optional(),
   maxConcurrent: z.number().int().min(1).optional(),
   reuse: z.boolean().optional(),
-  attemptsPerMachine: attemptsSchema.optional(),
+  trialsPerMachine: trialsSchema.optional(),
 }
 
 export const daytonaProviderSchema = z.strictObject({
@@ -103,7 +103,7 @@ const NOT_ON_DAYTONA: Record<string, string> = {
   type: SIZES,
 }
 
-const ORDER = ['size', 'maxConcurrent', 'reuse', 'attemptsPerMachine']
+const ORDER = ['size', 'maxConcurrent', 'reuse', 'trialsPerMachine']
 
 function explain(fn: string) {
   return (issue: Issue, value: unknown): string => {
@@ -130,8 +130,8 @@ function explain(fn: string) {
         return `${fn}({ maxConcurrent }) takes a whole number of at least 1 (got ${got(v)})`
       case 'reuse':
         return `${fn}({ reuse }) is true or false (got ${got(v)})`
-      case 'attemptsPerMachine':
-        return `${fn}({ attemptsPerMachine }) is a whole number from 1 to ${DAYTONA_ATTEMPTS_PER_MACHINE_MAX} (got ${got(v)})`
+      case 'trialsPerMachine':
+        return `${fn}({ trialsPerMachine }) is a whole number from 1 to ${DAYTONA_TRIALS_PER_MACHINE_MAX} (got ${got(v)})`
       case 'kind':
         return `a Daytona provider's kind is "daytona" (got ${got(v)})`
       default:

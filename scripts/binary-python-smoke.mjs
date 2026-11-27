@@ -287,7 +287,7 @@ if (values.sdist) {
   )
 }
 
-// Ctrl-C through the launcher reaches reeval, which cancels the attempts and saves the run.
+// Ctrl-C through the launcher reaches reeval, which cancels the trials and saves the run.
 const stop = project('ctrl-c', '', wheel, 60_000)
 const ctrlC = fileURLToPath(new URL('./ctrl-c.py', import.meta.url))
 const stopped = sh(
@@ -306,7 +306,7 @@ try {
 check(
   'Ctrl-C on reeval run through the launcher: reeval saves the run as interrupted and exits 130',
   stopped.status === 130 &&
-    stopped.out.includes('Interrupted: attempts') &&
+    stopped.out.includes('Interrupted: trials') &&
     status === 'interrupted',
 )
 

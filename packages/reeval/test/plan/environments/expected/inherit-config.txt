@@ -1,5 +1,5 @@
-no profile · 1 evals · 2 cells · 8 attempts
-inherit  fake/plain/docker:node:24-bookworm      control            ungated    ×4  runs 4 (compare default)
+no profile · 1 evals · 2 cells · 8 trials
+inherit  fake/plain/docker:node:24-bookworm      baseline           ungated    ×4  trials 4 (compare default)
          fake/with-mode/docker:node:24-bookworm  variant with-mode  gated any  ×4
 excluded: —
 image docker:node:24-bookworm · cursor · 1 evals

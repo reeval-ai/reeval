@@ -1,5 +1,5 @@
-// A judge grader: a question reeval's judge answers about the stored attempt, once per model, with
-// what it shows drawn from the stored attempt, and a reference only the judge sees.
+// A judge grader: a question reeval's judge answers about the stored trial, once per model, with
+// what it shows drawn from the stored trial, and a reference only the judge sees.
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { relative, sep } from 'node:path'
@@ -7,7 +7,7 @@ import { createTwoFilesPatch } from 'diff'
 import { z } from 'zod'
 import { INPUT_KEYS, inputsOn, judgeInputsSchema, turnsSchema } from '../contract/judge.ts'
 import { dataProblem } from '../contract/shared.ts'
-import { debugTrace } from '../debug/attempt.ts'
+import { debugTrace } from '../debug/trial.ts'
 import { DefinitionError, isHostFile } from '../environment.ts'
 import { canonicalJson } from '../eval-source.ts'
 import { sha256 } from '../ids.ts'
@@ -74,7 +74,7 @@ export type JudgeAsk = (
   signal: AbortSignal,
 ) => Promise<JudgeAnswer>
 
-/** How an attempt's judge graders ask: its judge model, and the call. */
+/** How a trial's judge graders ask: its judge model, and the call. */
 export type GradeJudge = { model?: JudgeModel; ask: JudgeAsk }
 
 /** What a judge grader produced, before it's scored. */
@@ -310,7 +310,7 @@ export async function readReference(
 async function referenceShown(
   ref: ReadReference,
   mode: 'whole' | 'diff',
-  readAttempt: (path: string) => Promise<string | null>,
+  readTrial: (path: string) => Promise<string | null>,
 ): Promise<JSONValue> {
   if ('text' in ref.shown) return ref.shown.text
   let left = REFERENCE_LIMIT
@@ -321,8 +321,8 @@ async function referenceShown(
     if (text === null) part = '[reeval: binary file not shown]'
     else if (mode === 'whole') part = text
     else {
-      const theirs = await readAttempt(path)
-      if (theirs === null) part = "[reeval: not in the attempt's workspace]"
+      const theirs = await readTrial(path)
+      if (theirs === null) part = "[reeval: not in the trial's workspace]"
       else if (theirs === text) part = '[reeval: unchanged]'
       else
         part = createTwoFilesPatch(`reference/${path}`, path, text, theirs, '', '', { context: 3 })
@@ -344,7 +344,7 @@ async function referenceShown(
   }
 }
 
-/** What a judge grader read of the attempt, by content hash, as it reads it. */
+/** What a judge grader read of the trial, by content hash, as it reads it. */
 export type Reads = {
   reads: () => GradeReads
   file: (path: string, sha: string) => void
@@ -369,8 +369,8 @@ export function readsOf(): Reads {
 }
 
 /**
- * Asks the judge grader's question of each model about the stored attempt. A model's provider
- * failing the call (`isOutage`) is the attempt's infra error, thrown; any other failure is the
+ * Asks the judge grader's question of each model about the stored trial. A model's provider
+ * failing the call (`isOutage`) is the trial's infra error, thrown; any other failure is the
  * grade's error.
  */
 export async function runJudgeGrader(
@@ -407,7 +407,7 @@ export async function runJudgeGrader(
   }
   const { stored } = inputs
   const { workspace } = stored
-  const readAttempt = async (path: string): Promise<string | null> => {
+  const readTrial = async (path: string): Promise<string | null> => {
     const entry = workspace?.manifest.files.find((f) => f.path === path)
     const bytes = entry ? await workspace?.readFile(path) : null
     if (!entry || !bytes) return null
@@ -422,7 +422,7 @@ export async function runJudgeGrader(
       : undefined
     if (missing !== undefined) {
       return failed(
-        `${who} observations names a value this attempt didn't observe: ${JSON.stringify(missing)}`,
+        `${who} observations names a value this trial didn't observe: ${JSON.stringify(missing)}`,
         ref?.digest,
       )
     }
@@ -444,7 +444,7 @@ export async function runJudgeGrader(
       wanted,
       checks: stored.execs,
       observations: observed,
-      readFile: readAttempt,
+      readFile: readTrial,
       listFiles: async () => workspace?.manifest.files.map((f) => f.path) ?? [],
       who,
     })
@@ -452,7 +452,7 @@ export async function runJudgeGrader(
     const json = {
       ...stateOf(draft),
       ...(ref
-        ? { reference: await referenceShown(ref, run.inputs.reference ?? 'whole', readAttempt) }
+        ? { reference: await referenceShown(ref, run.inputs.reference ?? 'whole', readTrial) }
         : {}),
     }
     const blobs = new Map<string, Buffer>()
@@ -466,7 +466,7 @@ export async function runJudgeGrader(
         const png = await stored.readArtifact(name)
         if (!png)
           throw new GradeError(
-            `${who} artifacts names a capture this attempt doesn't have: ${JSON.stringify(name)}`,
+            `${who} artifacts names a capture this trial doesn't have: ${JSON.stringify(name)}`,
           )
         blobs.set(name, png)
       }

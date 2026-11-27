@@ -307,7 +307,7 @@ export class ReevalClient {
       }),
     get: async (a: { run: string }, options?: CallOptions): Promise<CloudRun> =>
       this.#get('runs.get', ['api', 'runs', a.run], CloudRun, options),
-    /** Asks the run to stop; it ends once its attempts have. */
+    /** Asks the run to stop; it ends once its trials have. */
     cancel: async (a: { run: string }, options?: CallOptions): Promise<void> =>
       this.#call({
         operation: 'runs.cancel',

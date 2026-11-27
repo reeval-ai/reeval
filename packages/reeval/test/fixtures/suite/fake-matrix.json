@@ -43,7 +43,7 @@
                 "order": 0,
                 "gated": true,
                 "outcome": "pass",
-                "attempts": 1,
+                "trials": 1,
                 "passed": 1,
                 "failed": 0,
                 "infraError": 0,
@@ -72,7 +72,7 @@
                 "order": 1,
                 "gated": true,
                 "outcome": "infra_error",
-                "attempts": 1,
+                "trials": 1,
                 "passed": 0,
                 "failed": 0,
                 "infraError": 1,
@@ -89,7 +89,7 @@
                   {
                     "kind": "infra",
                     "message": "the fake sandbox fell over",
-                    "attempts": 1
+                    "trials": 1
                   }
                 ],
                 "searches": [],
@@ -160,7 +160,7 @@
                 "order": 0,
                 "gated": true,
                 "outcome": "fail",
-                "attempts": 1,
+                "trials": 1,
                 "passed": 0,
                 "failed": 1,
                 "infraError": 0,
@@ -177,7 +177,7 @@
                   {
                     "kind": "assertion",
                     "message": "expected command to succeed, exit code 1",
-                    "attempts": 1
+                    "trials": 1
                   }
                 ],
                 "searches": [0],
@@ -195,7 +195,7 @@
                 "order": 1,
                 "gated": true,
                 "outcome": "infra_error",
-                "attempts": 1,
+                "trials": 1,
                 "passed": 0,
                 "failed": 0,
                 "infraError": 1,
@@ -212,7 +212,7 @@
                   {
                     "kind": "infra",
                     "message": "the fake sandbox fell over",
-                    "attempts": 1
+                    "trials": 1
                   }
                 ],
                 "searches": [],
@@ -286,7 +286,7 @@
                 "order": 0,
                 "gated": true,
                 "outcome": "fail",
-                "attempts": 1,
+                "trials": 1,
                 "passed": 0,
                 "failed": 1,
                 "infraError": 0,
@@ -303,7 +303,7 @@
                   {
                     "kind": "judge",
                     "message": "judge score 0.80 is below 0.95 for \"Is greet.js perfect?\" (fake)",
-                    "attempts": 1
+                    "trials": 1
                   }
                 ],
                 "searches": [0],
@@ -321,7 +321,7 @@
                 "order": 1,
                 "gated": true,
                 "outcome": "infra_error",
-                "attempts": 1,
+                "trials": 1,
                 "passed": 0,
                 "failed": 0,
                 "infraError": 1,
@@ -338,7 +338,7 @@
                   {
                     "kind": "infra",
                     "message": "the fake sandbox fell over",
-                    "attempts": 1
+                    "trials": 1
                   }
                 ],
                 "searches": [],
@@ -412,7 +412,7 @@
                 "order": 0,
                 "gated": true,
                 "outcome": "skipped",
-                "attempts": 1,
+                "trials": 1,
                 "passed": 0,
                 "failed": 0,
                 "infraError": 0,
@@ -441,7 +441,7 @@
                 "order": 1,
                 "gated": true,
                 "outcome": "skipped",
-                "attempts": 1,
+                "trials": 1,
                 "passed": 0,
                 "failed": 0,
                 "infraError": 0,
@@ -497,7 +497,7 @@
                 "order": 0,
                 "gated": true,
                 "outcome": "skipped",
-                "attempts": 1,
+                "trials": 1,
                 "passed": 0,
                 "failed": 0,
                 "infraError": 0,
@@ -558,7 +558,7 @@
                 "order": 0,
                 "gated": false,
                 "outcome": "fail",
-                "attempts": 1,
+                "trials": 1,
                 "passed": 0,
                 "failed": 1,
                 "infraError": 0,
@@ -575,7 +575,7 @@
                   {
                     "kind": "assertion",
                     "message": "expected command to succeed, exit code 1",
-                    "attempts": 1
+                    "trials": 1
                   }
                 ],
                 "searches": [0],
@@ -593,7 +593,7 @@
                 "order": 1,
                 "gated": true,
                 "outcome": "pass",
-                "attempts": 1,
+                "trials": 1,
                 "passed": 1,
                 "failed": 0,
                 "infraError": 0,
@@ -613,7 +613,7 @@
                     "measure": "pass",
                     "label": null,
                     "variant": 1,
-                    "control": 0,
+                    "baseline": 0,
                     "estimate": 1,
                     "lo": -0.122,
                     "hi": 1,
@@ -632,7 +632,7 @@
                     "measure": "tools",
                     "label": null,
                     "variant": 1,
-                    "control": 1,
+                    "baseline": 1,
                     "estimate": 1,
                     "lo": null,
                     "hi": null,
@@ -648,7 +648,7 @@
                     "measure": "agentMs",
                     "label": null,
                     "variant": 2,
-                    "control": 11,
+                    "baseline": 11,
                     "estimate": 0.18181818181818182,
                     "lo": null,
                     "hi": null,
@@ -677,7 +677,7 @@
                 "order": 2,
                 "gated": false,
                 "outcome": "infra_error",
-                "attempts": 1,
+                "trials": 1,
                 "passed": 0,
                 "failed": 0,
                 "infraError": 1,
@@ -694,7 +694,7 @@
                   {
                     "kind": "infra",
                     "message": "the fake sandbox fell over",
-                    "attempts": 1
+                    "trials": 1
                   }
                 ],
                 "searches": [],
@@ -712,7 +712,7 @@
                 "order": 3,
                 "gated": true,
                 "outcome": "infra_error",
-                "attempts": 1,
+                "trials": 1,
                 "passed": 0,
                 "failed": 0,
                 "infraError": 1,
@@ -729,7 +729,7 @@
                   {
                     "kind": "infra",
                     "message": "the fake sandbox fell over",
-                    "attempts": 1
+                    "trials": 1
                   }
                 ],
                 "searches": [],
@@ -823,7 +823,7 @@
                 "order": 0,
                 "gated": true,
                 "outcome": "pass",
-                "attempts": 4,
+                "trials": 4,
                 "passed": 3,
                 "failed": 0,
                 "infraError": 0,

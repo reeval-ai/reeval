@@ -1,7 +1,7 @@
 // Per-key judge rates and collapsed score/threshold lines for the run summary and studio.
-// Display only: the attempt still fails if any judge fails, and the record is unchanged.
+// Display only: the trial still fails if any judge fails, and the record is unchanged.
 import type {
-  AttemptRecord,
+  TrialRecord,
   CellRecord,
   EvalEntry,
   JudgmentRecord,
@@ -15,7 +15,7 @@ import { sumUsage } from '../usage.ts'
 /** Show each key until this many; then the minimum score plus a count. */
 const COLLAPSE_AFTER = 2
 
-const counted = (a: Pick<AttemptRecord, 'outcome'>) => a.outcome === 'pass' || a.outcome === 'fail'
+const counted = (a: Pick<TrialRecord, 'outcome'>) => a.outcome === 'pass' || a.outcome === 'fail'
 
 /** Short names stay at this many characters; a collision takes the distinctive tail instead. */
 const LABEL_MAX = 20
@@ -105,8 +105,8 @@ export type JudgeKeyRate = {
   question: string
   pass: number
   counted: number
-  /** Compact lift vs the paired control, when both sides counted an attempt. */
-  lift: Pick<Lift, 'points' | 'control' | 'variant' | 'withinNoise'> | null
+  /** Compact lift vs the paired baseline, when both sides counted a trial. */
+  lift: Pick<Lift, 'points' | 'baseline' | 'variant' | 'withinNoise'> | null
 }
 
 type KeyTally = {
@@ -117,10 +117,10 @@ type KeyTally = {
   counted: number
 }
 
-function keyTallies(e: Pick<EvalEntry, 'attempts'>, cellKey: string): Map<string, KeyTally> {
+function keyTallies(e: Pick<EvalEntry, 'trials'>, cellKey: string): Map<string, KeyTally> {
   const byKey = new Map<string, KeyTally>()
   const expectLabels = new Map<string, string>()
-  for (const a of e.attempts) {
+  for (const a of e.trials) {
     if (a.cell !== cellKey || !counted(a)) continue
     for (const { judgment: j, label, labelled: labeled } of labeledJudgments(a)) {
       const row = byKey.get(j.key) ?? {
@@ -147,56 +147,56 @@ function keyTallies(e: Pick<EvalEntry, 'attempts'>, cellKey: string): Map<string
   return byKey
 }
 
-function pairedControl(e: Pick<EvalEntry, 'cells'>, cellKey: string): CellRecord | undefined {
+function pairedBaseline(e: Pick<EvalEntry, 'cells'>, cellKey: string): CellRecord | undefined {
   const cell = e.cells.find((c) => c.key === cellKey)
   if (cell?.role !== 'variant') return undefined
   return e.cells.find(
-    (x) => x.role === 'control' && x.harness === cell.harness && x.sandbox === cell.sandbox,
+    (x) => x.role === 'baseline' && x.harness === cell.harness && x.sandbox === cell.sandbox,
   )
 }
 
 function liftForKey(
   variant: { pass: number; counted: number },
-  control: { pass: number; counted: number } | undefined,
+  baseline: { pass: number; counted: number } | undefined,
 ): JudgeKeyRate['lift'] {
-  if (!control || variant.counted === 0 || control.counted === 0) return null
+  if (!baseline || variant.counted === 0 || baseline.counted === 0) return null
   const { points, low, high } = liftInterval(
     { pass: variant.pass, n: variant.counted },
-    { pass: control.pass, n: control.counted },
+    { pass: baseline.pass, n: baseline.counted },
   )
   return {
     points: round3(points),
-    control: { pass: control.pass, counted: control.counted },
+    baseline: { pass: baseline.pass, counted: baseline.counted },
     variant: { pass: variant.pass, counted: variant.counted },
     withinNoise: containsZero(low, high),
   }
 }
 
-/** Per-key pass/counted for one cell's counted attempts, with lift on a variant when both sides counted an attempt. */
+/** Per-key pass/counted for one cell's counted trials, with lift on a variant when both sides counted a trial. */
 export function cellJudgeRates(
-  e: Pick<EvalEntry, 'attempts' | 'cells'>,
+  e: Pick<EvalEntry, 'trials' | 'cells'>,
   cellKey: string,
 ): JudgeKeyRate[] {
   const tallies = keyTallies(e, cellKey)
-  const control = pairedControl(e, cellKey)
-  const controlTallies = control ? keyTallies(e, control.key) : undefined
+  const baseline = pairedBaseline(e, cellKey)
+  const baselineTallies = baseline ? keyTallies(e, baseline.key) : undefined
   return [...tallies].map(([key, row]) => ({
     key,
     ...row,
-    lift: liftForKey(row, controlTallies?.get(key)),
+    lift: liftForKey(row, baselineTallies?.get(key)),
   }))
 }
 
 /**
  * The judge rates a cell's summary line adds to its checks: a labeled judge whose label is one
- * of the cell's checks against its control is already there.
+ * of the cell's checks against its baseline is already there.
  */
 export function summaryJudgeRates(
-  e: Pick<EvalEntry, 'attempts' | 'cells'>,
+  e: Pick<EvalEntry, 'trials' | 'cells'>,
   cell: Pick<CellRecord, 'key' | 'checks'>,
 ): JudgeKeyRate[] {
   const checked = new Set(
-    (cell.checks ?? []).filter((k) => k.control && k.verdict).map((k) => k.label),
+    (cell.checks ?? []).filter((k) => k.baseline && k.verdict).map((k) => k.label),
   )
   return cellJudgeRates(e, cell.key).filter((r) => !(r.labelled && checked.has(r.label)))
 }
@@ -251,13 +251,13 @@ export function collapsedJudgeLabel(judgments: readonly JudgmentRecord[]): strin
 const JUDGE_ERROR = /^judge failed for /
 
 /**
- * Each judgment's `expect` label, by position: the attempt's `toPass` assertions (less those on a
+ * Each judgment's `expect` label, by position: the trial's `toPass` assertions (less those on a
  * failed judge call, which recorded no judgment) in call order, when they are exactly as many as
  * its judgments. `check` is that assertion's label, the key of its check; a judgment no label
  * reaches is named by its question.
  */
 export function labeledJudgments(
-  a: Pick<AttemptRecord, 'judgements' | 'assertions'>,
+  a: Pick<TrialRecord, 'judgements' | 'assertions'>,
 ): Array<{ judgment: JudgmentRecord; label: string; labelled: boolean; check?: string }> {
   const passes = (a.assertions ?? []).filter(
     (x) => /(^|\.)toPass$/.test(x.matcher) && !JUDGE_ERROR.test(x.message ?? ''),
@@ -277,17 +277,17 @@ export function labeledJudgments(
   })
 }
 
-/** Sum of counted attempts' usage; null when none of them reported any. */
-export function cellUsage(e: Pick<EvalEntry, 'attempts'>, cellKey: string): TokenUsage | null {
-  return sumUsage(e.attempts.filter((a) => a.cell === cellKey && counted(a)).map((a) => a.usage))
+/** Sum of counted trials' usage; null when none of them reported any. */
+export function cellUsage(e: Pick<EvalEntry, 'trials'>, cellKey: string): TokenUsage | null {
+  return sumUsage(e.trials.filter((a) => a.cell === cellKey && counted(a)).map((a) => a.usage))
 }
 
 /**
- * Each `c.exec` check's `expect` label, by position: the attempt's `toSucceed` assertions in call
+ * Each `c.exec` check's `expect` label, by position: the trial's `toSucceed` assertions in call
  * order, when they are exactly as many as its checks; undefined where no label reaches.
  */
 export function checkLabels(
-  a: Pick<AttemptRecord, 'checks' | 'assertions'>,
+  a: Pick<TrialRecord, 'checks' | 'assertions'>,
 ): Array<string | undefined> {
   const succeeds = (a.assertions ?? []).filter((x) => /(^|\.)toSucceed$/.test(x.matcher))
   const zip = succeeds.length === a.checks.length
@@ -298,11 +298,11 @@ export function checkLabels(
 }
 
 /**
- * Each `toSucceed` label's `c.exec` check, by position, when the attempt's `toSucceed` assertions
+ * Each `toSucceed` label's `c.exec` check, by position, when the trial's `toSucceed` assertions
  * are exactly as many as its checks; empty otherwise.
  */
 export function checksByLabel<C>(
-  a: { checks: readonly C[] } & Pick<AttemptRecord, 'assertions'>,
+  a: { checks: readonly C[] } & Pick<TrialRecord, 'assertions'>,
 ): Map<string, C> {
   const succeeds = (a.assertions ?? []).filter((x) => /(^|\.)toSucceed$/.test(x.matcher))
   if (succeeds.length !== a.checks.length) return new Map()

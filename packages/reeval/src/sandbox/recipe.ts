@@ -23,7 +23,7 @@ import {
 import { parseDuration } from '../config.ts'
 import type { DockerSandboxDescriptor } from '../types.ts'
 
-/** The sandbox options that decide what's in an attempt's image. */
+/** The sandbox options that decide what's in a trial's image. */
 export type ImageRecipe = Pick<DockerSandboxDescriptor, 'image' | 'from' | 'dockerfile' | 'install'>
 
 /** The recipe options `sandbox` sets, or null when it sets none. */
@@ -132,7 +132,7 @@ const unresolved = (ref: string, now: { error: string; transient?: true }) => ({
 })
 
 /**
- * The content key of the image an attempt on `harness` starts from, from the recipe alone and
+ * The content key of the image a trial on `harness` starts from, from the recipe alone and
  * what its bases name in their registries now, with no container engine: the key `prepareImage`
  * gives the same recipe's last layer on the Docker engine when its bases resolve to the same
  * digests (Podman's fallback keys a `from` on its platform manifest instead). Whether a Dockerfile

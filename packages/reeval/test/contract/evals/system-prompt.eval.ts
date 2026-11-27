@@ -5,7 +5,7 @@ import { notes, OPTION_WORD, prompts, replacedPrompt, trimmed } from './probes.t
 
 // The edit-and-run task with `systemPrompt` in place of the harness's own prompt: the codeword it
 // writes is only in the replacement, and contract.test.ts checks its first model call was smaller
-// than the edit-and-run attempt's, which carried the harness's own prompt. Tagged so a row whose
+// than the edit-and-run trial's, which carried the harness's own prompt. Tagged so a row whose
 // harness can't replace it leaves it out with --tag '!system-prompt'.
 export default defineEval({
   environment: notes,

@@ -10,11 +10,11 @@ judge:
 defaultProfile: { ci: pr }
 profiles:
   pr:
-    limit: { runs: 1, compare: false }
+    limit: { trials: 1, compare: false }
     tags: ['!nightly-only']
   nightly:
     defaults:
-      runs: 2
+      trials: 2
       agents: [{ kind: fake, id: a }, { kind: fake, id: b }]
       environments:
         kind: environment

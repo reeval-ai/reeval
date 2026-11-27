@@ -14,7 +14,7 @@ import { oneRecipe, recipeFields } from './recipe.ts'
 import { type Assert, closest, got, type Issue, nonEmpty, refusal, type Same } from './shared.ts'
 
 /**
- * Boat's names are 1–63 lowercase letters, digits or dashes. reeval adds `-<run>-<attempt>` (16
+ * Boat's names are 1–63 lowercase letters, digits or dashes. reeval adds `-<run>-<trial>` (16
  * characters) to a sandbox's prefix and `-<harness>-<hash>` (up to 25) to a snapshot's.
  */
 export const BOAT_PREFIX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
@@ -22,7 +22,7 @@ export const BOAT_PREFIX_MAX = 32
 
 export const BOAT_TYPES = ['small', 'default', 'large', 'xlarge'] as const
 /** Slot `n` listens on the gateway's port plus `n`, and a small VM has 2 vCPUs. */
-export const BOAT_ATTEMPTS_PER_MACHINE_MAX = 8
+export const BOAT_TRIALS_PER_MACHINE_MAX = 8
 
 const apiKeySchema = z.strictObject({ kind: z.literal('secret'), from: z.string().regex(VAR) })
 const prefixSchema = z.string().max(BOAT_PREFIX_MAX).regex(BOAT_PREFIX)
@@ -32,7 +32,7 @@ const machineFields = {
   type: typeSchema.optional(),
   maxConcurrent: z.number().int().min(1).optional(),
   reuse: z.boolean().optional(),
-  attemptsPerMachine: z.number().int().min(1).max(BOAT_ATTEMPTS_PER_MACHINE_MAX).optional(),
+  trialsPerMachine: z.number().int().min(1).max(BOAT_TRIALS_PER_MACHINE_MAX).optional(),
 }
 
 export const boatProviderSchema = z.strictObject({
@@ -104,7 +104,7 @@ export const sandboxKeyMessage = (fn: string, key: string) =>
     ? `${fn}() takes no \`id\`: the cell is named by its sandbox, docker({ id }).`
     : `${fn}() takes no \`${key}\`: the image goes in docker({ ${key} }), the sandbox.`
 
-const KNOWN = ['type', 'maxConcurrent', 'reuse', 'attemptsPerMachine']
+const KNOWN = ['type', 'maxConcurrent', 'reuse', 'trialsPerMachine']
 
 const prefixMessage = (v: unknown, where: string) =>
   `${where} takes lowercase letters, digits and dashes, starting and ending with a letter or digit, at most ${BOAT_PREFIX_MAX} characters, e.g. prefix: 'acme-evals' (got ${got(v)})`
@@ -135,8 +135,8 @@ function explain(fn: string) {
         return `${fn}({ maxConcurrent }) takes a whole number of at least 1 (got ${got(v)})`
       case 'reuse':
         return `${fn}({ reuse }) is true or false (got ${got(v)})`
-      case 'attemptsPerMachine':
-        return `${fn}({ attemptsPerMachine }) is a whole number from 1 to ${BOAT_ATTEMPTS_PER_MACHINE_MAX} (got ${got(v)})`
+      case 'trialsPerMachine':
+        return `${fn}({ trialsPerMachine }) is a whole number from 1 to ${BOAT_TRIALS_PER_MACHINE_MAX} (got ${got(v)})`
       case 'kind':
         return `a Boat provider's kind is "boat" (got ${got(v)})`
       default:

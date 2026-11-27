@@ -1,7 +1,7 @@
 # with-capture-compare
 
-**Shows:** a pairwise question asked about screenshots. Both arms add a "Sign up" button; the
-variant has a brand skill. Each attempt captures its page as `home`, and the question
+**Shows:** a pairwise question asked about screenshots. Both environments add a "Sign up" button; the
+variant has a brand skill. Each trial captures its page as `home`, and the question
 (`across: 'environment'`, with `diff: true` and `artifacts: ['home']`) sends each side's own screenshot beside its diff, so the vote can rest on
 how the page looks.
 
@@ -34,8 +34,8 @@ one profile you need.
 
 ```text
 with-capture-compare.eval.ts
-  · with-capture-compare  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
-    arm              pass
+  · with-capture-compare  mean 100% · 4/4 trials at 100% (pass@4)  capability(1)
+    environment      pass
     site             4 of 4
     brand            4 of 4  same
     Question: Which Sign up button is blue with white text and rounded corners?
@@ -68,5 +68,5 @@ the capture each side sent:
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace, with and without the skill |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent and analysis model, the `docker` profile, and the real agents from `../profiles.ts` |
 
-The [Check an app](../../docs/evaluations/task/apps.mdx) page covers comparing two arms'
-screenshots, and [Ask questions across attempts](../../docs/evaluations/grading/questions.mdx) what each side shows.
+The [Check an app](../../docs/evaluations/task/apps.mdx) page covers comparing two environments'
+screenshots, and [Ask questions across trials](../../docs/evaluations/grading/questions.mdx) what each side shows.

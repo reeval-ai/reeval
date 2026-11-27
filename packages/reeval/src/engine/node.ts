@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 import { UsageError } from '../errors.ts'
 import { fileEvalId, isOneEvalFile } from '../eval-id.ts'
-import { attemptKey, evalId, relativeFile } from '../ids.ts'
+import { trialKey, evalId, relativeFile } from '../ids.ts'
 import { redactSecrets } from '../redact.ts'
 import { ownVersion, PACKAGE_DIR, WORKER_PACKAGE_NAMES } from '../root.ts'
 import { Scheduler } from '../scheduler/core.ts'
@@ -106,14 +106,14 @@ export async function runEngine(
     return { evals: [], unhandledErrors: [], canceled: false, noFiles: true, stopped: false }
   const named = new Set(specs.map((file) => relativeFile(root, file)))
 
-  // A file's worker holds its lane until all of its attempts finish, so `concurrency` attempts in
+  // A file's worker holds its lane until all of its trials finish, so `concurrency` trials in
   // flight need that many workers.
   const workers = Math.max(1, Math.min(concurrency, specs.length))
   const entry = workerEntry(root, WORKER_PACKAGE_NAMES)
   const hide = [...reevalFrames(PACKAGE_DIR), ...reevalFrames(join(entry, '..', '..'))]
   const cells = options.cells ?? []
   const matchesFilters = (e: Named) =>
-    (cells.length === 0 || (!!e.attempt && cells.some((c) => matchesCell(e.attempt, c)))) &&
+    (cells.length === 0 || (!!e.trial && cells.some((c) => matchesCell(e.trial, c)))) &&
     named.has(e.file) &&
     (nameFilters.length === 0 || nameFilters.some((f) => matchesFilter(e, f)))
   const run = options.run
@@ -161,7 +161,7 @@ export async function runEngine(
     )
   }
   collected.sort((a, b) => Number(a.file > b.file) - Number(a.file < b.file))
-  const matchesName = withControls(collected, matchesFilters)
+  const matchesName = withBaselines(collected, matchesFilters)
 
   if (options.onPlan) {
     const plan = collectPlan(collected, matchesName, nameFilters, specs.length < files.length)
@@ -183,57 +183,57 @@ export async function runEngine(
   return runFiles({ ...options, spawn, entry, hide, workers, collected: picked, matchesName })
 }
 
-/** Who a collected test is: its eval id, attempt key, groups and name. */
+/** Who a collected test is: its eval id, trial key, groups and name. */
 /** What a name or cell filter matches an eval on. */
-type Named = { id: string; file: string; attempt?: EngineEval['attempt'] }
+type Named = { id: string; file: string; trial?: EngineEval['trial'] }
 
 function identify(rel: string, test: WireTest) {
-  const { attempt } = test
-  const group = attempt?.groups ?? test.groups
-  const name = attempt?.name ?? test.name
+  const { trial } = test
+  const group = trial?.groups ?? test.groups
+  const name = trial?.name ?? test.name
   const id = evalId(rel, [...group, name])
-  const key = attempt ? attemptKey(id, attempt.cell.key, attempt.n) : id
-  return { id, key, file: rel, group, name, attempt }
+  const key = trial ? trialKey(id, trial.cell.key, trial.n) : id
+  return { id, key, file: rel, group, name, trial }
 }
 
 const skipped = (test: WireTest) => test.mode === 'skip' || test.mode === 'todo'
 
 /**
- * `matches`, plus the control each whole variant cell it picks is measured against (the control
+ * `matches`, plus the baseline each whole variant cell it picks is measured against (the baseline
  * cell on the variant's harness and sandbox), so a filter naming a variant still gets its lift.
  */
-function withControls(collected: Collected[], matches: (e: Named) => boolean) {
-  const variants = new Map<string, { picked: number; total: number; control: string }>()
+function withBaselines(collected: Collected[], matches: (e: Named) => boolean) {
+  const variants = new Map<string, { picked: number; total: number; baseline: string }>()
   for (const { rel, tests } of collected) {
     for (const test of tests) {
       const e = identify(rel, test)
-      const cell = e.attempt?.cell
+      const cell = e.trial?.cell
       if (cell?.role !== 'variant') continue
       const key = `${e.id}\0${cell.key}`
       const v = variants.get(key) ?? {
         picked: 0,
         total: 0,
-        control: `${e.id}\0${cell.harness}\0${cell.sandbox}`,
+        baseline: `${e.id}\0${cell.harness}\0${cell.sandbox}`,
       }
       v.total++
       if (matches(e)) v.picked++
       variants.set(key, v)
     }
   }
-  const controls = new Set(
-    [...variants.values()].filter((v) => v.picked === v.total).map((v) => v.control),
+  const baselines = new Set(
+    [...variants.values()].filter((v) => v.picked === v.total).map((v) => v.baseline),
   )
   return (e: Named) => {
-    const cell = e.attempt?.cell
+    const cell = e.trial?.cell
     return (
       matches(e) ||
-      (cell?.role === 'control' && controls.has(`${e.id}\0${cell.harness}\0${cell.sandbox}`))
+      (cell?.role === 'baseline' && baselines.has(`${e.id}\0${cell.harness}\0${cell.sandbox}`))
     )
   }
 }
 
 /**
- * The attempts collected files would start, by file then as declared, and the evals left out.
+ * The trials collected files would start, by file then as declared, and the evals left out.
  * Evals a tag filter dropped never registered, so they're in neither list.
  */
 function collectPlan(
@@ -252,9 +252,9 @@ function collectPlan(
       for (const f of unmatched) if (matchesFilter(e, f)) unmatched.delete(f)
       if (!matchesName(e)) continue
       matched++
-      const { attempt } = e
-      if (attempt?.plan.skip || (attempt && !skipped(test))) {
-        planned.push({ id: e.id, key: e.key, file: e.file, attempt })
+      const { trial } = e
+      if (trial?.plan.skip || (trial && !skipped(test))) {
+        planned.push({ id: e.id, key: e.key, file: e.file, trial })
       } else if (!excluded.has(e.id)) {
         excluded.set(e.id, { id: e.id, mode: test.mode === 'todo' ? 'todo' : 'skip' })
       }
@@ -297,7 +297,7 @@ async function runFiles(input: RunInput): Promise<EngineRun> {
   const live = new Set<WorkerProcess>()
   const byFile = new Map<string, FileRun>()
   // Every file in the first round asks for its leases before any is granted, so the first
-  // file's attempts don't take every slot just because its worker started first.
+  // file's trials don't take every slot just because its worker started first.
   const owners = new Map<string, WorkerProcess>()
   const scheduler = new Scheduler((request) => {
     owners
@@ -317,9 +317,9 @@ async function runFiles(input: RunInput): Promise<EngineRun> {
     for (const worker of live) worker.send({ t: 'cancel' })
   })
 
-  // A resume skips the attempts that already completed, which weren't declared skipped.
+  // A resume skips the trials that already completed, which weren't declared skipped.
   const declaredSkip = (test: WireTest, key: string) =>
-    test.mode === 'skip' && !test.attempt?.plan.skip && !completed.has(key)
+    test.mode === 'skip' && !test.trial?.plan.skip && !completed.has(key)
 
   const toEval = (rel: string, test: WireTest, result: WireResult): EngineEval => {
     const e = identify(rel, test)
@@ -339,7 +339,7 @@ async function runFiles(input: RunInput): Promise<EngineRun> {
   }
 
   input.onRunStart?.(specs.length)
-  // The attempts in progress, by key, with the worker that runs each. The main process's own timer
+  // The trials in progress, by key, with the worker that runs each. The main process's own timer
   // reports them, so a long turn that sends nothing still shows; a worker's go once it exits.
   const active = new Map<string, string>()
   const { heartbeat } = input
@@ -358,8 +358,8 @@ async function runFiles(input: RunInput): Promise<EngineRun> {
       live.add(worker)
       owners.set(id, worker)
       // Until the worker collects again, the file's tests are the plan's, so a file that fails to
-      // load this time still fails its attempts instead of dropping them. The plan was collected
-      // before a resume knew which attempts were done, so those are skipped, as the worker would.
+      // load this time still fails its trials instead of dropping them. The plan was collected
+      // before a resume knew which trials were done, so those are skipped, as the worker would.
       const tests = planned.map(
         (t): WireTest => (completed.has(identify(rel, t).key) ? { ...t, mode: 'skip' } : t),
       )
@@ -383,7 +383,7 @@ async function runFiles(input: RunInput): Promise<EngineRun> {
               group: e.group,
               name: e.name,
               skipped: skipped(test) || !matchesName(e),
-              attempt: test.attempt,
+              trial: test.trial,
             }
           }),
         })
@@ -398,7 +398,7 @@ async function runFiles(input: RunInput): Promise<EngineRun> {
           ? undefined
           : identify(rel, state.tests[index]).key
       // What an eval writes to process.stdout or stderr directly, as under Vitest, only shows
-      // with REEVAL_DEBUG; console output reaches its attempt.
+      // with REEVAL_DEBUG; console output reaches its trial.
       worker.onOutput((_stream, text) => {
         if (process.env.REEVAL_DEBUG) process.stderr.write(text)
       })
@@ -444,9 +444,9 @@ async function runFiles(input: RunInput): Promise<EngineRun> {
             break
           case 'start': {
             const test = state.tests[m.index] as WireTest
-            const { id: evalKey, key, attempt } = identify(rel, test)
+            const { id: evalKey, key, trial } = identify(rel, test)
             active.set(key, id)
-            emit({ type: 'eval-start', at: m.at, id: evalKey, key, attempt })
+            emit({ type: 'eval-start', at: m.at, id: evalKey, key, trial })
             break
           }
           case 'progress':
@@ -461,7 +461,7 @@ async function runFiles(input: RunInput): Promise<EngineRun> {
             break
           }
           case 'result': {
-            // As under Vitest, an attempt a cancel cut short is skipped; its record says aborted.
+            // As under Vitest, a trial a cancel cut short is skipped; its record says aborted.
             const result: WireResult =
               canceled && m.result.state === 'failed' ? { ...m.result, state: 'skipped' } : m.result
             const e = toEval(rel, state.tests[m.index] as WireTest, result)
@@ -501,7 +501,7 @@ async function runFiles(input: RunInput): Promise<EngineRun> {
       markReady()
       if (done && loadError === undefined) return
       // The file failed to load this time, or its worker died mid-file (killed, out of memory):
-      // its unfinished attempts fail.
+      // its unfinished trials fail.
       let why = loadError as string
       if (!done) {
         why = `The worker running ${rel} exited unexpectedly (${describeExit(exit)})`
@@ -526,7 +526,7 @@ async function runFiles(input: RunInput): Promise<EngineRun> {
     heartbeat?.beat([], true)
   })
 
-  // Attempts finish in any order; results are listed by file, then as declared.
+  // Trials finish in any order; results are listed by file, then as declared.
   const evals: EngineEval[] = []
   for (const file of [...byFile.keys()].sort()) {
     const { rel, tests, results } = byFile.get(file) as FileRun

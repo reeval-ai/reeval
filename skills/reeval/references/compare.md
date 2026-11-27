@@ -10,58 +10,58 @@
 
 ## What `compare` runs
 
-`compare` answers "does this environment help?". `compare: { control, variants }` names
-both sides: the control is what each variant is measured against, and `control` is required.
+`compare` answers "does this environment help?". `compare: { baseline, variants }` names
+both sides: the baseline is what each variant is measured against, and `baseline` is required.
 
 Each variant runs as that environment on its own, with the same prompt and checks. `compare`
 does not layer, inherit or extend. Share setup first (the example is in SKILL.md).
 
-- Attempts = evals × harnesses × (1 control + variants) × runs. The example is 1 eval, 2 cells
-  (`<harness>/plain/<sandbox>` control, `<harness>/house-style/<sandbox>` variant), 8 attempts.
-- With `runs` unset at every level, a compare with variants runs 4 a cell, the fewest tries a
+- Trials = evals × harnesses × (1 baseline + variants) × runs. The example is 1 eval, 2 cells
+  (`<harness>/plain/<sandbox>` baseline, `<harness>/house-style/<sandbox>` variant), 8 trials.
+- With `trials` unset at every level, a compare with variants runs 4 a cell, the fewest trials a
   side a lift verdict needs (the plan notes `runs 4 (compare default)`); anything else runs once,
   including a compare with two or more `cases`: its lift pairs cases, so add cases rather than
   runs (the plan notes `runs 1 a case`).
-  Any level that sets `runs`, `runs: 1` and `--runs` included, replaces it, and a profile's
-  `limit.runs` caps it. A compare with `cases` runs each case once: its lift pools over the cases.
-  Don't set `runs: 1` in the config unless you mean every compare to run once.
+  Any level that sets `trials`, `trials: 1` and `--trials` included, replaces it, and a profile's
+  `limit.trials` caps it. A compare with `cases` runs each case once: its lift pools over the cases.
+  Don't set `trials: 1` in the config unless you mean every compare to run once.
 - `parent.extendEnvironment(name, spec)` appends the child's spec as a new layer. The child wins
   on shared keys; `setup` concatenates. Call it before `compare`. Two stacks that should not
-  share are two `defineEnvironment` calls, then `{ control, variants }`.
-- `environments` beside `compare` (on the same object) is exit 2: move it to `compare.control`.
+  share are two `defineEnvironment` calls, then `{ baseline, variants }`.
+- `environments` beside `compare` (on the same object) is exit 2: move it to `compare.baseline`.
   An inherited `environments` is not applied as files, skills or variables. A side that omits
   `sandbox` uses the cascaded `sandbox` option, else implicit Docker; `.extend()` keeps the
   parent env's sandbox when the child omits it.
 - There is no `strategy` field. A profile's `limit.compare: false` strips variants and runs
-  the control, which then gates like an eval without compare (as does `maxVariants: 0`). `compare: false` on `evaluate` or `group` is an error.
+  the baseline, which then gates like an eval without compare (as does `maxVariants: 0`). `compare: false` on `evaluate` or `group` is an error.
 
 ## Gates and lift
 
-- Only variant cells gate, by the eval's `target`. A control's misses
-  show in its arm's count (`plain  0 of 2`) and never fail the run. `compare.agents: [cursor({ model: 'composer-2.5' })]` compares on some harnesses only.
-- With `runs > 1` and `target: regression()`, a cell passes only if every counted attempt passes
+- Only variant cells gate, by the eval's `target`. A baseline's misses
+  show in its environment's count (`plain  0 of 2`) and never fail the run. `compare.agents: [cursor({ model: 'composer-2.5' })]` compares on some harnesses only.
+- With `runs > 1` and `target: regression()`, a cell passes only if every counted trial passes
   (pass^k), and the default `capability()` passes when one does (pass@k) and only reports. `minLift` needs a target
   that can fail the run. Infra errors don't count; a cell is `infra_error`
   only when nothing counted.
-- **Lift** is the variant's mean score minus the control's, with a 95% interval. The result block
+- **Lift** is the variant's mean score minus the baseline's, with a 95% interval. The result block
   prints it as an effect word after the variant's count: `helped`, `made it worse`, or `can't
-  tell yet` below four tries a side or when the interval crosses 0; `-v` adds the difference
+  tell yet` below four trials a side or when the interval crosses 0; `-v` adds the difference
   and interval. `reeval query factor_effects` and `reeval explain` use the same four: below
   it the lift is `insufficient` (not measured), never a results line. When the eval's sources changed across the compared runs, that
   difference is `not comparable: the eval changed`, not an effect, and mixed counts such as
   `6/10 vs 8/9` are not a results line.
-- `compare: { control, variants: [x], minLift: 0 }` fails a variant whose interval's lower
+- `compare: { baseline, variants: [x], minLift: 0 }` fails a variant whose interval's lower
   bound is below 0.
 
 ## Effort and contrasts
 
-- From four tries a side the result block adds an **effort** table: each arm's median tool
+- From four trials a side the result block adds an **effort** table: each environment's median tool
   calls, agent time and, when both sides reported usage, tokens, which often shows a skill's
   effect before pass@1 does:
   `effort  tools  time  tokens` / `plain  54  1m 39s  2,890k` / `with-house-greeting  3  6.6s  57k`.
   A cell without usage is left out of the token sample only; if either side then
   has none, the token metric is omitted, not `insufficient`. Effort's rank test needs
-  `runs: 4` a cell, as lift does (below it lift shows only a direction and effort can't be tested; the plan hints so, at `runs: 1` too); `reeval query effort` has
+  `trials: 4` a cell, as lift does (below it lift shows only a direction and effort can't be tested; the plan hints so, at `trials: 1` too); `reeval query effort` has
   its p-values, verdicts and whether the ranges are `separated`.
 - **One comparison per variant** against its baseline covers every measure: pass rate, each
   check's pass rate, each judge's scores, each compare question's votes, tool calls, agent time
@@ -69,17 +69,17 @@ does not layer, inherit or extend. Share setup first (the example is in SKILL.md
   yet, at p below 0.1 and of at least 10 points, 0.05 of a judge's score, 60/40 of 4 or more
   decisive pairs for a question at p below 0.2, or 10% of an effort median, with the runs that would hold it;
   weaker is `same`, unless the sample is too small for its test to show anything: "12× faster,
-  but 3 runs a side can't confirm it; 4 is the least that can"). A question counts votes, both
-  orders of each pair, as its standings do ("in 8 of 8 votes (4 of 4 decisive pairs)"). Each measure keeps its own 0.05, so with identical arms some measure reads
+  but 3 trials a side can't confirm it; 4 is the least that can"). A question counts votes, both
+  orders of each pair, as its standings do ("in 8 of 8 votes (4 of 4 decisive pairs)"). Each measure keeps its own 0.05, so with identical environments some measure reads
   better or worse by chance in about 1 run in 14 at 4 a side, and 1 in 7 at 8 or more. The status list prints the ones that hold under the
   variant (`Same pass rate · 5× faster.`), `reeval compare -v` the leans too, and
-  `reeval query measure_effects` has a row per measure. When both arms pass every run, a measure
-  that holds is the result (no remark), one that leans raises `too-few-tries` with the runs, and
+  `reeval query measure_effects` has a row per measure. When both environments pass every run, a measure
+  that holds is the result (no remark), one that leans raises `too-few-trials` with the runs, and
   all the same raises `cant-tell-apart`.
-- With two variants or more, `reeval query contrasts` sets every pair of arms side by side,
+- With two variants or more, `reeval query contrasts` sets every pair of environments side by side,
   variant against variant too.
 - `reeval query skill_files` says which declared files (`SKILL.md`, references, rules) each
-  attempt opened, and `context_use` counts its tool calls as `context`, `dependency`
+  trial opened, and `context_use` counts its tool calls as `context`, `dependency`
   (`node_modules`, `--help`), `web`, `verify` or `workspace`: a heuristic, read it as counts.
 
 ## Graders that discriminate
@@ -87,7 +87,7 @@ does not layer, inherit or extend. Share setup first (the example is in SKILL.md
 - **Name each requirement** with a grader's `name` option:
   `hasFile('greet.js', /export/, { name: 'exports greet' })`. In a compare, keep independent
   requirements as separate graders, not one `required` grader in front of the rest, so each
-  says which arm met it.
+  says which environment met it.
   Changing a name changes the eval's fingerprint. Name judges too
   (`judge(q, { name: 'social-oauth', inputs: { diff: true } })`).
 
@@ -95,9 +95,9 @@ does not layer, inherit or extend. Share setup first (the example is in SKILL.md
 
 ```ts
 export default defineEval({
-  compare: { control: plain, variants: [houseStyle] },
+  compare: { baseline: plain, variants: [houseStyle] },
   questions: [
-    // asked of each attempt as it ends: free text, or a pick from choices
+    // asked of each trial as it ends: free text, or a pick from choices
     { question: 'How did the agent pick its greeting?', trajectory: true },
     {
       question: 'Does greet.js handle a missing name?',
@@ -126,14 +126,14 @@ export default defineEval({
   turned on (`task`, `output`, `files`, `diff`, `trajectory`, `checks`, `artifacts`;
   no `contents`, the workspaces are gone). There are no default inputs: an entry with
   none exits 2 at plan time.
-- **No `across`: asked of each attempt** as it ends with a pass or a fail (infra
-  errors and skipped attempts aren't asked), while the run goes on. `choices`
+- **No `across`: asked of each trial** as it ends with a pass or a fail (infra
+  errors and skipped trials aren't asked), while the run goes on. `choices`
   (two or more) makes the model pick one, with a reason; the result block prints
   the tally (`yes 8 · no 4`), else the first few answers. Answers land on
-  `evals[].attempts[].answers` and in `reeval query attempt_answers` (with the
-  attempt's outcome, `harness`, `environment` and `role`, so you can split
-  answers by harness, arm or pass/fail).
-  Ask these where a control is expected to fail: every attempt is asked.
+  `evals[].trials[].answers` and in `reeval query trial_answers` (with the
+  trial's outcome, `harness`, `environment` and `role`, so you can split
+  answers by harness, environment or pass/fail).
+  Ask these where a baseline is expected to fail: every trial is asked.
 - **`across`: pairwise.** `'environment'` pairs two environments on one harness;
   `'agent'` two agents on one environment; a list asks both pair kinds.
   The factor must vary in the eval (else exit 2); a profile that narrows it away
@@ -141,7 +141,7 @@ export default defineEval({
   `across` exits 2. `--dry-run` shows the pair count. The result block prints
   each side's wins (`with-house-greeting  won 4 of 4`). Each pair is voted in
   both orders; one whose orders disagree is a split (the position decided). With
-  three arms or more, read `reeval query question_pairs` (head to head, with
+  three environments or more, read `reeval query question_pairs` (head to head, with
   splits), not the pooled wins, which count a split as a win for each side. A
   vote may carry a short `reason` (capped); do not gate on its wording.
 - Questions annotate and never gate: pass, fail and the exit code stay the
@@ -154,21 +154,21 @@ export default defineEval({
 - Each side shows only the entry's inputs (`diff: ['src/**']`,
   `trajectory: 'tools', checks: ['npm test']`); `turns` defaults to `'all'`. Keep
   `output` off for pairwise questions, since the more confident summary wins on
-  wording. For UI evals, `artifacts: ['sign-in']` (or `true`) sends each attempt's
+  wording. For UI evals, `artifacts: ['sign-in']` (or `true`) sends each trial's
   own capture of that name as an image. The `question` option takes only `model`
   (config → profile → eval → entry). A pairwise question showing
   `trajectory` across agents warns (tool names unblind them): ask it with
   `across: 'environment'`.
-- Pairwise questions are answered on the host once all of an eval's attempts
-  end. Attempts that failed their checks (a judge failure doesn't count) are
+- Pairwise questions are answered on the host once all of an eval's trials
+  end. Trials that failed their checks (a judge failure doesn't count) are
   left out of the pairs: a pairwise question on a compare whose baseline is
-  expected to fail gets no pairs, so ask it of each attempt instead. Each pair
+  expected to fail gets no pairs, so ask it of each trial instead. Each pair
   goes to the model twice, order swapped, labeled A and B; the record's
   `evals[].answers` has every vote and each side's `wins`/`n` over decided
   votes, per pair kind. A model error is stored on the answer as `error` and
   warned about; it never changes an outcome. To see what a question was shown,
   open its `input`: `<eval-slug>/questions/<n>.json` for a pairwise one (each
   pair and order's masked prompt, which side was A, screenshot refs), or
-  `questions/<n>.json` in the attempt's directory. Test with
+  `questions/<n>.json` in the trial's directory. Test with
   `fakeAnalysis({ vote: 'A' | 'B' | 'tie' | (pair) => … | { error } })` and
   `fakeAnalysis({ answer: 'text' | { choice, text } | (q) => … | { error } })`.

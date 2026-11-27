@@ -2,7 +2,7 @@
 name: add-a-language
 description: >
   How to add a new eval language runtime to reeval (Dart, Go, and so on): LanguageAdapter,
-  stdio transport, attempt protocol v2, conformance goldens and a feature smoke fixture.
+  stdio transport, trial protocol v2, conformance goldens and a feature smoke fixture.
   Use when extending reeval beyond TypeScript *.eval.ts or wiring another *.eval.<lang> suffix.
 ---
 
@@ -10,7 +10,7 @@ description: >
 
 reeval routes every eval file through a **`LanguageAdapter`**. TypeScript is adapter #1
 (in-process jiti). Python is adapter #2 (out-of-process runner over stdio). The next
-language registers another adapter and ships an SDK package; the engine, plan and attempt
+language registers another adapter and ships an SDK package; the engine, plan and trial
 lifecycle stay shared.
 
 **Rules (non-negotiable):**
@@ -28,7 +28,7 @@ lifecycle stay shared.
   stacks and matcher behavior must stay unchanged.
 - **No per-language branches in the engine.** The worker calls `loadEvalModule()` only; do not
   fork plan/matrix logic or special-case languages in `engine/worker.ts`.
-- **Update goldens in the same PR** when declaration or attempt-protocol shapes change
+- **Update goldens in the same PR** when declaration or trial-protocol shapes change
   (`test/conformance/`, plan snapshots, SDK mirrors).
 
 ## How languages plug together
@@ -48,13 +48,13 @@ flowchart TD
   Dart -.-> Remote
   Remote <-->|"stdin/stdout<br/>protocol v2 NDJSON"| SDK["Language SDK runner<br/>reeval_python / sdks/dart"]
   SDK -->|"collect → declared tree"| Declare["declareTree()"]
-  SDK <-->|"start · {id, call, key} · replies · done"| Host["attempt-host.ts"]
+  SDK <-->|"start · {id, call, key} · replies · done"| Host["trial-host.ts"]
 
   Jiti --> Plan["Shared plan and matrix<br/>(one code path)"]
   Declare --> Plan
-  Plan --> Attempt["Attempt lifecycle<br/>sandbox · harness · checks · judge · record"]
-  Jiti -->|"c.send / c.exec"| Attempt
-  Host -->|"same AttemptContext + match.ts"| Attempt
+  Plan --> Trial["Trial lifecycle<br/>sandbox · harness · checks · judge · record"]
+  Jiti -->|"c.send / c.exec"| Trial
+  Host -->|"same TrialContext + match.ts"| Trial
 
   Conf["Conformance goldens<br/>declare/* · context/*.ndjson"] -. "every SDK must pass" .-> SDK
 ```
@@ -88,9 +88,9 @@ see [Prior art](#prior-art-dart-spike) below):
 
 | Module | Role |
 |---|---|
-| `protocol.ts` | `RUNNER_PROTOCOL = 3`. Session messages use `t` (`hello`, `collect`, `declared`, `log`). Attempt traffic uses shapes from `src/contract/attempt.ts` (`start`, `abort`, `done`, `{id, call}`, replies), each with the `key` reeval gave the body in its `start` — no `t` on attempt lines. `key` is unique per started body; `attempt.id` isn't (two evals on one cell share it), so never multiplex on it. |
+| `protocol.ts` | `RUNNER_PROTOCOL = 3`. Session messages use `t` (`hello`, `collect`, `declared`, `log`). Trial traffic uses shapes from `src/contract/trial.ts` (`start`, `abort`, `done`, `{id, call}`, replies), each with the `key` reeval gave the body in its `start` — no `t` on trial lines. `key` is unique per started body; `trial.id` isn't (two evals on one cell share it), so never multiplex on it. |
 | `transport.ts` | Spawns the runner; one JSON message a line on its stdin (to it) and stdout (from it). A stdout line that isn't a message is shown on stderr; one that starts with `{` but isn't JSON (a bare `NaN`) ends the session with an error |
-| `attempt-host.ts` | Maps protocol ops to real `AttemptContext` |
+| `trial-host.ts` | Maps protocol ops to real `TrialContext` |
 | `remote.ts` | `collectLanguageFile`: collect tree, `declareTree`, run remote bodies |
 
 SDK runner responsibilities:
@@ -110,7 +110,7 @@ SDK runner responsibilities:
    (tree must match `schema/plan/declaration.schema.json`).
 3. On `start`, run the body async; each `c.*` becomes `{ id, call, key }`; read replies;
    send `{ type: 'done', key, error? }`.
-4. On `{ type: 'abort', key }`, reeval has already settled the attempt: fail the body's calls in
+4. On `{ type: 'abort', key }`, reeval has already settled the trial: fail the body's calls in
    flight and every later one at once, without sending them, and stop the body where the
    language can. A body that keeps running must not reach reeval (it answers any call whose key
    it no longer knows with an `AbortError`).
@@ -148,7 +148,7 @@ Use **Python** as the worked reference (`packages/reeval-python/`, feature fixtu
 
 | Step | Work |
 |---|---|
-| 1 | SDK under `packages/reeval-<lang>/` or `sdks/<lang>/`: declare API, attempt context, runner entrypoint |
+| 1 | SDK under `packages/reeval-<lang>/` or `sdks/<lang>/`: declare API, trial context, runner entrypoint |
 | 2 | Register adapter in `language-runner/adapter.ts` (`extensions`, `includeGlobs`, `remote: true`, `runnerCommand`) |
 | 3 | Declare conformance: mirror each `test/conformance/declare/<case>/` |
 | 4 | Context conformance: NDJSON scripts through the SDK runner |
@@ -164,7 +164,7 @@ Use **Python** as the worked reference (`packages/reeval-python/`, feature fixtu
 |---|---|
 | Declare API | `packages/reeval-python/src/reeval_python/declare.py` |
 | Runner + collect | `packages/reeval-python/src/reeval_python/runner.py` |
-| Attempt `c.*` over the socket | `packages/reeval-python/src/reeval_python/context.py` |
+| Trial `c.*` over the socket | `packages/reeval-python/src/reeval_python/context.py` |
 | uv project + project dep | `packages/reeval/test/features/python-sdk/hello/pyproject.toml` (`tomli` import in `lands.eval.py`) |
 | Declare goldens | `packages/reeval-python/tests/test_conformance_declare.py` |
 | `reeval` launcher | `packages/reeval-python/src/reeval_python/cli.py`, held to `test/conformance/launcher/` by `runners/python.ts` |
@@ -217,7 +217,7 @@ Before the generic `language-runner` layer, branch **`ehesp/experiment-dart-eval
 earlier RPC shape. Round 2 notes live on **`ehesp/experiment-dart-evals-r2-ca15`**. A Dart adapter
 on main should:
 
-- Reuse `remote.ts` / `protocol.ts` (attempt protocol **v2**, not legacy `t.*` attempt RPC).
+- Reuse `remote.ts` / `protocol.ts` (trial protocol **v2**, not legacy `t.*` trial RPC).
 - Move SDK code to `sdks/dart` (or `packages/reeval-dart`) and delete Dart-only engine forks.
 - Re-run declare + context goldens.
 - Copy the `python-sdk/hello` fixture pattern for smoke + plan.

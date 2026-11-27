@@ -2,7 +2,7 @@
 
 **Shows:** deterministic graders on what the agent left behind. The agent adds `multiply(a, b)` to
 a small package, the task runs the tests with `c.exec`, and three graders from `reeval/graders`
-score the attempt: `hasFile` on the source and on the test file, and `succeeded` on the tests.
+score the trial: `hasFile` on the source and on the test file, and `succeeded` on the tests.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
 first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code), Docker,
@@ -23,16 +23,16 @@ Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../p
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the result block. The attempt scores the mean of its graders, and `-v` names
+**What to look at:** the result block. The trial scores the mean of its graders, and `-v` names
 each grader that scored below 1, here with the fake agent's `multiply` changed to add:
 
 ```text
 with-checks.eval.ts
-  · with-checks  mean 67% · 0/1 run at 100% (pass@1)  capability(1)
+  · with-checks  mean 67% · 0/1 trial at 100% (pass@1)  capability(1)
     #1  67%  succeeded:node --test 0%
 ```
 
-The attempt's `execs.jsonl` has the test run the grader read, with its exit code and output.
+The trial's `execs.jsonl` has the test run the grader read, with its exit code and output.
 
 | File | What it is |
 |---|---|

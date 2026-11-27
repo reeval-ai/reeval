@@ -31,7 +31,7 @@ export type Plan = { harness: string[]; sandbox: string[] }
 
 export type Example = {
   /**
-   * Each cell's attempt outcomes once it has run on the fake agent, sorted (an install layer's
+   * Each cell's trial outcomes once it has run on the fake agent, sorted (an install layer's
    * cell as `docker+<install>`); or, for an example that is only planned, what running it needs
    * (a key, Docker with a key or the network, Podman, Chrome).
    */
@@ -59,7 +59,7 @@ export type Example = {
   /** Per-profile eval files, when tag or profile filters change the set; default `files`. */
   filesByProfile?: Record<string, string[]>
   /**
-   * The fake agent flakes at random, so only each cell's attempt count holds, every outcome is a
+   * The fake agent flakes at random, so only each cell's trial count holds, every outcome is a
    * pass or a fail, and the run may exit 0 or 1.
    */
   flaky?: true
@@ -220,7 +220,7 @@ export const EXAMPLES: Record<string, Example> = {
 
   // Compare
   'with-skill-lift': { run: { 'fake/math/fake': fail(4), 'fake/changelog/fake': pass(4) } },
-  'with-compare-control': { run: { 'fake/math/fake': fail(4), 'fake/testing/fake': pass(4) } },
+  'with-compare-baseline': { run: { 'fake/math/fake': fail(4), 'fake/testing/fake': pass(4) } },
   'with-min-lift': { run: { 'fake/math/fake': fail(4), 'fake/jsdoc/fake': pass(4) } },
   'with-two-variants': {
     run: {
@@ -412,7 +412,7 @@ async function planExample(name: string, e: Example, dir: string): Promise<void>
 async function runExample(dir: string, e: Example, want: Record<string, string[]>): Promise<void> {
   const run = await runCli(dir, ['run'], { timeoutMs: 300_000, env: e.env })
   const ran: Record<string, string[]> = {}
-  for (const a of readRun(dir).evals.flatMap((x) => x.attempts)) {
+  for (const a of readRun(dir).evals.flatMap((x) => x.trials)) {
     const cell = a.cell.replace(/\/docker\+[0-9a-f]+$/, '/docker+<install>')
     ran[cell] = [...(ran[cell] ?? []), a.outcome].sort()
   }

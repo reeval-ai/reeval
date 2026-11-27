@@ -18,7 +18,7 @@ fi`
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that copies ./fake-agent's files into the workspace and follows its rules
-  // file, so the arms differ without keys or Docker.
+  // file, so the environments differ without keys or Docker.
   agents: fakeAgent({
     script: [[{ exec: changelog }]],
     files: { 'src/math.js': fakeFile('src/math.js') },

@@ -1,13 +1,13 @@
-// NDJSON on a language SDK runner's stdin and stdout. Session messages use `t`; attempt
-// traffic uses the attempt protocol shapes from src/contract/attempt.ts (no `t`).
+// NDJSON on a language SDK runner's stdin and stdout. Session messages use `t`; trial
+// traffic uses the trial protocol shapes from src/contract/trial.ts (no `t`).
 
 import type {
-  AttemptAbort,
-  AttemptDone,
-  AttemptReply,
-  AttemptRequest,
-  AttemptStart,
-} from '../contract/attempt.ts'
+  TrialAbort,
+  TrialDone,
+  TrialReply,
+  TrialRequest,
+  TrialStart,
+} from '../contract/trial.ts'
 import type { DeclarationTree } from '../declaration.ts'
 import type { JSONValue } from '../types.ts'
 
@@ -44,36 +44,36 @@ export type SessionFromRunner =
     }
 
 /**
- * One runner runs every body of its files, several at once, so each attempt message carries the
+ * One runner runs every body of its files, several at once, so each trial message carries the
  * `key` reeval gave that run of the body in its `start`. It's unique per started body, unlike
- * `attempt.id`, which two evals on the same cell share.
+ * `trial.id`, which two evals on the same cell share.
  */
 type Keyed = { key: string }
 
-export type RunnerAttemptStart = AttemptStart & Keyed
+export type RunnerTrialStart = TrialStart & Keyed
 
-export type RunnerAttemptReply = AttemptReply & Keyed
+export type RunnerTrialReply = TrialReply & Keyed
 
-export type RunnerAttemptAbort = AttemptAbort & Keyed
+export type RunnerTrialAbort = TrialAbort & Keyed
 
 export type ToRunner =
   | SessionToRunner
-  | RunnerAttemptStart
-  | RunnerAttemptAbort
-  | RunnerAttemptReply
+  | RunnerTrialStart
+  | RunnerTrialAbort
+  | RunnerTrialReply
 
-export type RunnerAttemptRequest = AttemptRequest & Keyed
+export type RunnerTrialRequest = TrialRequest & Keyed
 
-export type RunnerAttemptDone = AttemptDone & Keyed
+export type RunnerTrialDone = TrialDone & Keyed
 
-export type FromRunner = SessionFromRunner | RunnerAttemptRequest | RunnerAttemptDone
+export type FromRunner = SessionFromRunner | RunnerTrialRequest | RunnerTrialDone
 
 export const isSessionFrom = (message: FromRunner): message is SessionFromRunner => 't' in message
 
-export const isRunnerAttemptRequest = (message: FromRunner): message is RunnerAttemptRequest =>
+export const isRunnerTrialRequest = (message: FromRunner): message is RunnerTrialRequest =>
   'id' in message && 'call' in message && 'key' in message && !('ok' in message)
 
-export const isRunnerAttemptDone = (message: FromRunner): message is RunnerAttemptDone =>
+export const isRunnerTrialDone = (message: FromRunner): message is RunnerTrialDone =>
   'type' in message && message.type === 'done' && 'key' in message
 
 type Fields = Record<string, unknown>

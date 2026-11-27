@@ -72,13 +72,13 @@ default, which the record shows (`composer-2.5[fast=false]`), so pin them for re
 enum); Fast is not effort. The default harness id includes `[effort=<value>]` when it's set, and
 the record stores the requested effort as `effort` and the served one as `servedEffort`.
 
-In `reeval query` those are `reasoning_effort` (`cells`, `attempts`) and
-`served_reasoning_effort` (`attempts`). **effort** on its own (`reeval query effort`, the
+In `reeval query` those are `reasoning_effort` (`cells`, `trials`) and
+`served_reasoning_effort` (`trials`). **effort** on its own (`reeval query effort`, the
 result block's effort table) is always the measured tool-call, time and token metric.
 
 Keys never enter the sandbox: the agent sees a placeholder that reeval's gateway swaps on the
 harness's own endpoints. Every harness reports tokens, which reeval records per turn,
-attempt and run with their cost (reported, else estimated at list prices).
+trial and run with their cost (reported, else estimated at list prices).
 
 `gateway` (`reeval/gateway`) lists the routes model calls may take, in order: each harness, the
 judge and analysis take the first that can serve them. Every list ends with `direct()` (each
@@ -103,7 +103,7 @@ no gateway, so the judge, analysis and captures take only their provider's own k
 `gateway: [openrouter()]` runs Claude Code, Codex, Goose, OpenCode, fx, Grok Build and pi on
 OpenRouter with one `OPENROUTER_API_KEY` (Cursor, Antigravity, and `effort` on fx, on Claude Code or
 on Goose or OpenCode with a model other than Gemini, fall through). Every OpenRouter call records its upstream provider and cost
-(`attempts[].upstreams`, `reportedCostUsd`; a judgment's `upstream`, `costUsd`).
+(`trials[].upstreams`, `reportedCostUsd`; a judgment's `upstream`, `costUsd`).
 `openrouter({ fallbacks: true })` lets reeval's own calls (judge, analysis, captures) fail over
 between upstreams; the agents' calls take OpenRouter's routing whatever it says. Write OpenCode
 ids as `anthropic/…`, never `openrouter/…` or `vercel/…`.
@@ -138,7 +138,7 @@ ids as `anthropic/…`, never `openrouter/…` or `vercel/…`.
 | `env` | Merged by name |
 | `judge` | Merged by field |
 | `capture` | Shallow-merged camera defaults (`viewport`, `timeout`, `browser`, `model`, the vision model); `viewport` replaces the value, and the port is not an option |
-| `runs`, `target`, `egress`, `timeout` | Replaced (`runs` unset everywhere: 4 for a compare with variants, else 1) |
+| `trials`, `target`, `egress`, `timeout` | Replaced (`trials` unset everywhere: 4 for a compare with variants, else 1) |
 | `tags`, `pin` | Unioned |
 | `compare` | Groups and evals only |
 

@@ -3,7 +3,7 @@
 // feature fixtures and sandbox-docker's tests.
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
-import { recordEgress } from '../src/attempt/record.ts'
+import { recordEgress } from '../src/trial/record.ts'
 import {
   allowedHosts,
   DEFAULT_EGRESS_ALLOW,
@@ -47,7 +47,7 @@ describe('the egress cascade', () => {
       sandbox: { kind: 'docker' },
       environments: [defineEnvironment('closed', { egress: 'deny-all' })],
       compare: undefined,
-      runs: 1,
+      trials: 1,
       target: undefined,
       env: {},
       egress: { inherited: { allow: ['config.example.com'] } },
@@ -224,7 +224,7 @@ describe('egress per phase', () => {
     const vm = { kind: 'tart', image: 'macos' } as const
     assert.match(
       unenforceable(split('allow-all', 'deny-all'), vm, 'e') ?? '',
-      /^e runs under egress 'allow-all' for setup and 'deny-all' for the agent, but the tart sandbox can't change its egress policy during an attempt\./,
+      /^e runs under egress 'allow-all' for setup and 'deny-all' for the agent, but the tart sandbox can't change its egress policy during a trial\./,
     )
     assert.match(
       unenforceable(split('allow-all', 'deny-all'), { kind: 'fake' }, 'e') ?? '',

@@ -1,5 +1,5 @@
-// The Tart sandbox: one macOS VM per attempt, cloned from the image, booted headless, reached
-// over `tart exec` (or SSH) and deleted when the attempt ends.
+// The Tart sandbox: one macOS VM per trial, cloned from the image, booted headless, reached
+// over `tart exec` (or SSH) and deleted when the trial ends.
 import { type ChildProcess, spawn } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { posix } from 'node:path'
@@ -14,9 +14,9 @@ import {
   WORKSPACE_DIR,
 } from '@reeval/sandbox-docker'
 import { shellQuote as q, unsetOtel } from '@reeval/sandbox-docker/process'
-import { attemptDebug } from '../debug/attempt.ts'
+import { trialDebug } from '../debug/trial.ts'
 import { untraced } from '../debug/docker.ts'
-import { attemptSpan, openSpan } from '../trace/spans.ts'
+import { trialSpan, openSpan } from '../trace/spans.ts'
 import type { TartSandboxDescriptor } from '../types.ts'
 import type { SandboxOptions } from './index.ts'
 import { type BootedMachine, startSandbox } from './start.ts'
@@ -169,7 +169,7 @@ async function removeVm(vm: string, on: TartTarget): Promise<void> {
 
 /**
  * Deletes every VM a run cloned and didn't delete, on this machine or each of `targets`: a worker
- * killed mid-attempt leaves its own.
+ * killed mid-trial leaves its own.
  */
 export async function removeRunVms(
   runId: string,
@@ -208,7 +208,7 @@ export async function bootTartVm(
     claim?: (clone: () => Promise<void>) => Promise<void>
   } = {},
 ): Promise<BootedVm> {
-  const debug = attemptDebug()
+  const debug = trialDebug()
   const started = performance.now()
   let booted: ChildProcess | undefined
   let ended: Promise<unknown> = Promise.resolve()
@@ -236,7 +236,7 @@ export async function bootTartVm(
     await (o.claim ? o.claim(clone) : clone())
   } catch (error) {
     if (error instanceof HostTaken) throw error
-    // `vm` is a name of this attempt's or bake's own, so whatever the clone left is ours.
+    // `vm` is a name of this trial's or bake's own, so whatever the clone left is ours.
     await tartCli(['delete', vm], { on }).catch(() => {})
     if (signal.aborted) {
       if (on.remote) await runArgv(on.sh(DELETE_AFTER_CLONE, [vm])).catch(() => {})
@@ -339,7 +339,7 @@ export async function bootTartVm(
 }
 
 /**
- * Boots the attempt's VM: on this machine, or with `tart({ hosts })` on the host with the most room,
+ * Boots the trial's VM: on this machine, or with `tart({ hosts })` on the host with the most room,
  * passing over one whose `tart run` says it's at its VM limit for a while and trying the next. The
  * host's slot is claimed under its lock: counted again, then cloned into.
  */
@@ -354,7 +354,7 @@ export async function bootOnHost(
   if (!descriptor.hosts) {
     return { ...(await bootTartVm(descriptor, image, vm, signal)), on: LOCAL_TART }
   }
-  const debug = attemptDebug()
+  const debug = trialDebug()
   const slots = hostSlots(descriptor, options.hosts, image)
   if (!slots.length)
     throw new InfraError('tart() has no host left to run on: preflight skipped every one')
@@ -376,7 +376,7 @@ export async function bootOnHost(
       return { ...booted, on: slot.target }
     } catch (error) {
       if (error instanceof HostTaken) {
-        log(`${error.message} before this attempt cloned there: picking again`)
+        log(`${error.message} before this trial cloned there: picking again`)
         continue
       }
       if (!(error instanceof TartBusyError)) throw error
@@ -394,12 +394,12 @@ export async function createTartSandbox(
   // Planning refuses every other policy; a VM on Tart's network can't be held to one.
   if (options.egress.policy !== 'allow-all') {
     throw new InfraError(
-      `tart() runs under egress 'allow-all' only, and this attempt asked for ${JSON.stringify(options.egress.policy)}`,
+      `tart() runs under egress 'allow-all' only, and this trial asked for ${JSON.stringify(options.egress.policy)}`,
     )
   }
   const vm = `${vmPrefix(options.runId)}${randomBytes(3).toString('hex')}`
   const span = openSpan('machine', { 'reeval.sandbox': 'tart', 'host.id': vm, 'host.name': vm })
-  attemptSpan()?.set({ 'reeval.sandbox': 'tart', 'host.id': vm })
+  trialSpan()?.set({ 'reeval.sandbox': 'tart', 'host.id': vm })
   try {
     return await startSandbox(options, {
       helper: 'tart()',
@@ -437,7 +437,7 @@ async function bootTart(
   vm: string,
 ): Promise<BootedMachine> {
   const { signal } = options
-  const debug = attemptDebug()
+  const debug = trialDebug()
   let removed: Promise<void> | undefined
   const { guest, home, halt, on } = await bootOnHost(
     descriptor,

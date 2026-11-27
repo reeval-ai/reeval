@@ -78,7 +78,7 @@ export function adcTokenSource(now = Date.now): TokenSource {
 }
 
 let shared: TokenSource | undefined
-/** The process's one ADC token source, shared by every attempt in it. */
+/** The process's one ADC token source, shared by every trial in it. */
 export const vertexTokens = (): TokenSource => {
   shared ??= cachedTokenSource(adcTokenSource())
   return shared

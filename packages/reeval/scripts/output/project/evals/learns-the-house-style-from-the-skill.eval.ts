@@ -19,12 +19,12 @@ const withSkill = defineEnvironment('with-skill', ({ skill }) => ({
 }))
 
 // Compare agents: the terse agent never greets in the house style. With a change too, the
-// harness is outer and the arms inner: the learner needs the skill, the terse one ignores it.
+// harness is outer and the environments inner: the learner needs the skill, the terse one ignores it.
 
 export default defineEval({
   agents: [learner, terse],
-  runs: 4,
-  compare: { control: plain, variants: [withSkill] },
+  trials: 4,
+  compare: { baseline: plain, variants: [withSkill] },
   graders: [succeeded('house greeting')],
   task: async (c) => {
     await c.send('Write greet.js that greets in our house style.')

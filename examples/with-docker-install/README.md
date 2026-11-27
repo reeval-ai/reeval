@@ -36,7 +36,7 @@ docker+0ab0e263 · cursor + install · 1 eval
 ```
 
 Any edit to the command list builds a new layer. Install commands never see secrets or the
-workspace; per-attempt steps belong in the environment's `setup`.
+workspace; per-trial steps belong in the environment's `setup`.
 
 | File | What it is |
 |---|---|

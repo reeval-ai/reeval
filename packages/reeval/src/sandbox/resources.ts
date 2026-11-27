@@ -1,20 +1,20 @@
-// What an attempt's sandbox gave it and what it used: one shell loop prints a reading a second
+// What a trial's sandbox gave it and what it used: one shell loop prints a reading a second
 // (only `sleep` forks), and teardown takes one more before the sandbox goes. The loop runs where
 // the agent can't reach it: beside a container in a sibling that reads its cgroup from outside,
 // and on a VM as root.
 import type { DockerSession, Spawned } from '@reeval/sandbox-docker'
 import { shellQuote as q } from '@reeval/sandbox-docker/process'
-import type { AttemptResources } from '../types.ts'
+import type { TrialResources } from '../types.ts'
 
 /** Milliseconds between readings. */
 export const SAMPLE_MS = 1000
 /** How long teardown's last reading may take. */
 const FINAL_TIMEOUT_MS = 15_000
-/** How long an attempt waits for its sampler to start. */
+/** How long a trial waits for its sampler to start. */
 const START_TIMEOUT_MS = 15_000
 
 /** What the script reads: a container's cgroup, a Linux VM's `/proc`, or a macOS VM's sizes alone. */
-export type SampleMode = AttemptResources['scope'] | 'darwin'
+export type SampleMode = TrialResources['scope'] | 'darwin'
 
 /**
  * `$1` is the mode, `$2` the seconds between readings or `once`, `$3` the container whose cgroup
@@ -183,15 +183,15 @@ const delta = (first: number | null, last: number | null) =>
  * between the first reading and the last. Without two readings there's no usage.
  */
 export function summarize(
-  scope: AttemptResources['scope'],
+  scope: TrialResources['scope'],
   machine: { sandbox: string; size?: string; id?: string; name?: string },
   limits: Limits | null,
   readings: readonly Reading[],
   o: { sampleMs: number; partial: boolean },
-): AttemptResources {
+): TrialResources {
   const quota = limits?.quota && limits.period ? round(limits.quota / limits.period, 2) : null
   const vcpus = quota ?? limits?.cpus ?? null
-  const resources: AttemptResources = {
+  const resources: TrialResources = {
     scope,
     machine: {
       ...machine,
@@ -264,7 +264,7 @@ export function summarize(
 export type ResourceMeter = {
   /**
    * Resolves once the readings have begun, every host has ended without them, `signal` aborts or
-   * {@link START_TIMEOUT_MS} has passed, so what the attempt does from then on is measured: an
+   * {@link START_TIMEOUT_MS} has passed, so what the trial does from then on is measured: an
    * observer's container can take seconds to start on a busy daemon. Never rejects.
    */
   ready(signal?: AbortSignal): Promise<void>
@@ -272,7 +272,7 @@ export type ResourceMeter = {
    * Takes the last reading, unless the sandbox is `gone`, ends the readings and returns the
    * resources. Never throws.
    */
-  stop(o: { gone: boolean }): Promise<AttemptResources>
+  stop(o: { gone: boolean }): Promise<TrialResources>
 }
 
 /** Somewhere the script can run: it starts the loop there and takes teardown's reading. */
@@ -317,7 +317,7 @@ export function startMeter(
   machine: { sandbox: string; size?: string; id?: string; name?: string },
   sampleMs = SAMPLE_MS,
 ): ResourceMeter {
-  const scope: AttemptResources['scope'] = mode === 'container' ? 'container' : 'machine'
+  const scope: TrialResources['scope'] = mode === 'container' ? 'container' : 'machine'
   let limits: Limits | null = null
   const readings: Reading[] = []
   let stopping = false
@@ -406,7 +406,7 @@ export function startMeter(
 }
 
 /**
- * A meter for a machine other attempts run on at the same time: no readings, whose whole-VM
+ * A meter for a machine other trials run on at the same time: no readings, whose whole-VM
  * usage would count theirs too, only the machine's sizes from one reading at teardown.
  */
 export function sharedMeter(

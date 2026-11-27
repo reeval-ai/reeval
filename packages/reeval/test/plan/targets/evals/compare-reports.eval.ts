@@ -4,8 +4,8 @@ const base = defineEnvironment('base', { env: { MODE: 'base' } })
 const skilled = base.extendEnvironment('skilled', { env: { MODE: 'skilled' } })
 
 export default defineEval({
-  compare: { control: base, variants: [skilled] },
+  compare: { baseline: base, variants: [skilled] },
   target: capability(),
-  runs: 4,
+  trials: 4,
   task: async () => {},
 })

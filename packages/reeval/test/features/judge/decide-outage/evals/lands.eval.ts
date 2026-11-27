@@ -1,7 +1,7 @@
 import { defineEval } from 'reeval'
 import { app, outage, questions } from './env.ts'
 
-// A decision the provider never answered fails the attempt as an infra error, even when the
+// A decision the provider never answered fails the trial as an infra error, even when the
 // task catches it (features.test.ts checks the record), so --retry-errors runs it again.
 export default defineEval({
   environment: app,

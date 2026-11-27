@@ -1,5 +1,5 @@
 // A worker's machine lease (leaseMachine) over the service channel: the wait for a slot holds the
-// attempt's timeout, and the hold ends when the lease lands or the wait is canceled.
+// trial's timeout, and the hold ends when the lease lands or the wait is canceled.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { backstops, backstopTimer } from '../src/engine/backstop.ts'
@@ -32,7 +32,7 @@ const answer = (op: string, body: unknown) => {
   reply({ t: 'reply', id: call.id, body })
 }
 
-test("the wait for a slot doesn't count toward the attempt's timeout", async () => {
+test("the wait for a slot doesn't count toward the trial's timeout", async () => {
   calls.length = 0
   let fired = 0
   const timer = backstopTimer(50, () => fired++)

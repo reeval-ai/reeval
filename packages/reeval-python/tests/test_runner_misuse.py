@@ -1,4 +1,4 @@
-"""Bodies that would pass without running their calls: each fails its attempt instead, and calls
+"""Bodies that would pass without running their calls: each fails its trial instead, and calls
 reeval refuses before they run."""
 
 from __future__ import annotations

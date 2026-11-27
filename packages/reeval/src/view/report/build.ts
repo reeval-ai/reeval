@@ -1,17 +1,17 @@
 import { caseName } from '../../history/cases.ts'
-import type { AttemptRecord, CellRecord, EvalEntry, RunRecord } from '../../history/types.ts'
-import { COMPARE_RUNS, containsZero, liftInterval } from '../../stats.ts'
+import type { TrialRecord, CellRecord, EvalEntry, RunRecord } from '../../history/types.ts'
+import { COMPARE_TRIALS, containsZero, liftInterval } from '../../stats.ts'
 import { targetLabel } from '../../target.ts'
-import type { AttemptFailure, CapturePageFile, GradeRecord } from '../../types.ts'
+import type { TrialFailure, CapturePageFile, GradeRecord } from '../../types.ts'
 import { totalTokens } from '../../usage.ts'
 import type { AnalysisDoc } from '../analysis.ts'
-import type { AttemptFacts } from '../classify.ts'
+import type { TrialFacts } from '../classify.ts'
 import type { CompareRow, StackChange } from '../compare.ts'
 import { contrastsOf } from '../contrasts.ts'
 import { runCost } from '../cost.ts'
 import { effortSample, filesChanged, formatCount, formatSeconds } from '../effort.ts'
 import { labeledJudgments } from '../judgments.ts'
-import { attemptAnswerRows, isUngatedMiss } from '../model.ts'
+import { trialAnswerRows, isUngatedMiss } from '../model.ts'
 import type { RunRemarks } from '../remarks.ts'
 import { runScope } from '../scope.ts'
 import { type EvalResult, factSegment, messageLine, suiteResult } from '../suite.ts'
@@ -32,18 +32,18 @@ import {
   tokensText,
   usdFigure,
 } from './format.ts'
-import { type AttemptIdMap, attemptIds, selectedEvals } from './ids.ts'
+import { type TrialIdMap, trialIds, selectedEvals } from './ids.ts'
 import { measurePhrase, PASS_RATE_OUTCOME_LABEL, passRateOutcomeFromMatchers } from './labels.ts'
-import { attemptHref, attemptRef, captureHref, gfmAnchor, withBase } from './links.ts'
+import { trialHref, trialRef, captureHref, gfmAnchor, withBase } from './links.ts'
 import { REPORT_POLICY } from './policy.ts'
 import { provenanceState } from './provenance.ts'
 import type {
-  Arm,
-  ArmRef,
-  ArmRow,
+  CompareEnvironment,
+  EnvironmentRef,
+  EnvironmentRow,
   AssertionRow,
-  AttemptIndexRow,
-  AttemptRef,
+  TrialIndexRow,
+  TrialRef,
   BreakdownRow,
   CaptureGallery,
   ChangeRow,
@@ -86,10 +86,10 @@ export type RunReportOptions = {
   /** `.capture.json` files read beside the record, by `ArtifactRef.capture.page.path`. */
   pages?: ReadonlyMap<string, CapturePageFile>
   /**
-   * Each attempt's facts from its kept trajectory (`attemptFacts`), by `AttemptRecord.key`; an
-   * attempt with none has none in the report.
+   * Each trial's facts from its kept trajectory (`trialFacts`), by `TrialRecord.key`; an
+   * trial with none has none in the report.
    */
-  facts?: ReadonlyMap<string, AttemptFacts>
+  facts?: ReadonlyMap<string, TrialFacts>
   prior?: { record: RunRecord; rows: CompareRow[]; changes: StackChange[] } | null
   /** Limits the report to these `EvalEntry.key`s; one key gives a single-eval report. */
   evals?: string[]
@@ -143,17 +143,17 @@ const LOCKFILE_NAMES = new Set([
 
 const isLockfilePath = (path: string) => LOCKFILE_NAMES.has(path.split('/').pop() ?? path)
 
-const countedOutcome = (o: AttemptRecord['outcome']) => o === 'pass' || o === 'fail'
+const countedOutcome = (o: TrialRecord['outcome']) => o === 'pass' || o === 'fail'
 
 const cellOf = (e: EvalEntry, key: string) => e.cells.find((c) => c.key === key)
 
-function assignAttemptHrefs(ctx: Ctx): void {
+function assignTrialHrefs(ctx: Ctx): void {
   for (const e of ctx.evals) {
-    for (const a of e.attempts) {
+    for (const a of e.trials) {
       if (a.seq === null) continue
       const id = ctx.ids.get(a.key)
       if (!id) continue
-      const href = attemptHref(e, a, ctx.linkBase, ctx.hrefs)
+      const href = trialHref(e, a, ctx.linkBase, ctx.hrefs)
       ctx.hrefByKey.set(a.key, href)
     }
   }
@@ -195,8 +195,8 @@ function emptyMeasureVsBaseline(): Record<MeasureKey, MeasureVsBaseline> {
   }
 }
 
-/** Diff line totals for an attempt; lockfiles excluded. Null counts when not recorded. */
-function attemptDiffStats(a: AttemptRecord): {
+/** Diff line totals for a trial; lockfiles excluded. Null counts when not recorded. */
+function trialDiffStats(a: TrialRecord): {
   files: number
   added: number | null
   removed: number | null
@@ -225,7 +225,7 @@ function attemptDiffStats(a: AttemptRecord): {
   return { files, added, removed }
 }
 
-function measureValues(attempts: AttemptRecord[]): Record<MeasureKey, number[]> {
+function measureValues(trials: TrialRecord[]): Record<MeasureKey, number[]> {
   const out: Record<MeasureKey, number[]> = {
     tokens: [],
     toolCalls: [],
@@ -236,7 +236,7 @@ function measureValues(attempts: AttemptRecord[]): Record<MeasureKey, number[]> 
     linesAdded: [],
     linesRemoved: [],
   }
-  for (const a of attempts) {
+  for (const a of trials) {
     if (!countedOutcome(a.outcome)) continue
     const sample = effortSample(a)
     if (sample.tokens !== undefined) out.tokens.push(sample.tokens)
@@ -245,15 +245,15 @@ function measureValues(attempts: AttemptRecord[]): Record<MeasureKey, number[]> 
     if (sample.usd !== undefined) out.costUsd.push(sample.usd)
     out.agentMs.push(sample.agentMs)
     out.filesChanged.push(sample.filesChanged)
-    const diff = attemptDiffStats(a)
+    const diff = trialDiffStats(a)
     if (diff.added !== null) out.linesAdded.push(diff.added)
     if (diff.removed !== null) out.linesRemoved.push(diff.removed)
   }
   return out
 }
 
-function measuresOf(attempts: AttemptRecord[]): MeasureCells {
-  const values = measureValues(attempts)
+function measuresOf(trials: TrialRecord[]): MeasureCells {
+  const values = measureValues(trials)
   const fmt: Record<MeasureKey, (n: number) => string> = {
     tokens: tokensText,
     toolCalls: formatCount,
@@ -291,16 +291,16 @@ function measureVs(
 type Ctx = {
   record: RunRecord
   evals: EvalEntry[]
-  ids: AttemptIdMap
+  ids: TrialIdMap
   linkBase?: string
   remarks: RunRemarks | null
   analysis: AnalysisDoc | null
   pages?: ReadonlyMap<string, CapturePageFile>
-  facts?: ReadonlyMap<string, AttemptFacts>
+  facts?: ReadonlyMap<string, TrialFacts>
   prior: RunReportOptions['prior']
-  /** Citation hrefs already claimed in this report; keeps per-arm evidence distinct. */
+  /** Citation hrefs already claimed in this report; keeps per-environment evidence distinct. */
   hrefs: Set<string>
-  /** Canonical evidence href per attempt key, assigned before section cites. */
+  /** Canonical evidence href per trial key, assigned before section cites. */
   hrefByKey: Map<string, string>
   /** Each eval against its target, as `reeval run` reads it, by `resultKey`. */
   results: Map<string, EvalResult>
@@ -316,14 +316,14 @@ function resultsOf(record: RunRecord): Map<string, EvalResult> {
   return out
 }
 
-/** Whether a grader with weight scored any of its attempts. */
-const graded = (e: EvalEntry) => e.attempts.some((a) => (a.grades ?? []).some((g) => g.weight > 0))
+/** Whether a grader with weight scored any of its trials. */
+const graded = (e: EvalEntry) => e.trials.some((a) => (a.grades ?? []).some((g) => g.weight > 0))
 
 const STANDING_WORDS: Record<ReturnType<typeof standing>, string> = {
   pass: 'On target.',
   fail: 'Below target.',
   report: 'Report only: the target never fails the run.',
-  infra: 'No attempt counted: each ended in an infra error.',
+  infra: 'No trial counted: each ended in an infra error.',
   skipped: 'Not run.',
 }
 
@@ -336,7 +336,7 @@ function deriveTally(evals: EvalEntry[]): RunTally {
   let reclassified = 0
   let skipped = 0
   for (const e of evals) {
-    for (const a of e.attempts) {
+    for (const a of e.trials) {
       const cell = cellOf(e, a.cell)
       const ungated = cell?.gate === 'none'
       if (a.outcome === 'skipped') {
@@ -370,14 +370,14 @@ function deriveTally(evals: EvalEntry[]): RunTally {
   }
 }
 
-/** Older records: a turn error on a pass/fail attempt is treated as reclassified. */
-function wasReclassified(a: AttemptRecord): boolean {
+/** Older records: a turn error on a pass/fail trial is treated as reclassified. */
+function wasReclassified(a: TrialRecord): boolean {
   if ((a as { turnStatusRead?: boolean }).turnStatusRead === true) return false
   if (a.error && 'turn' in a.error && (a.error as { turn?: unknown }).turn) return true
   return a.turns.some((t) => t.status === 'error') && countedOutcome(a.outcome)
 }
 
-function turnErrorMessage(a: AttemptRecord): string | null {
+function turnErrorMessage(a: TrialRecord): string | null {
   const turn = a.turns.find((t) => t.status === 'error' && t.error)
   if (!turn?.error) return null
   return `${turnErrorKind(turn.error)}: ${messageLine(turn.error)}`
@@ -391,21 +391,21 @@ function runTitle(record: RunRecord, evals: EvalEntry[], title?: string): string
   return `Run ${record.runId}`
 }
 
-function runsPerCell(evals: EvalEntry[]): number | null {
-  const runs = new Set(evals.flatMap((e) => e.cells.map((c) => c.runs)))
-  return runs.size === 1 ? ([...runs][0] ?? null) : null
+function trialsPerCell(evals: EvalEntry[]): number | null {
+  const trials = new Set(evals.flatMap((e) => e.cells.map((c) => c.trials)))
+  return trials.size === 1 ? ([...trials][0] ?? null) : null
 }
 
 function buildHeader(ctx: Ctx): RunHeader {
   const { record, evals } = ctx
   const tally = deriveTally(evals)
-  const usageAttempts = evals.flatMap((e) => e.attempts).filter((a) => a.usage)
+  const usageTrials = evals.flatMap((e) => e.trials).filter((a) => a.usage)
   let total: number | null = null
   let cacheRead: number | null = null
-  if (usageAttempts.length) {
+  if (usageTrials.length) {
     total = 0
     cacheRead = 0
-    for (const a of usageAttempts) {
+    for (const a of usageTrials) {
       if (!a.usage) continue
       total += totalTokens(a.usage)
       cacheRead += a.usage.cacheRead
@@ -431,7 +431,7 @@ function buildHeader(ctx: Ctx): RunHeader {
     reeval: record.stack.reeval,
     profile: record.profile?.name ?? null,
     scope: runScope(record),
-    runsPerCell: runsPerCell(evals),
+    trialsPerCell: trialsPerCell(evals),
     wall: durationFigure(record.durationMs),
     tally,
     tokens:
@@ -476,7 +476,7 @@ function shapesOf(e: EvalEntry, prior: boolean): EvalShape[] {
   const shapes: EvalShape[] = []
   if (prior) shapes.push('regression')
   if (e.compare) shapes.push('ab')
-  const discovery = e.attempts.some((a) =>
+  const discovery = e.trials.some((a) =>
     (a.assertions ?? []).some((x) =>
       /toHaveCalledSkill|toHaveFetched|toHaveCalledMcp|toHaveReadSkill/i.test(x.matcher),
     ),
@@ -488,16 +488,16 @@ function shapesOf(e: EvalEntry, prior: boolean): EvalShape[] {
 
 function designOf(e: EvalEntry): string {
   const harnesses = new Set(e.cells.map((c) => c.harness)).size
-  const arms = new Set(e.cells.map((c) => c.environment)).size
+  const environments = new Set(e.cells.map((c) => c.environment)).size
   const prompts = new Set(
-    e.attempts.flatMap((a) => (a.turns[0]?.prompt ? [a.turns[0].prompt] : [])),
+    e.trials.flatMap((a) => (a.turns[0]?.prompt ? [a.turns[0].prompt] : [])),
   ).size
-  const attempts = e.attempts.filter((a) => a.seq !== null).length
+  const trials = e.trials.filter((a) => a.seq !== null).length
   const parts: string[] = []
   if (prompts > 1) parts.push(`${prompts} prompts`)
   parts.push(`${harnesses} coding harness${harnesses === 1 ? '' : 'es'}`)
-  if (arms > 1) parts.push(`${arms} arms`)
-  parts.push(`${attempts} attempt${attempts === 1 ? '' : 's'}`)
+  if (environments > 1) parts.push(`${environments} environments`)
+  parts.push(`${trials} trial${trials === 1 ? '' : 's'}`)
   return parts.join(', ')
 }
 
@@ -505,7 +505,7 @@ function assertionLabels(
   e: EvalEntry,
 ): Array<{ label: string; matcher: string; at: string | null }> {
   const seen = new Map<string, { label: string; matcher: string; at: string | null }>()
-  for (const a of e.attempts) {
+  for (const a of e.trials) {
     for (const x of a.assertions ?? []) {
       if (seen.has(x.label)) continue
       // Skip not_applicable-only labels later via check cells.
@@ -515,7 +515,7 @@ function assertionLabels(
   return [...seen.values()]
 }
 
-function checkCellOf(attempts: AttemptRecord[], label: string): CheckCell {
+function checkCellOf(trials: TrialRecord[], label: string): CheckCell {
   let passed = 0
   let failed = 0
   let errored = 0
@@ -524,7 +524,7 @@ function checkCellOf(attempts: AttemptRecord[], label: string): CheckCell {
   let notRun = 0
   let reached = 0
   let reason: string | null = null
-  for (const a of attempts) {
+  for (const a of trials) {
     if (!countedOutcome(a.outcome) && a.outcome !== 'infra_error') continue
     const hit = (a.assertions ?? []).find((x) => x.label === label)
     if (!hit) {
@@ -582,20 +582,20 @@ function checkCellOf(attempts: AttemptRecord[], label: string): CheckCell {
   }
 }
 
-function passRateForAttempts(attempts: AttemptRecord[]): Rate {
-  const counted = attempts.filter((a) => countedOutcome(a.outcome))
+function passRateForTrials(trials: TrialRecord[]): Rate {
+  const counted = trials.filter((a) => countedOutcome(a.outcome))
   const passed = counted.filter((a) => a.outcome === 'pass').length
   return rateOf(passed, counted.length)
 }
 
-function armLabel(cell: CellRecord, digestClash: boolean): string {
-  if (cell.role === 'control') return cell.environment
+function environmentLabel(cell: CellRecord, digestClash: boolean): string {
+  if (cell.role === 'baseline') return cell.environment
   const name = cell.variant ?? cell.environment
   if (!digestClash || !cell.environmentDigest) return name
   return `${name} (${cell.environmentDigest.replace(/^sha256:/, '').slice(0, 7)})`
 }
 
-function armsOf(e: EvalEntry): Arm[] {
+function environmentsOf(e: EvalEntry): CompareEnvironment[] {
   const byEnv = new Map<string, CellRecord[]>()
   for (const c of e.cells) {
     const list = byEnv.get(c.environment) ?? []
@@ -606,24 +606,24 @@ function armsOf(e: EvalEntry): Arm[] {
     const digests = new Set(cells.map((c) => c.environmentDigest ?? c.environment))
     return digests.size > 1
   })
-  // One arm per environment (control first), using a representative cell.
-  const controls = e.cells.filter((c) => c.role === 'control')
+  // One environment per environment (baseline first), using a representative cell.
+  const baselines = e.cells.filter((c) => c.role === 'baseline')
   const variants = e.cells.filter((c) => c.role === 'variant')
   const order: CellRecord[] = []
   const seen = new Set<string>()
-  for (const c of [...controls, ...variants]) {
+  for (const c of [...baselines, ...variants]) {
     const key = c.environmentDigest ?? c.environment
     if (seen.has(key)) continue
     seen.add(key)
     order.push(c)
   }
   return order.map((c) => {
-    const attempts = e.attempts.filter(
+    const trials = e.trials.filter(
       (a) => cellOf(e, a.cell)?.environment === c.environment && countedOutcome(a.outcome),
     )
     const prompts = [
       ...new Set(
-        attempts.flatMap((a) => {
+        trials.flatMap((a) => {
           const p = a.turns[0]?.prompt
           return p ? [p] : []
         }),
@@ -631,10 +631,10 @@ function armsOf(e: EvalEntry): Arm[] {
     ]
     return {
       id: c.environmentDigest ?? c.environment,
-      label: armLabel(c, digestClash),
+      label: environmentLabel(c, digestClash),
       environment: c.environment,
       environmentDigest: c.environmentDigest,
-      role: c.role === 'control' ? 'baseline' : 'variant',
+      role: c.role === 'baseline' ? 'baseline' : 'variant',
       change: c.role === 'variant' ? (c.variant ?? c.environment) : null,
       prompts: prompts.map((p) => {
         // Content hash stand-in: first 12 chars of a simple digest of the prompt text length+prefix.
@@ -647,14 +647,14 @@ function armsOf(e: EvalEntry): Arm[] {
 }
 
 function fairnessOf(nA: number, nB: number, interval: { lo: number; hi: number } | null): Fairness {
-  if (Math.min(nA, nB) < COMPARE_RUNS) return 'too-few-runs'
+  if (Math.min(nA, nB) < COMPARE_TRIALS) return 'too-few-trials'
   if (interval && containsZero(interval.lo, interval.hi)) return 'within-noise'
   return 'clear'
 }
 
 function floorSentence(fairness: Fairness, n: number): string {
-  if (fairness === 'too-few-runs') {
-    return `${n} per side is below ${COMPARE_RUNS}, so this cannot come back helped or made worse.`
+  if (fairness === 'too-few-trials') {
+    return `${n} per side is below ${COMPARE_TRIALS}, so this cannot come back helped or made worse.`
   }
   if (fairness === 'within-noise') return 'The interval spans 0: within noise.'
   return ''
@@ -712,13 +712,13 @@ function targetHeadline(
     foot:
       counted.length === 0
         ? STANDING_WORDS[s]
-        : `${STANDING_WORDS[s]} ${counted.length} counted attempt${counted.length === 1 ? '' : 's'}${over}, ${harnesses} coding harness${harnesses === 1 ? '' : 'es'}.`,
+        : `${STANDING_WORDS[s]} ${counted.length} counted trial${counted.length === 1 ? '' : 's'}${over}, ${harnesses} coding harness${harnesses === 1 ? '' : 'es'}.`,
   }
 }
 
 function chooseHeadline(
   e: EvalEntry,
-  arms: Arm[],
+  environments: CompareEnvironment[],
   prior: Ctx['prior'],
   regression: RegressionChanges | null,
   result: EvalResult | undefined,
@@ -734,9 +734,9 @@ function chooseHeadline(
     const sha = p.gitSha ? p.gitSha.slice(0, 7) : null
     const bits = [when, sha, p.runId].filter(Boolean)
     kicker = `Compared with ${bits.join(', ')}`
-  } else if (compare && arms.length >= 2) {
-    const baseline = arms.find((a) => a.role === 'baseline')
-    const variant = arms.find((a) => a.role === 'variant')
+  } else if (compare && environments.length >= 2) {
+    const baseline = environments.find((a) => a.role === 'baseline')
+    const variant = environments.find((a) => a.role === 'variant')
     if (baseline && variant) {
       kicker = `${variant.label} against the ${baseline.label} baseline`
     }
@@ -755,14 +755,14 @@ function chooseHeadline(
         Math.min(c.base.pass + c.base.fail, c.head.pass + c.head.fail),
       ),
     )
-    const minN = sampleNs.length ? Math.min(...sampleNs) : COMPARE_RUNS
-    const fairness: Fairness = minN < COMPARE_RUNS ? 'too-few-runs' : 'clear'
+    const minN = sampleNs.length ? Math.min(...sampleNs) : COMPARE_TRIALS
+    const fairness: Fairness = minN < COMPARE_TRIALS ? 'too-few-trials' : 'clear'
     const footParts = [
       `${worse} worse, ${fixed} fixed since ${regression.prior.runId}.`,
       regression.prior.gitSha
         ? `Prior ${regression.prior.startedAt.slice(0, 10)} at ${regression.prior.gitSha.slice(0, 7)}.`
         : `Prior ${regression.prior.startedAt.slice(0, 10)}.`,
-      fairness === 'too-few-runs' ? floorSentence('too-few-runs', minN) : null,
+      fairness === 'too-few-trials' ? floorSentence('too-few-trials', minN) : null,
     ]
     return {
       primary: { kind: 'regression', worse, fixed, lead },
@@ -772,15 +772,15 @@ function chooseHeadline(
     }
   }
 
-  if (compare && arms.length >= 2) {
-    const baseline = arms.find((a) => a.role === 'baseline')!
-    const variants = arms.filter((a) => a.role === 'variant')
-    const attemptsFor = (arm: Arm) =>
-      e.attempts.filter((a) => {
+  if (compare && environments.length >= 2) {
+    const baseline = environments.find((a) => a.role === 'baseline')!
+    const variants = environments.filter((a) => a.role === 'variant')
+    const trialsFor = (environment: CompareEnvironment) =>
+      e.trials.filter((a) => {
         const cell = cellOf(e, a.cell)
-        return cell && (cell.environmentDigest ?? cell.environment) === arm.id
+        return cell && (cell.environmentDigest ?? cell.environment) === environment.id
       })
-    const rateFor = (arm: Arm) => passRateForAttempts(attemptsFor(arm))
+    const rateFor = (environment: CompareEnvironment) => passRateForTrials(trialsFor(environment))
     const baselineRate = rateFor(baseline)
     const lifts = variants.map((v) => {
       const rate = rateFor(v)
@@ -791,7 +791,7 @@ function chooseHeadline(
         { pass: baselineRate.k, n: nB },
       )
       return {
-        variant: { id: v.id, label: v.label } satisfies ArmRef,
+        variant: { id: v.id, label: v.label } satisfies EnvironmentRef,
         points: ptsDelta(points),
         interval: ptsInterval(low, high),
         rate,
@@ -817,12 +817,12 @@ function chooseHeadline(
       assertions.length > 0
 
     if (tied) {
-      const baseAttempts = attemptsFor(baseline).filter((a) => countedOutcome(a.outcome))
-      const varAttempts = attemptsFor(variants.find((v) => v.id === best.variant.id)!).filter((a) =>
+      const baseTrials = trialsFor(baseline).filter((a) => countedOutcome(a.outcome))
+      const varTrials = trialsFor(variants.find((v) => v.id === best.variant.id)!).filter((a) =>
         countedOutcome(a.outcome),
       )
-      const baseMeasures = measuresOf(baseAttempts)
-      const varMeasures = measuresOf(varAttempts)
+      const baseMeasures = measuresOf(baseTrials)
+      const varMeasures = measuresOf(varTrials)
       let lead: {
         measure: MeasureKey
         baseline: Figure
@@ -859,7 +859,7 @@ function chooseHeadline(
             },
           },
           fairness,
-          foot: `Every attempt passed all ${assertions.length} applicable assertions (${n} of ${n}).`,
+          foot: `Every trial passed all ${assertions.length} applicable assertions (${n} of ${n}).`,
           kicker,
         }
       }
@@ -879,7 +879,7 @@ function chooseHeadline(
       },
       fairness,
       foot: [
-        `n = ${best.rate.n} vs ${baselineRate.n} counted attempts. 95% CI ${best.interval.text}.`,
+        `n = ${best.rate.n} vs ${baselineRate.n} counted trials. 95% CI ${best.interval.text}.`,
         floor,
       ]
         .filter(Boolean)
@@ -891,12 +891,12 @@ function chooseHeadline(
   if (result && graded(e)) return { ...targetHeadline(result, harnesses), kicker }
 
   if (assertions.length > 0) {
-    const gated = e.attempts.filter((a) => {
+    const gated = e.trials.filter((a) => {
       const cell = cellOf(e, a.cell)
       return cell && cell.gate !== 'none' && countedOutcome(a.outcome)
     })
-    const pool = gated.length ? gated : e.attempts.filter((a) => countedOutcome(a.outcome))
-    // An attempt "passes" the headline when every applicable assertion passed.
+    const pool = gated.length ? gated : e.trials.filter((a) => countedOutcome(a.outcome))
+    // A trial "passes" the headline when every applicable assertion passed.
     let passedAll = 0
     for (const a of pool) {
       const applicable = (a.assertions ?? []).filter(
@@ -916,13 +916,13 @@ function chooseHeadline(
         harnesses: Math.max(1, harnesses),
         outcome,
       },
-      fairness: pool.length < COMPARE_RUNS ? 'too-few-runs' : 'clear',
-      foot: `${rate.k} of ${rate.n} counted attempts ${outcomeWord} on all ${assertions.length} assertions. ${harnesses} coding harness${harnesses === 1 ? '' : 'es'}.`,
+      fairness: pool.length < COMPARE_TRIALS ? 'too-few-trials' : 'clear',
+      foot: `${rate.k} of ${rate.n} counted trials ${outcomeWord} on all ${assertions.length} assertions. ${harnesses} coding harness${harnesses === 1 ? '' : 'es'}.`,
       kicker,
     }
   }
 
-  const answers = attemptAnswerRows(e)
+  const answers = trialAnswerRows(e)
   const choiceRow = answers.find((r) => r.choices && r.choices.length >= 2)
   if (choiceRow?.choices) {
     const options = choiceRow.choices.map((c) => ({ label: c.choice, count: c.n }))
@@ -932,16 +932,16 @@ function chooseHeadline(
         kind: 'choice',
         question: choiceRow.question,
         options,
-        attempts: choiceRow.answers.length,
+        trials: choiceRow.answers.length,
         noPick,
       },
       fairness: 'clear',
-      foot: `${choiceRow.answers.length} attempts, ${noPick} without a pick.`,
+      foot: `${choiceRow.answers.length} trials, ${noPick} without a pick.`,
       kicker,
     }
   }
 
-  const judgeRows = e.attempts.flatMap((a) => labeledJudgments(a))
+  const judgeRows = e.trials.flatMap((a) => labeledJudgments(a))
   if (judgeRows.length) {
     const first = judgeRows[0]!
     const scores = judgeRows.filter((j) => j.label === first.label).map((j) => j.judgment.score)
@@ -962,7 +962,7 @@ function chooseHeadline(
         spread,
         atOrAbove,
       },
-      fairness: scores.length < COMPARE_RUNS ? 'too-few-runs' : 'clear',
+      fairness: scores.length < COMPARE_TRIALS ? 'too-few-trials' : 'clear',
       foot: atOrAbove
         ? `${atOrAbove.text} at or above the ${threshold} threshold.`
         : 'Diagnostic judgment, no threshold.',
@@ -970,7 +970,7 @@ function chooseHeadline(
     }
   }
 
-  const observeNumeric = e.attempts.flatMap((a) =>
+  const observeNumeric = e.trials.flatMap((a) =>
     (a.observations ?? []).flatMap((o) =>
       typeof o.value === 'number' ? [{ name: o.name, value: o.value }] : [],
     ),
@@ -981,8 +981,8 @@ function chooseHeadline(
     const spread = spreadOf(values, formatCount)!
     return {
       primary: { kind: 'measure', label: name, unit: 'count', spread },
-      fairness: values.length < COMPARE_RUNS ? 'too-few-runs' : 'clear',
-      foot: `${spread.n} attempts, interquartile range ${spread.q1.text} to ${spread.q3.text}.`,
+      fairness: values.length < COMPARE_TRIALS ? 'too-few-trials' : 'clear',
+      foot: `${spread.n} trials, interquartile range ${spread.q1.text} to ${spread.q3.text}.`,
       kicker,
     }
   }
@@ -993,15 +993,15 @@ function chooseHeadline(
     const leadAnswer = answered[0]
     let lead: Quote | null = null
     if (leadAnswer) {
-      const attempt = e.attempts.find((a) => a.id === leadAnswer.attempt)
-      if (attempt) {
-        // fillTextLeadCites replaces the citation, or drops the lead when the attempt has no id.
+      const trial = e.trials.find((a) => a.id === leadAnswer.trial)
+      if (trial) {
+        // fillTextLeadCites replaces the citation, or drops the lead when the trial has no id.
         lead = {
           text: leadAnswer.text.slice(0, 200),
-          attempt: { id: 'A?', key: attempt.key, href: '#' },
-          harness: cellOf(e, attempt.cell)?.harness ?? attempt.cell,
-          arm: cellOf(e, attempt.cell)?.environment ?? null,
-          case: attempt.case ?? null,
+          trial: { id: 'A?', key: trial.key, href: '#' },
+          harness: cellOf(e, trial.cell)?.harness ?? trial.cell,
+          environment: cellOf(e, trial.cell)?.environment ?? null,
+          case: trial.case ?? null,
           input: leadAnswer.input,
         }
       }
@@ -1019,8 +1019,8 @@ function chooseHeadline(
       fairness: 'clear',
       foot:
         leadRole === 'representative'
-          ? `${answered.length} of ${textRow.answers.length} attempts answered. Showing 1 representative answer.`
-          : `${answered.length} of ${textRow.answers.length} attempts answered.`,
+          ? `${answered.length} of ${textRow.answers.length} trials answered. Showing 1 representative answer.`
+          : `${answered.length} of ${textRow.answers.length} trials answered.`,
       kicker,
     }
   }
@@ -1030,18 +1030,18 @@ function chooseHeadline(
   const spread = tokenSpread(e)
   return {
     primary: { kind: 'measure', label: 'tokens', unit: 'tokens', spread },
-    fairness: spread.n < COMPARE_RUNS ? 'too-few-runs' : 'clear',
+    fairness: spread.n < COMPARE_TRIALS ? 'too-few-trials' : 'clear',
     foot:
       spread.n === 0
-        ? 'No attempt reported usage.'
-        : `${spread.n} attempts, interquartile range ${spread.q1.text} to ${spread.q3.text}.`,
+        ? 'No trial reported usage.'
+        : `${spread.n} trials, interquartile range ${spread.q1.text} to ${spread.q3.text}.`,
     kicker,
   }
 }
 
-/** The tokens of the counted attempts that reported usage. */
+/** The tokens of the counted trials that reported usage. */
 function tokenSpread(e: EvalEntry): Spread {
-  const values = e.attempts
+  const values = e.trials
     .filter((a) => countedOutcome(a.outcome) && a.usage)
     .map((a) => totalTokens(a.usage!))
   return (
@@ -1062,60 +1062,60 @@ function buildTaskResults(e: EvalEntry): TaskResults | null {
   const assertions: AssertionRow[] = labels.map((row) => {
     const cells: Record<string, CheckCell> = {}
     for (const h of columns) {
-      const attempts = e.attempts.filter((a) => cellOf(e, a.cell)?.harness === h)
-      cells[h] = checkCellOf(attempts, row.label)
+      const trials = e.trials.filter((a) => cellOf(e, a.cell)?.harness === h)
+      cells[h] = checkCellOf(trials, row.label)
     }
     const total = checkCellOf(
-      e.attempts.filter((a) => countedOutcome(a.outcome) || a.outcome === 'infra_error'),
+      e.trials.filter((a) => countedOutcome(a.outcome) || a.outcome === 'infra_error'),
       row.label,
     )
     return { label: row.label, matcher: row.matcher, at: row.at, cells, total }
   })
   const axes = ['Coding harness']
   const breakdown: BreakdownRow[] = harnesses.map((h) => {
-    const attempts = e.attempts.filter((a) => cellOf(e, a.cell)?.harness === h)
+    const trials = e.trials.filter((a) => cellOf(e, a.cell)?.harness === h)
     return {
       keys: [h],
-      rate: passRateForAttempts(attempts),
-      measures: measuresOf(attempts),
+      rate: passRateForTrials(trials),
+      measures: measuresOf(trials),
     }
   })
   const medianRow: BreakdownRow | null =
     breakdown.length > 1
       ? {
           keys: ['Median'],
-          rate: passRateForAttempts(e.attempts),
-          measures: measuresOf(e.attempts.filter((a) => countedOutcome(a.outcome))),
+          rate: passRateForTrials(e.trials),
+          measures: measuresOf(e.trials.filter((a) => countedOutcome(a.outcome))),
         }
       : null
   return { kind: 'task', columns, assertions, axes, breakdown, median: medianRow }
 }
 
-function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
-  const baseline = arms.find((a) => a.role === 'baseline')
-  const attemptsFor = (arm: Arm) =>
-    e.attempts.filter((a) => {
+function buildVariantComparison(e: EvalEntry, environments: CompareEnvironment[]): VariantComparison {
+  const baseline = environments.find((a) => a.role === 'baseline')
+  const trialsFor = (environment: CompareEnvironment) =>
+    e.trials.filter((a) => {
       const cell = cellOf(e, a.cell)
-      return cell && (cell.environmentDigest ?? cell.environment) === arm.id
+      return cell && (cell.environmentDigest ?? cell.environment) === environment.id
     })
 
-  const baseAttempts = baseline
-    ? attemptsFor(baseline).filter((a) => countedOutcome(a.outcome))
+  const baseTrials = baseline
+    ? trialsFor(baseline).filter((a) => countedOutcome(a.outcome))
     : []
-  const baseMeasures = measuresOf(baseAttempts)
-  const baseRate = passRateForAttempts(baseAttempts)
+  const baseMeasures = measuresOf(baseTrials)
+  const baseRate = passRateForTrials(baseTrials)
 
-  const summary: ArmRow[] = arms.map((arm) => {
-    const attempts = attemptsFor(arm).filter((a) => countedOutcome(a.outcome))
-    const rate = passRateForAttempts(attempts)
-    const measures = measuresOf(attempts)
+  const summary: EnvironmentRow[] = environments.map((environment) => {
+    const trials = trialsFor(environment).filter((a) => countedOutcome(a.outcome))
+    const rate = passRateForTrials(trials)
+    const measures = measuresOf(trials)
     const vs = emptyMeasureVsBaseline()
     for (const key of MEASURE_KEYS) {
-      vs[key] = measureVs(measures[key], arm.role === 'baseline' ? null : baseMeasures[key], null)
+      vs[key] = measureVs(measures[key], environment.role === 'baseline' ? null : baseMeasures[key], null)
     }
-    if (arm.role === 'baseline') {
+    if (environment.role === 'baseline') {
       return {
-        arm: arm.label,
+        environment: environment.label,
         rate,
         lift: null,
         interval: null,
@@ -1130,8 +1130,8 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
     )
     const fairness = fairnessOf(rate.n, baseRate.n, { lo: low, hi: high })
     const verdict =
-      fairness === 'too-few-runs'
-        ? 'too-few-runs'
+      fairness === 'too-few-trials'
+        ? 'too-few-trials'
         : fairness === 'within-noise'
           ? 'within-noise'
           : points > 0
@@ -1140,7 +1140,7 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
               ? 'made-worse'
               : 'within-noise'
     return {
-      arm: arm.label,
+      environment: environment.label,
       rate,
       lift: ptsDelta(points),
       interval: ptsInterval(low, high),
@@ -1151,18 +1151,18 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
   })
 
   const labels = assertionLabels(e)
-  const columns = arms.map((a) => a.label)
+  const columns = environments.map((a) => a.label)
   let uniform = labels.length > 0
-  const assertionsByArm: AssertionRow[] = []
+  const assertionsByEnvironment: AssertionRow[] = []
   for (const row of labels) {
     const cells: Record<string, CheckCell> = {}
-    for (const arm of arms) {
-      cells[arm.label] = checkCellOf(attemptsFor(arm), row.label)
-      const cell = cells[arm.label]!
+    for (const environment of environments) {
+      cells[environment.label] = checkCellOf(trialsFor(environment), row.label)
+      const cell = cells[environment.label]!
       if (cell.status !== 'pass' && cell.status !== 'na') uniform = false
     }
-    const total = checkCellOf(e.attempts, row.label)
-    assertionsByArm.push({
+    const total = checkCellOf(e.trials, row.label)
+    assertionsByEnvironment.push({
       label: row.label,
       matcher: row.matcher,
       at: row.at,
@@ -1171,17 +1171,17 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
     })
   }
   const uniformLead = uniform
-    ? `Every arm passed every applicable assertion (${labels.length} checks).`
+    ? `Every environment passed every applicable assertion (${labels.length} checks).`
     : null
 
   const contrasts: ContrastRow[] = contrastsOf(e).flatMap((c) => {
     const aCell = cellOf(e, c.a)
     const bCell = cellOf(e, c.b)
     if (!aCell || !bCell || !c.lift) return []
-    const fairness = fairnessOf(c.lift.variant.counted, c.lift.control.counted, c.lift.interval)
+    const fairness = fairnessOf(c.lift.variant.counted, c.lift.baseline.counted, c.lift.interval)
     const verdict =
-      fairness === 'too-few-runs'
-        ? 'too-few-runs'
+      fairness === 'too-few-trials'
+        ? 'too-few-trials'
         : fairness === 'within-noise'
           ? 'within-noise'
           : c.lift.points > 0
@@ -1204,20 +1204,20 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
 
   const harnesses = [...new Set(e.cells.map((c) => c.harness))]
   const effortByHarness = harnesses.flatMap((h) =>
-    arms.map((arm) => {
-      const attempts = e.attempts.filter((a) => {
+    environments.map((environment) => {
+      const trials = e.trials.filter((a) => {
         const cell = cellOf(e, a.cell)
         return (
           cell?.harness === h &&
           cell &&
-          (cell.environmentDigest ?? cell.environment) === arm.id &&
+          (cell.environmentDigest ?? cell.environment) === environment.id &&
           countedOutcome(a.outcome)
         )
       })
-      const measures = measuresOf(attempts)
+      const measures = measuresOf(trials)
       const vs = emptyMeasureVsBaseline()
       const baseH = baseline
-        ? e.attempts.filter((a) => {
+        ? e.trials.filter((a) => {
             const cell = cellOf(e, a.cell)
             return (
               cell?.harness === h &&
@@ -1229,12 +1229,12 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
         : []
       const baseM = measuresOf(baseH)
       for (const key of MEASURE_KEYS) {
-        vs[key] = measureVs(measures[key], arm.role === 'baseline' ? null : baseM[key], null)
+        vs[key] = measureVs(measures[key], environment.role === 'baseline' ? null : baseM[key], null)
       }
       return {
         harness: h,
-        arm: arm.label,
-        rate: passRateForAttempts(attempts),
+        environment: environment.label,
+        rate: passRateForTrials(trials),
         measures: vs,
       }
     }),
@@ -1242,10 +1242,10 @@ function buildVariantComparison(e: EvalEntry, arms: Arm[]): VariantComparison {
 
   return {
     kind: 'comparison',
-    arms,
+    environments,
     uniformLead,
     summary,
-    assertionsByArm: uniformLead ? [] : assertionsByArm,
+    assertionsByEnvironment: uniformLead ? [] : assertionsByEnvironment,
     behavior: [],
     contrasts,
     effortByHarness,
@@ -1313,7 +1313,7 @@ function buildRegression(prior: NonNullable<Ctx['prior']>): RegressionChanges {
 }
 
 function buildChoices(e: EvalEntry): ChoiceBreakdown[] {
-  return attemptAnswerRows(e)
+  return trialAnswerRows(e)
     .filter((r) => r.choices && r.choices.length >= 2)
     .map((r) => {
       const options = [...(r.choices ?? [])]
@@ -1323,28 +1323,28 @@ function buildChoices(e: EvalEntry): ChoiceBreakdown[] {
       const byKey = new Map<
         string,
         {
-          arm: string | null
+          environment: string | null
           prompt: string | null
           harness: string
           counts: Record<string, number>
-          attempts: number
+          trials: number
         }
       >()
       for (const ans of r.answers) {
-        const attempt = e.attempts.find((a) => a.id === ans.attempt)
-        if (!attempt) continue
-        const cell = cellOf(e, attempt.cell)
-        const harness = cell?.harness ?? attempt.cell
-        const arm = cell?.environment ?? null
-        const key = `${arm ?? ''}\0${harness}`
+        const trial = e.trials.find((a) => a.id === ans.trial)
+        if (!trial) continue
+        const cell = cellOf(e, trial.cell)
+        const harness = cell?.harness ?? trial.cell
+        const environment = cell?.environment ?? null
+        const key = `${environment ?? ''}\0${harness}`
         const row = byKey.get(key) ?? {
-          arm,
+          environment,
           prompt: null,
           harness,
           counts: Object.fromEntries(options.map((o) => [o.label, 0])),
-          attempts: 0,
+          trials: 0,
         }
-        row.attempts++
+        row.trials++
         if (ans.choice && row.counts[ans.choice] !== undefined) row.counts[ans.choice]!++
         byKey.set(key, row)
       }
@@ -1369,12 +1369,12 @@ function buildChoices(e: EvalEntry): ChoiceBreakdown[] {
 const SKILL_SOURCES = ['placed', 'skill-dir', 'elsewhere'] as const
 
 /**
- * The skill an attempt's first passing `toHaveCalledSkill` (or `poll.`, `resolves.` … but not a
+ * The skill a trial's first passing `toHaveCalledSkill` (or `poll.`, `resolves.` … but not a
  * `not.`) checked, read from its default label: the matcher as recorded, the skill, then any ` #n`
  * that keeps the label unique. Undefined when every such call had a label of its own, which
  * doesn't name the skill.
  */
-function checkedSkill(a: AttemptRecord): string | undefined {
+function checkedSkill(a: TrialRecord): string | undefined {
   for (const x of a.assertions ?? []) {
     const parts = x.matcher.split('.')
     if (parts.at(-1) !== 'toHaveCalledSkill' || parts.includes('not')) continue
@@ -1386,16 +1386,16 @@ function checkedSkill(a: AttemptRecord): string | undefined {
 }
 
 /**
- * How many of `attempts` (each found the skill) used the skill it checked from each source, by its
- * first use in their facts: one source an attempt, so the counts sum to at most the attempts.
+ * How many of `trials` (each found the skill) used the skill it checked from each source, by its
+ * first use in their facts: one source a trial, so the counts sum to at most the trials.
  */
 function skillSources(
-  attempts: AttemptRecord[],
-  facts: ReadonlyMap<string, AttemptFacts> | undefined,
+  trials: TrialRecord[],
+  facts: ReadonlyMap<string, TrialFacts> | undefined,
 ): DiscoveryRate['sources'] {
   if (!facts) return []
   const counts = new Map<string, number>()
-  for (const a of attempts) {
+  for (const a of trials) {
     const name = checkedSkill(a)
     if (name === undefined) continue
     const first = facts
@@ -1412,7 +1412,7 @@ function skillSources(
 
 function buildDiscovery(
   e: EvalEntry,
-  facts: ReadonlyMap<string, AttemptFacts> | undefined,
+  facts: ReadonlyMap<string, TrialFacts> | undefined,
 ): DiscoveryRate[] {
   if (e.compare) return []
   const matchers = [
@@ -1422,24 +1422,24 @@ function buildDiscovery(
   ]
   const out: DiscoveryRate[] = []
   for (const m of matchers) {
-    const attempts = e.attempts.filter((a) => countedOutcome(a.outcome))
-    const foundAttempts = attempts.filter((a) =>
+    const trials = e.trials.filter((a) => countedOutcome(a.outcome))
+    const foundTrials = trials.filter((a) =>
       (a.assertions ?? []).some((x) => x.matcher.includes(m.matcher) && x.status === 'pass'),
     )
     if (
-      !foundAttempts.length &&
-      !attempts.some((a) => (a.assertions ?? []).some((x) => x.matcher.includes(m.matcher)))
+      !foundTrials.length &&
+      !trials.some((a) => (a.assertions ?? []).some((x) => x.matcher.includes(m.matcher)))
     ) {
       continue
     }
-    const applicable = attempts.filter((a) =>
+    const applicable = trials.filter((a) =>
       (a.assertions ?? []).some((x) => x.matcher.includes(m.matcher)),
     )
     if (!applicable.length) continue
     out.push({
       what: m.what,
       matcher: m.matcher,
-      found: countOf(foundAttempts.length, applicable.length),
+      found: countOf(foundTrials.length, applicable.length),
       rows: [...new Set(e.cells.map((c) => c.harness))].map((h) => {
         const pool = applicable.filter((a) => cellOf(e, a.cell)?.harness === h)
         const found = pool.filter((a) =>
@@ -1447,14 +1447,14 @@ function buildDiscovery(
         )
         return { keys: [h], found: countOf(found.length, pool.length) }
       }),
-      sources: m.what === 'skill' ? skillSources(foundAttempts, facts) : [],
+      sources: m.what === 'skill' ? skillSources(foundTrials, facts) : [],
     })
   }
   return out
 }
 
 function buildJudgments(e: EvalEntry): JudgmentBreakdown | null {
-  const scores = e.attempts.flatMap((a) => {
+  const scores = e.trials.flatMap((a) => {
     const cell = cellOf(e, a.cell)
     return labeledJudgments(a).map((j) => ({
       ...j,
@@ -1468,7 +1468,7 @@ function buildJudgments(e: EvalEntry): JudgmentBreakdown | null {
     list.push(s)
     byLabel.set(s.label, list)
   }
-  const hasArms = e.cells.some((c) => Boolean(c.environment))
+  const hasEnvironments = e.cells.some((c) => Boolean(c.environment))
   const judgeRows = [...byLabel.entries()].map(([label, rows]) => {
     const values = rows.map((r) => r.judgment.score)
     const spread = spreadOf(values, (n) => n.toFixed(2))!
@@ -1480,7 +1480,7 @@ function buildJudgments(e: EvalEntry): JudgmentBreakdown | null {
       question: rows[0]!.judgment.question,
       assertion,
       threshold,
-      keys: hasArms ? ['Coding harness', 'Arm'] : ['Coding harness'],
+      keys: hasEnvironments ? ['Coding harness', 'Environment'] : ['Coding harness'],
       spread,
       atOrAbove:
         threshold === null
@@ -1488,7 +1488,7 @@ function buildJudgments(e: EvalEntry): JudgmentBreakdown | null {
           : countOf(values.filter((v) => v >= threshold).length, values.length),
     }
   })
-  // Pairwise from eval.answers: rates only; attempt cites need PairVote.attempts (newer records).
+  // Pairwise from eval.answers: rates only; trial cites need PairVote.trials (newer records).
   const pairwise: JudgmentBreakdown['pairwise'] = []
   for (const ans of e.answers ?? []) {
     const ties = ans.votes.filter((v) => v.winner === 'tie').length
@@ -1526,7 +1526,7 @@ function buildJudgments(e: EvalEntry): JudgmentBreakdown | null {
     }
   }
   return {
-    axes: hasArms ? ['Coding harness', 'Arm'] : ['Coding harness'],
+    axes: hasEnvironments ? ['Coding harness', 'Environment'] : ['Coding harness'],
     scores: judgeRows,
     pairwise,
   }
@@ -1534,28 +1534,28 @@ function buildJudgments(e: EvalEntry): JudgmentBreakdown | null {
 
 function buildQualitative(
   e: EvalEntry,
-  ids: AttemptIdMap,
+  ids: TrialIdMap,
   linkBase: string | undefined,
   hrefs: Set<string>,
   hrefByKey: Map<string, string>,
 ): QualitativeAnswers[] {
-  return attemptAnswerRows(e)
+  return trialAnswerRows(e)
     .filter((r) => !r.choices)
     .map((r) => {
       const entries: Quote[] = []
       for (const ans of r.answers) {
         if (!ans.text.trim()) continue
-        const attempt = e.attempts.find((a) => a.id === ans.attempt)
-        if (!attempt) continue
-        const ref = attemptRef(ids, e, attempt, linkBase, hrefs, hrefByKey)
+        const trial = e.trials.find((a) => a.id === ans.trial)
+        if (!trial) continue
+        const ref = trialRef(ids, e, trial, linkBase, hrefs, hrefByKey)
         if (!ref) continue
-        const cell = cellOf(e, attempt.cell)
+        const cell = cellOf(e, trial.cell)
         entries.push({
           text: ans.text.slice(0, 400),
-          attempt: ref,
-          harness: cell?.harness ?? attempt.cell,
-          arm: cell?.environment ?? null,
-          case: attempt.case ? caseName(e, { key: attempt.case, name: undefined }) : null,
+          trial: ref,
+          harness: cell?.harness ?? trial.cell,
+          environment: cell?.environment ?? null,
+          case: trial.case ? caseName(e, { key: trial.case, name: undefined }) : null,
           input: ans.input ? withBase(linkBase, ans.input) : null,
         })
       }
@@ -1570,7 +1570,7 @@ function buildQualitative(
 
 function buildCaptures(
   e: EvalEntry,
-  ids: AttemptIdMap,
+  ids: TrialIdMap,
   linkBase: string | undefined,
   hrefs: Set<string>,
   hrefByKey: Map<string, string>,
@@ -1580,21 +1580,21 @@ function buildCaptures(
     string,
     {
       harness: string
-      arm: string | null
+      environment: string | null
       case: string | null
       shots: CaptureGallery['rows'][number]['shots']
     }
   >()
-  for (const a of e.attempts) {
+  for (const a of e.trials) {
     const arts = a.files.artifacts ?? []
     if (!arts.length) continue
-    const ref = attemptRef(ids, e, a, linkBase, hrefs, hrefByKey)
+    const ref = trialRef(ids, e, a, linkBase, hrefs, hrefByKey)
     if (!ref) continue
     const cell = cellOf(e, a.cell)
     const key = `${cell?.harness ?? ''}\0${cell?.environment ?? ''}\0${a.case ?? ''}`
     const row = rows.get(key) ?? {
       harness: cell?.harness ?? a.cell,
-      arm: cell?.environment ?? null,
+      environment: cell?.environment ?? null,
       case: a.case ?? null,
       shots: [],
     }
@@ -1609,7 +1609,7 @@ function buildCaptures(
           (art.capture?.instructions?.length
             ? art.capture.instructions.join('; ')
             : (art.capture?.path ?? null)),
-        attempt: ref,
+        trial: ref,
         status: art.capture?.status ?? page?.status ?? null,
         pageErrors: art.capture?.pageErrors ?? page?.errors.length ?? null,
         consoleErrors:
@@ -1626,27 +1626,27 @@ function buildCaptures(
 
 function buildFailures(
   e: EvalEntry,
-  ids: AttemptIdMap,
+  ids: TrialIdMap,
   linkBase: string | undefined,
   hrefs: Set<string>,
   hrefByKey: Map<string, string>,
   remarks: RunRemarks | null,
 ): FailureClusters | null {
-  const counted = e.attempts.filter((a) => countedOutcome(a.outcome) || a.outcome === 'infra_error')
+  const counted = e.trials.filter((a) => countedOutcome(a.outcome) || a.outcome === 'infra_error')
   const clusters = new Map<string, FailureClusters['clusters'][number]>()
   const add = (
     kind: FailureClusters['clusters'][number]['kind'],
     label: string,
     at: string | null,
-    attempt: AttemptRecord,
+    trial: TrialRecord,
   ) => {
-    const ref = attemptRef(ids, e, attempt, linkBase, hrefs, hrefByKey)
+    const ref = trialRef(ids, e, trial, linkBase, hrefs, hrefByKey)
     if (!ref) return
     const key = `${kind}\0${label}\0${at ?? ''}`
     const existing = clusters.get(key)
     if (existing) {
-      existing.attempts.push(ref)
-      existing.count = countOf(existing.attempts.length, counted.length)
+      existing.trials.push(ref)
+      existing.count = countOf(existing.trials.length, counted.length)
       return
     }
     clusters.set(key, {
@@ -1654,10 +1654,10 @@ function buildFailures(
       label,
       at,
       count: countOf(1, counted.length),
-      attempts: [ref],
+      trials: [ref],
     })
   }
-  for (const a of e.attempts) {
+  for (const a of e.trials) {
     for (const x of a.assertions ?? []) {
       if (x.status === 'fail') add('assertion', x.label, x.at ?? null, a)
     }
@@ -1693,29 +1693,29 @@ function buildFailures(
 function fillTextLeadCites(
   primary: HeadlinePrimary,
   e: EvalEntry,
-  ids: AttemptIdMap,
+  ids: TrialIdMap,
   linkBase: string | undefined,
   hrefs: Set<string>,
   hrefByKey: Map<string, string>,
 ): HeadlinePrimary {
   if (primary.kind !== 'text' || !primary.lead) return primary
-  const answers = attemptAnswerRows(e).find((r) => r.question === primary.question)
+  const answers = trialAnswerRows(e).find((r) => r.question === primary.question)
   const first = answers?.answers.find((a) => a.text.trim())
-  const attempt = first && e.attempts.find((a) => a.id === first.attempt)
-  const ref = attempt && attemptRef(ids, e, attempt, linkBase, hrefs, hrefByKey)
+  const trial = first && e.trials.find((a) => a.id === first.trial)
+  const ref = trial && trialRef(ids, e, trial, linkBase, hrefs, hrefByKey)
   // A quote is shown only with a citation it can link to.
   if (!ref) return { ...primary, lead: null, leadRole: null }
-  return { ...primary, lead: { ...primary.lead, attempt: ref } }
+  return { ...primary, lead: { ...primary.lead, trial: ref } }
 }
 
 function buildEvalSection(ctx: Ctx, e: EvalEntry, displayName: string): EvalSection {
-  const arms = armsOf(e)
+  const environments = environmentsOf(e)
   const shapes = shapesOf(e, Boolean(ctx.prior))
   const design = designOf(e)
   const regression = ctx.prior ? buildRegression(ctx.prior) : null
   const chosen = chooseHeadline(
     e,
-    arms,
+    environments,
     ctx.prior,
     regression,
     ctx.results.get(resultKey(e.file, e.id)),
@@ -1737,7 +1737,7 @@ function buildEvalSection(ctx: Ctx, e: EvalEntry, displayName: string): EvalSect
   }
   let primary: EvalSection['primary'] = null
   if (regression) primary = regression
-  else if (e.compare) primary = buildVariantComparison(e, arms)
+  else if (e.compare) primary = buildVariantComparison(e, environments)
   else primary = buildTaskResults(e)
 
   const insights: ReportClaim[] = []
@@ -1802,7 +1802,7 @@ function buildIntegrity(ctx: Ctx): IntegrityIssue[] {
     issues.push({
       kind: 'run-incomplete',
       severity: 'error',
-      text: `Run stopped early (${record.status}); pass rates and medians cover only the attempts that finished.`,
+      text: `Run stopped early (${record.status}); pass rates and medians cover only the trials that finished.`,
       evalId: null,
       cites: [],
     })
@@ -1817,18 +1817,18 @@ function buildIntegrity(ctx: Ctx): IntegrityIssue[] {
     })
   }
   for (const e of evals) {
-    const cites: AttemptRef[] = []
-    for (const a of e.attempts) {
+    const cites: TrialRef[] = []
+    for (const a of e.trials) {
       const turnErr = a.turns.some((t) => t.status === 'error')
       if (!turnErr) continue
-      const ref = attemptRef(ids, e, a, linkBase, ctx.hrefs, ctx.hrefByKey)
+      const ref = trialRef(ids, e, a, linkBase, ctx.hrefs, ctx.hrefByKey)
       if (ref) cites.push(ref)
     }
     if (cites.length) {
       issues.push({
         kind: 'turn-error',
         severity: 'error',
-        text: `${cites.length} attempt${cites.length === 1 ? '' : 's'} had a mid-turn error; those outcomes may not reflect a finished agent turn.`,
+        text: `${cites.length} trial${cites.length === 1 ? '' : 's'} had a mid-turn error; those outcomes may not reflect a finished agent turn.`,
         evalId: e.key,
         cites,
       })
@@ -1844,14 +1844,14 @@ function buildIntegrity(ctx: Ctx): IntegrityIssue[] {
         issues.push({
           kind: 'duplicate-environment',
           severity: 'warn',
-          text: `Environment name "${name}" maps to ${digests.size} digests; arm labels include the digest prefix.`,
+          text: `Environment name "${name}" maps to ${digests.size} digests; environment labels include the digest prefix.`,
           evalId: e.key,
           cites: [],
         })
       }
     }
     if (e.compare) {
-      for (const c of e.cells.filter((x) => x.role === 'control')) {
+      for (const c of e.cells.filter((x) => x.role === 'baseline')) {
         for (const check of c.checks ?? []) {
           const answered = check.pass + check.fail
           if (answered > 0 && check.pass === 0) {
@@ -1877,28 +1877,28 @@ function buildIntegrity(ctx: Ctx): IntegrityIssue[] {
         }
       }
     }
-    for (const a of e.attempts) {
+    for (const a of e.trials) {
       if (!a.usage && countedOutcome(a.outcome)) {
         // Collect once per eval below.
       }
     }
-    const unreported = e.attempts.filter((a) => countedOutcome(a.outcome) && !a.usage)
+    const unreported = e.trials.filter((a) => countedOutcome(a.outcome) && !a.usage)
     if (unreported.length) {
       issues.push({
         kind: 'unreported-usage',
         severity: 'warn',
-        text: `${unreported.length} counted attempt${unreported.length === 1 ? '' : 's'} reported no token usage; token medians omit them.`,
+        text: `${unreported.length} counted trial${unreported.length === 1 ? '' : 's'} reported no token usage; token medians omit them.`,
         evalId: e.key,
         cites: unreported.flatMap((a) => {
-          const ref = attemptRef(ids, e, a, linkBase, ctx.hrefs, ctx.hrefByKey)
+          const ref = trialRef(ids, e, a, linkBase, ctx.hrefs, ctx.hrefByKey)
           return ref ? [ref] : []
         }),
       })
     }
-    const preHits = e.attempts.flatMap((a) =>
+    const preHits = e.trials.flatMap((a) =>
       (a.assertions ?? [])
         .filter((x) => x.preSatisfied)
-        .map((x) => ({ attempt: a, label: x.label })),
+        .map((x) => ({ trial: a, label: x.label })),
     )
     if (preHits.length) {
       const labels = [...new Set(preHits.map((h) => h.label))]
@@ -1908,7 +1908,7 @@ function buildIntegrity(ctx: Ctx): IntegrityIssue[] {
         text: `${preHits.length} pre-satisfied check${preHits.length === 1 ? '' : 's'} (${labels.join(', ')}); existing workspace state may satisfy them without agent work.`,
         evalId: e.key,
         cites: preHits.flatMap((h) => {
-          const ref = attemptRef(ids, e, h.attempt, linkBase, ctx.hrefs, ctx.hrefByKey)
+          const ref = trialRef(ids, e, h.trial, linkBase, ctx.hrefs, ctx.hrefByKey)
           return ref ? [ref] : []
         }),
       })
@@ -1925,15 +1925,15 @@ function buildIntegrity(ctx: Ctx): IntegrityIssue[] {
         (row.status === 'regressed' || row.status === 'fixed') &&
         Boolean(row.gate) &&
         (row.perCell ?? []).some(
-          (c) => Math.min(c.base.pass + c.base.fail, c.head.pass + c.head.fail) < COMPARE_RUNS,
+          (c) => Math.min(c.base.pass + c.base.fail, c.head.pass + c.head.fail) < COMPARE_TRIALS,
         ),
     )
-    if (gatedTiny || (sampleNs.length && Math.min(...sampleNs) < COMPARE_RUNS)) {
+    if (gatedTiny || (sampleNs.length && Math.min(...sampleNs) < COMPARE_TRIALS)) {
       const minN = sampleNs.length ? Math.min(...sampleNs) : 0
       issues.push({
         kind: 'fairness-floor',
         severity: 'warn',
-        text: `A gated regression claim rests on fewer than ${COMPARE_RUNS} counted attempts per side${minN ? ` (as low as ${minN})` : ''}; treat worse/fixed as provisional.`,
+        text: `A gated regression claim rests on fewer than ${COMPARE_TRIALS} counted trials per side${minN ? ` (as low as ${minN})` : ''}; treat worse/fixed as provisional.`,
         evalId: null,
         cites: [],
       })
@@ -1947,8 +1947,8 @@ function buildRoster(evals: EvalEntry[], record: RunRecord): RosterRow[] {
   const harnesses = record.stack.harnesses
   if (harnesses.length < 2) return []
   return harnesses.map((h) => {
-    const attempts = evals.flatMap((e) =>
-      e.attempts.filter((a) => cellOf(e, a.cell)?.harness === h.id && a.seq !== null),
+    const trials = evals.flatMap((e) =>
+      e.trials.filter((a) => cellOf(e, a.cell)?.harness === h.id && a.seq !== null),
     )
     const gateways = [
       ...new Set(
@@ -1966,7 +1966,7 @@ function buildRoster(evals: EvalEntry[], record: RunRecord): RosterRow[] {
       effort: h.effort ?? null,
       servedModels: h.resolvedModels ?? [],
       gateway: gateways[0] ?? null,
-      attempts: attempts.length,
+      trials: trials.length,
     }
   })
 }
@@ -2035,7 +2035,7 @@ function buildActions(analysis: AnalysisDoc | null): ReportClaim[] {
   }))
 }
 
-function reportFailure(f: AttemptFailure): ReportFailure {
+function reportFailure(f: TrialFailure): ReportFailure {
   return {
     reason: f.reason,
     meta: Object.entries(f.meta ?? {}).map(([key, value]) => ({
@@ -2061,17 +2061,17 @@ function gradeRow(g: GradeRecord): GradeRow {
   }
 }
 
-function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
+function buildTrialIndex(ctx: Ctx): TrialIndexRow[] {
   const { evals, ids, linkBase, record, hrefByKey } = ctx
-  const rows: AttemptIndexRow[] = []
+  const rows: TrialIndexRow[] = []
   for (const e of evals) {
-    for (const a of e.attempts) {
+    for (const a of e.trials) {
       if (a.seq === null) continue
       const id = ids.get(a.key)
       if (!id) continue
       const cell = cellOf(e, a.cell)
-      const href = hrefByKey.get(a.key) ?? attemptHref(e, a, linkBase, ctx.hrefs)
-      const diffStats = attemptDiffStats(a)
+      const href = hrefByKey.get(a.key) ?? trialHref(e, a, linkBase, ctx.hrefs)
+      const diffStats = trialDiffStats(a)
       const reclassified =
         a.outcome === 'infra_error' &&
         ((a as { turnStatusRead?: boolean }).turnStatusRead === false ||
@@ -2084,9 +2084,9 @@ function buildAttemptIndex(ctx: Ctx): AttemptIndexRow[] {
         key: a.key,
         evalId: e.key,
         harness: cell?.harness ?? a.cell,
-        arm: cell?.environment ?? null,
+        environment: cell?.environment ?? null,
         case: a.case ?? null,
-        outcome: canceled ? 'canceled' : (a.outcome as AttemptIndexRow['outcome']),
+        outcome: canceled ? 'canceled' : (a.outcome as TrialIndexRow['outcome']),
         reclassified,
         turnError: turnErrorMessage(a),
         ...(a.failure ? { failure: reportFailure(a.failure) } : {}),
@@ -2135,7 +2135,7 @@ export function buildRunReport(record: RunRecord, options: RunReportOptions = {}
     throw new Error('buildRunReport: no evals selected')
   }
   const names = uniqueEvalNames(evals)
-  const ids = attemptIds(record, new Set(evals.map((e) => e.key)))
+  const ids = trialIds(record, new Set(evals.map((e) => e.key)))
   const ctx: Ctx = {
     record,
     evals,
@@ -2150,7 +2150,7 @@ export function buildRunReport(record: RunRecord, options: RunReportOptions = {}
     hrefByKey: new Map(),
     results: resultsOf(record),
   }
-  assignAttemptHrefs(ctx)
+  assignTrialHrefs(ctx)
   const header = buildHeader(ctx)
   if (options.title) header.title = options.title
   else header.title = runTitle(record, evals)
@@ -2161,7 +2161,7 @@ export function buildRunReport(record: RunRecord, options: RunReportOptions = {}
   const roster = buildRoster(evals, record)
 
   return {
-    reportVersion: 4,
+    reportVersion: 5,
     runId: record.runId,
     single,
     header,
@@ -2171,6 +2171,6 @@ export function buildRunReport(record: RunRecord, options: RunReportOptions = {}
     evals: sections,
     actions: buildActions(ctx.analysis),
     provenance: provenanceState(record, options.links?.record),
-    attempts: buildAttemptIndex(ctx),
+    trials: buildTrialIndex(ctx),
   }
 }

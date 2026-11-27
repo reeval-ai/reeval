@@ -19,7 +19,7 @@ import { defineEval } from 'reeval'
 import { hasFile } from 'reeval/graders'
 import { plain, withSkill } from './environments.ts'
 export default defineEval({
-  compare: { control: plain, variants: [withSkill] },
+  compare: { baseline: plain, variants: [withSkill] },
   graders: [hasFile('migrations/001_orders.sql', /create index[^;]*on\s+orders\s*\(\s*customer_id/i)],
   async task(c) {
   await c.send('Write migrations/001_orders.sql creating customers and orders, orders.customer_id referencing customers.')
@@ -35,7 +35,7 @@ const withSkill = plain.extendEnvironment('with-rules-skill', ({ skill }) => ({
   skills: [skill.local('../skills/firestore-rules-creation')],
 }))
 export default defineEval({
-  compare: { control: plain, variants: [withSkill] },
+  compare: { baseline: plain, variants: [withSkill] },
   graders: [hasFile('firestore.rules', /request\.auth\.uid\s*==\s*uid/)],
   async task(c) {
   await c.send('Write firestore.rules so each user can read and write only their own users/{uid} document.')
@@ -58,7 +58,7 @@ import { defineEval } from 'reeval'
 import { inDiff, succeeded } from 'reeval/graders'
 import { repo, withRules } from './environments.ts'
 export default defineEval({
-  compare: { control: repo, variants: [withRules] },
+  compare: { baseline: repo, variants: [withRules] },
   graders: [inDiff('CHANGELOG.md'), succeeded('compiles')],
   async task(c) {
   await c.send('`firebase projects:list` should say how to create a project when the account has none.')

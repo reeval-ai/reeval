@@ -85,7 +85,7 @@ describe('auth', () => {
       })
       return Response.json(catalogBody)
     }) as unknown as typeof fetch
-    // Two attempts in one worker start together; the first one's start times out and is aborted.
+    // Two trials in one worker start together; the first one's start times out and is aborted.
     const first = new AbortController()
     const second = new AbortController()
     const a = fetchCursorModelCatalog({ apiKey: 'shared' }, { fetch: fake, signal: first.signal })
@@ -93,7 +93,7 @@ describe('auth', () => {
     first.abort(new Error('cursor: session did not become ready within 1m 30s'))
     await assert.rejects(a, /did not become ready/)
     respond()
-    assert.deepEqual(await b, catalogBody.items, "the other attempt doesn't get the first's abort")
+    assert.deepEqual(await b, catalogBody.items, "the other trial doesn't get the first's abort")
     assert.equal(calls, 1)
   })
 

@@ -1,9 +1,9 @@
-// The attempt protocol's JSON Schemas in schema/protocol/, generated from the Zod schemas in
-// src/contract/attempt.ts. A def that shares a hand-written type (`TurnData`, `ExecResult`, …) is
+// The trial protocol's JSON Schemas in schema/protocol/, generated from the Zod schemas in
+// src/contract/trial.ts. A def that shares a hand-written type (`TurnData`, `ExecResult`, …) is
 // held to the def generated from that type (the same properties and required ones), and every
 // schema a hand-written type documents takes its descriptions from that type's TSDoc.
 import type { z } from 'zod'
-import { ATTEMPT_SCHEMAS, ATTEMPT_TYPES } from '../../src/contract/attempt.ts'
+import { TRIAL_SCHEMAS, TRIAL_TYPES } from '../../src/contract/trial.ts'
 import { CONTRACT_SCHEMAS } from '../../src/contract/index.ts'
 import { generate, type Schema, type ShapeSchema, typeDefs } from './generate.ts'
 import { PROTOCOL_SHAPES } from './shapes.ts'
@@ -16,7 +16,7 @@ function reachable(defs: Record<string, Schema>, root: string): Record<string, S
     if (seen.has(name)) return
     const def = defs[name]
     if (!def)
-      throw new Error(`the attempt protocol refers to ${name}, which isn't in ATTEMPT_SCHEMAS`)
+      throw new Error(`the trial protocol refers to ${name}, which isn't in TRIAL_SCHEMAS`)
     seen.add(name)
     for (const [, ref] of JSON.stringify(def).matchAll(/"\$ref":"#\/\$defs\/([^"]+)"/g)) {
       visit(ref as string)
@@ -34,15 +34,15 @@ function reachable(defs: Record<string, Schema>, root: string): Record<string, S
  */
 export function typeDrift(defs: Record<string, Schema>): string[] {
   const generated = generate(
-    ATTEMPT_TYPES.map((type) => ({ name: type, file: 'src/types.ts', type, where: type })),
+    TRIAL_TYPES.map((type) => ({ name: type, file: 'src/types.ts', type, where: type })),
   )
-  return ATTEMPT_TYPES.flatMap((type) => {
+  return TRIAL_TYPES.flatMap((type) => {
     const fromType = generated.get(type)?.$defs[type] ?? {}
     return differences(fromType, defs[type] ?? {}).map((line) => `${type}: ${line}`)
   })
 }
 
-/** Protocol defs with no hand-written type in `ATTEMPT_TYPES`, documented by the type of their name. */
+/** Protocol defs with no hand-written type in `TRIAL_TYPES`, documented by the type of their name. */
 const SAME_DOCS = ['Wait', 'JSONValue']
 
 /**
@@ -57,7 +57,7 @@ const SHARED_DOCS: Record<string, string> = {
 
 /** Every protocol schema a hand-written type documents, with that type's def. */
 function protocolTypeDocs(): TypeDocs[] {
-  const own = [...ATTEMPT_TYPES.filter((type) => type in ATTEMPT_SCHEMAS), ...SAME_DOCS]
+  const own = [...TRIAL_TYPES.filter((type) => type in TRIAL_SCHEMAS), ...SAME_DOCS]
   const contract = Object.keys(CONTRACT_SCHEMAS).filter((name) => !own.includes(name))
   const typed = typeDefs({
     ...Object.fromEntries([...own, ...contract].map((name) => [name, name])),
@@ -65,13 +65,13 @@ function protocolTypeDocs(): TypeDocs[] {
   })
   const docs = (name: string, schema: z.ZodType | undefined, shared?: boolean) =>
     schema ? [{ name, schema, typed: typed[name] as Schema, shared }] : []
-  const exec = (ATTEMPT_SCHEMAS.AttemptCall as z.ZodDiscriminatedUnion).options.find(
+  const exec = (TRIAL_SCHEMAS.TrialCall as z.ZodDiscriminatedUnion).options.find(
     (option) => (option as z.ZodObject<{ op: z.ZodLiteral<string> }>).shape.op.value === 'exec',
   ) as z.ZodType | undefined
   return [
-    ...own.flatMap((name) => docs(name, ATTEMPT_SCHEMAS[name])),
+    ...own.flatMap((name) => docs(name, TRIAL_SCHEMAS[name])),
     ...contract.flatMap((name) => docs(name, CONTRACT_SCHEMAS[name])),
-    ...Object.entries({ ...ATTEMPT_SCHEMAS, ExecCall: exec })
+    ...Object.entries({ ...TRIAL_SCHEMAS, ExecCall: exec })
       .filter(([name]) => name in SHARED_DOCS)
       .flatMap(([name, schema]) => docs(name, schema, true)),
   ]
@@ -79,11 +79,11 @@ function protocolTypeDocs(): TypeDocs[] {
 
 /** Every protocol shape's JSON Schema, by its name. */
 export function protocolDocs(): Map<string, ShapeSchema> {
-  const defs = zodDefs(ATTEMPT_SCHEMAS, {}, protocolTypeDocs())
+  const defs = zodDefs(TRIAL_SCHEMAS, {}, protocolTypeDocs())
   const drift = typeDrift(defs)
   if (drift.length) {
     throw new Error(
-      `the attempt protocol's Zod schemas in src/contract/attempt.ts and their types in src/types.ts disagree:\n  ${drift.join('\n  ')}`,
+      `the trial protocol's Zod schemas in src/contract/trial.ts and their types in src/types.ts disagree:\n  ${drift.join('\n  ')}`,
     )
   }
   return new Map(
@@ -91,7 +91,7 @@ export function protocolDocs(): Map<string, ShapeSchema> {
       shape.name,
       {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
-        $comment: `Generated from ${shape.root} in src/contract/attempt.ts by \`pnpm schema:update\`; don't edit. ${shape.where}.`,
+        $comment: `Generated from ${shape.root} in src/contract/trial.ts by \`pnpm schema:update\`; don't edit. ${shape.where}.`,
         title: shape.root,
         $ref: `#/$defs/${shape.root}`,
         $defs: reachable(defs, shape.root),

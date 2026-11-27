@@ -45,15 +45,15 @@ export function setLocalAgentSink(sink: ((spans: unknown) => void) | undefined):
 }
 
 /**
- * Tells the run an attempt's agent span has started (`openAgentSpan`), so it can end it as an
- * error if the attempt's worker exits first. A worker with no service channel is the run itself.
+ * Tells the run a trial's agent span has started (`openAgentSpan`), so it can end it as an
+ * error if the trial's worker exits first. A worker with no service channel is the run itself.
  */
 export function openAgentTrace(span: unknown): void {
   if (hasServiceChannel())
     callService(AGENT_TRACE, { open: span }, async () => null).catch(() => {})
 }
 
-/** Sends an attempt's agent spans (`agent-spans.ts`) to the agent export; never throws. */
+/** Sends a trial's agent spans (`agent-spans.ts`) to the agent export; never throws. */
 export function emitAgentSpans(spans: readonly unknown[]): void {
   if (hasServiceChannel()) {
     callService(AGENT_TRACE, spans, async () => null).catch(() => {})
@@ -126,12 +126,12 @@ export function openSpan(
 
 const current = new AsyncLocalStorage<OpenSpan>()
 
-/** Runs `fn` with `span` as the attempt's, so the sandbox code under it can say where it ran. */
-export const withAttemptSpan = <T>(span: OpenSpan, fn: () => T): T => current.run(span, fn)
+/** Runs `fn` with `span` as the trial's, so the sandbox code under it can say where it ran. */
+export const withTrialSpan = <T>(span: OpenSpan, fn: () => T): T => current.run(span, fn)
 
-/** The running attempt's span, if any. */
-export const attemptSpan = (): OpenSpan | undefined => current.getStore()
+/** The running trial's span, if any. */
+export const trialSpan = (): OpenSpan | undefined => current.getStore()
 
-/** A span under the running attempt's, or under the run's outside one. */
+/** A span under the running trial's, or under the run's outside one. */
 export const childSpan = (name: string, attributes?: SpanAttributes): OpenSpan =>
-  openSpan(name, attributes, { parentSpanId: attemptSpan()?.spanId })
+  openSpan(name, attributes, { parentSpanId: trialSpan()?.spanId })

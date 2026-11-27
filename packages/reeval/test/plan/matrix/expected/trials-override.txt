@@ -1,0 +1,14 @@
+no profile · 5 evals · 10 cells · 10 trials
+added-agent     a/-/docker  baseline  gated any  ×1
+                b/-/docker  baseline  gated any  ×1
+                c/-/docker  baseline  gated any  ×1
+replaced-agent  c/-/docker  baseline  gated any  ×1
+threshold       a/-/docker  baseline  gated      ×1  target regression(0.8)
+                b/-/docker  baseline  gated      ×1
+trials-2        a/-/docker  baseline  gated any  ×1
+                b/-/docker  baseline  gated any  ×1
+trials-3        a/-/docker  baseline  gated any  ×1
+                b/-/docker  baseline  gated any  ×1
+excluded: —
+image docker · cursor · 5 evals
+  base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

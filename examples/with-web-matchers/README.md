@@ -24,7 +24,7 @@ fail instead of scoring on nothing.
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the web events in the attempt's `trajectory.jsonl`, from a Claude Code run,
+**What to look at:** the web events in the trial's `trajectory.jsonl`, from a Claude Code run,
 trimmed:
 
 ```text

@@ -78,7 +78,7 @@ It sits under reeval and knows nothing of evals or of where a harness runs:
   (`import`, `export … from`, `import()`, `require()`, triple-slash references) and any
   specifier computed at run time. `tsconfig.json`'s `rootDir` and Biome catch the common cases
   sooner, but neither sees all of them: `reeval` resolves from here as a root devDependency.
-- No exported name is an eval concept (attempts, judges, reeval's plan types, bundles, gates,
+- No exported name is an eval concept (trials, judges, reeval's plan types, bundles, gates,
   matchers, cells, records, assertions) or an environment one (egress, brokering, gateways):
   `test/boundary.test.ts` holds that too.
 

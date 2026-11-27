@@ -28,7 +28,7 @@ import { pinnedAnalysis } from '../src/view/analysis.ts'
 import {
   contrastEffort,
   directional,
-  EFFORT_MIN_RUNS,
+  EFFORT_MIN_TRIALS,
   effortChangeLabel,
   effortLabel,
 } from '../src/view/effort.ts'
@@ -50,7 +50,7 @@ export default defineConfig({
 })
 `
 
-/** A compare eval whose variant writes a file the control never does. */
+/** A compare eval whose variant writes a file the baseline never does. */
 async function compareProject(name: string, runs: number) {
   return project(name, {
     'reeval.config.ts': fakeConfig({ harness: "{ withSkill: { files: { 'ok.txt': 'y' } } }" }),
@@ -65,7 +65,7 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   skills: [skill.local('../skills/s')],
 }))
 export default defineEval({
-  compare: { control: plain, variants: [skilled] }, runs: ${runs},
+  compare: { baseline: plain, variants: [skilled] }, trials: ${runs},
   async task(c) {
     await c.send('go')
     assert.notEqual(await c.readFile('ok.txt'), null)
@@ -101,7 +101,7 @@ type Digest = {
   scope: { base: string | null }
   facts: Array<Row & { id: string; kind: string; tier?: string }>
   evidence: Array<{ id: string; ref: string; lines: string[] }>
-  attempts: Record<string, Row>
+  trials: Record<string, Row>
   rules: string[]
   setup?: { evals: Array<{ tag: string; id: string; task: string; tags: string[] }> }
 }
@@ -118,13 +118,13 @@ const FACT_QUERIES = {
   effort:
     'SELECT run_id, eval_key, cell_key, n, tools_median, agent_s_median, tools_ratio, tools_p, separated, verdict, time_verdict, tokens_median, tokens_verdict, tokens_note FROM effort ORDER BY run_id, eval_key, cell_key',
   factor_effects:
-    'SELECT factor, level, baseline, context, tier, run_id, eval_key, strata, runs, variant_pass, variant_counted, control_pass, control_counted, points, lo, hi, pass_verdict, small_sample, tools_ratios, tools_p, consistent, separated, effort_verdict FROM factor_effects ORDER BY tier, factor, level, context, eval_key, run_id',
+    'SELECT factor, level, baseline, context, tier, run_id, eval_key, strata, runs, variant_pass, variant_counted, baseline_pass, baseline_counted, points, lo, hi, pass_verdict, small_sample, tools_ratios, tools_p, consistent, separated, effort_verdict FROM factor_effects ORDER BY tier, factor, level, context, eval_key, run_id',
   flaky_cells:
     'SELECT eval_key, cell_key, runs, pass, counted, lo, hi, verdict, cause FROM flaky_cells',
   drift:
     'SELECT run_id, eval_key, cell_key, changed, changed_paths, noise, real_changed FROM drift ORDER BY run_id, eval_key, cell_key',
   skill_reads:
-    'SELECT run_id, cell_key, skill, COUNT(*) AS attempts, SUM(read_line IS NOT NULL) AS read, MIN(read_line) AS first FROM skill_reads GROUP BY run_id, cell_key, skill ORDER BY run_id, cell_key',
+    'SELECT run_id, cell_key, skill, COUNT(*) AS trials, SUM(read_line IS NOT NULL) AS read, MIN(read_line) AS first FROM skill_reads GROUP BY run_id, cell_key, skill ORDER BY run_id, cell_key',
 }
 
 async function facts(dir: string) {
@@ -136,7 +136,7 @@ async function facts(dir: string) {
 const pooledAcrossEvals = (rows: Row[], level: string) =>
   rows.find((r) => r.tier === 'pooled' && r.eval_key === null && r.level === level)
 
-describe('facts on the dogfood history (2 runs, 36 real Cursor attempts)', () => {
+describe('facts on the dogfood history (2 runs, 36 real Cursor trials)', () => {
   test('es-good cuts tool calls 3/3 evals at p = 0.029; lift is within noise; es-weak does nothing', async () => {
     const p = await historyProject('facts-dogfood', 'dogfood')
     const all = await facts(p.dir)
@@ -148,7 +148,7 @@ describe('facts on the dogfood history (2 runs, 36 real Cursor attempts)', () =>
       ['×0.20 / ×0.51 / ×0.11', 0.0286, 3, 3, 'fewer'],
     )
     assert.deepEqual(
-      [good?.variant_pass, good?.variant_counted, good?.control_pass, good?.control_counted],
+      [good?.variant_pass, good?.variant_counted, good?.baseline_pass, good?.baseline_counted],
       [12, 12, 11, 12],
     )
     assert.deepEqual(
@@ -169,7 +169,7 @@ describe('facts on the dogfood history (2 runs, 36 real Cursor attempts)', () =>
         [2, 0.0286, 'fewer'],
         [2, 0.0286, 'fewer'],
       ],
-      'each eval, pooled over both runs: 4 against 4, fully separated',
+      'each eval, pooled over both trials: 4 against 4, fully separated',
     )
     const oneRun = (all.effort as Row[]).filter(
       (r) => r.cell_key === 'cursor:composer-2.5/es-good/es-tarball',
@@ -189,18 +189,18 @@ describe('facts on the dogfood history (2 runs, 36 real Cursor attempts)', () =>
       ],
     )
     assert.deepEqual(
-      (all.skill_reads as Row[]).map((r) => [r.skill, r.read, r.attempts, r.first]),
+      (all.skill_reads as Row[]).map((r) => [r.skill, r.read, r.trials, r.first]),
       [
         ['es-good', 6, 6, 4],
         ['es-weak', 6, 6, 4],
         ['es-good', 6, 6, 4],
         ['es-weak', 6, 6, 4],
       ],
-      'every skill attempt read its SKILL.md, at trajectory line 4',
+      'every skill trial read its SKILL.md, at trajectory line 4',
     )
   })
 
-  test('flaky: one failure in 4 comparable attempts is mixed, not flaky', async () => {
+  test('flaky: one failure in 4 comparable trials is mixed, not flaky', async () => {
     const p = await historyProject('facts-flaky', 'dogfood')
     const old = await query(p.dir, 'SELECT eval_key, key FROM cells WHERE pass > 0 AND fail > 0')
     assert.equal(old.length, 1, 'one mixed cell is in cells')
@@ -235,23 +235,23 @@ describe('facts on the harness-compare history (Cursor and Antigravity, 3 runs)'
     const all = await facts(p.dir)
     golden('harness-compare-facts', all)
     const rows = all.factor_effects as Row[]
-    const compareControl = rows.find(
+    const compareBaseline = rows.find(
       (r) =>
         r.tier === 'controlled' &&
         r.factor === 'agent' &&
-        r.context === 'control' &&
+        r.context === 'baseline' &&
         String(r.eval_key).startsWith('evals/compare.es.ts'),
     )
     assert.deepEqual(
       [
-        compareControl?.level,
-        compareControl?.baseline,
-        compareControl?.variant_pass,
-        compareControl?.control_pass,
-        compareControl?.pass_verdict,
+        compareBaseline?.level,
+        compareBaseline?.baseline,
+        compareBaseline?.variant_pass,
+        compareBaseline?.baseline_pass,
+        compareBaseline?.pass_verdict,
       ],
       ['antigravity:gemini-3.8-flash-low', 'cursor:composer-2.5', 0, 2, 'effect'],
-      'antigravity failed both control attempts that cursor passed: 0 of 2 against 2 of 2 excludes 0',
+      'antigravity failed both baseline trials that cursor passed: 0 of 2 against 2 of 2 excludes 0',
     )
     assert.deepEqual(
       rows.filter((r) => r.tier === 'not_measured').map((r) => r.factor),
@@ -377,14 +377,14 @@ describe('canaries: the verdicts flip when the data does', () => {
 
   test('a config target change is drift on the gate: a policy change, not noise or an effect', async () => {
     type C = { fingerprint: string; fingerprintParts: FingerprintParts }
-    const config = (target: string) => fakeConfig({ extra: `runs: 2, target: ${target},` })
+    const config = (target: string) => fakeConfig({ extra: `trials: 2, target: ${target},` })
     const p = await project('canary-gate', {
       'reeval.config.ts': config('capability()'),
       'evals/g.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('go')
-    if (c.attempt.n === 2) throw new Error('the second attempt fails')
+    if (c.trial.n === 2) throw new Error('the second trial fails')
   },
 })
 `,
@@ -415,23 +415,23 @@ export default defineEval({
     assert.deepEqual(
       await query(p.dir, "SELECT factor FROM factor_effects WHERE tier = 'observed'"),
       [],
-      'the gate scores the same attempts, so it has no effect to observe',
+      'the gate scores the same trials, so it has no effect to observe',
     )
     const flaky = await query(p.dir, 'SELECT counted FROM flaky_cells')
-    assert.deepEqual(flaky, [{ counted: 6 }], 'attempts pool across the gate change')
+    assert.deepEqual(flaky, [{ counted: 6 }], 'trials pool across the gate change')
     const { text } = await digestOf(p.dir, ['--vs', 'latest~1'])
-    assert.match(text, /policy change: the gate scores the same attempts differently/)
+    assert.match(text, /policy change: the gate scores the same trials differently/)
   })
 
-  test('mixed outcomes over enough comparable attempts are flaky, caused by the agent', async () => {
+  test('mixed outcomes over enough comparable trials are flaky, caused by the agent', async () => {
     const p = await project('canary-flaky', {
       'reeval.config.ts': fakeConfig(),
       'evals/f.eval.ts': `import { capability, defineEval } from 'reeval'
 export default defineEval({
-  runs: 6, target: capability(),
+  trials: 6, target: capability(),
   async task(c) {
     await c.send('go')
-    if (c.attempt.n % 2 === 0) throw new Error('every other attempt fails')
+    if (c.trial.n % 2 === 0) throw new Error('every other trial fails')
   },
 })
 `,
@@ -441,15 +441,15 @@ export default defineEval({
     assert.deepEqual(flaky, { pass: 3, counted: 6, verdict: 'flaky', cause: 'agent' })
   })
 
-  test('mixed outcomes one attempt short of the minimum are mixed, not flaky', async () => {
+  test('mixed outcomes one trial short of the minimum are mixed, not flaky', async () => {
     const p = await project('canary-mixed', {
       'reeval.config.ts': fakeConfig(),
       'evals/f.eval.ts': `import { capability, defineEval } from 'reeval'
 export default defineEval({
-  runs: 5, target: capability(),
+  trials: 5, target: capability(),
   async task(c) {
     await c.send('go')
-    if (c.attempt.n % 2 === 0) throw new Error('every other attempt fails')
+    if (c.trial.n % 2 === 0) throw new Error('every other trial fails')
   },
 })
 `,
@@ -465,10 +465,10 @@ export default defineEval({
       'evals/f.eval.ts': `import assert from 'node:assert/strict'
 import { capability, defineEval } from 'reeval'
 export default defineEval({
-  runs: 6, target: capability(),
+  trials: 6, target: capability(),
   async task(c) {
     await c.send('go')
-    assert.equal(c.attempt.n % 2, 1, 'a racy check')
+    assert.equal(c.trial.n % 2, 1, 'a racy check')
   },
 })
 `,
@@ -477,7 +477,7 @@ export default defineEval({
     assert.equal((await runCli(same.dir)).code, 0)
     const [flaky] = await query(same.dir, 'SELECT pass, counted, cause FROM flaky_cells')
     assert.deepEqual(flaky, { pass: 3, counted: 6, cause: 'check' })
-    // Twin: each attempt writes something else, so the agent's work differs and may be why.
+    // Twin: each trial writes something else, so the agent's work differs and may be why.
     const differs = await project(
       'flaky-check-twin',
       flips(`{ script: [[{ exec: 'date +%s%N > out.txt' }]] }`),
@@ -545,7 +545,7 @@ describe('effort next to lift', () => {
       [4, 5, 5, 6].map((tools) => ({ ...sample(tools), llmCalls: tools + 1 })),
       [30, 40, 50, 60].map((tools) => sample(tools)),
     )
-    assert.equal(uncounted?.control.llmCalls, undefined)
+    assert.equal(uncounted?.baseline.llmCalls, undefined)
     assert.doesNotMatch(effortLabel(uncounted as never), /LLM calls/)
   })
 
@@ -579,7 +579,7 @@ describe('effort next to lift', () => {
     assert.equal(goose?.tokensNote, undefined)
   })
 
-  test('attempts without usage drop out of the token sample only', () => {
+  test('trials without usage drop out of the token sample only', () => {
     const c = contrastEffort(
       [...[4, 5, 5, 6].map((tools) => sample(tools, { tokens: 100 })), sample(7)],
       [
@@ -595,17 +595,17 @@ describe('effort next to lift', () => {
     assert.doesNotMatch(effortLabel(c), /insufficient/)
   })
 
-  // A three-arm skill study's per-attempt values at 3 runs a cell: tools, tokens (k), agent (s).
-  const arm = (tools: number[], tokensK: number[], agentS: number[]) =>
+  // A three-environment skill study's per-trial values at 3 runs a cell: tools, tokens (k), agent (s).
+  const environment = (tools: number[], tokensK: number[], agentS: number[]) =>
     tools.map((t, i) => ({
       tools: t,
       agentMs: (agentS[i] ?? 0) * 1000,
       fileEdits: 1,
       tokens: (tokensK[i] ?? 0) * 1000,
     }))
-  const noSkill = arm([38, 55, 35], [908, 1117, 1094], [97, 110, 98])
-  const current = arm([28, 26, 26], [576, 430, 394], [69, 59, 63])
-  const fresh = arm([13, 19, 14], [221, 463, 279], [47, 69, 56])
+  const noSkill = environment([38, 55, 35], [908, 1117, 1094], [97, 110, 98])
+  const current = environment([28, 26, 26], [576, 430, 394], [69, 59, 63])
+  const fresh = environment([13, 19, 14], [221, 463, 279], [47, 69, 56])
 
   test('3 against 3 with no overlap on any metric is directional, never an effect', () => {
     const c = contrastEffort(current, noSkill)
@@ -618,18 +618,18 @@ describe('effort next to lift', () => {
     assert.deepEqual(directional(c), ['tools', 'agentS', 'tokens'])
     assert.equal(
       effortLabel(c),
-      'tools 26 vs 38 (×0.68, no overlap), agent 1m 03s vs 1m 38s (×0.64, no overlap), tokens 430k vs 1,094k (×0.39, no overlap): too few attempts to test (n = 3 vs 3)',
+      'tools 26 vs 38 (×0.68, no overlap), agent 1m 03s vs 1m 38s (×0.64, no overlap), tokens 430k vs 1,094k (×0.39, no overlap): too few trials to test (n = 3 vs 3)',
     )
   })
 
-  test('3 against 3 that overlaps says nothing beyond too few attempts', () => {
+  test('3 against 3 that overlaps says nothing beyond too few trials', () => {
     const c = contrastEffort(fresh, current)
     assert.ok(c)
     assert.deepEqual([c.separated, c.timeSeparated, c.tokensSeparated], [true, false, false])
     assert.deepEqual(directional(c), ['tools'])
     assert.equal(
       effortLabel(c),
-      'tools 14 vs 26 (×0.54, no overlap), agent 56s vs 1m 03s (×0.89), tokens 279k vs 430k (×0.65): too few attempts to test (n = 3 vs 3)',
+      'tools 14 vs 26 (×0.54, no overlap), agent 56s vs 1m 03s (×0.89), tokens 279k vs 430k (×0.65): too few trials to test (n = 3 vs 3)',
     )
   })
 
@@ -650,7 +650,7 @@ describe('effort next to lift', () => {
     assert.deepEqual(directional(c), ['tools', 'agentS'])
     assert.equal(
       effortLabel(c),
-      'tools 5 vs 40 (×0.13, no overlap), agent <0.1s vs <0.1s: too few attempts to test (n = 3 vs 3)',
+      'tools 5 vs 40 (×0.13, no overlap), agent <0.1s vs <0.1s: too few trials to test (n = 3 vs 3)',
     )
     const one = contrastEffort([sample(4, { agentMs: 20 })], [sample(30, { agentMs: 400 })])
     assert.ok(one)
@@ -667,7 +667,7 @@ describe('effort next to lift', () => {
   })
 
   test('effort needs 4 runs a cell to be testable', () => {
-    assert.equal(EFFORT_MIN_RUNS, 4)
+    assert.equal(EFFORT_MIN_TRIALS, 4)
     assert.ok(minimumP(3, 3) >= 0.05)
     assert.ok(minimumP(4, 4) < 0.05)
   })
@@ -687,7 +687,7 @@ describe('effort next to lift', () => {
     )
   })
 
-  test('reeval run and summary.md print the arms without an effort table below four tries a side, and reeval compare -v still shows effort', async () => {
+  test('reeval run and summary.md print the environments without an effort table below four trials a side, and reeval compare -v still shows effort', async () => {
     const p = await project('effort-summary', {
       'reeval.config.ts': fakeConfig({ harness: "{ withSkill: { files: { 'ok.txt': 'y' } } }" }),
       'skills/s/SKILL.md': '---\nname: s\ndescription: A skill. Use when testing.\n---\nBody.\n',
@@ -701,7 +701,7 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   skills: [skill.local('../skills/s')],
 }))
 export default defineEval({
-  compare: { control: plain, variants: [skilled] }, runs: 2,
+  compare: { baseline: plain, variants: [skilled] }, trials: 2,
   async task(c) {
     await c.send('go')
     assert.notEqual(await c.readFile('ok.txt'), null)
@@ -711,14 +711,14 @@ export default defineEval({
     })
     const first = await runCli(p.dir)
     assert.equal(first.code, 0, first.stdout)
-    // Two tries a side is below the effort table's four, so only the arms print.
+    // Two tries a side is below the effort table's four, so only the environments print.
     assert.match(first.stdout, /^ +skilled +2 of 2 {2}helped\b/m)
     assert.doesNotMatch(first.stdout, /^ {2}effort /m)
     const { read } = readRun(p.dir)
     const summary = read('summary.md')
     assert.match(summary, /^## Baseline vs\. variants$/m)
-    assert.match(summary, /^\| Arm \| Pass rate \| Lift \| Pass-rate verdict \|/m)
-    assert.match(summary, /^\| skilled \| 100% \| \+100 pts \| Too few runs \|/m)
+    assert.match(summary, /^\| Environment \| Pass rate \| Lift \| Pass-rate verdict \|/m)
+    assert.match(summary, /^\| skilled \| 100% \| \+100 pts \| Too few trials \|/m)
     assert.equal((await runCli(p.dir)).code, 0)
     const compare = await runCli(p.dir, ['compare', 'latest~1', 'latest', '-v'])
     assert.equal(compare.code, 0, compare.stderr)
@@ -753,7 +753,7 @@ export default defineEval({
     assert.equal(names.length, 1)
     const path = join(history, names[0] as string)
     const record = JSON.parse(readFileSync(path, 'utf8')) as {
-      evals: Array<{ attempts: Array<{ cell: string; usage: unknown }> }>
+      evals: Array<{ trials: Array<{ cell: string; usage: unknown }> }>
     }
     const usage = (n: number) => ({
       input: n,
@@ -763,14 +763,14 @@ export default defineEval({
       reasoning: null,
     })
     for (const e of record.evals) {
-      for (const a of e.attempts) {
+      for (const a of e.trials) {
         a.usage = a.cell.includes('/skilled/') ? usage(100) : usage(1000)
       }
     }
     writeFileSync(path, JSON.stringify(record))
     const rebuilt = await runCli(p.dir, [
       'query',
-      `SELECT tokens_median, control_tokens_median, tokens_ratio, tokens_verdict, tokens_note FROM effort WHERE role = 'variant'`,
+      `SELECT tokens_median, baseline_tokens_median, tokens_ratio, tokens_verdict, tokens_note FROM effort WHERE role = 'variant'`,
       '--json',
       '--rebuild',
     ])
@@ -779,7 +779,7 @@ export default defineEval({
     assert.deepEqual(
       withUsage.map((r) => [
         r.tokens_median,
-        r.control_tokens_median,
+        r.baseline_tokens_median,
         r.tokens_ratio,
         r.tokens_verdict,
         r.tokens_note,
@@ -818,7 +818,7 @@ describe('reeval CLI spec', () => {
       ],
       ['reeval query effort --run', /--run needs a value/],
       ['reeval show latest --md --json extra', /takes at most 1 argument/],
-      ['reeval run --runs', /--runs needs a value/],
+      ['reeval run --trials', /--trials needs a value/],
       ['cat evals/x.ts', /isn't a reeval command/],
       ['reeval query effort | head', /pipes/],
     ]
@@ -843,7 +843,7 @@ describe('reeval CLI spec', () => {
     const ok = [
       'reeval run --tag skill',
       'reeval run --tag !skill',
-      'reeval run evals/skill.eval.ts --runs 6',
+      'reeval run evals/skill.eval.ts --trials 6',
       'reeval run skill',
       'reeval image build hello',
       'reeval query effort',
@@ -851,7 +851,7 @@ describe('reeval CLI spec', () => {
     for (const c of ok) assert.equal(checkCommand(c, ['effort'], evals), null, c)
     const bad: Array<[string, RegExp]> = [
       [
-        'reeval run --runs 6 --tag nosuchtag',
+        'reeval run --trials 6 --tag nosuchtag',
         /reeval run --tag nosuchtag: no eval in the run has the tag nosuchtag \(tags: skill, smoke\)/,
       ],
       [
@@ -948,8 +948,8 @@ const FAKE = `analysis: {
         return {
           tldr: 'es-good cuts tool calls; pass-rate lift is within noise.',
           whatHappened: [
-            { text: 'One control attempt failed its judge.', cites: [failure.attempt, failure.id], confidence: 'high' },
-            { text: 'An attempt that never ran.', cites: ['r9/nope/control#1'], confidence: 'high' },
+            { text: 'One baseline trial failed its judge.', cites: [failure.trial, failure.id], confidence: 'high' },
+            { text: 'A trial that never ran.', cites: ['r9/nope/baseline#1'], confidence: 'high' },
             { text: 'A line the evidence does not show.', cites: [e1.id + ':L9999'], confidence: 'low' },
           ],
           results: [
@@ -962,13 +962,13 @@ const FAKE = `analysis: {
           ],
           anomalies: [
             { text: 'Saturated evals.', kind: 'eval-design', cites: [sat.id] },
-            { text: 'The control passed with 0.97.', kind: 'judge', cites: [failure.attempt] },
+            { text: 'The baseline passed with 0.97.', kind: 'judge', cites: [failure.trial] },
             { text: 'Near-threshold scores include 88.', kind: 'other', cites: [sat.id] },
           ],
           actions: [
             action('npx reeval compare r1 r2 --include-efficiency'),
             action('reeval query efficiency'),
-            action('reeval run --runs 6 --tag nosuchtag'),
+            action('reeval run --trials 6 --tag nosuchtag'),
             action('reeval query effort'),
             action('reeval run --record', ['F999']),
           ],
@@ -1012,7 +1012,7 @@ const BASE = '20260926T104130Z_60f3dc9_cursor-agent_92gs'
 describe('reeval explain', () => {
   test('the prompt says insufficient is not measured, and the lift rule has no floor', () => {
     assert.match(SYSTEM_PROMPT, /insufficient is not measured: never put it on a results line/)
-    assert.match(RULES[0] ?? '', /whatever the point estimate or the number of attempts/)
+    assert.match(RULES[0] ?? '', /whatever the point estimate or the number of trials/)
   })
 
   test('the rules say a small sample is directional, not to be over-trusted', () => {
@@ -1136,7 +1136,7 @@ describe('reeval explain', () => {
       rules: [],
       cli: [],
       instructions: null,
-      attempts: {},
+      trials: {},
       facts: [{ id: 'F1', kind: 'pass@1' }],
       evidence: [],
       dropped: [],
@@ -1190,21 +1190,21 @@ describe('reeval explain', () => {
     assert.match(text, /reeval query factor_effects/)
     golden('dogfood-digest-facts', digest.facts)
     const failure = digest.facts.find((f) => f.kind === 'failure')
-    assert.equal(failure?.attempt, 'r2/fix-config/control#1')
+    assert.equal(failure?.trial, 'r2/fix-config/baseline#1')
     const e1 = digest.evidence[0]
-    assert.equal(e1?.ref, 'attempt:r2/fix-config/control#1')
+    assert.equal(e1?.ref, 'trial:r2/fix-config/baseline#1')
     assert.match(
       e1?.lines[0] ?? '',
       /^L39 text: Fixed\./,
       'the final message keeps its trajectory line',
     )
     assert.ok(
-      digest.evidence.some((e) => e.ref === 'attempt:r2/fix-config/control#2'),
+      digest.evidence.some((e) => e.ref === 'trial:r2/fix-config/baseline#2'),
       'and its passing twin',
     )
     assert.ok(digest.evidence.some((e) => e.ref.startsWith('tool-strip:r2/scaffold/es-good#')))
     const scoped = (await digestOf(p.dir, ['--eval', 'fix-config'])).digest
-    assert.ok(Object.keys(scoped.attempts).every((id) => id.includes('/fix-config/')))
+    assert.ok(Object.keys(scoped.trials).every((id) => id.includes('/fix-config/')))
     assert.deepEqual(
       digest.setup?.evals.map((e) => e.tags),
       [[], [], []],
@@ -1281,7 +1281,7 @@ export default defineEval({
         (f) =>
           f.votes === 0 &&
           f.error === undefined &&
-          f.note === 'no pairs to judge: attempts that failed their checks are left out',
+          f.note === 'no pairs to judge: trials that failed their checks are left out',
       ),
     )
     assert.ok(
@@ -1290,7 +1290,7 @@ export default defineEval({
     )
   })
 
-  test('a tie at a ceiling is tagged from 4 attempts a side, not on fewer', async () => {
+  test('a tie at a ceiling is tagged from 4 trials a side, not on fewer', async () => {
     const tieOf = async (name: string, runs: number) => {
       const p = await compareProject(name, runs)
       const config = join(p.dir, 'reeval.config.ts')
@@ -1319,7 +1319,7 @@ export default defineEval({
     )
   })
 
-  test('one counted attempt a side is a direction within noise, flagged as a small sample', async () => {
+  test('one counted trial a side is a direction within noise, flagged as a small sample', async () => {
     const p = await compareProject('explain-sparse-lift', 1)
     const run = await runCli(p.dir, ['run', '-v'])
     assert.equal(run.code, 0, run.stdout)
@@ -1341,10 +1341,10 @@ export default defineEval({
     )
     const controlled = await query(
       p.dir,
-      "SELECT pass_verdict, small_sample, variant_counted, control_counted FROM factor_effects WHERE tier = 'controlled'",
+      "SELECT pass_verdict, small_sample, variant_counted, baseline_counted FROM factor_effects WHERE tier = 'controlled'",
     )
     assert.deepEqual(
-      controlled.map((r) => [r.pass_verdict, r.small_sample, r.variant_counted, r.control_counted]),
+      controlled.map((r) => [r.pass_verdict, r.small_sample, r.variant_counted, r.baseline_counted]),
       [['noise', 1, 1, 1]],
     )
   })
@@ -1366,7 +1366,7 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   skills: [skill.local('../skills/s')],
 }))
 export default defineEval({
-  compare: { control: plain, variants: [skilled] }, runs: 2,
+  compare: { baseline: plain, variants: [skilled] }, trials: 2,
   async task(c) {
     await c.send('go')
     assert.notEqual(await c.readFile('ok.txt'), null)
@@ -1386,7 +1386,7 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
   skills: [skill.local('../skills/s')],
 }))
 export default defineEval({
-  compare: { control: plain, variants: [skilled] }, runs: 2,
+  compare: { baseline: plain, variants: [skilled] }, trials: 2,
   async task(c) {
     await c.send('go now')
   },
@@ -1396,7 +1396,7 @@ export default defineEval({
     assert.equal((await runCli(p.dir)).code, 0)
     const observed = await query(
       p.dir,
-      "SELECT factor, pass_verdict, small_sample, note, variant_counted, control_counted FROM factor_effects WHERE tier = 'observed'",
+      "SELECT factor, pass_verdict, small_sample, note, variant_counted, baseline_counted FROM factor_effects WHERE tier = 'observed'",
     )
     assert.ok(observed.length > 0, 'sources drift is an observed factor')
     assert.ok(
@@ -1448,10 +1448,10 @@ export default defineEval({
       failFrom: number,
     ) => `import { capability, defineEval } from 'reeval'
 export default defineEval({
-  runs: ${runs}, target: capability(),
+  trials: ${runs}, target: capability(),
   async task(c) {
     await c.send(${JSON.stringify(prompt)})
-    if (c.attempt.n >= ${failFrom}) throw new Error('counted miss')
+    if (c.trial.n >= ${failFrom}) throw new Error('counted miss')
   },
 })
 `
@@ -1464,15 +1464,15 @@ export default defineEval({
     assert.equal((await runCli(p.dir)).code, 0)
     const observed = await query(
       p.dir,
-      "SELECT variant_pass, variant_counted, control_pass, control_counted, pass_verdict FROM factor_effects WHERE tier = 'observed'",
+      "SELECT variant_pass, variant_counted, baseline_pass, baseline_counted, pass_verdict FROM factor_effects WHERE tier = 'observed'",
     )
     assert.ok(
       observed.some(
         (r) =>
           r.variant_pass === 6 &&
           r.variant_counted === 10 &&
-          r.control_pass === 8 &&
-          r.control_counted === 9 &&
+          r.baseline_pass === 8 &&
+          r.baseline_counted === 9 &&
           r.pass_verdict === 'not_comparable',
       ),
       `sources drift is 6/10 vs 8/9, not comparable: ${JSON.stringify(observed)}`,
@@ -1507,7 +1507,7 @@ export default defineEval({
       'reeval.config.ts': fakeConfig({ extra: "record: 'always'," }),
       'evals/c.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
-  runs: 1,
+  trials: 1,
   async task(c) {
     await c.send('go')
   },
@@ -1519,7 +1519,7 @@ export default defineEval({
       join(p.dir, 'evals/c.eval.ts'),
       `import { defineEval } from 'reeval'
 export default defineEval({
-  runs: 1,
+  trials: 1,
   async task(c) {
     await c.send('go now')
   },
@@ -1591,13 +1591,13 @@ export default defineEval({
     const stats = await import('../src/stats.ts')
     const suite = await import('../src/view/suite.ts')
     const view = await import('../src/view/index.ts')
-    assert.equal(stats.COMPARE_RUNS, 4)
-    assert.equal(suite.COMPARE_RUNS, stats.COMPARE_RUNS)
-    assert.equal(view.COMPARE_RUNS, stats.COMPARE_RUNS)
+    assert.equal(stats.COMPARE_TRIALS, 4)
+    assert.equal(suite.COMPARE_TRIALS, stats.COMPARE_TRIALS)
+    assert.equal(view.COMPARE_TRIALS, stats.COMPARE_TRIALS)
     const src = join(import.meta.dirname, '../src')
     const defines = readdirSync(src, { recursive: true, encoding: 'utf8' })
       .filter((f) => f.endsWith('.ts'))
-      .filter((f) => /\bconst COMPARE_RUNS\b/.test(readFileSync(join(src, f), 'utf8')))
+      .filter((f) => /\bconst COMPARE_TRIALS\b/.test(readFileSync(join(src, f), 'utf8')))
     assert.deepEqual(defines, ['stats.ts'], 'one definition, which every view imports')
   })
 
@@ -1613,7 +1613,7 @@ export default defineEval({
     const a = doc.analysis
     assert.deepEqual(
       a.whatHappened.map((c: { text: string }) => c.text),
-      ['One control attempt failed its judge.'],
+      ['One baseline trial failed its judge.'],
     )
     assert.deepEqual(
       a.why.map((c: { text: string }) => c.text),
@@ -1642,17 +1642,17 @@ export default defineEval({
     assert.deepEqual(
       v.invalid.filter((x: string) => !x.includes('quote') && !x.includes("isn't in the cited")),
       [
-        'whatHappened[1]: r9/nope/control#1',
+        'whatHappened[1]: r9/nope/baseline#1',
         'whatHappened[2]: E1:L9999',
         "anomalies[1]: 0.97 isn't the cited judge score (0.1)",
         'actions[4]: F999',
       ],
     )
-    assert.match(doc.cited['r2/fix-config/control#1'], /fail/)
-    assert.deepEqual(doc.attempts['r2/fix-config/control#1'], {
+    assert.match(doc.cited['r2/fix-config/baseline#1'], /fail/)
+    assert.deepEqual(doc.trials['r2/fix-config/baseline#1'], {
       runId: HEAD,
       evalSlug: 'evals-fix-config-es-ts-broken-project-fixes-a-broken-config-854800',
-      attempt: 'cursor:composer-2.5/broken-project/es-tarball#1',
+      trial: 'cursor:composer-2.5/broken-project/es-tarball#1',
     })
     const text = await runCli(p.dir, ['explain'])
     assert.doesNotMatch(text.stdout, /verify: none/)
@@ -1666,7 +1666,7 @@ export default defineEval({
   })
 
   test('an anomaly that quotes a judge score the record does not have is dropped', () => {
-    const attempt = 'r1/greets/control#1'
+    const trial = 'r1/greets/baseline#1'
     const digest: AnalysisDigest = {
       digestVersion: 3,
       scope: { kind: 'run', head: 'run1', base: null, evals: null },
@@ -1676,15 +1676,15 @@ export default defineEval({
       rules: RULES,
       cli: [],
       instructions: null,
-      attempts: {
-        [attempt]: {
+      trials: {
+        [trial]: {
           run: 'r1',
           runId: 'run1',
           key: 'k',
           eval: 'greets',
           evalSlug: 'greets',
-          cell: 'control',
-          attempt: 'fake/greets/control#1',
+          cell: 'baseline',
+          trial: 'fake/greets/baseline#1',
           outcome: 'pass',
           tools: 1,
           agentS: 1,
@@ -1697,7 +1697,7 @@ export default defineEval({
         {
           id: 'F1',
           kind: 'failure',
-          attempt,
+          trial,
           judges: [{ label: 'tidy', question: 'Is it tidy?', score: 0.87, threshold: 0.8 }],
         },
         { id: 'F2', kind: 'saturation', evals: [], saturated: ['greets'] },
@@ -1705,8 +1705,8 @@ export default defineEval({
       evidence: [
         {
           id: 'E1',
-          ref: `attempt:${attempt}`,
-          why: 'a failing attempt',
+          ref: `trial:${trial}`,
+          why: 'a failing trial',
           lines: ['judge score: 0.87 (threshold 0.8)'],
           priority: 1,
         },
@@ -1724,7 +1724,7 @@ export default defineEval({
     const wrong = validateAnalysis(
       {
         ...blank,
-        anomalies: [{ text: 'The attempt passed with 0.97.', kind: 'judge', cites: [attempt] }],
+        anomalies: [{ text: 'The trial passed with 0.97.', kind: 'judge', cites: [trial] }],
       },
       digest,
       [],
@@ -1739,14 +1739,14 @@ export default defineEval({
     const matched = validateAnalysis(
       {
         ...blank,
-        anomalies: [{ text: 'The attempt passed with 0.87.', kind: 'judge', cites: [attempt] }],
+        anomalies: [{ text: 'The trial passed with 0.87.', kind: 'judge', cites: [trial] }],
       },
       digest,
       [],
     )
     assert.deepEqual(
       matched.body.anomalies.map((a) => a.text),
-      ['The attempt passed with 0.87.'],
+      ['The trial passed with 0.87.'],
     )
     assert.equal(matched.body.anomalies[0]?.unverifiedNumbers, undefined)
     assert.equal(matched.validation.dropped, 0)
@@ -1766,7 +1766,7 @@ export default defineEval({
     const fromFact = validateAnalysis(
       {
         ...blank,
-        anomalies: [{ text: 'The attempt passed with 0.97.', kind: 'judge', cites: ['F1'] }],
+        anomalies: [{ text: 'The trial passed with 0.97.', kind: 'judge', cites: ['F1'] }],
       },
       digest,
       [],
@@ -1944,8 +1944,8 @@ async function studyDigest(name: string, options: StudyOptions = {}) {
   return { p, run, ...(await digestOf(p.dir, ['--vs', 'none'])) }
 }
 
-describe('a study: several arms, every cell ungated', () => {
-  test('names: the control goes by its environment, and attempt ids keep the tag', async () => {
+describe('a study: several environments, every cell ungated', () => {
+  test('names: the baseline goes by its environment, and trial ids keep the tag', async () => {
     const files = studyFiles()
     const script =
       "node -e \"\\n  const fs = require('fs')\\n  process.exit(fs.statSync('src/App.tsx').size ? 0 : 1)\\n\""
@@ -1960,36 +1960,36 @@ describe('a study: several arms, every cell ungated', () => {
     const pass = digest.facts.find((f) => f.kind === 'pass@1') as { cells: Array<{ cell: string }> }
     assert.deepEqual(
       pass.cells.map((c) => c.cell),
-      ['no-skill (control)', 'current-skill', 'new-skill'],
+      ['no-skill (baseline)', 'current-skill', 'new-skill'],
     )
     assert.ok(
-      Object.keys(digest.attempts).includes('r1/auth/control#1'),
-      'attempt ids keep the tag',
+      Object.keys(digest.trials).includes('r1/auth/baseline#1'),
+      'trial ids keep the tag',
     )
   })
 
-  test('the digest frames it as a study, with what each arm read and its effort against the control', async () => {
+  test('the digest frames it as a study, with what each environment read and its effort against the baseline', async () => {
     const { p, digest, text } = await studyDigest('study-digest', {
       instructions: 'Compare both skills against no skill and against each other.',
-      output: `(d) => ({ tldr: 'A study of ' + d.facts.find((f) => f.kind === 'pass@1').cells.length + ' arms.', whatHappened: [], results: [], why: [], anomalies: [], actions: [], confidence: { overall: 'medium', why: 'n = 3' } })`,
+      output: `(d) => ({ tldr: 'A study of ' + d.facts.find((f) => f.kind === 'pass@1').cells.length + ' environments.', whatHappened: [], results: [], why: [], anomalies: [], actions: [], confidence: { overall: 'medium', why: 'n = 3' } })`,
     })
     const d = digest as Digest & { frame: string }
     assert.equal(d.frame, 'study')
     const use = digest.facts.find((f) => f.kind === 'context-use') as
-      | { cells: Array<{ cell: string; perAttempt: Record<string, string> }> }
+      | { cells: Array<{ cell: string; perTrial: Record<string, string> }> }
       | undefined
-    const perAttempt = Object.fromEntries((use?.cells ?? []).map((c) => [c.cell, c.perAttempt]))
+    const perTrial = Object.fromEntries((use?.cells ?? []).map((c) => [c.cell, c.perTrial]))
     assert.equal(
-      perAttempt['no-skill (control)']?.dependency,
+      perTrial['no-skill (baseline)']?.dependency,
       '1 1 1',
       'no skill: it reads the package types',
     )
-    assert.equal(perAttempt['new-skill']?.context, '1 1 1', 'the new skill: its React reference')
-    assert.equal(perAttempt['no-skill (control)']?.context, undefined)
+    assert.equal(perTrial['new-skill']?.context, '1 1 1', 'the new skill: its React reference')
+    assert.equal(perTrial['no-skill (baseline)']?.context, undefined)
     const effort = digest.facts.find((f) => f.kind === 'effort') as
-      | { cells: Array<{ vsControl?: { n: string; separated?: Record<string, boolean> } }> }
+      | { cells: Array<{ vsBaseline?: { n: string; separated?: Record<string, boolean> } }> }
       | undefined
-    const vs = effort?.cells.flatMap((c) => (c.vsControl ? [c.vsControl] : [])) ?? []
+    const vs = effort?.cells.flatMap((c) => (c.vsBaseline ? [c.vsBaseline] : [])) ?? []
     assert.equal(vs.length, 2)
     for (const v of vs as Array<{ n: string; agentS?: string }>) {
       assert.equal(v.n, '3 vs 3')
@@ -2003,10 +2003,10 @@ describe('a study: several arms, every cell ungated', () => {
     )
     const analyzed = await runCli(p.dir, ['explain', '--vs', 'none'])
     assert.equal(analyzed.code, 0, analyzed.stderr)
-    assert.match(analyzed.stdout, /A study of 3 arms\./)
+    assert.match(analyzed.stdout, /A study of 3 environments\./)
   })
 
-  test('canary: the same arms with gated variants are not a study', async () => {
+  test('canary: the same environments with gated variants are not a study', async () => {
     const { digest, text } = await studyDigest('study-gated', { gated: true })
     assert.equal((digest as Digest & { frame: string }).frame, 'gate')
     assert.doesNotMatch(text, /This run is a study/)
@@ -2018,16 +2018,16 @@ describe('a study: several arms, every cell ungated', () => {
   })
 })
 
-test('the prompt and rules say a study compares arms, and a label no arm meets explains nothing', () => {
+test('the prompt and rules say a study compares environments, and a label no environment meets explains nothing', () => {
   assert.match(SYSTEM_PROMPT, /When the digest's frame is study/)
   assert.match(SYSTEM_PROMPT, /never make one a why/)
   assert.match(SYSTEM_PROMPT, /setup, rules and cli are context, not citable/)
-  assert.ok(RULES.some((r) => r.includes("can't explain a difference between arms")))
+  assert.ok(RULES.some((r) => r.includes("can't explain a difference between environments")))
   assert.ok(RULES.some((r) => r.startsWith('frame study means')))
 })
 
-describe('contrasts: each pair of arms, variant against variant too', () => {
-  test('reeval query contrasts and the digest set every pair of arms side by side', async () => {
+describe('contrasts: each pair of environments, variant against variant too', () => {
+  test('reeval query contrasts and the digest set every pair of environments side by side', async () => {
     const p = await project('study-contrasts', studyFiles())
     const run = await runCli(p.dir)
     assert.equal(run.code, 0, run.stdout + run.stderr)
@@ -2062,8 +2062,8 @@ describe('contrasts: each pair of arms, variant against variant too', () => {
         (f.checks as Row[]).map((k) => k.label),
       ]),
       [
-        ['current-skill', 'no-skill (control)', '0/3 vs 0/3', 'within noise', []],
-        ['new-skill', 'no-skill (control)', '0/3 vs 0/3', 'within noise', []],
+        ['current-skill', 'no-skill (baseline)', '0/3 vs 0/3', 'within noise', []],
+        ['new-skill', 'no-skill (baseline)', '0/3 vs 0/3', 'within noise', []],
         ['new-skill', 'current-skill', '0/3 vs 0/3', 'within noise', []],
       ],
     )

@@ -1,0 +1,3446 @@
+{
+  "reportVersion": 4,
+  "runId": "20261127T123011Z_b479de5_cursor-agent_nmb3",
+  "single": false,
+  "header": {
+    "title": "Run 20261127T123011Z_b479de5_cursor-agent_nmb3",
+    "status": "complete",
+    "startedAt": "2026-11-27T12:30:11.948Z",
+    "author": "cursor-agent",
+    "reeval": "0.31.0",
+    "profile": null,
+    "scope": {
+      "profile": null,
+      "subset": false,
+      "configKey": "74f276a12c23285249e5cc8cf51321edee8abf9cf36cff107a5320cc47f4baa0"
+    },
+    "runsPerCell": null,
+    "wall": {
+      "value": 30787,
+      "text": "31s"
+    },
+    "tally": {
+      "counted": 8,
+      "passed": 7,
+      "failed": 1,
+      "ungated": {
+        "passed": 4,
+        "failed": 2
+      },
+      "infraError": 1,
+      "reclassified": 0,
+      "skipped": 2
+    },
+    "tokens": null,
+    "cost": null,
+    "git": {
+      "sha": "b479de5c00ef7493da0ed1c246ceb185cd1110ba",
+      "branch": "master",
+      "dirty": false,
+      "repo": null
+    }
+  },
+  "integrity": [
+    {
+      "kind": "unreported-usage",
+      "severity": "warn",
+      "text": "4 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "cases",
+      "cites": [
+        {
+          "id": "A1",
+          "key": "cases#Ada # fake/plain/docker#1",
+          "href": "./cases-ada-756e9f/fake-plain-docker-98d88a/1/trajectory.jsonl"
+        },
+        {
+          "id": "A2",
+          "key": "cases#Ada # fake/with-house-greeting/docker#1",
+          "href": "./cases-ada-756e9f/fake-with-house-greeting-docker-a9116f/1/trajectory.jsonl"
+        },
+        {
+          "id": "A3",
+          "key": "cases#Grace # fake/plain/docker#1",
+          "href": "./cases-grace-113891/fake-plain-docker-98d88a/1/trajectory.jsonl"
+        },
+        {
+          "id": "A4",
+          "key": "cases#Grace # fake/with-house-greeting/docker#1",
+          "href": "./cases-grace-113891/fake-with-house-greeting-docker-a9116f/1/trajectory.jsonl"
+        }
+      ]
+    },
+    {
+      "kind": "unreported-usage",
+      "severity": "warn",
+      "text": "1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "fails-a-grader-and-a-judge",
+      "cites": [
+        {
+          "id": "A5",
+          "key": "fails-a-grader-and-a-judge # fake/fake/fake#1",
+          "href": "./fails-a-grader-and-a-judge-2e648e/fake-fake-fake-dc13e2/1/trajectory.jsonl"
+        }
+      ]
+    },
+    {
+      "kind": "unreported-usage",
+      "severity": "warn",
+      "text": "8 counted attempts reported no token usage; token medians omit them.",
+      "evalId": "skill",
+      "cites": [
+        {
+          "id": "A7",
+          "key": "skill # fake/plain/docker#1",
+          "href": "./skill-9c53c0/fake-plain-docker-98d88a/1/diff.patch"
+        },
+        {
+          "id": "A9",
+          "key": "skill # fake/plain/docker#2",
+          "href": "./skill-9c53c0/fake-plain-docker-98d88a/2/diff.patch"
+        },
+        {
+          "id": "A12",
+          "key": "skill # fake/plain/docker#3",
+          "href": "./skill-9c53c0/fake-plain-docker-98d88a/3/diff.patch"
+        },
+        {
+          "id": "A14",
+          "key": "skill # fake/plain/docker#4",
+          "href": "./skill-9c53c0/fake-plain-docker-98d88a/4/diff.patch"
+        },
+        {
+          "id": "A8",
+          "key": "skill # fake/with-house-greeting/docker#1",
+          "href": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/1/diff.patch"
+        },
+        {
+          "id": "A10",
+          "key": "skill # fake/with-house-greeting/docker#2",
+          "href": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/2/diff.patch"
+        },
+        {
+          "id": "A13",
+          "key": "skill # fake/with-house-greeting/docker#3",
+          "href": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/3/diff.patch"
+        },
+        {
+          "id": "A15",
+          "key": "skill # fake/with-house-greeting/docker#4",
+          "href": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/4/diff.patch"
+        }
+      ]
+    },
+    {
+      "kind": "unreported-usage",
+      "severity": "warn",
+      "text": "1 counted attempt reported no token usage; token medians omit them.",
+      "evalId": "writes-greet-js",
+      "cites": [
+        {
+          "id": "A11",
+          "key": "writes-greet-js # fake/fake/fake#1",
+          "href": "./writes-greet-js-b165c7/fake-fake-fake-dc13e2/1/diff.patch"
+        }
+      ]
+    }
+  ],
+  "rollup": {
+    "lead": {
+      "role": "finding",
+      "text": "The house-style skill lifts the pass rate.",
+      "confidence": "medium",
+      "cites": [],
+      "action": null
+    },
+    "rows": [
+      {
+        "evalId": "cases",
+        "name": "cases",
+        "anchor": "cases",
+        "shapes": [
+          "ab"
+        ],
+        "design": "2 prompts, 1 coding harness, 2 arms, 4 attempts",
+        "primary": "with-house-greeting vs plain: +100 pts pass rate (100% vs 0%)",
+        "medianTokens": {
+          "value": null,
+          "text": "not reported"
+        }
+      },
+      {
+        "evalId": "fails-a-grader-and-a-judge",
+        "name": "fails-a-grader-and-a-judge",
+        "anchor": "fails-a-grader-and-a-judge",
+        "shapes": [
+          "task"
+        ],
+        "design": "1 coding harness, 1 attempt",
+        "primary": "mean 50% · 0/1 run at 100% (pass@1) · capability(1)",
+        "medianTokens": {
+          "value": null,
+          "text": "not reported"
+        }
+      },
+      {
+        "evalId": "greets-in-welsh",
+        "name": "greets-in-welsh",
+        "anchor": "greets-in-welsh",
+        "shapes": [
+          "task"
+        ],
+        "design": "1 coding harness, 0 attempts",
+        "primary": "skipped",
+        "medianTokens": {
+          "value": null,
+          "text": "not reported"
+        }
+      },
+      {
+        "evalId": "is-skipped-for-now",
+        "name": "is-skipped-for-now",
+        "anchor": "is-skipped-for-now",
+        "shapes": [
+          "task"
+        ],
+        "design": "1 coding harness, 0 attempts",
+        "primary": "skipped",
+        "medianTokens": {
+          "value": null,
+          "text": "not reported"
+        }
+      },
+      {
+        "evalId": "never-starts",
+        "name": "never-starts",
+        "anchor": "never-starts",
+        "shapes": [
+          "task"
+        ],
+        "design": "1 coding harness, 1 attempt",
+        "primary": "infra error · capability(1)",
+        "medianTokens": {
+          "value": null,
+          "text": "not reported"
+        }
+      },
+      {
+        "evalId": "skill",
+        "name": "skill",
+        "anchor": "skill",
+        "shapes": [
+          "ab"
+        ],
+        "design": "1 coding harness, 2 arms, 8 attempts",
+        "primary": "with-house-greeting vs plain: ±0 pts pass rate (100% vs 100%)",
+        "medianTokens": {
+          "value": null,
+          "text": "not reported"
+        }
+      },
+      {
+        "evalId": "writes-greet-js",
+        "name": "writes-greet-js",
+        "anchor": "writes-greet-js",
+        "shapes": [
+          "task"
+        ],
+        "design": "1 coding harness, 1 attempt",
+        "primary": "mean 100% · 1/1 run at 100% (pass@1) · capability(1)",
+        "medianTokens": {
+          "value": null,
+          "text": "not reported"
+        }
+      }
+    ],
+    "findings": [
+      {
+        "role": "finding",
+        "text": "Every eval ran once.",
+        "confidence": "high",
+        "cites": [],
+        "action": null
+      },
+      {
+        "role": "finding",
+        "text": "The variant passed where the control failed.",
+        "confidence": "medium",
+        "cites": [],
+        "action": null
+      }
+    ]
+  },
+  "roster": [
+    {
+      "harness": "broken",
+      "model": null,
+      "effort": null,
+      "servedModels": [],
+      "gateway": null,
+      "attempts": 1
+    },
+    {
+      "harness": "fake",
+      "model": null,
+      "effort": null,
+      "servedModels": [
+        "fake-1[fast=true]"
+      ],
+      "gateway": null,
+      "attempts": 14
+    }
+  ],
+  "evals": [
+    {
+      "id": "cases",
+      "anchor": "cases",
+      "name": "cases",
+      "file": "evals/cases.eval.ts",
+      "shapes": [
+        "ab"
+      ],
+      "design": "2 prompts, 1 coding harness, 2 arms, 4 attempts",
+      "headline": {
+        "task": "cases",
+        "kicker": "with-house-greeting against the plain baseline",
+        "fairness": "too-few-runs",
+        "primary": {
+          "kind": "lift",
+          "baseline": {
+            "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+            "label": "plain"
+          },
+          "variant": {
+            "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
+            "label": "with-house-greeting"
+          },
+          "points": {
+            "value": 1,
+            "unit": "pts",
+            "text": "+100 pts"
+          },
+          "interval": {
+            "lo": 0.06998519383190771,
+            "hi": 1,
+            "text": "+7 pts to +100 pts"
+          },
+          "baselineRate": {
+            "k": 0,
+            "n": 2,
+            "rate": 0,
+            "text": "0%",
+            "interval": {
+              "lo": 0,
+              "hi": 0.6576197760453506,
+              "text": "0 pts to +66 pts"
+            }
+          },
+          "variantRate": {
+            "k": 2,
+            "n": 2,
+            "rate": 1,
+            "text": "100%",
+            "interval": {
+              "lo": 0.3423802239546494,
+              "hi": 1,
+              "text": "+34 pts to +100 pts"
+            }
+          },
+          "others": []
+        },
+        "foot": "n = 2 vs 2 counted attempts. 95% CI +7 pts to +100 pts. 2 per side is below 4, so this cannot come back helped or made worse."
+      },
+      "insights": [
+        {
+          "role": "finding",
+          "text": "Every eval ran once.",
+          "confidence": "high",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "finding",
+          "text": "The variant passed where the control failed.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "caveat",
+          "text": "The broken harness never started.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        }
+      ],
+      "primary": {
+        "kind": "comparison",
+        "arms": [
+          {
+            "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+            "label": "plain",
+            "environment": "plain",
+            "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+            "role": "baseline",
+            "change": null,
+            "prompts": [
+              "p958d3cdc",
+              "pc5434676"
+            ]
+          },
+          {
+            "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
+            "label": "with-house-greeting",
+            "environment": "with-house-greeting",
+            "environmentDigest": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
+            "role": "variant",
+            "change": "with-house-greeting",
+            "prompts": [
+              "p958d3cdc",
+              "pc5434676"
+            ]
+          }
+        ],
+        "uniformLead": null,
+        "summary": [
+          {
+            "arm": "plain",
+            "rate": {
+              "k": 0,
+              "n": 2,
+              "rate": 0,
+              "text": "0%",
+              "interval": {
+                "lo": 0,
+                "hi": 0.6576197760453506,
+                "text": "0 pts to +66 pts"
+              }
+            },
+            "lift": null,
+            "interval": null,
+            "verdict": "baseline",
+            "verdictScope": "pass-rate",
+            "measures": {
+              "tokens": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "toolCalls": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "turns": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "costUsd": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "agentMs": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 665.5,
+                    "text": "0.7s"
+                  },
+                  "q1": {
+                    "value": 639.75,
+                    "text": "0.6s"
+                  },
+                  "q3": {
+                    "value": 691.25,
+                    "text": "0.7s"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "filesChanged": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q1": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q3": {
+                    "value": 2,
+                    "text": "2"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "linesAdded": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q1": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q3": {
+                    "value": 2,
+                    "text": "2"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "linesRemoved": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q1": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q3": {
+                    "value": 0,
+                    "text": "0"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              }
+            }
+          },
+          {
+            "arm": "with-house-greeting",
+            "rate": {
+              "k": 2,
+              "n": 2,
+              "rate": 1,
+              "text": "100%",
+              "interval": {
+                "lo": 0.3423802239546494,
+                "hi": 1,
+                "text": "+34 pts to +100 pts"
+              }
+            },
+            "lift": {
+              "value": 1,
+              "unit": "pts",
+              "text": "+100 pts"
+            },
+            "interval": {
+              "lo": 0.06998519383190771,
+              "hi": 1,
+              "text": "+7 pts to +100 pts"
+            },
+            "verdict": "too-few-runs",
+            "verdictScope": "pass-rate",
+            "measures": {
+              "tokens": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "toolCalls": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": 0,
+                  "unit": "pct",
+                  "text": "±0%"
+                },
+                "lower": null
+              },
+              "turns": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": 0,
+                  "unit": "pct",
+                  "text": "±0%"
+                },
+                "lower": null
+              },
+              "costUsd": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "agentMs": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 262,
+                    "text": "0.3s"
+                  },
+                  "q1": {
+                    "value": 255,
+                    "text": "0.3s"
+                  },
+                  "q3": {
+                    "value": 269,
+                    "text": "0.3s"
+                  }
+                },
+                "delta": {
+                  "value": -0.6063110443275732,
+                  "unit": "pct",
+                  "text": "-61%"
+                },
+                "lower": null
+              },
+              "filesChanged": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": -0.5,
+                  "unit": "pct",
+                  "text": "-50%"
+                },
+                "lower": null
+              },
+              "linesAdded": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": -0.5,
+                  "unit": "pct",
+                  "text": "-50%"
+                },
+                "lower": null
+              },
+              "linesRemoved": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q1": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q3": {
+                    "value": 0,
+                    "text": "0"
+                  }
+                },
+                "delta": {
+                  "value": null,
+                  "unit": "pct",
+                  "text": "n/a"
+                },
+                "lower": null
+              }
+            }
+          }
+        ],
+        "assertionsByArm": [],
+        "behavior": [],
+        "contrasts": [],
+        "effortByHarness": [
+          {
+            "harness": "fake",
+            "arm": "plain",
+            "rate": {
+              "k": 0,
+              "n": 2,
+              "rate": 0,
+              "text": "0%",
+              "interval": {
+                "lo": 0,
+                "hi": 0.6576197760453506,
+                "text": "0 pts to +66 pts"
+              }
+            },
+            "measures": {
+              "tokens": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "toolCalls": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "turns": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "costUsd": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "agentMs": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 665.5,
+                    "text": "0.7s"
+                  },
+                  "q1": {
+                    "value": 639.75,
+                    "text": "0.6s"
+                  },
+                  "q3": {
+                    "value": 691.25,
+                    "text": "0.7s"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "filesChanged": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q1": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q3": {
+                    "value": 2,
+                    "text": "2"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "linesAdded": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q1": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q3": {
+                    "value": 2,
+                    "text": "2"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "linesRemoved": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q1": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q3": {
+                    "value": 0,
+                    "text": "0"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              }
+            }
+          },
+          {
+            "harness": "fake",
+            "arm": "with-house-greeting",
+            "rate": {
+              "k": 2,
+              "n": 2,
+              "rate": 1,
+              "text": "100%",
+              "interval": {
+                "lo": 0.3423802239546494,
+                "hi": 1,
+                "text": "+34 pts to +100 pts"
+              }
+            },
+            "measures": {
+              "tokens": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "toolCalls": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": 0,
+                  "unit": "pct",
+                  "text": "±0%"
+                },
+                "lower": null
+              },
+              "turns": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": 0,
+                  "unit": "pct",
+                  "text": "±0%"
+                },
+                "lower": null
+              },
+              "costUsd": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "agentMs": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 262,
+                    "text": "0.3s"
+                  },
+                  "q1": {
+                    "value": 255,
+                    "text": "0.3s"
+                  },
+                  "q3": {
+                    "value": 269,
+                    "text": "0.3s"
+                  }
+                },
+                "delta": {
+                  "value": -0.6063110443275732,
+                  "unit": "pct",
+                  "text": "-61%"
+                },
+                "lower": null
+              },
+              "filesChanged": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": -0.5,
+                  "unit": "pct",
+                  "text": "-50%"
+                },
+                "lower": null
+              },
+              "linesAdded": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": -0.5,
+                  "unit": "pct",
+                  "text": "-50%"
+                },
+                "lower": null
+              },
+              "linesRemoved": {
+                "value": {
+                  "n": 2,
+                  "median": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q1": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q3": {
+                    "value": 0,
+                    "text": "0"
+                  }
+                },
+                "delta": {
+                  "value": null,
+                  "unit": "pct",
+                  "text": "n/a"
+                },
+                "lower": null
+              }
+            }
+          }
+        ]
+      },
+      "choices": [],
+      "discovery": [],
+      "judgments": null,
+      "qualitative": [],
+      "captures": null,
+      "failures": {
+        "clusters": [
+          {
+            "kind": "error",
+            "label": "score 0.00 below 1: succeeded:grep -q Ahoy greet.js scored 0.00",
+            "at": null,
+            "count": {
+              "k": 2,
+              "n": 4,
+              "text": "2 of 4"
+            },
+            "attempts": [
+              {
+                "id": "A1",
+                "key": "cases#Ada # fake/plain/docker#1",
+                "href": "./cases-ada-756e9f/fake-plain-docker-98d88a/1/trajectory.jsonl"
+              },
+              {
+                "id": "A3",
+                "key": "cases#Grace # fake/plain/docker#1",
+                "href": "./cases-grace-113891/fake-plain-docker-98d88a/1/trajectory.jsonl"
+              }
+            ]
+          }
+        ],
+        "remarks": [
+          {
+            "kind": "too-few-tries",
+            "severity": "concern",
+            "text": "The with-house-greeting variant, paired over 2 cases: better, but a paired lift needs 6 cases that differ between the arms to hold. It runs 2.5× faster, but 2 cases can't confirm it; 5 is the least that can.",
+            "fix": {
+              "at": "source:evals/cases.eval.ts",
+              "edit": "add cases, so 6 or more can differ between the arms"
+            }
+          }
+        ]
+      },
+      "target": "regression(1)",
+      "scores": {
+        "meanScore": {
+          "value": 1,
+          "text": "100%"
+        },
+        "passAtK": {
+          "value": 1,
+          "text": "100%"
+        },
+        "passHatK": {
+          "value": 1,
+          "text": "100%"
+        }
+      }
+    },
+    {
+      "id": "fails-a-grader-and-a-judge",
+      "anchor": "fails-a-grader-and-a-judge",
+      "name": "fails-a-grader-and-a-judge",
+      "file": "evals/fails-a-grader-and-a-judge.eval.ts",
+      "shapes": [
+        "task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "headline": {
+        "task": "fails-a-grader-and-a-judge",
+        "kicker": null,
+        "fairness": "clear",
+        "primary": {
+          "kind": "target",
+          "result": "mean 50% · 0/1 run at 100% (pass@1)",
+          "target": "capability(1)",
+          "standing": "report"
+        },
+        "foot": "Report only: the target never fails the run. 1 counted attempt, 1 coding harness."
+      },
+      "insights": [
+        {
+          "role": "finding",
+          "text": "Every eval ran once.",
+          "confidence": "high",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "finding",
+          "text": "The variant passed where the control failed.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "caveat",
+          "text": "The broken harness never started.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        }
+      ],
+      "primary": null,
+      "choices": [],
+      "discovery": [],
+      "judgments": null,
+      "qualitative": [],
+      "captures": null,
+      "failures": {
+        "clusters": [
+          {
+            "kind": "error",
+            "label": "score 0.50 below 1: succeeded:grep -q Bonjour greet.js scored 0.00",
+            "at": null,
+            "count": {
+              "k": 1,
+              "n": 1,
+              "text": "1 of 1"
+            },
+            "attempts": [
+              {
+                "id": "A5",
+                "key": "fails-a-grader-and-a-judge # fake/fake/fake#1",
+                "href": "./fails-a-grader-and-a-judge-2e648e/fake-fake-fake-dc13e2/1/trajectory.jsonl"
+              }
+            ]
+          }
+        ],
+        "remarks": []
+      },
+      "target": "capability(1)",
+      "scores": {
+        "meanScore": {
+          "value": 0.5,
+          "text": "50%"
+        },
+        "passAtK": {
+          "value": 0,
+          "text": "0%"
+        },
+        "passHatK": {
+          "value": 0,
+          "text": "0%"
+        }
+      }
+    },
+    {
+      "id": "greets-in-welsh",
+      "anchor": "greets-in-welsh",
+      "name": "greets-in-welsh",
+      "file": "evals/greets-in-welsh.eval.ts",
+      "shapes": [
+        "task"
+      ],
+      "design": "1 coding harness, 0 attempts",
+      "headline": {
+        "task": "greets-in-welsh",
+        "kicker": null,
+        "fairness": "clear",
+        "primary": {
+          "kind": "target",
+          "result": "skipped",
+          "target": "capability(1)",
+          "standing": "skipped"
+        },
+        "foot": "Not run."
+      },
+      "insights": [
+        {
+          "role": "finding",
+          "text": "Every eval ran once.",
+          "confidence": "high",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "finding",
+          "text": "The variant passed where the control failed.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "caveat",
+          "text": "The broken harness never started.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        }
+      ],
+      "primary": null,
+      "choices": [],
+      "discovery": [],
+      "judgments": null,
+      "qualitative": [],
+      "captures": null,
+      "failures": null,
+      "target": "capability(1)",
+      "scores": {
+        "meanScore": {
+          "value": null,
+          "text": "n/a"
+        },
+        "passAtK": {
+          "value": null,
+          "text": "n/a"
+        },
+        "passHatK": {
+          "value": null,
+          "text": "n/a"
+        }
+      }
+    },
+    {
+      "id": "is-skipped-for-now",
+      "anchor": "is-skipped-for-now",
+      "name": "is-skipped-for-now",
+      "file": "evals/is-skipped-for-now.eval.ts",
+      "shapes": [
+        "task"
+      ],
+      "design": "1 coding harness, 0 attempts",
+      "headline": {
+        "task": "is-skipped-for-now",
+        "kicker": null,
+        "fairness": "clear",
+        "primary": {
+          "kind": "target",
+          "result": "skipped",
+          "target": "capability(1)",
+          "standing": "skipped"
+        },
+        "foot": "Not run."
+      },
+      "insights": [
+        {
+          "role": "finding",
+          "text": "Every eval ran once.",
+          "confidence": "high",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "finding",
+          "text": "The variant passed where the control failed.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "caveat",
+          "text": "The broken harness never started.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        }
+      ],
+      "primary": null,
+      "choices": [],
+      "discovery": [],
+      "judgments": null,
+      "qualitative": [],
+      "captures": null,
+      "failures": null,
+      "target": "capability(1)",
+      "scores": {
+        "meanScore": {
+          "value": null,
+          "text": "n/a"
+        },
+        "passAtK": {
+          "value": null,
+          "text": "n/a"
+        },
+        "passHatK": {
+          "value": null,
+          "text": "n/a"
+        }
+      }
+    },
+    {
+      "id": "never-starts",
+      "anchor": "never-starts",
+      "name": "never-starts",
+      "file": "evals/never-starts.eval.ts",
+      "shapes": [
+        "task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "headline": {
+        "task": "never-starts",
+        "kicker": null,
+        "fairness": "clear",
+        "primary": {
+          "kind": "target",
+          "result": "infra error",
+          "target": "capability(1)",
+          "standing": "infra"
+        },
+        "foot": "No attempt counted: each ended in an infra error."
+      },
+      "insights": [
+        {
+          "role": "finding",
+          "text": "Every eval ran once.",
+          "confidence": "high",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "finding",
+          "text": "The variant passed where the control failed.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "caveat",
+          "text": "The broken harness never started.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        }
+      ],
+      "primary": null,
+      "choices": [],
+      "discovery": [],
+      "judgments": null,
+      "qualitative": [],
+      "captures": null,
+      "failures": {
+        "clusters": [
+          {
+            "kind": "infra-error",
+            "label": "the fake sandbox fell over",
+            "at": null,
+            "count": {
+              "k": 1,
+              "n": 1,
+              "text": "1 of 1"
+            },
+            "attempts": [
+              {
+                "id": "A6",
+                "key": "never-starts # broken/fake/fake#1",
+                "href": "#attempt-never-starts-broken-fake-fake-1-f473d78e"
+              }
+            ]
+          }
+        ],
+        "remarks": []
+      },
+      "target": "capability(1)",
+      "scores": {
+        "meanScore": {
+          "value": null,
+          "text": "n/a"
+        },
+        "passAtK": {
+          "value": null,
+          "text": "n/a"
+        },
+        "passHatK": {
+          "value": null,
+          "text": "n/a"
+        }
+      }
+    },
+    {
+      "id": "skill",
+      "anchor": "skill",
+      "name": "skill",
+      "file": "evals/skill.eval.ts",
+      "shapes": [
+        "ab"
+      ],
+      "design": "1 coding harness, 2 arms, 8 attempts",
+      "headline": {
+        "task": "skill",
+        "kicker": "with-house-greeting against the plain baseline",
+        "fairness": "within-noise",
+        "primary": {
+          "kind": "lift",
+          "baseline": {
+            "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+            "label": "plain"
+          },
+          "variant": {
+            "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
+            "label": "with-house-greeting"
+          },
+          "points": {
+            "value": 0,
+            "unit": "pts",
+            "text": "±0 pts"
+          },
+          "interval": {
+            "lo": -0.48989084039692143,
+            "hi": 0.48989084039692143,
+            "text": "-49 pts to +49 pts"
+          },
+          "baselineRate": {
+            "k": 4,
+            "n": 4,
+            "rate": 1,
+            "text": "100%",
+            "interval": {
+              "lo": 0.5101091596030786,
+              "hi": 0.9999999999999999,
+              "text": "+51 pts to +100 pts"
+            }
+          },
+          "variantRate": {
+            "k": 4,
+            "n": 4,
+            "rate": 1,
+            "text": "100%",
+            "interval": {
+              "lo": 0.5101091596030786,
+              "hi": 0.9999999999999999,
+              "text": "+51 pts to +100 pts"
+            }
+          },
+          "others": []
+        },
+        "foot": "n = 4 vs 4 counted attempts. 95% CI -49 pts to +49 pts. The interval spans 0: within noise."
+      },
+      "insights": [
+        {
+          "role": "finding",
+          "text": "Every eval ran once.",
+          "confidence": "high",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "finding",
+          "text": "The variant passed where the control failed.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "caveat",
+          "text": "The broken harness never started.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        }
+      ],
+      "primary": {
+        "kind": "comparison",
+        "arms": [
+          {
+            "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+            "label": "plain",
+            "environment": "plain",
+            "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
+            "role": "baseline",
+            "change": null,
+            "prompts": [
+              "pffbe647e"
+            ]
+          },
+          {
+            "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
+            "label": "with-house-greeting",
+            "environment": "with-house-greeting",
+            "environmentDigest": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
+            "role": "variant",
+            "change": "with-house-greeting",
+            "prompts": [
+              "pffbe647e"
+            ]
+          }
+        ],
+        "uniformLead": null,
+        "summary": [
+          {
+            "arm": "plain",
+            "rate": {
+              "k": 4,
+              "n": 4,
+              "rate": 1,
+              "text": "100%",
+              "interval": {
+                "lo": 0.5101091596030786,
+                "hi": 0.9999999999999999,
+                "text": "+51 pts to +100 pts"
+              }
+            },
+            "lift": null,
+            "interval": null,
+            "verdict": "baseline",
+            "verdictScope": "pass-rate",
+            "measures": {
+              "tokens": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "toolCalls": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "turns": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "costUsd": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "agentMs": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 562,
+                    "text": "0.6s"
+                  },
+                  "q1": {
+                    "value": 549.75,
+                    "text": "0.5s"
+                  },
+                  "q3": {
+                    "value": 592.75,
+                    "text": "0.6s"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "filesChanged": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q1": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q3": {
+                    "value": 2,
+                    "text": "2"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "linesAdded": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q1": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q3": {
+                    "value": 2,
+                    "text": "2"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "linesRemoved": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q1": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q3": {
+                    "value": 0,
+                    "text": "0"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              }
+            }
+          },
+          {
+            "arm": "with-house-greeting",
+            "rate": {
+              "k": 4,
+              "n": 4,
+              "rate": 1,
+              "text": "100%",
+              "interval": {
+                "lo": 0.5101091596030786,
+                "hi": 0.9999999999999999,
+                "text": "+51 pts to +100 pts"
+              }
+            },
+            "lift": {
+              "value": 0,
+              "unit": "pts",
+              "text": "±0 pts"
+            },
+            "interval": {
+              "lo": -0.48989084039692143,
+              "hi": 0.48989084039692143,
+              "text": "-49 pts to +49 pts"
+            },
+            "verdict": "within-noise",
+            "verdictScope": "pass-rate",
+            "measures": {
+              "tokens": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "toolCalls": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": 0,
+                  "unit": "pct",
+                  "text": "±0%"
+                },
+                "lower": null
+              },
+              "turns": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": 0,
+                  "unit": "pct",
+                  "text": "±0%"
+                },
+                "lower": null
+              },
+              "costUsd": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "agentMs": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 304.5,
+                    "text": "0.3s"
+                  },
+                  "q1": {
+                    "value": 251,
+                    "text": "0.3s"
+                  },
+                  "q3": {
+                    "value": 347.75,
+                    "text": "0.3s"
+                  }
+                },
+                "delta": {
+                  "value": -0.4581850533807829,
+                  "unit": "pct",
+                  "text": "-46%"
+                },
+                "lower": null
+              },
+              "filesChanged": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": -0.5,
+                  "unit": "pct",
+                  "text": "-50%"
+                },
+                "lower": null
+              },
+              "linesAdded": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": -0.5,
+                  "unit": "pct",
+                  "text": "-50%"
+                },
+                "lower": null
+              },
+              "linesRemoved": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q1": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q3": {
+                    "value": 0,
+                    "text": "0"
+                  }
+                },
+                "delta": {
+                  "value": null,
+                  "unit": "pct",
+                  "text": "n/a"
+                },
+                "lower": null
+              }
+            }
+          }
+        ],
+        "assertionsByArm": [],
+        "behavior": [],
+        "contrasts": [],
+        "effortByHarness": [
+          {
+            "harness": "fake",
+            "arm": "plain",
+            "rate": {
+              "k": 4,
+              "n": 4,
+              "rate": 1,
+              "text": "100%",
+              "interval": {
+                "lo": 0.5101091596030786,
+                "hi": 0.9999999999999999,
+                "text": "+51 pts to +100 pts"
+              }
+            },
+            "measures": {
+              "tokens": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "toolCalls": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "turns": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "costUsd": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "agentMs": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 562,
+                    "text": "0.6s"
+                  },
+                  "q1": {
+                    "value": 549.75,
+                    "text": "0.5s"
+                  },
+                  "q3": {
+                    "value": 592.75,
+                    "text": "0.6s"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "filesChanged": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q1": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q3": {
+                    "value": 2,
+                    "text": "2"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "linesAdded": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q1": {
+                    "value": 2,
+                    "text": "2"
+                  },
+                  "q3": {
+                    "value": 2,
+                    "text": "2"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              },
+              "linesRemoved": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q1": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q3": {
+                    "value": 0,
+                    "text": "0"
+                  }
+                },
+                "delta": null,
+                "lower": null
+              }
+            }
+          },
+          {
+            "harness": "fake",
+            "arm": "with-house-greeting",
+            "rate": {
+              "k": 4,
+              "n": 4,
+              "rate": 1,
+              "text": "100%",
+              "interval": {
+                "lo": 0.5101091596030786,
+                "hi": 0.9999999999999999,
+                "text": "+51 pts to +100 pts"
+              }
+            },
+            "measures": {
+              "tokens": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "toolCalls": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": 0,
+                  "unit": "pct",
+                  "text": "±0%"
+                },
+                "lower": null
+              },
+              "turns": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": 0,
+                  "unit": "pct",
+                  "text": "±0%"
+                },
+                "lower": null
+              },
+              "costUsd": {
+                "value": null,
+                "delta": null,
+                "lower": null
+              },
+              "agentMs": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 304.5,
+                    "text": "0.3s"
+                  },
+                  "q1": {
+                    "value": 251,
+                    "text": "0.3s"
+                  },
+                  "q3": {
+                    "value": 347.75,
+                    "text": "0.3s"
+                  }
+                },
+                "delta": {
+                  "value": -0.4581850533807829,
+                  "unit": "pct",
+                  "text": "-46%"
+                },
+                "lower": null
+              },
+              "filesChanged": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": -0.5,
+                  "unit": "pct",
+                  "text": "-50%"
+                },
+                "lower": null
+              },
+              "linesAdded": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q1": {
+                    "value": 1,
+                    "text": "1"
+                  },
+                  "q3": {
+                    "value": 1,
+                    "text": "1"
+                  }
+                },
+                "delta": {
+                  "value": -0.5,
+                  "unit": "pct",
+                  "text": "-50%"
+                },
+                "lower": null
+              },
+              "linesRemoved": {
+                "value": {
+                  "n": 4,
+                  "median": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q1": {
+                    "value": 0,
+                    "text": "0"
+                  },
+                  "q3": {
+                    "value": 0,
+                    "text": "0"
+                  }
+                },
+                "delta": {
+                  "value": null,
+                  "unit": "pct",
+                  "text": "n/a"
+                },
+                "lower": null
+              }
+            }
+          }
+        ]
+      },
+      "choices": [
+        {
+          "question": "Does the greeting use the house style?",
+          "options": [
+            {
+              "label": "no",
+              "count": 4
+            },
+            {
+              "label": "yes",
+              "count": 4
+            }
+          ],
+          "noPick": 0,
+          "rows": [
+            {
+              "arm": "plain",
+              "prompt": null,
+              "harness": "fake",
+              "counts": {
+                "no": 4,
+                "yes": 0
+              },
+              "attempts": 4,
+              "text": "no 4, yes 0"
+            },
+            {
+              "arm": "with-house-greeting",
+              "prompt": null,
+              "harness": "fake",
+              "counts": {
+                "no": 0,
+                "yes": 4
+              },
+              "attempts": 4,
+              "text": "no 0, yes 4"
+            }
+          ],
+          "passByPick": [
+            {
+              "option": "no",
+              "rate": {
+                "k": 4,
+                "n": 4,
+                "rate": 1,
+                "text": "100%",
+                "interval": {
+                  "lo": 0.5101091596030786,
+                  "hi": 0.9999999999999999,
+                  "text": "+51 pts to +100 pts"
+                }
+              }
+            },
+            {
+              "option": "yes",
+              "rate": {
+                "k": 4,
+                "n": 4,
+                "rate": 1,
+                "text": "100%",
+                "interval": {
+                  "lo": 0.5101091596030786,
+                  "hi": 0.9999999999999999,
+                  "text": "+51 pts to +100 pts"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "discovery": [],
+      "judgments": {
+        "axes": [
+          "Coding harness",
+          "Arm"
+        ],
+        "scores": [],
+        "pairwise": [
+          {
+            "question": "Which greeting reads more like our house style?",
+            "cut": "within",
+            "a": "plain",
+            "b": "with-house-greeting",
+            "aWins": 0,
+            "bWins": 8,
+            "ties": 0,
+            "pairs": 8,
+            "reasons": []
+          }
+        ]
+      },
+      "qualitative": [
+        {
+          "question": "How did the agent pick its greeting?",
+          "answered": {
+            "k": 8,
+            "n": 8,
+            "text": "8 of 8"
+          },
+          "themes": null,
+          "entries": [
+            {
+              "text": "It followed the prompt.",
+              "attempt": {
+                "id": "A7",
+                "key": "skill # fake/plain/docker#1",
+                "href": "./skill-9c53c0/fake-plain-docker-98d88a/1/diff.patch"
+              },
+              "harness": "fake",
+              "arm": "plain",
+              "case": null,
+              "input": "./skill-9c53c0/fake-plain-docker-98d88a/1/questions/4.json"
+            },
+            {
+              "text": "It followed the prompt.",
+              "attempt": {
+                "id": "A9",
+                "key": "skill # fake/plain/docker#2",
+                "href": "./skill-9c53c0/fake-plain-docker-98d88a/2/diff.patch"
+              },
+              "harness": "fake",
+              "arm": "plain",
+              "case": null,
+              "input": "./skill-9c53c0/fake-plain-docker-98d88a/2/questions/4.json"
+            },
+            {
+              "text": "It followed the prompt.",
+              "attempt": {
+                "id": "A12",
+                "key": "skill # fake/plain/docker#3",
+                "href": "./skill-9c53c0/fake-plain-docker-98d88a/3/diff.patch"
+              },
+              "harness": "fake",
+              "arm": "plain",
+              "case": null,
+              "input": "./skill-9c53c0/fake-plain-docker-98d88a/3/questions/4.json"
+            },
+            {
+              "text": "It followed the prompt.",
+              "attempt": {
+                "id": "A14",
+                "key": "skill # fake/plain/docker#4",
+                "href": "./skill-9c53c0/fake-plain-docker-98d88a/4/diff.patch"
+              },
+              "harness": "fake",
+              "arm": "plain",
+              "case": null,
+              "input": "./skill-9c53c0/fake-plain-docker-98d88a/4/questions/4.json"
+            },
+            {
+              "text": "It followed the prompt.",
+              "attempt": {
+                "id": "A8",
+                "key": "skill # fake/with-house-greeting/docker#1",
+                "href": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/1/diff.patch"
+              },
+              "harness": "fake",
+              "arm": "with-house-greeting",
+              "case": null,
+              "input": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/1/questions/4.json"
+            },
+            {
+              "text": "It followed the prompt.",
+              "attempt": {
+                "id": "A10",
+                "key": "skill # fake/with-house-greeting/docker#2",
+                "href": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/2/diff.patch"
+              },
+              "harness": "fake",
+              "arm": "with-house-greeting",
+              "case": null,
+              "input": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/2/questions/4.json"
+            },
+            {
+              "text": "It followed the prompt.",
+              "attempt": {
+                "id": "A13",
+                "key": "skill # fake/with-house-greeting/docker#3",
+                "href": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/3/diff.patch"
+              },
+              "harness": "fake",
+              "arm": "with-house-greeting",
+              "case": null,
+              "input": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/3/questions/4.json"
+            },
+            {
+              "text": "It followed the prompt.",
+              "attempt": {
+                "id": "A15",
+                "key": "skill # fake/with-house-greeting/docker#4",
+                "href": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/4/diff.patch"
+              },
+              "harness": "fake",
+              "arm": "with-house-greeting",
+              "case": null,
+              "input": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/4/questions/4.json"
+            }
+          ]
+        }
+      ],
+      "captures": null,
+      "failures": null,
+      "target": "capability(1)",
+      "scores": {
+        "meanScore": {
+          "value": 1,
+          "text": "100%"
+        },
+        "passAtK": {
+          "value": 1,
+          "text": "100%"
+        },
+        "passHatK": {
+          "value": 1,
+          "text": "100%"
+        }
+      }
+    },
+    {
+      "id": "writes-greet-js",
+      "anchor": "writes-greet-js",
+      "name": "writes-greet-js",
+      "file": "evals/writes-greet-js.eval.ts",
+      "shapes": [
+        "task"
+      ],
+      "design": "1 coding harness, 1 attempt",
+      "headline": {
+        "task": "writes-greet-js",
+        "kicker": null,
+        "fairness": "clear",
+        "primary": {
+          "kind": "target",
+          "result": "mean 100% · 1/1 run at 100% (pass@1)",
+          "target": "capability(1)",
+          "standing": "report"
+        },
+        "foot": "Report only: the target never fails the run. 1 counted attempt, 1 coding harness."
+      },
+      "insights": [
+        {
+          "role": "finding",
+          "text": "Every eval ran once.",
+          "confidence": "high",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "finding",
+          "text": "The variant passed where the control failed.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        },
+        {
+          "role": "caveat",
+          "text": "The broken harness never started.",
+          "confidence": "medium",
+          "cites": [],
+          "action": null
+        }
+      ],
+      "primary": null,
+      "choices": [],
+      "discovery": [],
+      "judgments": null,
+      "qualitative": [],
+      "captures": null,
+      "failures": null,
+      "target": "capability(1)",
+      "scores": {
+        "meanScore": {
+          "value": 1,
+          "text": "100%"
+        },
+        "passAtK": {
+          "value": 1,
+          "text": "100%"
+        },
+        "passHatK": {
+          "value": 1,
+          "text": "100%"
+        }
+      }
+    }
+  ],
+  "actions": [
+    {
+      "role": "action",
+      "text": "Rerun the compare",
+      "confidence": "medium",
+      "cites": [],
+      "action": {
+        "kind": "eval",
+        "target": "evals/skill.eval.ts",
+        "change": "Run it three times.",
+        "verify": "reeval run skill --runs 3"
+      }
+    }
+  ],
+  "provenance": {
+    "rows": [
+      {
+        "field": "Executed at",
+        "value": "b479de5c00ef on master, clean (the commit that adds this record is later)"
+      },
+      {
+        "field": "Lockfiles",
+        "value": "none found"
+      },
+      {
+        "field": "Images",
+        "value": "reeval-sandbox:cursor-0.1.9 · id ca9cdeb96dd1 · no registry digest (built locally) · CLI @cursor/sdk 1.0.40"
+      },
+      {
+        "field": "Agents",
+        "value": "broken, fake (served fake-1[fast=true])"
+      },
+      {
+        "field": "Resources",
+        "value": "docker 2 vCPU 4.0 GiB: 12 attempts · CPU 2.1 s (avg 0.10, peak 0.13 cores) · memory peak 21 MiB"
+      },
+      {
+        "field": "Environments",
+        "value": "fake eca09e8f139f; plain eca09e8f139f; with-house-greeting 7b5dd0e29b0d · skills house-greeting"
+      },
+      {
+        "field": "Judge",
+        "value": "fake · threshold 0.8 · version 0899605ae6f9"
+      },
+      {
+        "field": "Packages",
+        "value": "jiti 2.7.0 · @reeval/harness-antigravity 0.1.17 · @reeval/harness-opencode 0.2.16 · @reeval/harness-goose 0.1.17 · @reeval/harness-pi 0.2.10 · @reeval/harness-cursor-sdk 0.1.9 · @ai-sdk/harness-claude-code 1.0.176-patch.3b2ddb94 · @reeval/harness-codex 0.1.14 · @reeval/harness-fx 0.1.14 · @reeval/harness-grok-build 0.1.13 · ai 7.0.161 · @ai-sdk/harness 1.0.172 · @ai-sdk/anthropic 4.0.95 · @ai-sdk/google 4.0.110 · @ai-sdk/openai 4.0.107 · @ai-sdk/typesafe-ai 3.0.32"
+      },
+      {
+        "field": "reeval",
+        "value": "0.31.0 · node 26.13.0 · typescript evals · linux/x64"
+      },
+      {
+        "field": "Runner",
+        "value": "local · cursor-agent"
+      }
+    ],
+    "context": {
+      "count": 1,
+      "files": [
+        {
+          "path": "~/.agents/skills/house-greeting/SKILL.md",
+          "sha256": "e09034ea26b758dfaaf86fd3fa328bad2ac5195ba099d519a3b1dfe0c8764aa7"
+        }
+      ]
+    },
+    "artifacts": "evidence",
+    "record": "../20261127T123011Z_b479de5_cursor-agent_nmb3.json",
+    "warnings": [
+      "Image reeval-sandbox:cursor-0.1.9 isn't pushed, so an exact rerun needs this machine's image (id ca9cdeb96dd1)."
+    ]
+  },
+  "attempts": [
+    {
+      "id": "A1",
+      "key": "cases#Ada # fake/plain/docker#1",
+      "evalId": "cases",
+      "harness": "fake",
+      "arm": "plain",
+      "case": "Ada",
+      "outcome": "fail",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 614,
+        "text": "614ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "facts": {
+        "toolCalls": 1,
+        "byClass": {
+          "context": 0,
+          "dependency": 0,
+          "web": 0,
+          "verify": 0,
+          "workspace": 1
+        },
+        "skills": [],
+        "contextFiles": []
+      },
+      "score": 0,
+      "grades": [
+        {
+          "grader": "succeeded:grep -q Ahoy greet.js",
+          "kind": "builtin",
+          "score": 0,
+          "weight": 1,
+          "required": false,
+          "grade": "1",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 2,
+        "added": 2,
+        "removed": 0,
+        "text": "2 files, +2 / -0"
+      },
+      "links": {
+        "trajectory": "./cases-ada-756e9f/fake-plain-docker-98d88a/1/trajectory.jsonl",
+        "diff": "./cases-ada-756e9f/fake-plain-docker-98d88a/1/diff.patch",
+        "captures": [],
+        "questions": []
+      },
+      "href": "./cases-ada-756e9f/fake-plain-docker-98d88a/1/trajectory.jsonl"
+    },
+    {
+      "id": "A2",
+      "key": "cases#Ada # fake/with-house-greeting/docker#1",
+      "evalId": "cases",
+      "harness": "fake",
+      "arm": "with-house-greeting",
+      "case": "Ada",
+      "outcome": "pass",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 248,
+        "text": "248ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "facts": {
+        "toolCalls": 1,
+        "byClass": {
+          "context": 0,
+          "dependency": 0,
+          "web": 0,
+          "verify": 0,
+          "workspace": 1
+        },
+        "skills": [],
+        "contextFiles": []
+      },
+      "score": 1,
+      "grades": [
+        {
+          "grader": "succeeded:grep -q Ahoy greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "0",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 1,
+        "added": 1,
+        "removed": 0,
+        "text": "1 files, +1 / -0"
+      },
+      "links": {
+        "trajectory": "./cases-ada-756e9f/fake-with-house-greeting-docker-a9116f/1/trajectory.jsonl",
+        "diff": "./cases-ada-756e9f/fake-with-house-greeting-docker-a9116f/1/diff.patch",
+        "captures": [],
+        "questions": []
+      },
+      "href": "./cases-ada-756e9f/fake-with-house-greeting-docker-a9116f/1/trajectory.jsonl"
+    },
+    {
+      "id": "A3",
+      "key": "cases#Grace # fake/plain/docker#1",
+      "evalId": "cases",
+      "harness": "fake",
+      "arm": "plain",
+      "case": "Grace",
+      "outcome": "fail",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 717,
+        "text": "717ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "facts": {
+        "toolCalls": 1,
+        "byClass": {
+          "context": 0,
+          "dependency": 0,
+          "web": 0,
+          "verify": 0,
+          "workspace": 1
+        },
+        "skills": [],
+        "contextFiles": []
+      },
+      "score": 0,
+      "grades": [
+        {
+          "grader": "succeeded:grep -q Ahoy greet.js",
+          "kind": "builtin",
+          "score": 0,
+          "weight": 1,
+          "required": false,
+          "grade": "1",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 2,
+        "added": 2,
+        "removed": 0,
+        "text": "2 files, +2 / -0"
+      },
+      "links": {
+        "trajectory": "./cases-grace-113891/fake-plain-docker-98d88a/1/trajectory.jsonl",
+        "diff": "./cases-grace-113891/fake-plain-docker-98d88a/1/diff.patch",
+        "captures": [],
+        "questions": []
+      },
+      "href": "./cases-grace-113891/fake-plain-docker-98d88a/1/trajectory.jsonl"
+    },
+    {
+      "id": "A4",
+      "key": "cases#Grace # fake/with-house-greeting/docker#1",
+      "evalId": "cases",
+      "harness": "fake",
+      "arm": "with-house-greeting",
+      "case": "Grace",
+      "outcome": "pass",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 276,
+        "text": "276ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "facts": {
+        "toolCalls": 1,
+        "byClass": {
+          "context": 0,
+          "dependency": 0,
+          "web": 0,
+          "verify": 0,
+          "workspace": 1
+        },
+        "skills": [],
+        "contextFiles": []
+      },
+      "score": 1,
+      "grades": [
+        {
+          "grader": "succeeded:grep -q Ahoy greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "0",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 1,
+        "added": 1,
+        "removed": 0,
+        "text": "1 files, +1 / -0"
+      },
+      "links": {
+        "trajectory": "./cases-grace-113891/fake-with-house-greeting-docker-a9116f/1/trajectory.jsonl",
+        "diff": "./cases-grace-113891/fake-with-house-greeting-docker-a9116f/1/diff.patch",
+        "captures": [],
+        "questions": []
+      },
+      "href": "./cases-grace-113891/fake-with-house-greeting-docker-a9116f/1/trajectory.jsonl"
+    },
+    {
+      "id": "A5",
+      "key": "fails-a-grader-and-a-judge # fake/fake/fake#1",
+      "evalId": "fails-a-grader-and-a-judge",
+      "harness": "fake",
+      "arm": "fake",
+      "case": null,
+      "outcome": "fail",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 13,
+        "text": "13ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "facts": {
+        "toolCalls": 1,
+        "byClass": {
+          "context": 0,
+          "dependency": 0,
+          "web": 0,
+          "verify": 0,
+          "workspace": 1
+        },
+        "skills": [],
+        "contextFiles": []
+      },
+      "score": 0.5,
+      "grades": [
+        {
+          "grader": "succeeded:grep -q Bonjour greet.js",
+          "kind": "builtin",
+          "score": 0,
+          "weight": 1,
+          "required": false,
+          "grade": "1",
+          "error": null
+        },
+        {
+          "grader": "perfect",
+          "kind": "judge",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 2,
+        "added": 2,
+        "removed": 0,
+        "text": "2 files, +2 / -0"
+      },
+      "links": {
+        "trajectory": "./fails-a-grader-and-a-judge-2e648e/fake-fake-fake-dc13e2/1/trajectory.jsonl",
+        "diff": "./fails-a-grader-and-a-judge-2e648e/fake-fake-fake-dc13e2/1/diff.patch",
+        "captures": [],
+        "questions": []
+      },
+      "href": "./fails-a-grader-and-a-judge-2e648e/fake-fake-fake-dc13e2/1/trajectory.jsonl"
+    },
+    {
+      "id": "A6",
+      "key": "never-starts # broken/fake/fake#1",
+      "evalId": "never-starts",
+      "harness": "broken",
+      "arm": "fake",
+      "case": null,
+      "outcome": "infra_error",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 0,
+        "text": "0ms"
+      },
+      "toolCalls": {
+        "value": 0,
+        "text": "0"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "diff": null,
+      "links": {
+        "trajectory": null,
+        "diff": null,
+        "captures": [],
+        "questions": []
+      },
+      "href": "#attempt-never-starts-broken-fake-fake-1-f473d78e"
+    },
+    {
+      "id": "A7",
+      "key": "skill # fake/plain/docker#1",
+      "evalId": "skill",
+      "harness": "fake",
+      "arm": "plain",
+      "case": null,
+      "outcome": "pass",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 667,
+        "text": "667ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "score": 1,
+      "grades": [
+        {
+          "grader": "writes-greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        },
+        {
+          "grader": "has-file:greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 2,
+        "added": 2,
+        "removed": 0,
+        "text": "2 files, +2 / -0"
+      },
+      "links": {
+        "trajectory": null,
+        "diff": "./skill-9c53c0/fake-plain-docker-98d88a/1/diff.patch",
+        "captures": [],
+        "questions": [
+          "./skill-9c53c0/fake-plain-docker-98d88a/1/questions/3.json",
+          "./skill-9c53c0/fake-plain-docker-98d88a/1/questions/4.json"
+        ]
+      },
+      "href": "./skill-9c53c0/fake-plain-docker-98d88a/1/diff.patch"
+    },
+    {
+      "id": "A8",
+      "key": "skill # fake/with-house-greeting/docker#1",
+      "evalId": "skill",
+      "harness": "fake",
+      "arm": "with-house-greeting",
+      "case": null,
+      "outcome": "pass",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 353,
+        "text": "353ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "score": 1,
+      "grades": [
+        {
+          "grader": "writes-greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        },
+        {
+          "grader": "has-file:greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 1,
+        "added": 1,
+        "removed": 0,
+        "text": "1 files, +1 / -0"
+      },
+      "links": {
+        "trajectory": null,
+        "diff": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/1/diff.patch",
+        "captures": [],
+        "questions": [
+          "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/1/questions/3.json",
+          "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/1/questions/4.json"
+        ]
+      },
+      "href": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/1/diff.patch"
+    },
+    {
+      "id": "A9",
+      "key": "skill # fake/plain/docker#2",
+      "evalId": "skill",
+      "harness": "fake",
+      "arm": "plain",
+      "case": null,
+      "outcome": "pass",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 568,
+        "text": "568ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "score": 1,
+      "grades": [
+        {
+          "grader": "writes-greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        },
+        {
+          "grader": "has-file:greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 2,
+        "added": 2,
+        "removed": 0,
+        "text": "2 files, +2 / -0"
+      },
+      "links": {
+        "trajectory": null,
+        "diff": "./skill-9c53c0/fake-plain-docker-98d88a/2/diff.patch",
+        "captures": [],
+        "questions": [
+          "./skill-9c53c0/fake-plain-docker-98d88a/2/questions/3.json",
+          "./skill-9c53c0/fake-plain-docker-98d88a/2/questions/4.json"
+        ]
+      },
+      "href": "./skill-9c53c0/fake-plain-docker-98d88a/2/diff.patch"
+    },
+    {
+      "id": "A10",
+      "key": "skill # fake/with-house-greeting/docker#2",
+      "evalId": "skill",
+      "harness": "fake",
+      "arm": "with-house-greeting",
+      "case": null,
+      "outcome": "pass",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 346,
+        "text": "346ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "score": 1,
+      "grades": [
+        {
+          "grader": "writes-greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        },
+        {
+          "grader": "has-file:greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 1,
+        "added": 1,
+        "removed": 0,
+        "text": "1 files, +1 / -0"
+      },
+      "links": {
+        "trajectory": null,
+        "diff": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/2/diff.patch",
+        "captures": [],
+        "questions": [
+          "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/2/questions/3.json",
+          "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/2/questions/4.json"
+        ]
+      },
+      "href": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/2/diff.patch"
+    },
+    {
+      "id": "A11",
+      "key": "writes-greet-js # fake/fake/fake#1",
+      "evalId": "writes-greet-js",
+      "harness": "fake",
+      "arm": "fake",
+      "case": null,
+      "outcome": "pass",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 13,
+        "text": "13ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "score": 1,
+      "grades": [
+        {
+          "grader": "has-file:greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": true,
+          "grade": "true",
+          "error": null
+        },
+        {
+          "grader": "exports-greet",
+          "kind": "judge",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 2,
+        "added": 2,
+        "removed": 0,
+        "text": "2 files, +2 / -0"
+      },
+      "links": {
+        "trajectory": null,
+        "diff": "./writes-greet-js-b165c7/fake-fake-fake-dc13e2/1/diff.patch",
+        "captures": [],
+        "questions": []
+      },
+      "href": "./writes-greet-js-b165c7/fake-fake-fake-dc13e2/1/diff.patch"
+    },
+    {
+      "id": "A12",
+      "key": "skill # fake/plain/docker#3",
+      "evalId": "skill",
+      "harness": "fake",
+      "arm": "plain",
+      "case": null,
+      "outcome": "pass",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 556,
+        "text": "556ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "score": 1,
+      "grades": [
+        {
+          "grader": "writes-greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        },
+        {
+          "grader": "has-file:greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 2,
+        "added": 2,
+        "removed": 0,
+        "text": "2 files, +2 / -0"
+      },
+      "links": {
+        "trajectory": null,
+        "diff": "./skill-9c53c0/fake-plain-docker-98d88a/3/diff.patch",
+        "captures": [],
+        "questions": [
+          "./skill-9c53c0/fake-plain-docker-98d88a/3/questions/3.json",
+          "./skill-9c53c0/fake-plain-docker-98d88a/3/questions/4.json"
+        ]
+      },
+      "href": "./skill-9c53c0/fake-plain-docker-98d88a/3/diff.patch"
+    },
+    {
+      "id": "A13",
+      "key": "skill # fake/with-house-greeting/docker#3",
+      "evalId": "skill",
+      "harness": "fake",
+      "arm": "with-house-greeting",
+      "case": null,
+      "outcome": "pass",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 263,
+        "text": "263ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "score": 1,
+      "grades": [
+        {
+          "grader": "writes-greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        },
+        {
+          "grader": "has-file:greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 1,
+        "added": 1,
+        "removed": 0,
+        "text": "1 files, +1 / -0"
+      },
+      "links": {
+        "trajectory": null,
+        "diff": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/3/diff.patch",
+        "captures": [],
+        "questions": [
+          "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/3/questions/3.json",
+          "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/3/questions/4.json"
+        ]
+      },
+      "href": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/3/diff.patch"
+    },
+    {
+      "id": "A14",
+      "key": "skill # fake/plain/docker#4",
+      "evalId": "skill",
+      "harness": "fake",
+      "arm": "plain",
+      "case": null,
+      "outcome": "pass",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 531,
+        "text": "531ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "score": 1,
+      "grades": [
+        {
+          "grader": "writes-greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        },
+        {
+          "grader": "has-file:greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 2,
+        "added": 2,
+        "removed": 0,
+        "text": "2 files, +2 / -0"
+      },
+      "links": {
+        "trajectory": null,
+        "diff": "./skill-9c53c0/fake-plain-docker-98d88a/4/diff.patch",
+        "captures": [],
+        "questions": [
+          "./skill-9c53c0/fake-plain-docker-98d88a/4/questions/3.json",
+          "./skill-9c53c0/fake-plain-docker-98d88a/4/questions/4.json"
+        ]
+      },
+      "href": "./skill-9c53c0/fake-plain-docker-98d88a/4/diff.patch"
+    },
+    {
+      "id": "A15",
+      "key": "skill # fake/with-house-greeting/docker#4",
+      "evalId": "skill",
+      "harness": "fake",
+      "arm": "with-house-greeting",
+      "case": null,
+      "outcome": "pass",
+      "reclassified": false,
+      "turnError": null,
+      "tokens": {
+        "value": null,
+        "text": "not reported"
+      },
+      "agentMs": {
+        "value": 215,
+        "text": "215ms"
+      },
+      "toolCalls": {
+        "value": 1,
+        "text": "1"
+      },
+      "llmCalls": {
+        "value": null,
+        "text": "not reported"
+      },
+      "score": 1,
+      "grades": [
+        {
+          "grader": "writes-greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        },
+        {
+          "grader": "has-file:greet.js",
+          "kind": "builtin",
+          "score": 1,
+          "weight": 1,
+          "required": false,
+          "grade": "true",
+          "error": null
+        }
+      ],
+      "diff": {
+        "files": 1,
+        "added": 1,
+        "removed": 0,
+        "text": "1 files, +1 / -0"
+      },
+      "links": {
+        "trajectory": null,
+        "diff": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/4/diff.patch",
+        "captures": [],
+        "questions": [
+          "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/4/questions/3.json",
+          "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/4/questions/4.json"
+        ]
+      },
+      "href": "./skill-9c53c0/fake-with-house-greeting-docker-a9116f/4/diff.patch"
+    }
+  ]
+}

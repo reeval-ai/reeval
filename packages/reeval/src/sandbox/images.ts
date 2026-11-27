@@ -1,4 +1,4 @@
-// `reeval image build`: every image the planned attempts' Docker sandboxes need, built or listed,
+// `reeval image build`: every image the planned trials' Docker sandboxes need, built or listed,
 // and the images their `tart()` sandboxes clone, pulled.
 import {
   type BakedHarness,
@@ -27,7 +27,7 @@ import { buildSteps, pluginBuildId, pluginBuildsLabel, pluginCall } from '../env
 import { placedSandbox } from '../environment.ts'
 import { sandboxId, sandboxProvider } from '../options.ts'
 import type {
-  AttemptImage,
+  TrialImage,
   DockerSandboxDescriptor,
   HarnessDescriptor,
   PlannedEgress,
@@ -43,7 +43,7 @@ import { prepareAll } from './preflight.ts'
 import { imageHarness, pluginBuildSpec, projectPath, usesReevalBase } from './prepare.ts'
 import type { PrepareFailure } from './provider.ts'
 import {
-  attemptImage,
+  trialImage,
   bakedImage,
   classifyTart,
   createProviders,
@@ -80,13 +80,13 @@ export type ImageUse = {
 
 /**
  * What `reeval image build` builds and `reeval doctor` checks: the harness and sandbox of each
- * attempt the evals plan (collected as `--dry-run` does), or the config's harnesses on its sandbox
+ * trial the evals plan (collected as `--dry-run` does), or the config's harnesses on its sandbox
  * when they plan none.
  */
 export async function plannedImageUses(
   run: Pick<
     RunContext,
-    'runId' | 'stagingDir' | 'config' | 'runs' | 'tags' | 'concurrency' | 'profile'
+    'runId' | 'stagingDir' | 'config' | 'trials' | 'tags' | 'concurrency' | 'profile'
   >,
   filters: string[] = [],
   unmatched?: (parts: string[]) => Error,
@@ -98,18 +98,18 @@ export async function plannedImageUses(
     filters,
     onPlan: async (collected) => {
       if (unmatched && collected.unmatched.length) throw unmatched(collected.unmatched)
-      planned = collected.planned.filter((p) => !p.attempt.plan.skip)
+      planned = collected.planned.filter((p) => !p.trial.plan.skip)
       return false
     },
   })
   return planned.length
     ? planned.map((p) => ({
-        id: p.attempt.family?.id ?? p.id,
-        harness: p.attempt.harness,
-        sandbox: p.attempt.sandbox,
-        plugins: p.attempt.pluginBuilds ?? [],
-        environment: p.attempt.cell.environment,
-        egress: p.attempt.egress,
+        id: p.trial.family?.id ?? p.id,
+        harness: p.trial.harness,
+        sandbox: p.trial.sandbox,
+        plugins: p.trial.pluginBuilds ?? [],
+        environment: p.trial.cell.environment,
+        egress: p.trial.egress,
       }))
     : run.config.harness.map((harness) => ({
         id: '',
@@ -475,7 +475,7 @@ export async function imageStatusLines(targets: ImageTarget[], root: string): Pr
 
 export type BuiltImage = ImageTarget &
   (
-    | { ok: true; image: AttemptImage; ms: number }
+    | { ok: true; image: TrialImage; ms: number }
     | { ok: false; failure: PrepareFailure; ms: number }
   )
 
@@ -520,7 +520,7 @@ export async function buildImages(
   return targets.map((t, i) => {
     const o = outcomes[i] as (typeof outcomes)[number]
     return o.ok
-      ? { ...t, ok: true, image: attemptImage(o.handle), ms: o.ms }
+      ? { ...t, ok: true, image: trialImage(o.handle), ms: o.ms }
       : { ...t, ok: false, failure: o.failure, ms: o.ms }
   })
 }

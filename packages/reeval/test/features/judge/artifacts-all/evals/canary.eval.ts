@@ -9,7 +9,7 @@ const files = (state: unknown) =>
     (p) => p.type === 'file',
   )
 
-// Must fail: artifacts: true sends only the captures the attempt took, and this one took one.
+// Must fail: artifacts: true sends only the captures the trial took, and this one took one.
 export default defineEval({
   environment: ui,
   graders: [

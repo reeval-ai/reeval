@@ -66,7 +66,7 @@ def test_a_nan_or_infinity_fails_the_call_that_passed_it(host: Host, body: str, 
 
 
 def test_a_nan_in_a_declaration_is_a_load_error(tmp_path: Path) -> None:
-    source = 'from reeval_python import evaluate\n\n@evaluate("x", {"attempts": float("nan")})\n'
+    source = 'from reeval_python import evaluate\n\n@evaluate("x", {"trials": float("nan")})\n'
     source += "async def x(c):\n    pass\n"
     h = Host(tmp_path, source, collect=False)
     try:

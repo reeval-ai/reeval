@@ -1,5 +1,5 @@
 // The AI SDK calls reeval makes with images (a capture's journey, a judge given captures) send
-// nothing it reports as deprecated, which it would print to the attempt's stderr.
+// nothing it reports as deprecated, which it would print to the trial's stderr.
 import assert from 'node:assert/strict'
 import { after, test } from 'node:test'
 import { generateText } from 'ai'

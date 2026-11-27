@@ -30,7 +30,7 @@ export type ArchiveManifest = {
   /** When it was written, ISO 8601. */
   createdAt: string
   /**
-   * Of a `debug` archive: which of each attempt's debug files it holds, as `history.debug` names
+   * Of a `debug` archive: which of each trial's debug files it holds, as `history.debug` names
    * them. A level a newer reeval added reads back as written.
    */
   debugLevel?: 'requests' | 'all'

@@ -4,7 +4,7 @@ import { printsOut } from './graders.ts'
 
 // The inputs pick the parts: the last turn's reply and one check's result, no diff and no first turn.
 export default defineEval({
-  compare: { control: baseline, variants: [variant] },
+  compare: { baseline: baseline, variants: [variant] },
   graders: [printsOut('hi\n')],
   questions: [
     {

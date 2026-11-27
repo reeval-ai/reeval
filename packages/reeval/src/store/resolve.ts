@@ -1,5 +1,5 @@
 // `history` and a profile's `history` checked and resolved: which store, the folder every history
-// command reads, and which attempts keep their artifacts. A remote store's folder is its copy in
+// command reads, and which trials keep their artifacts. A remote store's folder is its copy in
 // `.reeval/store/<id>/history`, laid out as a history folder, so every reader stays one of files.
 import { join, resolve } from 'node:path'
 import { closest, oneOf } from '../contract/shared.ts'

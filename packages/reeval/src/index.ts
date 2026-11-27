@@ -29,7 +29,7 @@ export type {
   JudgeSpec,
 } from './grade/types.ts'
 export type {
-  AttemptRecord,
+  TrialRecord,
   CellRecord,
   EvalEntry,
   ExecLine,
@@ -40,9 +40,9 @@ export type { ShellCommand } from './shell-commands.ts'
 export { shellCommands } from './shell-commands.ts'
 export { capability, regression } from './target.ts'
 export type {
-  AttemptAnswer,
-  AttemptContext,
-  AttemptFailure,
+  TrialAnswer,
+  TrialContext,
+  TrialFailure,
   BackgroundHandle,
   Budget,
   Capture,

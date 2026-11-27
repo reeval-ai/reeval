@@ -74,7 +74,7 @@ export const PLUGIN_ROOT_VAR = 'CLAUDE_PLUGIN_ROOT'
 // biome-ignore lint/suspicious/noTemplateCurlyInString: how a plugin writes the variable
 export const PLUGIN_ROOT = '${CLAUDE_PLUGIN_ROOT}'
 
-/** A plugin's content that reeval can't place, in words for the plan or the attempt. */
+/** A plugin's content that reeval can't place, in words for the plan or the trial. */
 export class PluginProblem extends Error {
   override name = 'PluginProblem'
 }
@@ -662,7 +662,7 @@ const read = new Map<string, PluginContents | PluginProblem>()
 
 /**
  * A local plugin as the plan reads it, once per process: its contents, or the problem with it.
- * Git and npm plugins aren't fetched until an attempt, so the plan has nothing for them.
+ * Git and npm plugins aren't fetched until a trial, so the plan has nothing for them.
  */
 export function localPlugin(
   p: PluginSource,
@@ -733,7 +733,7 @@ export function buildSteps(build: PluginBuild): { run: string[]; cwd: string | n
   return { run: typeof run === 'string' ? [run] : [...run], cwd: cwd ?? null }
 }
 
-/** The layered plugins with a build: what preflight builds into the attempt's image, in order. */
+/** The layered plugins with a build: what preflight builds into the trial's image, in order. */
 export const builtPlugins = (layers: readonly EnvironmentLayer[]): PluginSource[] =>
   layeredPlugins(layers).filter((p) => p.build !== undefined)
 
@@ -755,7 +755,7 @@ export function buildRefusal(
 export const pluginBuildsLabel = (plugins: readonly unknown[] = []) =>
   plugins.length ? ` + ${plugins.length} plugin build${plugins.length === 1 ? '' : 's'}` : ''
 
-/** Names one plugin build the same way in preflight and in the attempt that places it. */
+/** Names one plugin build the same way in preflight and in the trial that places it. */
 export const pluginBuildId = (p: PluginSource) => sha256(JSON.stringify(p)).slice(0, 16)
 
 /** The paths in a plugin's directory that hold the parts `kept` leaves out. */
@@ -800,7 +800,7 @@ export function skillCall(s: SkillSource, root?: string): string {
 
 /**
  * The names of the harness-placed skills the plan can read without fetching (local and inline
- * ones), layered, with the call that places each; `loadSkills` reads them properly at the attempt.
+ * ones), layered, with the call that places each; `loadSkills` reads them properly at the trial.
  */
 export function localSkills(
   layers: readonly EnvironmentLayer[],

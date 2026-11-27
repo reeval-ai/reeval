@@ -156,7 +156,7 @@ export function closestBranch(issue: Issue): Issue {
 
 /**
  * reeval's sentence for what `schema` refuses in data a runner in another language sent, naming
- * the field by its path in `what` ("The declaration tree", "The attempt request"), or undefined.
+ * the field by its path in `what` ("The declaration tree", "The trial request"), or undefined.
  * An unknown key comes first, since it's usually a typo of a missing one; `keysAt` gives the keys
  * the object holding it takes, for "Did you mean".
  */

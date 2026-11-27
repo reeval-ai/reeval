@@ -15,7 +15,7 @@ import { defineGrader, type GraderDef, graderDef } from '../src/grade/define.ts'
 import { judge } from '../src/grade/judge-grader.ts'
 import { runGraders } from '../src/grade/run.ts'
 import type { Grader } from '../src/grade/types.ts'
-import { keptFiles } from '../src/history/stored-attempt.ts'
+import { keptFiles } from '../src/history/stored-trial.ts'
 import { sha256 } from '../src/ids.ts'
 import { askJudge } from '../src/judge/index.ts'
 import { fakeJudge } from '../src/judge.ts'
@@ -25,8 +25,8 @@ import { tempDir } from './helpers.ts'
 
 const SECRET = `ghp_${'a1B2'.repeat(9)}`
 
-/** An attempt that wrote `files`, and every state the judge was asked about. */
-function attempt(files: Record<string, string> = {}, model?: JudgeModel) {
+/** A trial that wrote `files`, and every state the judge was asked about. */
+function trial(files: Record<string, string> = {}, model?: JudgeModel) {
   const entries = Object.entries(files).sort(([a], [b]) => (a < b ? -1 : 1))
   const manifest = {
     schemaVersion: 1 as const,
@@ -104,7 +104,7 @@ async function grade(g: Grader, inputs: GradeInputs): Promise<GradeRecord> {
 
 describe('a judge grader', () => {
   test('grades a yes/no question with the answer, and yes scores 1', async () => {
-    const { inputs, asked } = attempt({ 'src/app.js': 'export const answer = 42\n' })
+    const { inputs, asked } = trial({ 'src/app.js': 'export const answer = 42\n' })
     const g = judge('Is it right?', {
       inputs: { contents: ['src/**'] },
       model: fakeJudge({ score: 0.8 }),
@@ -124,8 +124,8 @@ describe('a judge grader', () => {
     assert.deepEqual([no.grade, no.score], [false, 0])
   })
 
-  test("shows the judge the stored attempt, masked, with the eval's model", async () => {
-    const { inputs, asked } = attempt({}, fakeJudge())
+  test("shows the judge the stored trial, masked, with the eval's model", async () => {
+    const { inputs, asked } = trial({}, fakeJudge())
     const r = await grade(
       defineGrader('all', {
         judge: {
@@ -146,23 +146,23 @@ describe('a judge grader', () => {
   })
 
   test('errors naming the fix when nothing gives it a model', async () => {
-    const { inputs } = attempt()
+    const { inputs } = trial()
     const r = await grade(judge('Q?', { inputs: { output: true } }), inputs)
     assert.match(r.error ?? '', /^judge grader judge:Q\? has no model\. Set judge: \{ model:/)
     assert.equal(r.score, 0)
   })
 
-  test('errors when it names an observation the attempt never made', async () => {
-    const { inputs } = attempt()
+  test('errors when it names an observation the trial never made', async () => {
+    const { inputs } = trial()
     const r = await grade(
       judge('Q?', { inputs: { observations: ['nope'] }, model: fakeJudge() }),
       inputs,
     )
-    assert.match(r.error ?? '', /observations names a value this attempt didn't observe: "nope"/)
+    assert.match(r.error ?? '', /observations names a value this trial didn't observe: "nope"/)
   })
 
   test('answers one of its answers per model, scored by the mean of its score map', async () => {
-    const { inputs } = attempt()
+    const { inputs } = trial()
     const g = judge('How readable?', {
       answers: ['good', 'okay', 'poor'],
       score: { good: 1, okay: 0.5, poor: 0 },
@@ -175,7 +175,7 @@ describe('a judge grader', () => {
   })
 
   test('records answers with no score map unscored', async () => {
-    const { inputs } = attempt()
+    const { inputs } = trial()
     const r = await grade(
       judge('Tone?', {
         answers: ['terse', 'chatty'],
@@ -190,7 +190,7 @@ describe('a judge grader', () => {
   })
 
   test("errors when the judge's answer isn't one of its answers", async () => {
-    const { inputs } = attempt()
+    const { inputs } = trial()
     const r = await grade(
       judge('Tone?', {
         answers: ['terse', 'chatty'],
@@ -203,7 +203,7 @@ describe('a judge grader', () => {
   })
 
   test('errors when any of its models fails, naming it', async () => {
-    const { inputs } = attempt()
+    const { inputs } = trial()
     inputs.judge = { ask: async () => Promise.reject(new Error(`401 for key ${SECRET}`)) }
     const r = await grade(
       judge('Q?', { inputs: { output: true }, models: ['openai/gpt-6', 'google/gemini-4'] }),
@@ -214,7 +214,7 @@ describe('a judge grader', () => {
   })
 
   test("keeps the other models' calls when one fails", async () => {
-    const { inputs } = attempt()
+    const { inputs } = trial()
     const usage = { inputTokens: 10, outputTokens: 2 } as never
     inputs.judge = {
       ask: async (_q, _a, _s, model) =>
@@ -237,7 +237,7 @@ describe('a judge grader', () => {
 describe("a judge grader's failed call", () => {
   const url = 'https://api.example.test/v1/decide'
   const failing = (error: unknown) => {
-    const { inputs } = attempt({}, 'openai/gpt-6')
+    const { inputs } = trial({}, 'openai/gpt-6')
     inputs.judge = { ...inputs.judge, ask: async () => Promise.reject(error) }
     return inputs
   }
@@ -262,13 +262,13 @@ describe("a judge grader's failed call", () => {
     [
       "the AI SDK's retries of a 5xx",
       new RetryError({
-        message: 'Failed after 3 attempts',
+        message: 'Failed after 3 trials',
         reason: 'maxRetriesExceeded',
         errors: [unavailable],
       }),
     ],
   ] as const) {
-    test(`is the attempt's infra error for ${what}, masked`, async () => {
+    test(`is the trial's infra error for ${what}, masked`, async () => {
       await assert.rejects(
         grade(judge('Q?', { name: 'q', inputs: { output: true } }), failing(error)),
         (e: Error) => {
@@ -281,7 +281,7 @@ describe("a judge grader's failed call", () => {
     })
   }
 
-  test("is the attempt's infra error for Vercel AI Gateway's 5xx, and the grade's for its 400", async () => {
+  test("is the trial's infra error for Vercel AI Gateway's 5xx, and the grade's for its 400", async () => {
     const server = createServer((req, res) => {
       req.resume().on('end', () => {
         const status = req.headers.authorization === 'Bearer bad-request' ? 400 : 503
@@ -301,7 +301,7 @@ describe("a judge grader's failed call", () => {
       }) as JudgeModel
     try {
       await assert.rejects(
-        grade(judge('Q?', { name: 'q', inputs: { output: true } }), attempt({}, on('down')).inputs),
+        grade(judge('Q?', { name: 'q', inputs: { output: true } }), trial({}, on('down')).inputs),
         (e: Error) =>
           e instanceof InfraError &&
           /^The judge's provider failed judge grader q on gateway\/typesafe-ai\/jev-1\.14\.0: /.test(
@@ -310,7 +310,7 @@ describe("a judge grader's failed call", () => {
       )
       const r = await grade(
         judge('Q?', { inputs: { output: true } }),
-        attempt({}, on('bad-request')).inputs,
+        trial({}, on('bad-request')).inputs,
       )
       assert.equal(r.score, 0)
       assert.match(r.error ?? '', /status 400/)
@@ -334,8 +334,8 @@ describe("a judge grader's failed call", () => {
     )
   })
 
-  test("is the attempt's infra error when the judge times out", async () => {
-    const { inputs } = attempt({}, 'openai/gpt-6')
+  test("is the trial's infra error when the judge times out", async () => {
+    const { inputs } = trial({}, 'openai/gpt-6')
     inputs.judge = {
       ...inputs.judge,
       ask: (_q, _a, _s, _m, signal) =>
@@ -394,7 +394,7 @@ describe("a judge grader's reference", () => {
   const files = { 'src/app.js': 'export const answer = 42\n' }
 
   test('shows text or a file whole, masked', async () => {
-    const { inputs, asked } = attempt(files)
+    const { inputs, asked } = trial(files)
     await grade(
       defineGrader('notes', ({ file }) => ({
         judge: {
@@ -416,7 +416,7 @@ describe("a judge grader's reference", () => {
   })
 
   test('keys a file by its path from the grader, not its basename', async () => {
-    const { inputs, asked } = attempt(files)
+    const { inputs, asked } = trial(files)
     await grade(
       judge('Q?', ({ file }) => ({
         inputs: { reference: 'whole' },
@@ -430,8 +430,8 @@ describe("a judge grader's reference", () => {
     ])
   })
 
-  test("diffs each file against the attempt's, per case", async () => {
-    const { inputs, asked } = attempt(files)
+  test("diffs each file against the trial's, per case", async () => {
+    const { inputs, asked } = trial(files)
     const g = defineGrader<{ solution: string }>('matches', ({ directory }) => ({
       judge: {
         question: 'Does it match?',
@@ -461,8 +461,8 @@ describe("a judge grader's reference", () => {
     assert.notEqual(other.fingerprint.digest, same.fingerprint.digest)
   })
 
-  test("names a reference file missing from the attempt's workspace", async () => {
-    const { inputs, asked } = attempt({})
+  test("names a reference file missing from the trial's workspace", async () => {
+    const { inputs, asked } = trial({})
     await grade(
       judge('Q?', {
         inputs: { reference: 'diff' },
@@ -472,12 +472,12 @@ describe("a judge grader's reference", () => {
       inputs,
     )
     assert.deepEqual(JSON.parse(asked[0]?.state ?? '{}').reference, {
-      'src/app.js': "[reeval: not in the attempt's workspace]",
+      'src/app.js': "[reeval: not in the trial's workspace]",
     })
   })
 
   test("errors when a case's reference directory doesn't exist", async () => {
-    const { inputs } = attempt(files)
+    const { inputs } = trial(files)
     inputs.case = { key: 'gone', solution: 'gone' } as GradeInputs['case']
     const r = await grade(
       defineGrader<{ solution: string }>('matches', ({ directory }) => ({
@@ -495,7 +495,7 @@ describe("a judge grader's reference", () => {
   })
 
   test('digests text by its content', async () => {
-    const { inputs } = attempt()
+    const { inputs } = trial()
     const g = (text: string) =>
       judge('Q?', { inputs: { reference: 'whole' }, reference: text, model: fakeJudge() })
     const [a, b, c] = [
@@ -512,7 +512,7 @@ describe("a judge grader's reference", () => {
 describe("a judge grader's fingerprint", () => {
   const spec = { question: 'Q?', inputs: { diff: true }, model: fakeJudge() }
   test('is its question, answers, inputs and models, not its score or weight', async () => {
-    const { inputs } = attempt()
+    const { inputs } = trial()
     const base = await grade(defineGrader('g', { judge: spec }), inputs)
     const weighted = await grade(
       defineGrader('g', { judge: spec, weight: 2, score: { true: 1, false: 0.5 } }),
@@ -525,7 +525,7 @@ describe("a judge grader's fingerprint", () => {
       { ...spec, inputs: { diff: true, output: true } },
       { ...spec, model: 'openai/gpt-6' },
     ]) {
-      const { inputs: again } = attempt()
+      const { inputs: again } = trial()
       again.judge = {
         ask: async (_q, _a, _s, model) => ({
           answer: true,
@@ -539,7 +539,7 @@ describe("a judge grader's fingerprint", () => {
     }
   })
   test('takes the revision', async () => {
-    const { inputs } = attempt()
+    const { inputs } = trial()
     const a = await grade(defineGrader('g', { judge: spec }), inputs)
     const b = await grade(defineGrader('g', { judge: spec, revision: 1 }), inputs)
     assert.equal(b.fingerprint.revision, 1)

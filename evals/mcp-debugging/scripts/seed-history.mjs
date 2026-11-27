@@ -178,7 +178,7 @@ const tasks = {
     commit('update evals (batch 8)')
     runUntilFails()
   },
-  // One failing eval in a run of 82 attempts, after runs where everything passed.
+  // One failing eval in a run of 82 trials, after runs where everything passed.
   'big-record': () => {
     commit('add the module evals')
     run()

@@ -5,7 +5,7 @@ const gemini = defineEnvironment('gemini', ({ secret }) => ({
   env: { GEMINI_API_KEY: secret.fromEnv('GEMINI_API_KEY', { hosts: secret.hosts.gemini }) },
 }))
 
-// The variant is its own environments: it brokers the key the control holds in the clear.
+// The variant is its own environments: it brokers the key the baseline holds in the clear.
 const plain = defineEnvironment('plain', ({ secret }) => ({ env: { API_KEY: secret() } }))
 const brokered = defineEnvironment('brokered', ({ secret }) => ({
   env: {

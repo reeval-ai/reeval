@@ -1,6 +1,6 @@
-// What a planned run should cost: each attempt's tokens from the same eval and cell in recent
-// history, else a typical coding attempt's, plus its judge calls, as a range. Priced at the cost
-// a harness or gateway reported for a past attempt on the same model, else at the list prices
+// What a planned run should cost: each trial's tokens from the same eval and cell in recent
+// history, else a typical coding trial's, plus its judge calls, as a range. Priced at the cost
+// a harness or gateway reported for a past trial on the same model, else at the list prices
 // loaded for the view (prices.ts) with each model call it recorded at its long-prompt tier, else
 // at the cost its record estimated; tokens only without prices. An estimate for deciding whether
 // to run, never a bill: it ignores subscriptions, negotiated prices and retries, and leaves out of
@@ -13,30 +13,30 @@ import type { Cell, HarnessDescriptor, TokenUsage } from './types.ts'
 import { totalTokens } from './usage.ts'
 
 export type Range = { low: number; high: number }
-/** Tokens, and USD where every attempt in it could be priced; `usd` is null otherwise. */
+/** Tokens, and USD where every trial in it could be priced; `usd` is null otherwise. */
 export type CostPart = { tokens: Range; usd: Range | null }
 
-/** Where a cell's agent tokens came from: its own past attempts, a typical attempt, or none. */
+/** Where a cell's agent tokens came from: its own past trials, a typical trial, or none. */
 export type CostBasis = 'history' | 'typical' | 'free'
 
 export type PlanCostCell = {
   eval: string
   cell: string
-  /** The model its attempts are priced as; null for the fake agent. */
+  /** The model its trials are priced as; null for the fake agent. */
   model: string | null
   /** The model its judge calls are priced as; null when it makes none, or for the fake judge. */
   judgeModel: string | null
-  attempts: number
+  trials: number
   basis: CostBasis
-  /** Past attempts whose tokens it's based on, when `basis` is `history`. */
+  /** Past trials whose tokens it's based on, when `basis` is `history`. */
   samples: number
-  /** Over all its attempts. */
+  /** Over all its trials. */
   agent: CostPart
   judge: CostPart
 }
 
 export type PlanCost = {
-  /** Agent and judge tokens over every attempt. */
+  /** Agent and judge tokens over every trial. */
   tokens: Range
   /** USD over the parts with a price; null when none has one, or there are no prices. */
   usd: Range | null
@@ -44,13 +44,13 @@ export type PlanCost = {
   judge: CostPart
   /** Tokens left out of `usd` for want of a price. */
   unpricedTokens: Range
-  /** Planned attempts by where their tokens came from. */
-  attempts: Record<CostBasis, number>
-  /** Recorded runs, and attempts in them, whose tokens fed the estimate. */
+  /** Planned trials by where their tokens came from. */
+  trials: Record<CostBasis, number>
+  /** Recorded runs, and trials in them, whose tokens fed the estimate. */
   pastRuns: number
-  pastAttempts: number
-  /** Those past attempts priced at the cost their record holds rather than at list prices. */
-  recordedAttempts: number
+  pastTrials: number
+  /** Those past trials priced at the cost their record holds rather than at list prices. */
+  recordedTrials: number
   /** Models it couldn't price, and their tokens, which `usd` leaves out. */
   unpriced: { model: string; tokens: Range }[]
   /**
@@ -66,13 +66,13 @@ type Tokens = Pick<TokenUsage, 'input' | 'cacheRead' | 'cacheWrite' | 'output'> 
 }
 
 /**
- * A medium coding attempt re-sends its context on every step, mostly from cache: about 300k
+ * A medium coding trial re-sends its context on every step, mostly from cache: about 300k
  * prompt tokens at the low end and 2M at the high, against a median of about 1M over real ones.
  * The cache is written at least once with the agent's system prompt and tools (about 30k on
  * Claude Code) and then with each step's new context, which where the cache write has its own
- * price (Anthropic's, OpenAI's newer models) is most of a short attempt's cost.
+ * price (Anthropic's, OpenAI's newer models) is most of a short trial's cost.
  */
-export const TYPICAL_ATTEMPT: { low: Tokens; high: Tokens } = {
+export const TYPICAL_TRIAL: { low: Tokens; high: Tokens } = {
   low: { input: 15_000, cacheRead: 255_000, cacheWrite: 30_000, output: 3_000 },
   high: { input: 100_000, cacheRead: 1_750_000, cacheWrite: 150_000, output: 20_000 },
 }
@@ -158,7 +158,7 @@ export function pricerOf(prices: Prices): Pricer | null {
 
 const tokensOf = (t: Tokens) => totalTokens({ reasoning: null, ...t })
 
-/** The model a harness's attempts are billed as; null for the fake agent, which costs nothing. */
+/** The model a harness's trials are billed as; null for the fake agent, which costs nothing. */
 export function harnessModel(h: HarnessDescriptor): string | null {
   if (h.kind === 'fake') return null
   if (h.kind === 'cursor' && h.params?.fast === 'true') return `${h.model}-fast`
@@ -184,7 +184,7 @@ type JudgeSample = { calls: number; models: string[] }
 
 const counted = (outcome: string) => outcome === 'pass' || outcome === 'fail'
 
-/** Past attempts' usage by eval and cell, and by eval and harness, and judge calls by eval. */
+/** Past trials' usage by eval and cell, and by eval and harness, and judge calls by eval. */
 function indexHistory(records: RunRecord[]) {
   const byCell = new Map<string, Sample[]>()
   const byHarness = new Map<string, Sample[]>()
@@ -193,7 +193,7 @@ function indexHistory(records: RunRecord[]) {
     map.set(key, [...(map.get(key) ?? []), value])
   for (const record of records) {
     for (const e of record.evals ?? []) {
-      for (const a of e.attempts ?? []) {
+      for (const a of e.trials ?? []) {
         if (!counted(a.outcome)) continue
         push(judges, e.id, {
           calls: a.judgements?.length ?? 0,
@@ -252,15 +252,15 @@ const mostCommon = (values: string[]) => {
   return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0]
 }
 
-export type CostedAttempt = { id: string; cell: Cell; harness: HarnessDescriptor }
+export type CostedTrial = { id: string; cell: Cell; harness: HarnessDescriptor }
 
 /**
  * The plan's cost. `judgeModel` is the run's judge (`fake` for a fake judge, null for none): an
- * eval with no history is assumed to call it 0 or 1 times an attempt; one with history, as many
- * times as its past attempts did, on the model they used.
+ * eval with no history is assumed to call it 0 or 1 times a trial; one with history, as many
+ * times as its past trials did, on the model they used.
  */
 export function planCost(
-  attempts: CostedAttempt[],
+  trials: CostedTrial[],
   records: RunRecord[],
   judgeModel: string | null,
   prices: Prices,
@@ -299,7 +299,7 @@ export function planCost(
       model,
     }
   }
-  for (const { id, cell, harness } of attempts) {
+  for (const { id, cell, harness } of trials) {
     const key = `${id}\0${cell.key}`
     let c = cells.get(key)
     if (!c) {
@@ -327,7 +327,7 @@ export function planCost(
         if (usd) for (const id of own) recorded.add(id)
         agent = { tokens: rangeOf(samples.map((s) => totalTokens(s.usage))), usd }
       } else if (basis === 'typical') {
-        const { low, high } = TYPICAL_ATTEMPT
+        const { low, high } = TYPICAL_TRIAL
         agent = {
           tokens: { low: tokensOf(low), high: tokensOf(high) },
           usd: price && { low: usdOf(low, price), high: usdOf(high, price) },
@@ -339,7 +339,7 @@ export function planCost(
         cell: cell.key,
         model,
         judgeModel: judge.model,
-        attempts: 0,
+        trials: 0,
         basis,
         samples: basis === 'history' ? (samples?.length ?? 0) : 0,
         agent,
@@ -347,12 +347,12 @@ export function planCost(
       }
       cells.set(key, c)
     }
-    c.attempts++
+    c.trials++
   }
   const list = [...cells.values()].map((c) => ({
     ...c,
-    agent: scalePart(c.agent, c.attempts),
-    judge: scalePart(c.judge, c.attempts),
+    agent: scalePart(c.agent, c.trials),
+    judge: scalePart(c.judge, c.trials),
   }))
   const sum = (part: (c: PlanCostCell) => CostPart): CostPart => ({
     tokens: list.reduce((t, c) => add(t, part(c).tokens), ZERO),
@@ -375,7 +375,7 @@ export function planCost(
     leftOut(c.judgeModel, c.judge)
   }
   const tally: Record<CostBasis, number> = { history: 0, typical: 0, free: 0 }
-  for (const c of list) tally[c.basis] += c.attempts
+  for (const c of list) tally[c.basis] += c.trials
   const usd = addOrNull(agent.usd, judge.usd)
   return {
     tokens: round(add(agent.tokens, judge.tokens), 0) as Range,
@@ -383,10 +383,10 @@ export function planCost(
     agent: roundPart(agent),
     judge: roundPart(judge),
     unpricedTokens: round(unpricedTokens, 0) as Range,
-    attempts: tally,
+    trials: tally,
     pastRuns: new Set(used.values()).size,
-    pastAttempts: used.size,
-    recordedAttempts: recorded.size,
+    pastTrials: used.size,
+    recordedTrials: recorded.size,
     unpriced: [...unpriced]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([model, tokens]) => ({ model, tokens: round(tokens, 0) as Range })),
@@ -448,7 +448,7 @@ function covered(c: PlanCost): string {
 /**
  * `cost  estimated $3.10–8.40 at models.dev list prices, judge included · from 4 past runs`; with
  * models it has no price for, `$0.06 priced (judge only) at …; composer-2.5: 0.3–2.1M tokens, no
- * list price`; or tokens alone without prices. Null when every attempt is the fake agent's, which
+ * list price`; or tokens alone without prices. Null when every trial is the fake agent's, which
  * costs nothing.
  */
 export function costLine(c: PlanCost): string | null {
@@ -472,13 +472,13 @@ export function costLine(c: PlanCost): string | null {
         : `no list price for ${c.unpriced.map((u) => u.model).join(', ')}`,
     )
   }
-  const { history, typical } = c.attempts
+  const { history, typical } = c.trials
   const runs = plural(c.pastRuns, 'past run')
-  const own = c.recordedAttempts
-    ? ` (${plural(c.recordedAttempts, 'past attempt')} at ${c.recordedAttempts === 1 ? 'its' : 'their'} recorded cost)`
+  const own = c.recordedTrials
+    ? ` (${plural(c.recordedTrials, 'past trial')} at ${c.recordedTrials === 1 ? 'its' : 'their'} recorded cost)`
     : ''
   if (typical === 0 && history > 0) parts.push(`from ${runs}${own}`)
   else if (history === 0) parts.push('no history, rough')
-  else parts.push(`${history} of ${history + typical} attempts from ${runs}${own}, the rest rough`)
+  else parts.push(`${history} of ${history + typical} trials from ${runs}${own}, the rest rough`)
   return `cost  ${parts.join(' · ')}`
 }

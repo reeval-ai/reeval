@@ -1,7 +1,7 @@
-no profile · 3 evals · 3 cells · 4 attempts
-nested/deep  fake/-/fake  control  gated any  ×1
-root         fake/-/fake  control  gated any  ×1
-with-case    fake/-/fake  control  gated any  ×2  2 cases
+no profile · 3 evals · 3 cells · 4 trials
+nested/deep  fake/-/fake  baseline  gated any  ×1
+root         fake/-/fake  baseline  gated any  ×1
+with-case    fake/-/fake  baseline  gated any  ×2  2 cases
              case x       fake/-/fake ×1
              case y       fake/-/fake ×1
 excluded: —

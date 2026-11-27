@@ -1,6 +1,6 @@
 // The run files `reeval mcp` reads beside the records: trajectories, setup and check logs.
 import { readFile } from 'node:fs/promises'
-import type { AttemptRecord, RunRecord } from '../history/types.ts'
+import type { TrialRecord, RunRecord } from '../history/types.ts'
 import { resolveFile, type StudioSource } from '../studio/source.ts'
 import type { ResolvedConfig } from '../types.ts'
 import type { TrajectoryLine } from '../view/model.ts'
@@ -12,19 +12,19 @@ export const source = (config: ResolvedConfig): StudioSource => ({
   scratch: true,
 })
 
-/** The attempt `ref` names in `run`: its key, or an attempt id (`<cell>#<n>`) unique in the run. */
-export function findAttempt(run: RunRecord, ref: string) {
-  const attempts = run.evals.flatMap((e) => e.attempts)
-  const exact = attempts.find((a) => a.key === ref)
+/** The trial `ref` names in `run`: its key, or a trial id (`<cell>#<n>`) unique in the run. */
+export function findTrial(run: RunRecord, ref: string) {
+  const trials = run.evals.flatMap((e) => e.trials)
+  const exact = trials.find((a) => a.key === ref)
   if (exact) return exact
-  const byId = attempts.filter((a) => a.id === ref)
+  const byId = trials.filter((a) => a.id === ref)
   if (byId.length === 1 && byId[0]) return byId[0]
-  const keys = attempts.map((a) => a.key)
+  const keys = trials.map((a) => a.key)
   const listed = `${keys.slice(0, 20).join('; ')}${keys.length > 20 ? `; … ${keys.length - 20} more` : ''}`
   throw new Error(
     byId.length > 1
-      ? `"${ref}" is an attempt of ${byId.length} evals in ${run.runId}; use its key: ${byId.map((a) => a.key).join('; ')}`
-      : `No attempt "${ref}" in ${run.runId}. Attempts: ${listed}`,
+      ? `"${ref}" is a trial of ${byId.length} evals in ${run.runId}; use its key: ${byId.map((a) => a.key).join('; ')}`
+      : `No trial "${ref}" in ${run.runId}. Trials: ${listed}`,
   )
 }
 
@@ -38,13 +38,13 @@ export async function runFile(config: ResolvedConfig, run: RunRecord, path: stri
   })
 }
 
-/** The attempt's trajectory lines, or null when the run kept no trajectory for it. */
+/** The trial's trajectory lines, or null when the run kept no trajectory for it. */
 export async function trajectoryLines(
   config: ResolvedConfig,
   run: RunRecord,
-  attempt: AttemptRecord,
+  trial: TrialRecord,
 ): Promise<TrajectoryLine[] | null> {
-  const file = await runFile(config, run, attempt.files.trajectory?.path)
+  const file = await runFile(config, run, trial.files.trajectory?.path)
   if (!file) return null
   const lines: TrajectoryLine[] = []
   for (const line of (await readFile(file, 'utf8')).split('\n')) {
@@ -57,14 +57,14 @@ export async function trajectoryLines(
 }
 
 export async function readTrajectory(config: ResolvedConfig, run: RunRecord, ref: string) {
-  const attempt = findAttempt(run, ref)
-  const lines = await trajectoryLines(config, run, attempt)
+  const trial = findTrial(run, ref)
+  const lines = await trajectoryLines(config, run, trial)
   if (!lines) {
     throw new Error(
-      `${run.runId} kept no trajectory for ${attempt.key} (recorded with --artifacts failures or none?)`,
+      `${run.runId} kept no trajectory for ${trial.key} (recorded with --artifacts failures or none?)`,
     )
   }
-  return { attempt, lines }
+  return { trial, lines }
 }
 
 /** The last `chars` characters of a kept file, from a line start; null when it wasn't kept. */

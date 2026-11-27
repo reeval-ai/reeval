@@ -10,7 +10,7 @@ const fakeFile = (path: string) =>
 export default defineConfig({
   include: ['*.eval.ts'],
   // A scripted agent that copies ./fake-agent's files into the workspace, and the changelog
-  // entry only when it has the skill, so the views have a failing control to report.
+  // entry only when it has the skill, so the views have a failing baseline to report.
   agents: fakeAgent({
     files: { 'src/math.js': fakeFile('src/math.js') },
     text: 'I added multiply(a, b) to src/math.js.',

@@ -16,7 +16,7 @@ from typing import Any
 import pytest
 
 from reeval_python import (
-    AttemptContext,
+    TrialContext,
     BuiltinGrader,
     define_environment,
     docker,
@@ -145,8 +145,8 @@ def test_cases_must_be_a_list(cases: Any) -> None:
         ({"cases": [{"key": "a#b"}]}, r"has the key 'a#b': a case key is 1–80 characters"),
         ({"cases": [{"key": " a"}]}, r"has the key ' a': a case key is 1–80 characters"),
         (
-            {"cases": [{"key": "a"}, {"key": "b"}], "runs": {"best_of": 3}},
-            r"evaluate\('e'\) has cases, so it can't take runs",
+            {"cases": [{"key": "a"}, {"key": "b"}], "trials": {"best_of": 3}},
+            r"evaluate\('e'\) has cases, so it can't take trials",
         ),
     ],
 )
@@ -179,7 +179,7 @@ def test_built_in_graders_are_declared_as_data_on_each_case() -> None:
     graders: list[BuiltinGrader] = [{"builtin": "used-skill", "args": ["x"], "weight": 2}]
 
     def load() -> None:
-        evaluate("e", {"graders": graders, "runs": 2})(lambda c: None)
+        evaluate("e", {"graders": graders, "trials": 2})(lambda c: None)
         evaluate("f", {"cases": [{"key": "a"}, {"key": "b"}], "graders": graders})(
             lambda c, case: None
         )
@@ -187,7 +187,7 @@ def test_built_in_graders_are_declared_as_data_on_each_case() -> None:
 
     tree = collect_module_tree_sync(load)
     assert [child.get("graders") for child in tree["children"]] == [graders, graders, graders, None]
-    assert tree["children"][0]["options"] == {"runs": 2}
+    assert tree["children"][0]["options"] == {"trials": 2}
 
 
 @pytest.mark.parametrize("graders", ["used-skill", [{"args": ["x"]}], [lambda: None]])
@@ -212,7 +212,7 @@ def test_cases_refuse_a_body_without_the_case_where_it_is_declared() -> None:
         @evaluate("case", {"cases": [{"key": "1"}, {"key": "2"}]})
         def _(c: Any) -> None: ...
 
-    with pytest.raises(TypeError, match=r"the body takes the attempt and its case"):
+    with pytest.raises(TypeError, match=r"the body takes the trial and its case"):
         collect_module_tree_sync(load)
 
 
@@ -220,7 +220,7 @@ def test_an_async_command_is_a_coroutine_that_warns_if_never_awaited() -> None:
     async def send(call: Any) -> dict[str, Any]:
         return {"ok": True}
 
-    c = AttemptContext("k1", send)
+    c = TrialContext("k1", send)
     with pytest.warns(RuntimeWarning, match="was never awaited"):
         c.exec("npm install")
         gc.collect()
@@ -303,11 +303,11 @@ def test_a_generator_body_is_refused_where_it_is_declared(kind: str) -> None:
 
 
 USER_EVAL = """
-from reeval_python import AttemptContext, evaluate
+from reeval_python import TrialContext, evaluate
 
 
 @evaluate("typed", {"timeout": 1})
-async def typed(c: AttemptContext) -> None:
+async def typed(c: TrialContext) -> None:
     flag = bool(len("x"))
     await c.exec("true", background=flag)
 

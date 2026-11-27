@@ -1,9 +1,9 @@
 // Grants leases on named resources, each with a limit. The main process runs one of these for
 // the whole run, so limits hold across the eval files' workers; see ../engine/node.ts and ./client.ts.
 
-/** Where an attempt sits in the run, for ordering. Requests without one are served first come. */
+/** Where a trial sits in the run, for ordering. Requests without one are served first come. */
 export type Rank = {
-  /** The eval's id. Attempts of the same eval and run number start together. */
+  /** The eval's id. Trials of the same eval and run number start together. */
   eval: string
   file: string
   /** Registration order within the file. */
@@ -32,10 +32,10 @@ const runKey = (r: Rank) => `${r.eval}\0${r.n}`
 /**
  * Leases are granted when every named resource has room under the request's own limit, so a
  * request that asks for `docker: 2` waits while two Docker leases are out, whatever other
- * requests allow. Among attempts that could start, the order is:
+ * requests allow. Among trials that could start, the order is:
  *
  * 1. the rest of a run already started (the other cells of the same eval and run number), so a
- *    control and its variants run close together;
+ *    baseline and its variants run close together;
  * 2. the eval with the fewest runs started, so every eval gets a first result early;
  * 3. lower run number, then file, registration order and cell.
  */

@@ -1,4 +1,4 @@
-// Running a file's attempts in its worker (engine/run.ts): leases, cancel, the budget, timeouts
+// Running a file's trials in its worker (engine/run.ts): leases, cancel, the budget, timeouts
 // and the queued waits they don't count (engine/backstop.ts), console routing, results and
 // records that land after their result.
 import assert from 'node:assert/strict'
@@ -46,7 +46,7 @@ async function tests(...specs: Spec[]): Promise<CollectedTest[]> {
 }
 
 const gate = (limit: number) => ({
-  limits: { attempts: limit },
+  limits: { trials: limit },
   rank: { eval: 'e', file: 'f', order: 0, n: 1, cell: 0 },
 })
 const stagingDir = () => tempDir('staging')
@@ -117,7 +117,7 @@ describe('runTests', () => {
     )
   })
 
-  test("an attempt's record goes to the main process masked, its own c.exec secrets included", async () => {
+  test("a trial's record goes to the main process masked, its own c.exec secrets included", async () => {
     const passphrase = ['correct', 'horse', 'battery', 'staple', 'meta'].join('-')
     const labeled = (label: string) =>
       ({ outcome: 'fail', failedChecks: [{ label, message: 'm' }] }) as unknown as EvalMeta
@@ -193,14 +193,14 @@ describe('runTests', () => {
     assert.ok(Date.now() - startedAt >= 175, 'it fired after the queue and the 60 ms')
   })
 
-  test('the scheduler holds attempts at the limit; a cancel skips those still waiting', async () => {
+  test('the scheduler holds trials at the limit; a cancel skips those still waiting', async () => {
     const cancel = new AbortController()
     let running = 0
     const body = async (h: TestHandle) => {
       running++
       cancel.abort()
       await new Promise((resolve) => setTimeout(resolve, 20))
-      assert.equal(h.signal.aborted, true, 'a running attempt sees the cancel')
+      assert.equal(h.signal.aborted, true, 'a running trial sees the cancel')
     }
     const collected = await tests(
       ['one', { gate: gate(1) }, body],
@@ -218,7 +218,7 @@ describe('runTests', () => {
     assert.equal(results.get(1)?.state, 'skipped')
   })
 
-  test('after a cancel nothing starts, and the budget marker skips attempts that got a lease', async () => {
+  test('after a cancel nothing starts, and the budget marker skips trials that got a lease', async () => {
     const canceled = new AbortController()
     canceled.abort()
     const collected = await tests(['x', { gate: gate(5) }, async () => assert.fail('ran')])
@@ -247,7 +247,7 @@ describe('runTests', () => {
     rmSync(staging, { recursive: true })
   })
 
-  test('a lease request that fails fails its attempt', async () => {
+  test('a lease request that fails fails its trial', async () => {
     useSchedulerChannel(() => {
       throw new Error('the channel is gone')
     })
@@ -269,7 +269,7 @@ describe('runTests', () => {
     }
   })
 
-  test('ready runs, skips or fails an attempt; settled hears how each ended', async () => {
+  test('ready runs, skips or fails a trial; settled hears how each ended', async () => {
     const ended: Record<string, Settled> = {}
     const ran: string[] = []
     const on = (name: string, ready?: () => Promise<boolean>): Partial<TestOptions> => ({
@@ -312,7 +312,7 @@ describe('runTests', () => {
     })
   })
 
-  test('a cancel while an attempt awaits ready skips it; a timed-out attempt settles failed', async () => {
+  test('a cancel while a trial awaits ready skips it; a timed-out trial settles failed', async () => {
     const cancel = new AbortController()
     const ended: Settled[] = []
     const collected = await tests([
@@ -356,7 +356,7 @@ describe('runTests', () => {
 })
 
 describe('console routing and error serialization', () => {
-  test("console output goes to the attempt that wrote it, or to the file's log", async () => {
+  test("console output goes to the trial that wrote it, or to the file's log", async () => {
     const saved = { ...console }
     const { events, reporter } = recorder()
     routeConsole(reporter)

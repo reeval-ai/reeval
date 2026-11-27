@@ -11,7 +11,7 @@ const evalValues = varsSeen('eval-values', (vars) =>
   ),
 )
 
-// The agent's shell has the eval's values, not the empty ones of a route the attempt isn't on.
+// The agent's shell has the eval's values, not the empty ones of a route the trial isn't on.
 export default defineEval({
   environment: closed,
   graders: [evalValues],

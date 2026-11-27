@@ -1,11 +1,11 @@
-// `reeval regrade`: the eval files' graders today over attempts a run recorded. It never runs an
-// agent, a task or a decision: it reads each attempt as the run kept it, plans what each grader
+// `reeval regrade`: the eval files' graders today over trials a run recorded. It never runs an
+// agent, a task or a decision: it reads each trial as the run kept it, plans what each grader
 // needs (keep, re-score or recompute), runs the graders that changed and writes what changed in
 // a regrade file beside the run, which readers apply.
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { routedJudge } from './attempt/judge.ts'
+import { routedJudge } from './trial/judge.ts'
 import { CommandError, lines, reachability } from './commands.ts'
 import { matchesEvalId } from './engine/files.ts'
 import { loadEvalFile } from './engine/loader.ts'
@@ -22,13 +22,13 @@ import type { GraderTurn } from './grade/types.ts'
 import { listRuns, readOriginal, readRecord, recordFile, runDir } from './history/files.ts'
 import { gradedOutcome, newRegradeId, writeRegrade } from './history/regrades.ts'
 import { findingLines, scanText } from './history/secret-scan.ts'
-import { readStoredAttempt } from './history/stored-attempt.ts'
+import { readStoredTrial } from './history/stored-trial.ts'
 import type {
-  AttemptRecord,
+  TrialRecord,
   EvalEntry,
   HistoryEntry,
   RegradeAction,
-  RegradedAttempt,
+  RegradedTrial,
   RegradeRecord,
   RunRecord,
 } from './history/types.ts'
@@ -100,11 +100,11 @@ type CurrentEval = {
   file: string
   /**
    * Each case's hash as a run would record it today, by key, from planning the eval file as a run
-   * does (so the `secret()` values its attempts read are masked the same way); a case no attempt
+   * does (so the `secret()` values its trials read are masked the same way); a case no trial
    * plans is absent.
    */
   caseHashes?: Map<string, string>
-  /** By case key, the host variables its attempts read `secret()` values from that are unset now. */
+  /** By case key, the host variables its trials read `secret()` values from that are unset now. */
   unsetSecrets?: Map<string, string[]>
   /** Why planning the eval file failed, when it did and the hashes are the bare cases'. */
   planError?: string
@@ -119,7 +119,7 @@ type Status =
   | 'not selected'
   | 'inputs missing'
 
-/** What happens to one grader on one attempt. */
+/** What happens to one grader on one trial. */
 type Step = {
   grader: string
   status: Status
@@ -134,14 +134,14 @@ type Step = {
 }
 
 /** A grader a regrade ran that errored: its stored grade stays. */
-type Failure = { run: string; attempt: string; grader: string; error: string }
+type Failure = { run: string; trial: string; grader: string; error: string }
 
-type PlannedAttempt = { attempt: AttemptRecord; steps: Step[] }
+type PlannedTrial = { trial: TrialRecord; steps: Step[] }
 
 type PlannedRun = {
   entry: HistoryEntry
   record: RunRecord
-  evals: Array<{ entry: EvalEntry; current: CurrentEval | string; attempts: PlannedAttempt[] }>
+  evals: Array<{ entry: EvalEntry; current: CurrentEval | string; trials: PlannedTrial[] }>
 }
 
 const ACTION: Record<Status, RegradeAction['action']> = {
@@ -195,7 +195,7 @@ async function selectRuns(
   const wanted = (e: EvalEntry) =>
     (!o.filters.length || o.filters.some((f) => matchesEvalId(e.id, f))) &&
     tagsHold(e.tags, o.tags) &&
-    e.attempts.some(gradable)
+    e.trials.some(gradable)
   const picked: Array<{ entry: HistoryEntry; record: RunRecord; evals: EvalEntry[] }> = []
   const latest = new Set<string>()
   for (const entry of [...entries].reverse()) {
@@ -210,10 +210,10 @@ async function selectRuns(
 }
 
 /**
- * An attempt a regrade grades: one whose graders ran, or one that passed without any, which a new
+ * A trial a regrade grades: one whose graders ran, or one that passed without any, which a new
  * grader can grade. A task failure, a timeout, a cancel or an infra error never reached its graders.
  */
-const gradable = (a: AttemptRecord) => a.grades !== undefined || a.outcome === 'pass'
+const gradable = (a: TrialRecord) => a.grades !== undefined || a.outcome === 'pass'
 
 /** Loads `entry`'s eval file in this process and reads its graders, cases and judge as they are now. */
 async function currentEval(
@@ -259,7 +259,7 @@ async function currentEval(
 const isFull = (mode: unknown) =>
   mode === 'full' || (isObjectLike(mode) && (mode as { detail?: string }).detail === 'full')
 
-/** What the run kept of one attempt for its graders, read once. */
+/** What the run kept of one trial for its graders, read once. */
 type Kept = {
   events: Map<number, TrajectoryEvent[]> | null
   /** Why the kept trajectory can't be read, when a line of it isn't JSON. */
@@ -267,7 +267,7 @@ type Kept = {
   /** A tool event or subagent text the record cut, which the live graders saw whole. */
   cut: boolean
   workspace: boolean
-  /** The skills the attempt's environment placed: none when it ran in none, null when its record is gone. */
+  /** The skills the trial's environment placed: none when it ran in none, null when its record is gone. */
   skills: string[] | null
   /** Every foreground `c.exec`'s result is readable: none ran, or `execs.jsonl` was kept. */
   execs: boolean
@@ -277,13 +277,13 @@ type Kept = {
   observations: Set<string>
   /** The captures kept, by name. */
   captures: Set<string>
-  /** The run's artifact level dropped files of this attempt (its workspace, execs or captures). */
+  /** The run's artifact level dropped files of this trial (its workspace, execs or captures). */
   trimmed: boolean
 }
 
 const NULL_SHA = sha256('null')
 
-async function keptOf(dir: string, record: RunRecord, entry: EvalEntry, a: AttemptRecord) {
+async function keptOf(dir: string, record: RunRecord, entry: EvalEntry, a: TrialRecord) {
   let events: Map<number, TrajectoryEvent[]> | null = null
   let bad: string | undefined
   let cut = (a.subagents ?? []).some((s) =>
@@ -345,15 +345,15 @@ const CUT =
   'the kept trajectory cuts tool input or output, or subagent text, the live graders saw whole'
 
 /** Why reading the observations `names` (every one for `true`) needs a value the run didn't keep. */
-function observationGone(a: AttemptRecord, kept: Kept, names: true | readonly string[]) {
+function observationGone(a: TrialRecord, kept: Kept, names: true | readonly string[]) {
   const lost = (names === true ? (a.observations ?? []).map((o) => o.name) : names).filter(
     (n) => (a.observations ?? []).some((o) => o.name === n) && !kept.observations.has(n),
   )
   return lost.length ? `observation ${lost.join(', ')} wasn't kept` : undefined
 }
 
-/** Why `def` can't be graded from what the run kept of the attempt, or undefined when it can. */
-function missingInput(def: GraderDef, a: AttemptRecord, kept: Kept): string | undefined {
+/** Why `def` can't be graded from what the run kept of the trial, or undefined when it can. */
+function missingInput(def: GraderDef, a: TrialRecord, kept: Kept): string | undefined {
   const { run, builtin } = def
   const textCut = a.turns.some((t) => t.text.includes('… [reeval: truncated '))
   if (run.kind === 'judge') {
@@ -375,7 +375,7 @@ function missingInput(def: GraderDef, a: AttemptRecord, kept: Kept): string | un
       if (gone) return gone
     }
     const shots = run.inputs.artifacts
-    if (shots === true && kept.trimmed) return "the attempt's captures weren't kept"
+    if (shots === true && kept.trimmed) return "the trial's captures weren't kept"
     if (Array.isArray(shots)) {
       const lost = shots
         .map((s) => (typeof s === 'string' ? s : s.name))
@@ -391,14 +391,14 @@ function missingInput(def: GraderDef, a: AttemptRecord, kept: Kept): string | un
   if (trajectory && !kept.events) return "the trajectory wasn't kept"
   if (trajectory && kept.cut) return CUT
   if ((custom || kind === 'used-skill') && !kept.skills) {
-    return "the attempt's environment record is missing"
+    return "the trial's environment record is missing"
   }
   if (run.files.some((p) => !p.startsWith('!')) && !kept.workspace) {
-    return `${run.files.join(', ')} wasn't kept: the attempt has no kept workspace`
+    return `${run.files.join(', ')} wasn't kept: the trial has no kept workspace`
   }
   if ((custom || kind === 'succeeded') && !kept.execs) return EXECS_GONE
   if (custom && !kept.decisions) return "the c.decide calls weren't kept"
-  if (custom && kept.trimmed) return "the run's artifact level dropped this attempt's files"
+  if (custom && kept.trimmed) return "the run's artifact level dropped this trial's files"
   if (custom) return observationGone(a, kept, true)
   const main = String(builtin?.args[0] ?? '')
   if (
@@ -419,12 +419,12 @@ const changedParts = (was: GradeFingerprint, now: GradeFingerprint) =>
       k !== 'digest' && (was as Record<string, unknown>)[k] !== (now as Record<string, unknown>)[k],
   )
 
-/** The case an attempt graded, from the eval's cases today; undefined when it's gone. */
-const caseOf = (current: CurrentEval, a: AttemptRecord): Case | undefined =>
+/** The case a trial graded, from the eval's cases today; undefined when it's gone. */
+const caseOf = (current: CurrentEval, a: TrialRecord): Case | undefined =>
   a.case === undefined ? { key: '' } : current.cases?.find((c) => c.key === a.case)
 
-/** Why the attempt's case today isn't the one its agent worked on, or undefined when it is. */
-function caseIssue(current: CurrentEval, entry: EvalEntry, a: AttemptRecord): string | undefined {
+/** Why the trial's case today isn't the one its agent worked on, or undefined when it is. */
+function caseIssue(current: CurrentEval, entry: EvalEntry, a: TrialRecord): string | undefined {
   if (a.case === undefined) return undefined
   const item = caseOf(current, a)
   const name = JSON.stringify(a.case)
@@ -488,8 +488,8 @@ async function partsOf(
   return { ...(digest ? { data: digest } : {}), ...(image ? { image } : {}) }
 }
 
-async function planAttempt(
-  a: AttemptRecord,
+async function planTrial(
+  a: TrialRecord,
   entry: EvalEntry,
   current: CurrentEval,
   kept: Kept,
@@ -568,8 +568,8 @@ async function planAttempt(
   return steps
 }
 
-/** The attempt's turns as its graders read them live, from its record and trajectory. */
-function storedTurns(a: AttemptRecord, kept: Kept): GraderTurn[] {
+/** The trial's turns as its graders read them live, from its record and trajectory. */
+function storedTurns(a: TrialRecord, kept: Kept): GraderTurn[] {
   return a.turns.map((t, i) => {
     const said = kept.events?.get(i) ?? []
     // The record cuts a long final message; the trajectory's last text event has it whole.
@@ -606,7 +606,7 @@ function judgeOf(current: CurrentEval): NonNullable<GradeInputs['judge']> {
 
 /**
  * Whether a grade's error says the grade couldn't be had today rather than what the grader made
- * of the attempt: an interrupt, a timeout, or anything from a judge (its answer; its provider
+ * of the trial: an interrupt, a timeout, or anything from a judge (its answer; its provider
  * failing is `runGraders`' infra error). A code grader's own throw is its grade, scored 0 as a run
  * scores it.
  */
@@ -614,20 +614,20 @@ const heldBack = (def: GraderDef, error: string, signal: AbortSignal) =>
   signal.aborted || def.run.kind === 'judge' || /^grade timed out after /.test(error)
 
 /**
- * Runs what `steps` plans for the attempt. A grader whose grade can't be had today (`heldBack`,
- * a grader sandbox that fails to start, a stored attempt that can't be read) keeps its stored grade
- * and is returned in `failed`; `done` is the attempt as regraded, or undefined when nothing
+ * Runs what `steps` plans for the trial. A grader whose grade can't be had today (`heldBack`,
+ * a grader sandbox that fails to start, a stored trial that can't be read) keeps its stored grade
+ * and is returned in `failed`; `done` is the trial as regraded, or undefined when nothing
  * changed.
  */
-async function regradeAttempt(
+async function regradeTrial(
   dir: string,
   record: RunRecord,
   entry: EvalEntry,
   current: CurrentEval,
-  planned: PlannedAttempt,
+  planned: PlannedTrial,
   signal: AbortSignal,
-): Promise<{ done?: RegradedAttempt; failed: Map<string, string> }> {
-  const { attempt: a, steps } = planned
+): Promise<{ done?: RegradedTrial; failed: Map<string, string> }> {
+  const { trial: a, steps } = planned
   const failed = new Map<string, string>()
   if (!steps.some((s) => runs(s) || s.status === 'score changed')) return { failed }
   const toRun = steps.filter(runs).map((s) => s.def as GraderDef)
@@ -638,14 +638,14 @@ async function regradeAttempt(
       const inputs: GradeInputs = {
         case: caseOf(current, a) as Case,
         turns: storedTurns(a, kept),
-        stored: await readStoredAttempt(dir, a),
+        stored: await readStoredTrial(dir, a),
         skills: kept.skills ?? [],
         subagents: a.turns.map((_, i) =>
           (a.subagents ?? []).filter((s) => s.turn === i).map(({ n: _n, turn: _turn, ...s }) => s),
         ),
         judge: judgeOf(current),
         ...(toRun.some((d) => d.run.kind === 'code' && d.run.env) && {
-          // No attempt sandbox holds a slot here, so each grader sandbox takes its own.
+          // No trial sandbox holds a slot here, so each grader sandbox takes its own.
           sandboxes: sandboxStarter(a.key, { kind: 'fake' } as SandboxDescriptor),
         }),
       }
@@ -694,8 +694,8 @@ async function regradeAttempt(
   }
 }
 
-/** An attempt as a plan counts it: the most a regrade does to any of its graders. */
-function attemptClass(steps: readonly Step[]): 'recompute' | 'rescore' | 'missing' | 'unchanged' {
+/** A trial as a plan counts it: the most a regrade does to any of its graders. */
+function trialClass(steps: readonly Step[]): 'recompute' | 'rescore' | 'missing' | 'unchanged' {
   if (steps.some(runs)) return 'recompute'
   if (steps.some((s) => s.status === 'score changed')) return 'rescore'
   if (steps.some((s) => s.status === 'inputs missing')) return 'missing'
@@ -714,7 +714,7 @@ const ACTION_WORD: Record<Status, string> = {
   'inputs missing': 'skip',
 }
 
-/** What running `steps` of one grader on `n` attempts costs. */
+/** What running `steps` of one grader on `n` trials costs. */
 function cost(def: GraderDef | undefined, status: Status, n: number): string {
   if (status !== 'grader changed' && status !== 'new') {
     return status === 'score changed' ? 'no calls' : ''
@@ -724,7 +724,7 @@ function cost(def: GraderDef | undefined, status: Status, n: number): string {
     return `${plural(n * models, 'judge call')}${models > 1 ? ` (${models} models)` : ''}`
   }
   if (def?.run.kind === 'code' && def.run.env) return `${n} ${n === 1 ? 'sandbox' : 'sandboxes'}`
-  return plural(n, 'attempt')
+  return plural(n, 'trial')
 }
 
 function pad(text: string, width: number): string {
@@ -738,12 +738,12 @@ async function subject(root: string, sha: string | undefined): Promise<string> {
 }
 
 async function formatPlan(root: string, plan: PlannedRun[]): Promise<string[]> {
-  const attempts = plan.flatMap((r) => r.evals.flatMap((e) => e.attempts))
-  const classes = attempts.map((p) => attemptClass(p.steps))
+  const trials = plan.flatMap((r) => r.evals.flatMap((e) => e.trials))
+  const classes = trials.map((p) => trialClass(p.steps))
   const count = (c: string) => classes.filter((x) => x === c).length
   const evalIds = new Set(plan.flatMap((r) => r.evals.map((e) => e.entry.id)))
   const out = [
-    `${plural(evalIds.size, 'eval')}, ${plural(attempts.length, 'attempt')} in ${plural(plan.length, 'run')}: ${count('recompute')} to recompute, ${count('rescore')} to re-score, ${count('unchanged')} unchanged, ${count('missing')} can't be regraded`,
+    `${plural(evalIds.size, 'eval')}, ${plural(trials.length, 'trial')} in ${plural(plan.length, 'run')}: ${count('recompute')} to recompute, ${count('rescore')} to re-score, ${count('unchanged')} unchanged, ${count('missing')} can't be regraded`,
   ]
   const byEval = new Map<string, Array<{ run: PlannedRun; e: PlannedRun['evals'][number] }>>()
   for (const run of plan) {
@@ -751,7 +751,7 @@ async function formatPlan(root: string, plan: PlannedRun[]): Promise<string[]> {
       byEval.set(e.entry.id, [...(byEval.get(e.entry.id) ?? []), { run, e }])
     }
   }
-  const steps = attempts.flatMap((p) => p.steps)
+  const steps = trials.flatMap((p) => p.steps)
   const nameWidth = Math.max(12, ...steps.map((s) => s.grader.length + 2))
   const statusOf = (step: Step) =>
     step.status === 'grader changed' ? `grader changed: ${step.changed?.join(', ')}` : step.status
@@ -767,10 +767,10 @@ async function formatPlan(root: string, plan: PlannedRun[]): Promise<string[]> {
       const when = `${run.entry.startedAt.slice(0, 16).replace('T', ' ')} UTC`
       const where = git ? `${git.branch ?? 'detached'}@${git.sha.slice(0, 7)}` : 'no git'
       out.push(
-        `  ${when}  ${where}${await subject(root, git?.sha)}  ${plural(e.attempts.length, 'attempt')}`,
+        `  ${when}  ${where}${await subject(root, git?.sha)}  ${plural(e.trials.length, 'trial')}`,
       )
       const rows = new Map<string, { step: Step; n: number }>()
-      for (const p of e.attempts) {
+      for (const p of e.trials) {
         for (const s of p.steps) {
           const key = `${s.grader}\0${s.status}\0${s.changed?.join(',') ?? ''}\0${s.reason ?? ''}\0${s.note ?? ''}`
           const row = rows.get(key) ?? { step: s, n: 0 }
@@ -827,7 +827,7 @@ function regradeEngine(context: RunContext) {
 
 /**
  * Plans the loaded eval file `file` under `profile` as a run would: each case's `source.case`
- * hash and the `secret()` variables its attempts read that are unset here, by key, or why
+ * hash and the `secret()` variables its trials read that are unset here, by key, or why
  * planning it threw.
  */
 function plannedCases(
@@ -853,11 +853,11 @@ function plannedCases(
   }
   const caseHashes = new Map<string, string>()
   const unsetSecrets = new Map<string, string[]>()
-  for (const { attempt } of declaring.tests) {
-    const key = attempt?.family ? cases[attempt.family.case]?.key : undefined
-    if (key === undefined || !attempt) continue
-    if (attempt.source.case) caseHashes.set(key, attempt.source.case)
-    const unset = attempt.secretVars.filter((v) => !process.env[v])
+  for (const { trial } of declaring.tests) {
+    const key = trial?.family ? cases[trial.family.case]?.key : undefined
+    if (key === undefined || !trial) continue
+    if (trial.source.case) caseHashes.set(key, trial.source.case)
+    const unset = trial.secretVars.filter((v) => !process.env[v])
     if (unset.length)
       unsetSecrets.set(key, [...new Set([...(unsetSecrets.get(key) ?? []), ...unset])])
   }
@@ -889,8 +889,8 @@ export async function regrade(
   if (!selected.length) {
     o.out(
       o.at !== undefined
-        ? `Nothing to regrade: no recorded run at ${o.at} has a graded attempt of the selected evals.`
-        : 'Nothing to regrade: no recorded run that HEAD reaches has a graded attempt of the selected evals.',
+        ? `Nothing to regrade: no recorded run at ${o.at} has a graded trial of the selected evals.`
+        : 'Nothing to regrade: no recorded run that HEAD reaches has a graded trial of the selected evals.',
     )
     return 0
   }
@@ -960,14 +960,14 @@ export async function regrade(
       const planned: PlannedRun = { entry, record, evals: [] }
       for (const e of evals) {
         const current = currents.get(currentKey(record, e)) as CurrentEval | string
-        const attempts: PlannedAttempt[] = []
-        for (const a of e.attempts.filter(gradable)) {
+        const trials: PlannedTrial[] = []
+        for (const a of e.trials.filter(gradable)) {
           const steps =
             typeof current === 'string'
               ? (a.grades ?? []).map(
                   (g): Step => ({ grader: g.grader, status: 'grader not found', stored: g }),
                 )
-              : await planAttempt(
+              : await planTrial(
                   a,
                   e,
                   current,
@@ -977,24 +977,24 @@ export async function regrade(
                   context.runId,
                   images,
                 )
-          attempts.push({ attempt: a, steps })
+          trials.push({ trial: a, steps })
         }
-        planned.evals.push({ entry: e, current, attempts })
+        planned.evals.push({ entry: e, current, trials })
       }
       plan.push(planned)
     }
     for (const line of await formatPlan(config.root, plan)) o.out(line)
-    const all = plan.flatMap((r) => r.evals.flatMap((e) => e.attempts))
+    const all = plan.flatMap((r) => r.evals.flatMap((e) => e.trials))
     const work = all.filter((p) => p.steps.some((s) => runs(s) || s.status === 'score changed'))
     const refused = new Set(
       all.flatMap((p) => p.steps.filter((s) => s.refused).map((s) => s.grader)),
     )
     const refusedLine = `\n${plural(refused.size, 'grader')} can't run as configured today (${[...refused].join(', ')}): see the plan.`
     if (!work.length) {
-      const stuck = all.filter((p) => attemptClass(p.steps) === 'missing').length
+      const stuck = all.filter((p) => trialClass(p.steps) === 'missing').length
       o.out(
         stuck
-          ? `\nNothing to regrade: ${plural(stuck, 'attempt')} can't be regraded from what the run kept.`
+          ? `\nNothing to regrade: ${plural(stuck, 'trial')} can't be regraded from what the run kept.`
           : '\nNothing changed: every grade is current.',
       )
       if (refused.size) o.out(refusedLine)
@@ -1035,12 +1035,12 @@ export async function regrade(
     for (const run of plan) {
       if (signal.aborted) break
       const dir = runDir(config.history.dir, run.entry.runId)
-      const regraded: RegradedAttempt[] = []
+      const regraded: RegradedTrial[] = []
       for (const e of run.evals) {
         if (typeof e.current === 'string') continue
-        for (const p of e.attempts) {
+        for (const p of e.trials) {
           if (signal.aborted) break
-          const { done, failed } = await regradeAttempt(
+          const { done, failed } = await regradeTrial(
             dir,
             run.record,
             e.entry,
@@ -1049,15 +1049,15 @@ export async function regrade(
             signal,
           )
           for (const [grader, error] of failed) {
-            failures.push({ run: run.entry.runId, attempt: p.attempt.key, grader, error })
+            failures.push({ run: run.entry.runId, trial: p.trial.key, grader, error })
           }
           total++
           const actions = new Set(done?.actions.map((x) => x.action))
           if (actions.has('recomputed') || actions.has('new')) recomputed++
           else if (actions.has('rescored')) rescored++
-          else if (attemptClass(p.steps) === 'missing') skipped++
-          if (p.attempt.outcome === 'pass') passedBefore++
-          if ((done?.outcome ?? p.attempt.outcome) === 'pass') passedAfter++
+          else if (trialClass(p.steps) === 'missing') skipped++
+          if (p.trial.outcome === 'pass') passedBefore++
+          if ((done?.outcome ?? p.trial.outcome) === 'pass') passedAfter++
           for (const s of p.steps) {
             if (s.status === 'grader not found' || s.status === 'not selected') continue
             const now = done?.grades.find((g) => g.grader === s.grader) ?? s.stored
@@ -1070,14 +1070,14 @@ export async function regrade(
       if (!regraded.length || signal.aborted) continue
       const doc: RegradeRecord = {
         kind: 'reeval-regrade',
-        schemaVersion: 1,
+        schemaVersion: 2,
         id,
         regradeOf: run.entry.runId,
         at: at.toISOString(),
         reeval: PACKAGE_VERSION,
         git,
         ...(o.graders.length ? { graders: o.graders } : {}),
-        attempts: regraded,
+        trials: regraded,
       }
       const findings = scanText(`${id}.json`, JSON.stringify(doc, null, 2))
       if (findings.length) {
@@ -1102,14 +1102,14 @@ export async function regrade(
     for (const [grader, was] of before) {
       o.out(`${pad(grader, width)}${passed(was, after.get(grader) ?? [])}`)
     }
-    o.out(`${pad('attempts', width)}${passedBefore}/${total} → ${passedAfter}/${total} passed`)
+    o.out(`${pad('trials', width)}${passedBefore}/${total} → ${passedAfter}/${total} passed`)
     for (const path of written) o.out(`wrote ${path.slice(config.root.length + 1)}`)
     if (failures.length) {
       o.out(
         `\n${plural(failures.length, 'grade')} failed and kept the grade the run had (or none):`,
       )
       for (const f of failures.slice(0, 20)) {
-        o.out(`  ${f.grader} on ${f.attempt} (${f.run}): ${f.error}`)
+        o.out(`  ${f.grader} on ${f.trial} (${f.run}): ${f.error}`)
       }
       if (failures.length > 20) o.out(`  and ${failures.length - 20} more`)
     }

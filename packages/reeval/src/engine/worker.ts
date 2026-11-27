@@ -1,5 +1,5 @@
 // One eval file's worker: loads the file, reports what it declares, and with a selection, runs
-// those attempts and exits. The main process starts a fresh one per file (./pool.ts), from the
+// those trials and exits. The main process starts a fresh one per file (./pool.ts), from the
 // copy of reeval the project itself resolves, so the file registers with the reeval it imports.
 
 import { trackLoad } from '../inputs-load.ts'
@@ -41,7 +41,7 @@ export function startWorker(channel: Channel): Worker {
     else stop()
   })
   // The main process closed the channel after `done`, or is gone (the CLI was killed): cancel, let
-  // every attempt clean up, then go. A file still loading has nothing to clean up and may never
+  // every trial clean up, then go. A file still loading has nothing to clean up and may never
   // finish (a top-level await, a language runner that hangs), so the worker goes at once; exiting
   // kills its language runner.
   channel.onDisconnect(() => {
@@ -85,16 +85,16 @@ export function startWorker(channel: Channel): Worker {
       }
       channel.send({
         t: 'collected',
-        tests: tests.map(({ index, name, groups, mode, options: { attempt } }) => ({
+        tests: tests.map(({ index, name, groups, mode, options: { trial } }) => ({
           index,
           name,
           groups,
           mode,
-          ...(attempt
+          ...(trial
             ? {
-                attempt: tracked
-                  ? { ...attempt, inputs: [...loaded, ...(attempt.inputs ?? [])] }
-                  : attempt,
+                trial: tracked
+                  ? { ...trial, inputs: [...loaded, ...(trial.inputs ?? [])] }
+                  : trial,
               }
             : {}),
         })),

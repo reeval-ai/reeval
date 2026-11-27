@@ -1,5 +1,5 @@
-no profile · 1 evals · 1 cells · 1 attempts
+no profile · 1 evals · 1 cells · 1 trials
 hint: 1 eval can't fail CI (a): its target only reports; set target: regression() (or capability(1, { blocking: true })) in the eval or the config to fail on a miss
-a  fake/-/fake  control  gated any  ×1
+a  fake/-/fake  baseline  gated any  ×1
 excluded: —
 target cloud

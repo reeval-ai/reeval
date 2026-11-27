@@ -1,17 +1,17 @@
 // Questions, answered on the host. A pairwise question (one with `across`) waits for its eval's
-// attempts: every pair is shown to a language model twice, in both orders, under blinded labels,
-// and each pick is mapped back to the side's name. Any other question is asked of each attempt
+// trials: every pair is shown to a language model twice, in both orders, under blinded labels,
+// and each pick is mapped back to the side's name. Any other question is asked of each trial
 // on its own as soon as it ends. A model error is kept on the answer; outcomes never depend on it.
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { generateText, Output } from 'ai'
 import { z } from 'zod'
 import { cannedModel, type HostModelSettings, hostModel, isFake } from '../analysis/model.ts'
-import { observedName } from '../attempt/observe.ts'
+import { observedName } from '../trial/observe.ts'
 import type { EngineEval } from '../engine/node.ts'
 import type { VertexSettings } from '../gateway/vertex.ts'
 import { mergeOutcome } from '../history/outcome.ts'
-import type { AttemptRecord, FileRef, RunRecord } from '../history/types.ts'
+import type { TrialRecord, FileRef, RunRecord } from '../history/types.ts'
 import { recordFileName } from '../ids.ts'
 import { judgeDiff } from '../judge/patch.ts'
 import { trajectoryForJudge } from '../judge/trajectory.ts'
@@ -19,8 +19,8 @@ import type { PlanRow } from '../plan.ts'
 import { redactSecrets } from '../redact.ts'
 import { clip } from '../text.ts'
 import type {
-  AttemptAnswer,
-  BlindAttempt,
+  TrialAnswer,
+  BlindTrial,
   BlindPair,
   BlindSide,
   BlindTurn,
@@ -43,7 +43,7 @@ import {
   acrossOf,
   checksHeld,
   type Pair,
-  type PairAttempt,
+  type PairTrial,
   type PairTurn,
   pairFactors,
   pairsOf,
@@ -67,7 +67,7 @@ const isOn = (value: unknown) => value !== false && !(Array.isArray(value) && !v
 const listed = (parts: string[]) =>
   parts.length < 2 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`
 
-/** The parts an attempt is shown as, for the system prompt. */
+/** The parts a trial is shown as, for the system prompt. */
 function shownParts(shows: QuestionShows, taskEach: boolean): string[] {
   const { state } = shows
   return [
@@ -84,12 +84,12 @@ function shownParts(shows: QuestionShows, taskEach: boolean): string[] {
   ]
 }
 
-/** The system prompt, naming the parts each attempt is shown as. */
+/** The system prompt, naming the parts each trial is shown as. */
 export function questionSystem(shows: QuestionShows, taskEach = false): string {
   const parts = shownParts(shows, taskEach)
-  return `You compare two attempts by coding agents at the same task and answer one question about them.
-Each attempt is shown as ${listed(parts)}, labeled A or B. The labels are assigned at random: which attempt comes first says nothing about it.
-Judge only by the question, from what is shown. Answer A or B for the attempt the question favors, or tie when what is shown doesn't separate them on it. Give a short reason for the pick.`
+  return `You compare two trials by coding agents at the same task and answer one question about them.
+Each trial is shown as ${listed(parts)}, labeled A or B. The labels are assigned at random: which trial comes first says nothing about it.
+Judge only by the question, from what is shown. Answer A or B for the trial the question favors, or tie when what is shown doesn't separate them on it. Give a short reason for the pick.`
 }
 
 const voteSchema = z.object({
@@ -101,13 +101,13 @@ const voteSchema = z.object({
 const CHARS_PER_TOKEN = 4
 
 /** The turns a side shows: the last, or every one. */
-const shownTurns = (side: PairAttempt, state: ResolvedQuestionStateOptions): PairTurn[] => {
+const shownTurns = (side: PairTrial, state: ResolvedQuestionStateOptions): PairTurn[] => {
   const turns = side.turns ?? []
   return state.turns === 'all' ? turns : turns.slice(-1)
 }
 
 /** The task both sides were given, when they were given the same prompts. */
-function sharedTask(first: PairAttempt, second: PairAttempt, state: ResolvedQuestionStateOptions) {
+function sharedTask(first: PairTrial, second: PairTrial, state: ResolvedQuestionStateOptions) {
   if (!state.task) return null
   const a = shownTurns(first, state).map((t) => t.prompt)
   const b = shownTurns(second, state).map((t) => t.prompt)
@@ -118,21 +118,21 @@ function sharedTask(first: PairAttempt, second: PairAttempt, state: ResolvedQues
 /** A screenshot as the model is shown it: its position on its side, never the capture's name. */
 type ShownImage = { label: string; data: Uint8Array | null; side: 'A' | 'B'; name: string }
 
-/** What a screenshot is labelled: its place on its side of a pair, or on the one attempt shown. */
+/** What a screenshot is labelled: its place on its side of a pair, or on the one trial shown. */
 const screenshotLabel = (side: 'A' | 'B' | null, i: number, of: number) =>
-  side ? `Attempt ${side}, screenshot ${i} of ${of}` : `Screenshot ${i} of ${of}`
+  side ? `Trial ${side}, screenshot ${i} of ${of}` : `Screenshot ${i} of ${of}`
 
 /** One side as the fake and the prompt see it, with its screenshots and the names they came from. */
 type BuiltSide = { side: BlindSide; images: ShownImage[]; sent: string[] }
 
 function buildSide(
-  attempt: PairAttempt,
+  trial: PairTrial,
   label: 'A' | 'B' | null,
   shows: QuestionShows,
   taskShared: boolean,
 ): BuiltSide {
   const { state } = shows
-  const turns: BlindTurn[] = shownTurns(attempt, state).map((t) => ({
+  const turns: BlindTurn[] = shownTurns(trial, state).map((t) => ({
     ...(state.task && !taskShared ? { task: redactSecrets(t.prompt) } : {}),
     ...(state.output ? { output: redactSecrets(t.text ?? '') } : {}),
     ...(state.trajectory
@@ -144,7 +144,7 @@ function buildSide(
       : {}),
   }))
   const shown = judgeDiff(
-    { patch: attempt.diff, files: attempt.files ?? [] },
+    { patch: trial.diff, files: trial.files ?? [] },
     Array.isArray(state.diff) ? { patterns: state.diff } : {},
   )
   const patch = redactSecrets(shown.patch)
@@ -157,14 +157,14 @@ function buildSide(
     ...(state.files ? { files: shown.files } : {}),
     ...(state.diff !== false ? { diff: patch.trim() ? patch : '(no changes)' } : {}),
   }
-  const checks = checksOf(attempt, state.checks)
+  const checks = checksOf(trial, state.checks)
   if (checks) side.checks = checks
-  const observations = observationsOf(attempt, state.observations)
+  const observations = observationsOf(trial, state.observations)
   if (observations) side.observations = observations
   const images: ShownImage[] = []
   const sent: string[] = []
   if (shows.artifacts !== undefined) {
-    const captures = attempt.captures ?? []
+    const captures = trial.captures ?? []
     const names = shows.artifacts === true ? captures.map((c) => c.name) : shows.artifacts
     side.artifacts = names.map((name, i) => {
       const at = screenshotLabel(label, i + 1, names.length)
@@ -183,11 +183,11 @@ function buildSide(
 }
 
 function checksOf(
-  attempt: PairAttempt,
+  trial: PairTrial,
   which: ResolvedQuestionStateOptions['checks'],
 ): BlindSide['checks'] {
   if (which === false) return undefined
-  const ran = attempt.checks ?? []
+  const ran = trial.checks ?? []
   const shown = ({ command, exitCode, stdout, stderr }: (typeof ran)[number]) => ({
     command,
     exitCode,
@@ -202,11 +202,11 @@ function checksOf(
 }
 
 function observationsOf(
-  attempt: PairAttempt,
+  trial: PairTrial,
   which: ResolvedQuestionStateOptions['observations'],
 ): BlindSide['observations'] {
   if (!which) return undefined
-  const observed = attempt.observations ?? []
+  const observed = trial.observations ?? []
   const shown = (o: (typeof observed)[number]) => ({ name: o.name, value: o.value })
   if (which === true) return observed.map(shown)
   return which.map(observedName).map((name) => {
@@ -276,7 +276,7 @@ function sideText(side: BlindSide): string {
 /** A side's text, cut to `chars` when it's longer. */
 function cut(text: string, chars: number): string {
   if (text.length <= chars) return text
-  return `${text.slice(0, chars)}\n[reeval: attempt cut at ${chars} of ${text.length} characters]`
+  return `${text.slice(0, chars)}\n[reeval: trial cut at ${chars} of ${text.length} characters]`
 }
 
 /** One order of a pair as the model is asked it: the blinded pair, the system prompt and its screenshots. */
@@ -288,7 +288,7 @@ export type BlindInput = {
   sent: { a: string[]; b: string[] }
 }
 
-/** What the model is shown for one order of a pair: no harness, arm, run, attempt id or capture name. */
+/** What the model is shown for one order of a pair: no harness, environment, run, trial id or capture name. */
 export function blindInput(
   question: string,
   pair: Pair,
@@ -303,15 +303,15 @@ export function blindInput(
   const b = buildSide(second, 'B', shows, task !== null)
   const prompt = [
     `Question: ${question}`,
-    ...(task ? ['', 'The task both attempts were given:', '<task>', task, '</task>'] : []),
+    ...(task ? ['', 'The task both trials were given:', '<task>', task, '</task>'] : []),
     '',
-    '<attempt label="A">',
+    '<trial label="A">',
     cut(sideText(a.side), chars),
-    '</attempt>',
+    '</trial>',
     '',
-    '<attempt label="B">',
+    '<trial label="B">',
     cut(sideText(b.side), chars),
-    '</attempt>',
+    '</trial>',
   ].join('\n')
   const [sentFirst, sentSecond] = swapped ? [b.sent, a.sent] : [a.sent, b.sent]
   return {
@@ -439,9 +439,9 @@ export type AnswerOptions = {
   calls?: AskedCall[]
 }
 
-/** A screenshot as the runner keeps it: by its attempt's id, which the record turns into a path. */
+/** A screenshot as the runner keeps it: by its trial's id, which the record turns into a path. */
 export type AskedScreenshot =
-  | { label: string; side: string; name: string; attempt: string }
+  | { label: string; side: string; name: string; trial: string }
   | { label: string; missing: true }
 
 /** A call as the runner keeps it, until the record resolves its screenshots' paths. */
@@ -455,7 +455,7 @@ function askedCall(pair: Pair, swapped: boolean, input: BlindInput, error?: stri
   const shown = { A: first, B: second }
   return {
     cut: pair.cut,
-    ...(pair.cut === 'within' ? { harness: pair.harness } : { arm: pair.arm }),
+    ...(pair.cut === 'within' ? { harness: pair.harness } : { environment: pair.environment }),
     run: pair.run,
     a: sideName(pair.cut, pair.a),
     b: sideName(pair.cut, pair.b),
@@ -472,7 +472,7 @@ function askedCall(pair: Pair, swapped: boolean, input: BlindInput, error?: stri
                   label,
                   side: sideName(pair.cut, shown[image.side]),
                   name: image.name,
-                  attempt: shown[image.side].id ?? '',
+                  trial: shown[image.side].id ?? '',
                 }
               : { label, missing: true }
           }),
@@ -492,8 +492,8 @@ const errorText = (error: unknown) =>
 function missingEverywhere(
   question: string,
   shows: QuestionShows,
-  sides: PairAttempt[],
-  who = 'paired attempt',
+  sides: PairTrial[],
+  who = 'paired trial',
 ) {
   const { checks } = shows.state
   if (Array.isArray(checks)) {
@@ -583,68 +583,68 @@ export async function answerQuestion(options: AnswerOptions): Promise<CompareAns
   }
 }
 
-/** Stored answers to a question asked of one attempt are at most this long. */
+/** Stored answers to a question asked of one trial are at most this long. */
 export const ANSWER_TEXT_CAP = 1000
 
-/** The system prompt for a question asked of one attempt, naming the parts it's shown as. */
-export function attemptQuestionSystem(shows: QuestionShows, choices?: string[]): string {
+/** The system prompt for a question asked of one trial, naming the parts it's shown as. */
+export function trialQuestionSystem(shows: QuestionShows, choices?: string[]): string {
   const how = choices
     ? 'Pick the one of the choices that answers it, and give a short reason for the pick.'
     : 'Answer it in a few sentences.'
-  return `You answer one question about an attempt by a coding agent at a task.
-The attempt is shown as ${listed(shownParts(shows, true))}.
+  return `You answer one question about a trial by a coding agent at a task.
+The trial is shown as ${listed(shownParts(shows, true))}.
 Answer only from what is shown. ${how}`
 }
 
-/** What the model is shown for a question asked of one attempt: no harness, arm, run, attempt id or capture name. */
-export type AttemptInput = {
-  blind: BlindAttempt
+/** What the model is shown for a question asked of one trial: no harness, environment, run, trial id or capture name. */
+export type TrialInput = {
+  blind: BlindTrial
   system: string
   images: ShownImage[]
   /** The captures it showed, by name. */
   sent: string[]
 }
 
-export function attemptInput(
+export function trialInput(
   question: string,
-  attempt: PairAttempt,
+  trial: PairTrial,
   maxInputTokens: number,
   shows: QuestionShows,
   choices?: string[],
-): AttemptInput {
-  const built = buildSide(attempt, null, shows, false)
+): TrialInput {
+  const built = buildSide(trial, null, shows, false)
   const prompt = [
     `Question: ${question}`,
     ...(choices ? ['', 'Choices:', ...choices.map((c) => `- ${c}`)] : []),
     '',
-    '<attempt>',
+    '<trial>',
     cut(sideText(built.side), maxInputTokens * CHARS_PER_TOKEN),
-    '</attempt>',
+    '</trial>',
   ].join('\n')
   return {
     blind: {
       question,
       prompt: redactSecrets(prompt),
       ...(choices ? { choices } : {}),
-      attempt: built.side,
+      trial: built.side,
     },
-    system: attemptQuestionSystem(shows, choices),
+    system: trialQuestionSystem(shows, choices),
     images: built.images,
     sent: built.sent,
   }
 }
 
-function fakeAttemptAnswer(fake: FakeAnalysisModel, attempt: BlindAttempt) {
+function fakeTrialAnswer(fake: FakeAnalysisModel, trial: BlindTrial) {
   const answer = fake.answer
   if (answer && typeof answer === 'object' && 'error' in answer) {
     return cannedModel({ error: answer.error })
   }
   const given: FakeAnswer =
-    answer === undefined ? {} : typeof answer === 'function' ? answer(attempt) : answer
+    answer === undefined ? {} : typeof answer === 'function' ? answer(trial) : answer
   const { choice, text } = typeof given === 'string' ? { text: given, choice: undefined } : given
   return cannedModel({
     text: JSON.stringify({
-      ...(attempt.choices ? { choice: choice ?? attempt.choices[0] } : {}),
+      ...(trial.choices ? { choice: choice ?? trial.choices[0] } : {}),
       answer: text ?? 'fake answer',
     }),
   })
@@ -655,25 +655,25 @@ const answerSchema = (choices?: string[]) =>
     ? z.object({ choice: z.enum(choices as [string, ...string[]]), answer: z.string() })
     : z.object({ answer: z.string() })
 
-/** A per-attempt question's call as the runner keeps it, until the record resolves its screenshots' paths. */
-export type AskedAttemptCall = {
+/** A per-trial question's call as the runner keeps it, until the record resolves its screenshots' paths. */
+export type AskedTrialCall = {
   system: string
   prompt: string
   screenshots?: AskedScreenshot[]
   error?: string
 }
 
-/** A question asked of one attempt: its place in the eval's questions, the answer and the call. */
-export type AskedAttemptAnswer = { n: number; answer: AttemptAnswer; call?: AskedAttemptCall }
+/** A question asked of one trial: its place in the eval's questions, the answer and the call. */
+export type AskedTrialAnswer = { n: number; answer: TrialAnswer; call?: AskedTrialCall }
 
-export type AttemptAnswerOptions = {
+export type TrialAnswerOptions = {
   question: string
   model: QuestionModel
   gateway?: GatewayName
   fallbacks?: boolean
   /** On vertex, the entry's project and regions. */
   vertex?: VertexSettings
-  attempt: PairAttempt
+  trial: PairTrial
   maxInputTokens: number
   maxOutputTokens: number
   state: QuestionStateOptions
@@ -682,11 +682,11 @@ export type AttemptAnswerOptions = {
   signal?: AbortSignal
 }
 
-/** Asks one question of one attempt. A failed call is the answer's `error`, with empty `text`. */
-export async function answerAttempt(
-  options: AttemptAnswerOptions,
-): Promise<Omit<AskedAttemptAnswer, 'n'>> {
-  const { question, model, attempt, choices } = options
+/** Asks one question of one trial. A failed call is the answer's `error`, with empty `text`. */
+export async function answerTrial(
+  options: TrialAnswerOptions,
+): Promise<Omit<AskedTrialAnswer, 'n'>> {
+  const { question, model, trial, choices } = options
   const shows: QuestionShows = {
     state: resolveQuestionState(options.state),
     ...(options.artifacts !== undefined ? { artifacts: options.artifacts } : {}),
@@ -698,12 +698,12 @@ export async function answerAttempt(
     ...(shows.artifacts !== undefined ? { artifacts: shows.artifacts } : {}),
     ...(choices ? { choices } : {}),
   }
-  let input: ReturnType<typeof attemptInput> | undefined
+  let input: ReturnType<typeof trialInput> | undefined
   try {
-    input = attemptInput(question, attempt, options.maxInputTokens, shows, choices)
+    input = trialInput(question, trial, options.maxInputTokens, shows, choices)
     const result = await generateText({
       model: isFake(model)
-        ? fakeAttemptAnswer(model, input.blind)
+        ? fakeTrialAnswer(model, input.blind)
         : await hostModel(model, options.gateway, 'question model', {
             fallbacks: !!options.fallbacks,
             ...(options.vertex ? { vertex: options.vertex } : {}),
@@ -723,23 +723,23 @@ export async function answerAttempt(
         ...(out.choice !== undefined ? { choice: out.choice } : {}),
         text: clip(redactSecrets(out.answer.trim()), ANSWER_TEXT_CAP),
       },
-      call: attemptCall(input, attempt),
+      call: trialCall(input, trial),
     }
   } catch (e) {
     const why = errorText(e)
     return {
       answer: { ...head, text: '', error: why },
-      ...(input ? { call: attemptCall(input, attempt, why) } : {}),
+      ...(input ? { call: trialCall(input, trial, why) } : {}),
     }
   }
 }
 
-/** The call a question asked of one attempt made, as its `questions/<n>.json` keeps it. */
-const attemptCall = (
-  input: ReturnType<typeof attemptInput>,
-  attempt: PairAttempt,
+/** The call a question asked of one trial made, as its `questions/<n>.json` keeps it. */
+const trialCall = (
+  input: ReturnType<typeof trialInput>,
+  trial: PairTrial,
   error?: string,
-): AskedAttemptCall => ({
+): AskedTrialCall => ({
   system: input.system,
   prompt: input.blind.prompt,
   ...(input.images.length
@@ -747,7 +747,7 @@ const attemptCall = (
         screenshots: input.images.map((image): AskedScreenshot => {
           const label = image.label.replace(/: not captured$/, '')
           return image.data
-            ? { label, side: 'attempt', name: image.name, attempt: attempt.id ?? '' }
+            ? { label, side: 'trial', name: image.name, trial: trial.id ?? '' }
             : { label, missing: true }
         }),
       }
@@ -755,7 +755,7 @@ const attemptCall = (
   ...(error !== undefined ? { error } : {}),
 })
 
-/** Ran to a pass or a fail: what a question asked of one attempt is asked of. */
+/** Ran to a pass or a fail: what a question asked of one trial is asked of. */
 export function answerable(e: EngineEval, record: EvalRecord | null): boolean {
   if (record === null || (e.state !== 'passed' && e.state !== 'failed')) return false
   const { outcome, error } = mergeOutcome(e, record)
@@ -781,21 +781,21 @@ function limiter(limit: number) {
 }
 
 /**
- * A staged attempt as a pair side: its record's turns, diff and checks, and whether its checks
+ * A staged trial as a pair side: its record's turns, diff and checks, and whether its checks
  * held. One a resume skipped as already completed is judged by its staged outcome.
  */
-export function stagedAttempt(e: EngineEval, record: EvalRecord | null): PairAttempt | null {
-  const cell = e.attempt?.cell
+export function stagedTrial(e: EngineEval, record: EvalRecord | null): PairTrial | null {
+  const cell = e.trial?.cell
   if (!cell) return null
   const checksPassed = record !== null && checksHeld(mergeOutcome(e, record).outcome, record.error)
   return {
     harness: cell.harness,
-    arm: cell.environment,
-    run: e.attempt?.n ?? 1,
+    environment: cell.environment,
+    run: e.trial?.n ?? 1,
     diff: record?.diff?.patch ?? '',
     files: record?.diff?.files ?? [],
     checksPassed,
-    control: cell.role === 'control',
+    baseline: cell.role === 'baseline',
     turns:
       record?.turns.map((t) => ({ prompt: t.prompt, text: t.text, trajectory: t.trajectory })) ??
       [],
@@ -807,7 +807,7 @@ export function stagedAttempt(e: EngineEval, record: EvalRecord | null): PairAtt
         stderr,
       })) ?? [],
     ...(record?.observations ? { observations: record.observations } : {}),
-    id: `${cell.key}#${e.attempt?.n ?? 1}`,
+    id: `${cell.key}#${e.trial?.n ?? 1}`,
     key: e.key,
   }
 }
@@ -821,16 +821,16 @@ function logOutput(log: string | null): { stdout: string; stderr: string } {
 }
 
 /**
- * An attempt a resume kept from the previous record, as a pair side: its turns, `diff.patch`,
+ * A trial a resume kept from the previous record, as a pair side: its turns, `diff.patch`,
  * trajectory, check logs and captures, read back from the previous record's artifact files.
  */
-async function keptAttempt(
+async function keptTrial(
   e: EngineEval,
-  kept: AttemptRecord,
+  kept: TrialRecord,
   artifacts: string | null,
   captures: boolean,
-): Promise<PairAttempt | null> {
-  const cell = e.attempt?.cell
+): Promise<PairTrial | null> {
+  const cell = e.trial?.cell
   if (!cell) return null
   const path = (ref: FileRef) => join(artifacts ?? '', ...ref.path.split('/'))
   const text = (ref: FileRef | undefined) =>
@@ -855,11 +855,11 @@ async function keptAttempt(
   )
   return {
     harness: cell.harness,
-    arm: cell.environment,
-    run: e.attempt?.n ?? kept.n,
+    environment: cell.environment,
+    run: e.trial?.n ?? kept.n,
     diff: (await text(kept.files.diff)) ?? '',
     checksPassed: checksHeld(kept.outcome, kept.error),
-    control: cell.role === 'control',
+    baseline: cell.role === 'baseline',
     turns: kept.turns.map((t, i) => {
       const said = events.get(i) ?? []
       // The record cuts a long final message; the trajectory's last text event has it whole.
@@ -878,7 +878,7 @@ async function keptAttempt(
       ? { observations: await filedObservations(kept.observations, artifacts) }
       : {}),
     ...(captures ? { captures: shots.flat() } : {}),
-    id: `${cell.key}#${e.attempt?.n ?? kept.n}`,
+    id: `${cell.key}#${e.trial?.n ?? kept.n}`,
     key: kept.key,
   }
 }
@@ -915,7 +915,7 @@ const readStaged = async (stagingDir: string, key: string): Promise<EvalRecord |
 /** A capture's own PNG, not one of its instructions' screenshots. */
 const isCapture = (art: { capture?: { step?: unknown } }) => !art.capture?.step
 
-/** A staged attempt's captures, read from the PNGs beside its record; a missing file is left out. */
+/** A staged trial's captures, read from the PNGs beside its record; a missing file is left out. */
 async function stagedCaptures(stagingDir: string, key: string, record: EvalRecord | null) {
   const dir = join(stagingDir, 'evals', recordFileName(key).replace(/\.json$/, '.artifacts'))
   const read = await Promise.all(
@@ -940,7 +940,7 @@ export type EvalQuestions = {
     fallbacks?: boolean
     /** On vertex, the entry's project and regions. */
     vertex?: VertexSettings
-    /** Set on a pairwise question; without it, the question is asked of each attempt. */
+    /** Set on a pairwise question; without it, the question is asked of each trial. */
     across?: PairFactor | PairFactor[]
     choices?: string[]
     state: QuestionStateOptions
@@ -953,16 +953,16 @@ export type QuestionRunnerOptions = {
   stagingDir: string
   maxInputTokens: number
   maxOutputTokens: number
-  /** Per-attempt model calls at once, over the whole run (default 4). */
+  /** Per-trial model calls at once, over the whole run (default 4). */
   concurrency?: number
   /** Told about each pairwise answer as it lands, e.g. to warn about an error. */
   onAnswer?: (evalId: string, answer: CompareAnswer) => void
-  /** Told about each per-attempt answer as it lands, with the attempt's id. */
-  onAttemptAnswer?: (evalId: string, attempt: string, answer: AttemptAnswer) => void
-  /** Told once per per-attempt question that names a check or capture none of its attempts has. */
+  /** Told about each per-trial answer as it lands, with the trial's id. */
+  onTrialAnswer?: (evalId: string, trial: string, answer: TrialAnswer) => void
+  /** Told once per per-trial question that names a check or capture none of its trials has. */
   onUnshown?: (evalId: string, error: string) => void
   /**
-   * On resume: the keys of the attempts already completed, which the plan doesn't count, and the
+   * On resume: the keys of the trials already completed, which the plan doesn't count, and the
    * previous record they come from with its artifact directory, when there is one.
    */
   resumed?: {
@@ -972,16 +972,16 @@ export type QuestionRunnerOptions = {
   }
 }
 
-/** What `settle` hands the record: each eval's pairwise answers, and each attempt's own, by key. */
+/** What `settle` hands the record: each eval's pairwise answers, and each trial's own, by key. */
 export type SettledQuestions = {
   evals: Map<string, AskedQuestion[]>
-  attempts: Map<string, AskedAttemptAnswer[]>
+  trials: Map<string, AskedTrialAnswer[]>
 }
 
 type RunnerQuestion = EvalQuestions['questions'][number]
 
-/** A per-attempt question's answer when no model answered it. */
-const unanswered = (q: RunnerQuestion, error: string): AskedAttemptAnswer => ({
+/** A per-trial question's answer when no model answered it. */
+const unanswered = (q: RunnerQuestion, error: string): AskedTrialAnswer => ({
   n: q.n,
   answer: {
     question: q.question,
@@ -995,19 +995,19 @@ const unanswered = (q: RunnerQuestion, error: string): AskedAttemptAnswer => ({
 })
 
 /**
- * Asks each attempt its eval's per-attempt questions as soon as it ends, and an eval's pairwise
- * questions as soon as its last planned attempt ends, while the rest of the run goes on; `settle`
+ * Asks each trial its eval's per-trial questions as soon as it ends, and an eval's pairwise
+ * questions as soon as its last planned trial ends, while the rest of the run goes on; `settle`
  * starts any pairwise ones left (an eval a filter or budget cut short) and waits for all.
  */
 export function questionRunner(options: QuestionRunnerOptions) {
   const byId = new Map(options.evals.map((e) => [e.row.id, e]))
   const ended = new Map<string, EngineEval[]>()
   const started = new Map<string, Promise<AskedQuestion[]>>()
-  const perAttempt = new Map<string, Promise<AskedAttemptAnswer[]>>()
-  // Each attempt's answers once all came back, before any cancel: what a stopped run keeps.
-  const done = new Map<string, AskedAttemptAnswer[]>()
-  const shown = new Map<string, PairAttempt>()
-  // The questions each attempt was being asked: one a cancel cuts short records them unanswered.
+  const perTrial = new Map<string, Promise<AskedTrialAnswer[]>>()
+  // Each trial's answers once all came back, before any cancel: what a stopped run keeps.
+  const done = new Map<string, AskedTrialAnswer[]>()
+  const shown = new Map<string, PairTrial>()
+  // The questions each trial was being asked: one a cancel cuts short records them unanswered.
   const asking = new Map<string, RunnerQuestion[]>()
   const controller = new AbortController()
   const live = () => !controller.signal.aborted
@@ -1015,16 +1015,16 @@ export function questionRunner(options: QuestionRunnerOptions) {
   const pairwiseOf = (e: EvalQuestions) => e.questions.filter((q) => q.across !== undefined)
   const eachOf = (e: EvalQuestions) => e.questions.filter((q) => q.across === undefined)
 
-  const keptAttempts = new Map(
-    (options.resumed?.previous?.evals ?? []).flatMap((e) => e.attempts.map((a) => [a.key, a])),
+  const keptTrials = new Map(
+    (options.resumed?.previous?.evals ?? []).flatMap((e) => e.trials.map((a) => [a.key, a])),
   )
   const isCompleted = (a: EngineEval) =>
     a.state === 'skipped' && options.resumed?.completed.has(a.key) === true
 
   const side = async (a: EngineEval, record: EvalRecord | null, captures: boolean) => {
-    const kept = isCompleted(a) ? keptAttempts.get(a.key) : undefined
-    if (kept) return keptAttempt(a, kept, options.resumed?.artifacts ?? null, captures)
-    const found = stagedAttempt(a, record)
+    const kept = isCompleted(a) ? keptTrials.get(a.key) : undefined
+    if (kept) return keptTrial(a, kept, options.resumed?.artifacts ?? null, captures)
+    const found = stagedTrial(a, record)
     if (!found) return found
     const sidecar = recordFileName(a.key).replace(/\.json$/, '.observations')
     const observations = await filedObservations(
@@ -1040,28 +1040,28 @@ export function questionRunner(options: QuestionRunnerOptions) {
 
   const askEach = (id: string, e: EvalQuestions, result: EngineEval) => {
     const questions = eachOf(e)
-    if (!questions.length || perAttempt.has(result.key) || !live()) return
+    if (!questions.length || perTrial.has(result.key) || !live()) return
     const asked = (async () => {
       const record = await readStaged(options.stagingDir, result.key)
       if (!answerable(result, record)) return []
-      const attempt = await side(
+      const trial = await side(
         result,
         record,
         questions.some((q) => q.artifacts !== undefined),
       )
-      if (!attempt) return []
-      shown.set(result.key, attempt)
+      if (!trial) return []
+      shown.set(result.key, trial)
       asking.set(result.key, questions)
       return Promise.all(
-        questions.map(async (q): Promise<AskedAttemptAnswer> => {
+        questions.map(async (q): Promise<AskedTrialAnswer> => {
           const got = await limit(() =>
-            answerAttempt({
+            answerTrial({
               question: q.question,
               model: q.model,
               ...(q.gateway ? { gateway: q.gateway } : {}),
               ...(q.fallbacks ? { fallbacks: q.fallbacks } : {}),
               ...(q.vertex ? { vertex: q.vertex } : {}),
-              attempt,
+              trial,
               maxInputTokens: options.maxInputTokens,
               maxOutputTokens: options.maxOutputTokens,
               state: q.state,
@@ -1070,24 +1070,24 @@ export function questionRunner(options: QuestionRunnerOptions) {
               signal: controller.signal,
             }),
           )
-          if (live()) options.onAttemptAnswer?.(id, attempt.id ?? result.key, got.answer)
+          if (live()) options.onTrialAnswer?.(id, trial.id ?? result.key, got.answer)
           return { n: q.n, ...got }
         }),
       )
     })().catch((error: unknown) =>
-      questions.map((q): AskedAttemptAnswer => {
+      questions.map((q): AskedTrialAnswer => {
         const asked = unanswered(q, errorText(error))
-        if (live()) options.onAttemptAnswer?.(id, result.key, asked.answer)
+        if (live()) options.onTrialAnswer?.(id, result.key, asked.answer)
         return asked
       }),
     )
-    perAttempt.set(result.key, asked)
+    perTrial.set(result.key, asked)
     void asked.then((got) => {
       if (live() && got.length) done.set(result.key, got)
     })
   }
 
-  // A command or capture a question names that no attempt it was asked of has is a typo, not a
+  // A command or capture a question names that no trial it was asked of has is a typo, not a
   // finding: each of its answers becomes that error, as a pairwise question's does.
   const unshown = (e: EvalQuestions, results: EngineEval[]) => {
     const sides = results.flatMap((r) => shown.get(r.key) ?? [])
@@ -1096,7 +1096,7 @@ export function questionRunner(options: QuestionRunnerOptions) {
         state: resolveQuestionState(q.state),
         ...(q.artifacts !== undefined ? { artifacts: q.artifacts } : {}),
       }
-      const missing = sides.length && missingEverywhere(q.question, shows, sides, 'attempt')
+      const missing = sides.length && missingEverywhere(q.question, shows, sides, 'trial')
       if (!missing) continue
       options.onUnshown?.(e.row.id, missing)
       for (const r of results) {
@@ -1119,17 +1119,17 @@ export function questionRunner(options: QuestionRunnerOptions) {
     if (!e || started.has(id)) return
     const questions = pairwiseOf(e)
     if (!questions.length) return
-    const attempts = ended.get(id) ?? []
+    const trials = ended.get(id) ?? []
     const wantsCaptures = questions.some((q) => q.artifacts !== undefined)
     const answers = (async () => {
       const sides = await Promise.all(
-        attempts.map(async (a) =>
+        trials.map(async (a) =>
           side(a, await readStaged(options.stagingDir, a.key), wantsCaptures),
         ),
       )
-      // By cell key, not the order attempts happened to end in, so a run's pairs are its own.
+      // By cell key, not the order trials happened to end in, so a run's pairs are its own.
       const staged = sides
-        .filter((s): s is PairAttempt => s !== null)
+        .filter((s): s is PairTrial => s !== null)
         .sort((x, y) => ((x.id ?? '') < (y.id ?? '') ? -1 : 1))
       return Promise.all(
         questions.map(async (q): Promise<AskedQuestion> => {
@@ -1178,36 +1178,36 @@ export function questionRunner(options: QuestionRunnerOptions) {
       const list = ended.get(result.id) ?? []
       list.push(result)
       ended.set(result.id, list)
-      if (list.filter((r) => !isCompleted(r)).length >= e.row.plan.attempts) start(result.id)
+      if (list.filter((r) => !isCompleted(r)).length >= e.row.plan.totalTrials) start(result.id)
     },
     /** Stops calls in flight and asks nothing more: the run was canceled. */
     cancel(): void {
       controller.abort()
     },
     /**
-     * What a canceled run keeps: each attempt whose answers all came back before the cancel,
-     * and, for an attempt the cancel cut short, each question as an error, so the record shows
+     * What a canceled run keeps: each trial whose answers all came back before the cancel,
+     * and, for a trial the cancel cut short, each question as an error, so the record shows
      * it went unanswered. Waits for the aborted calls to unwind.
      */
     async answered(): Promise<SettledQuestions> {
-      await Promise.all(perAttempt.values())
-      const attempts = new Map(done)
+      await Promise.all(perTrial.values())
+      const trials = new Map(done)
       for (const [key, questions] of asking) {
-        if (!attempts.has(key))
-          attempts.set(
+        if (!trials.has(key))
+          trials.set(
             key,
             questions.map((q) => unanswered(q, STOPPED_FIRST)),
           )
       }
-      return { evals: new Map(), attempts }
+      return { evals: new Map(), trials }
     },
     async settle(): Promise<SettledQuestions> {
       for (const id of byId.keys()) if (ended.has(id)) start(id)
       const evals = new Map<string, AskedQuestion[]>()
       for (const [id, answers] of started) evals.set(id, await answers)
-      for (const answers of perAttempt.values()) await answers
+      for (const answers of perTrial.values()) await answers
       for (const [id, e] of byId) unshown(e, ended.get(id) ?? [])
-      return { evals, attempts: new Map(done) }
+      return { evals, trials: new Map(done) }
     },
   }
 }

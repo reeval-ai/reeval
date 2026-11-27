@@ -1,5 +1,5 @@
 // The machine pool on a fake provider that rate-limits: starts held to the windows, 429s waited
-// out (as the provider asks, else with backoff) without failing an attempt, real failures failing
+// out (as the provider asks, else with backoff) without failing a trial, real failures failing
 // one, slots reused or not, machines shared, idle and broken ones removed, and close removing all;
 // and pools on one account sharing its machines and starts, an idle machine making way for
 // another pool's.
@@ -116,7 +116,7 @@ afterEach(async () => {
 const pool = (provider: Fake, o: Partial<PoolOptions> = {}) => {
   const p = new MachinePool(provider, {
     limits: { machines: 10 },
-    attemptsPerMachine: 1,
+    trialsPerMachine: 1,
     reuse: false,
     idleMs: 60_000,
     ...o,
@@ -160,7 +160,7 @@ describe('machine pool', () => {
   test("reports each machine to the run's trace once, under the span its leases name", async () => {
     const provider = fakeProvider()
     const gone: GoneMachine<unknown>[] = []
-    const p = pool(provider, { attemptsPerMachine: 2, reuse: true, onGone: (m) => gone.push(m) })
+    const p = pool(provider, { trialsPerMachine: 2, reuse: true, onGone: (m) => gone.push(m) })
     const a = await p.acquire()
     const b = await p.acquire()
     assert.equal(a.machine, b.machine)
@@ -274,7 +274,7 @@ describe('machine pool', () => {
     await p.close()
   })
 
-  test('rate limits past maxRateWaitMs fail the attempt, naming the provider and its answer', async () => {
+  test('rate limits past maxRateWaitMs fail the trial, naming the provider and its answer', async () => {
     const provider = fakeProvider(() => new RateLimitError(150))
     const p = pool(provider, { maxRateWaitMs: 200 })
     await assert.rejects(
@@ -299,14 +299,14 @@ describe('machine pool', () => {
     const waiting = p.acquire({ signal: stop.signal })
     await until(() => p.stats().rateLimited === 1)
     const t0 = performance.now()
-    stop.abort(new Error('the attempt was canceled'))
-    await assert.rejects(waiting, /the attempt was canceled/)
+    stop.abort(new Error('the trial was canceled'))
+    await assert.rejects(waiting, /the trial was canceled/)
     assert.ok(performance.now() - t0 < 1_000)
     assert.equal(provider.tries.length, 1)
     await p.close()
   })
 
-  test('the provider ending the run fails its attempts, and the pool asks it for no more', async () => {
+  test('the provider ending the run fails its trials, and the pool asks it for no more', async () => {
     let asked = 0
     const provider = fakeProvider((n) => {
       asked = n + 1
@@ -320,7 +320,7 @@ describe('machine pool', () => {
     await p.close()
   })
 
-  test('a real start failure fails one attempt; the others start', async () => {
+  test('a real start failure fails one trial; the others start', async () => {
     const provider = fakeProvider((n) => (n === 0 ? new Error('quota exceeded') : 'ok'))
     const p = pool(provider)
     const results = await Promise.allSettled([p.acquire(), p.acquire(), p.acquire()])
@@ -334,7 +334,7 @@ describe('machine pool', () => {
     assert.deepEqual(provider.live(), [])
   })
 
-  test('without reuse, a released machine goes at once and the next attempt starts another', async () => {
+  test('without reuse, a released machine goes at once and the next trial starts another', async () => {
     const provider = fakeProvider()
     const p = pool(provider, { limits: { machines: 1 } })
     const a = await p.acquire()
@@ -349,7 +349,7 @@ describe('machine pool', () => {
 
   test('a new machine starts only once the provider has room: one being removed, or still running a slot, holds its place', async () => {
     const provider = fakeProvider(() => 'ok', { removeMs: 50 })
-    const p = pool(provider, { limits: { machines: 1 }, attemptsPerMachine: 2 })
+    const p = pool(provider, { limits: { machines: 1 }, trialsPerMachine: 2 })
     const [a, b] = await Promise.all([p.acquire(), p.acquire()])
     a?.release()
     const waiting = p.acquire()
@@ -367,7 +367,7 @@ describe('machine pool', () => {
     assert.deepEqual(provider.live(), [])
   })
 
-  test('with reuse, the next attempt takes the slot, keeping the machine alive', async () => {
+  test('with reuse, the next trial takes the slot, keeping the machine alive', async () => {
     const provider = fakeProvider()
     const p = pool(provider, { limits: { machines: 1 }, reuse: true })
     const a = await p.acquire()
@@ -394,7 +394,7 @@ describe('machine pool', () => {
     assert.deepEqual(provider.live(), [])
   })
 
-  test('a reused machine is kept alive for the longest TTL any attempt asked, from now', async () => {
+  test('a reused machine is kept alive for the longest TTL any trial asked, from now', async () => {
     const provider = fakeProvider()
     const p = pool(provider, { limits: { machines: 1 }, reuse: true })
     ;(await p.acquire({ ttlSeconds: 900 })).release()
@@ -403,7 +403,7 @@ describe('machine pool', () => {
     await p.close()
   })
 
-  test('a machine that fails its keep-alive goes, and the attempt gets a new one', async () => {
+  test('a machine that fails its keep-alive goes, and the trial gets a new one', async () => {
     const provider = fakeProvider(() => 'ok', {
       keepAlive: (id) => {
         if (id === 'm1') throw new Error('404 sandbox not found')
@@ -423,7 +423,7 @@ describe('machine pool', () => {
     assert.deepEqual(provider.live(), [])
   })
 
-  test('a machine the provider takes back at its keep-alive goes as no failure, and the attempt gets a new one', async () => {
+  test('a machine the provider takes back at its keep-alive goes as no failure, and the trial gets a new one', async () => {
     const provider = fakeProvider(() => 'ok', {
       keepAlive: (id) => {
         if (id === 'm1') throw new MachineReclaimed('took m1 back: 409 vm_released')
@@ -445,7 +445,7 @@ describe('machine pool', () => {
     assert.deepEqual(provider.live(), [])
   })
 
-  test('a keep-alive that says the run ended stops its attempts, starting no machine for them', async () => {
+  test('a keep-alive that says the run ended stops its trials, starting no machine for them', async () => {
     const ended = new RunStopped('the service ended the run')
     const provider = fakeProvider(() => 'ok', {
       keepAlive: () => {
@@ -464,21 +464,21 @@ describe('machine pool', () => {
     assert.deepEqual(provider.live(), [])
   })
 
-  test('a packed machine taken back keeps its running attempt, takes no new one and goes after it', async () => {
+  test('a packed machine taken back keeps its running trial, takes no new one and goes after it', async () => {
     const provider = fakeProvider(() => 'ok', {
       keepAlive: (id) => {
         throw new MachineReclaimed(`took ${id} back`)
       },
     })
-    const p = pool(provider, { limits: { machines: 3 }, attemptsPerMachine: 2 })
+    const p = pool(provider, { limits: { machines: 3 }, trialsPerMachine: 2 })
     const a = await p.acquire()
     const b = await p.acquire()
     assert.deepEqual(provider.kept, ['m1'], "the second slot's lease asks to keep m1")
     assert.equal(a.machine, 'm1')
     assert.equal(b.machine, 'm2')
-    assert.deepEqual(provider.removed, [], 'm1 stays while its first attempt runs')
+    assert.deepEqual(provider.removed, [], 'm1 stays while its first trial runs')
     const c = await p.acquire()
-    assert.notEqual(c.machine, 'm1', 'a machine taken back takes no new attempt')
+    assert.notEqual(c.machine, 'm1', 'a machine taken back takes no new trial')
     a.release()
     await until(() => provider.removed.includes('m1'))
     assert.ok(!provider.live().includes('m1'))
@@ -505,7 +505,7 @@ describe('machine pool', () => {
     await p.close()
   })
 
-  test('a broken slot takes its machine out; the next attempt gets a new one', async () => {
+  test('a broken slot takes its machine out; the next trial gets a new one', async () => {
     const provider = fakeProvider()
     const p = pool(provider, { limits: { machines: 1 }, reuse: true })
     const a = await p.acquire()
@@ -516,9 +516,9 @@ describe('machine pool', () => {
     await p.close()
   })
 
-  test('attemptsPerMachine shares one start between slots', async () => {
+  test('trialsPerMachine shares one start between slots', async () => {
     const provider = fakeProvider()
-    const p = pool(provider, { limits: { machines: 2 }, attemptsPerMachine: 3 })
+    const p = pool(provider, { limits: { machines: 2 }, trialsPerMachine: 3 })
     const leases = await Promise.all(Array.from({ length: 5 }, () => p.acquire()))
     assert.equal(provider.started.length, 2)
     const byMachine = Object.groupBy(leases, (l) => l.machine)
@@ -536,9 +536,9 @@ describe('machine pool', () => {
     await p.close()
   })
 
-  test('the pool runs at most `machines` × attemptsPerMachine; the rest wait for a slot', async () => {
+  test('the pool runs at most `machines` × trialsPerMachine; the rest wait for a slot', async () => {
     const provider = fakeProvider()
-    const p = pool(provider, { limits: { machines: 1 }, reuse: true, attemptsPerMachine: 2 })
+    const p = pool(provider, { limits: { machines: 1 }, reuse: true, trialsPerMachine: 2 })
     const [a, b] = await Promise.all([p.acquire(), p.acquire()])
     let third: string | undefined
     const waiting = p.acquire().then((l) => {
@@ -565,7 +565,7 @@ describe('machine pool', () => {
     await p.close()
   })
 
-  test('close removes machines in use and starting, and fails the attempts waiting', async () => {
+  test('close removes machines in use and starting, and fails the trials waiting', async () => {
     const provider = fakeProvider((n) => (n === 0 ? 'ok' : 'hang'))
     const p = pool(provider)
     const a = await p.acquire()
@@ -585,8 +585,8 @@ describe('machine pool', () => {
     const a = await p.acquire()
     const stop = new AbortController()
     const waiting = p.acquire({ signal: stop.signal })
-    stop.abort(new Error('the attempt was canceled'))
-    await assert.rejects(waiting, /the attempt was canceled/)
+    stop.abort(new Error('the trial was canceled'))
+    await assert.rejects(waiting, /the trial was canceled/)
     a.release()
     await p.close()
   })
@@ -597,8 +597,8 @@ describe('machine pool', () => {
     const stop = new AbortController()
     const waiting = p.acquire({ signal: stop.signal })
     await new Promise((r) => setTimeout(r, 10))
-    stop.abort(new Error('the attempt was canceled'))
-    await assert.rejects(waiting, /the attempt was canceled/)
+    stop.abort(new Error('the trial was canceled'))
+    await assert.rejects(waiting, /the trial was canceled/)
     for (let i = 0; i < 100 && provider.removed.length === 0; i++)
       await new Promise((r) => setTimeout(r, 20))
     assert.deepEqual(provider.removed, ['m1'], 'the machine nobody waits for is removed')
@@ -700,8 +700,8 @@ describe('pools on one account', () => {
       () => {},
     )
     const t0 = performance.now()
-    stop.abort(new Error('the attempt was canceled'))
-    await assert.rejects(gated, /the attempt was canceled/)
+    stop.abort(new Error('the trial was canceled'))
+    await assert.rejects(gated, /the trial was canceled/)
     assert.ok(performance.now() - t0 < 1_000)
     assert.equal(started, false)
     shared.close()
@@ -876,7 +876,7 @@ describe('pools on one account', () => {
     }
   })
 
-  test("a pool waiting while another's machine is in use gets it next, before that pool's next attempt", async () => {
+  test("a pool waiting while another's machine is in use gets it next, before that pool's next trial", async () => {
     const provider = fakeProvider()
     const shared = account({ limits: { machines: 1 } })
     const a = pool(provider, { account: shared, reuse: true })
@@ -896,7 +896,7 @@ describe('pools on one account', () => {
       first.release()
       await Promise.all([waiting, next])
       assert.deepEqual(order, ['b', 'a'])
-      assert.deepEqual(provider.removed, [first.machine, 'm2'], "and b's goes for a's attempt")
+      assert.deepEqual(provider.removed, [first.machine, 'm2'], "and b's goes for a's trial")
     } finally {
       await Promise.all([a.close(), b.close()])
     }

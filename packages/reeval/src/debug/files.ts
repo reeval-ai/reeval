@@ -12,8 +12,8 @@ export const debugRoot = (root: string) => join(root, '.reeval', 'debug')
 export const debugArchiveFile = (root: string, runId: string) =>
   join(debugRoot(root), `${runId}.zip`)
 
-/** Where one attempt's debug data goes: the same layout as its artifacts in the run. */
-export const attemptDebugDir = (
+/** Where one trial's debug data goes: the same layout as its artifacts in the run. */
+export const trialDebugDir = (
   root: string,
   runId: string,
   evalId: string,
@@ -21,15 +21,15 @@ export const attemptDebugDir = (
   n: number,
 ) => join(debugRoot(root), runId, evalSlug(evalId), evalSlug(cellKey), String(n))
 
-/** `<eval> # <cell>#<n>`, the attempt key in a record, back into its parts. */
-export function parseAttemptKey(key: string): { evalId: string; cell: string; n: number } | null {
+/** `<eval> # <cell>#<n>`, the trial key in a record, back into its parts. */
+export function parseTrialKey(key: string): { evalId: string; cell: string; n: number } | null {
   const split = key.lastIndexOf(' # ')
   if (split < 0) return null
-  const attempt = key.slice(split + 3)
-  const hash = attempt.lastIndexOf('#')
-  const n = Number(attempt.slice(hash + 1))
+  const trial = key.slice(split + 3)
+  const hash = trial.lastIndexOf('#')
+  const n = Number(trial.slice(hash + 1))
   if (hash < 0 || !Number.isInteger(n) || n < 1) return null
-  return { evalId: key.slice(0, split), cell: attempt.slice(0, hash), n }
+  return { evalId: key.slice(0, split), cell: trial.slice(0, hash), n }
 }
 
 /** Runs with debug data, a directory or its zip, oldest first. */
@@ -49,7 +49,7 @@ async function size(path: string): Promise<number> {
   return total
 }
 
-/** An attempt's snapshots in a run's directory in `.reeval/runs`: under each `<n>/snapshots`. */
+/** A trial's snapshots in a run's directory in `.reeval/runs`: under each `<n>/snapshots`. */
 async function snapshotDirs(dir: string, depth = 0): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
   const found: string[] = []

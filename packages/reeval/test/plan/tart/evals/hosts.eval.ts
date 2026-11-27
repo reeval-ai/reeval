@@ -9,4 +9,4 @@ const macs = defineEnvironment('macs', {
   }),
 })
 
-export default defineEval({ environment: macs, runs: 4, task: async () => {} })
+export default defineEval({ environment: macs, trials: 4, task: async () => {} })

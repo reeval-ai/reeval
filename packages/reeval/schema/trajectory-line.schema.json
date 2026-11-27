@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "Generated from TrajectoryLine in src/view/model.ts by `pnpm schema:update`; don't edit. One line of an attempt's trajectory.jsonl in a run's artifacts.",
+  "$comment": "Generated from TrajectoryLine in src/view/model.ts by `pnpm schema:update`; don't edit. One line of a trial's trajectory.jsonl in a run's artifacts.",
   "title": "TrajectoryLine",
   "$ref": "#/$defs/TrajectoryLine",
   "$defs": {
@@ -89,7 +89,7 @@
       ]
     },
     "DecisionFileRecord": {
-      "description": "A file part of a decision's state as it's recorded: its bytes' hash and size instead of the bytes, and the capture it is, when it's one of the attempt's.",
+      "description": "A file part of a decision's state as it's recorded: its bytes' hash and size instead of the bytes, and the capture it is, when it's one of the trial's.",
       "type": "object",
       "properties": {
         "bytes": {
@@ -197,7 +197,7 @@
           ]
         },
         "turn": {
-          "description": "How many turns the attempt had sent when it was asked: 0 before the first.",
+          "description": "How many turns the trial had sent when it was asked: 0 before the first.",
           "type": "number"
         },
         "usage": {
@@ -805,7 +805,7 @@
               "type": "string"
             },
             "role": {
-              "description": "`main` for one of the agent's own steps, `side` for a call its CLI made around them: a session title, a web search's own model call, Antigravity's Flash Lite calls. A call is `main` when its tokens are one of the turn's steps' as the harness reported them. Otherwise it's `side` when its request declared at most one tool while another call in the attempt declared more, or when another model served it than served the turn's other calls, and `main` when neither holds. Absent in records from before roles.",
+              "description": "`main` for one of the agent's own steps, `side` for a call its CLI made around them: a session title, a web search's own model call, Antigravity's Flash Lite calls. A call is `main` when its tokens are one of the turn's steps' as the harness reported them. Otherwise it's `side` when its request declared at most one tool while another call in the trial declared more, or when another model served it than served the turn's other calls, and `main` when neither holds. Absent in records from before roles.",
               "enum": ["main", "side"]
             },
             "status": {

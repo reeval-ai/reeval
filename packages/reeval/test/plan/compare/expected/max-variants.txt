@@ -1,17 +1,17 @@
-profile lean (--profile) · 3 evals · 14 cells · 56 attempts
-limited/one-variant   a/base/docker     control          ungated    ×4  runs 4 (compare default)
+profile lean (--profile) · 3 evals · 14 cells · 56 trials
+limited/one-variant   a/base/docker     baseline         ungated    ×4  trials 4 (compare default)
                       a/skilled/docker  variant skilled  gated any  ×4
-                      b/base/docker     control          ungated    ×4
+                      b/base/docker     baseline         ungated    ×4
                       b/skilled/docker  variant skilled  gated any  ×4
-limited/pinned        a/base/docker     control          ungated    ×4  runs 4 (compare default) · pinned: compare
+limited/pinned        a/base/docker     baseline         ungated    ×4  trials 4 (compare default) · pinned: compare
                       a/skilled/docker  variant skilled  gated any  ×4
                       a/terse/docker    variant terse    gated any  ×4
-                      b/base/docker     control          ungated    ×4
+                      b/base/docker     baseline         ungated    ×4
                       b/skilled/docker  variant skilled  gated any  ×4
                       b/terse/docker    variant terse    gated any  ×4
-limited/two-variants  a/base/docker     control          ungated    ×4  variants 2 → 1 (profile lean) · runs 4 (compare default)
+limited/two-variants  a/base/docker     baseline         ungated    ×4  variants 2 → 1 (profile lean) · trials 4 (compare default)
                       a/skilled/docker  variant skilled  gated any  ×4
-                      b/base/docker     control          ungated    ×4
+                      b/base/docker     baseline         ungated    ×4
                       b/skilled/docker  variant skilled  gated any  ×4
 excluded: —
 image docker · cursor · 3 evals

@@ -29,15 +29,15 @@ one profile you need.
 
 ```text
 with-min-lift.eval.ts
-  ✓ with-min-lift  mean 100% · 4/4 runs at 100%  regression(1)
-    arm              pass
+  ✓ with-min-lift  mean 100% · 4/4 trials at 100%  regression(1)
+    environment      pass
     math             0 of 4
-      error  score 0.00 below 1: has-file:src/math.js scored 0.00 (4 runs)
+      error  score 0.00 below 1: has-file:src/math.js scored 0.00 (4 trials)
     jsdoc            4 of 4  helped
 ```
 
 `pnpm reeval query "SELECT variant, points, lo, hi, min_lift, outcome FROM lift"` has the
-interval: 4 of 4 against 0 of 4 is a lift of +100 points, and at four tries a side the interval
+interval: 4 of 4 against 0 of 4 is a lift of +100 points, and at four trials a side the interval
 reaches down to +30.7.
 
 ```text
@@ -45,29 +45,29 @@ variant  points  lo     hi  min_lift  outcome
 jsdoc    1       0.307  1   0.2       pass
 ```
 
-Raise the bar to `minLift: 0.5` and the same attempts fail the run, which exits 1. Four tries a
-side can't show a lift that sure; more runs narrow the interval:
+Raise the bar to `minLift: 0.5` and the same trials fail the run, which exits 1. Four trials a
+side can't show a lift that sure; more trials narrow the interval:
 
 ```text
 with-min-lift.eval.ts
-  ✗ with-min-lift  mean 100% · 4/4 runs at 100%  regression(1)
-    arm              pass
+  ✗ with-min-lift  mean 100% · 4/4 trials at 100%  regression(1)
+    environment      pass
     math             0 of 4
-      error  score 0.00 below 1: has-file:src/math.js scored 0.00 (4 runs)
+      error  score 0.00 below 1: has-file:src/math.js scored 0.00 (4 trials)
     jsdoc            4 of 4  helped, not by minLift 50
     …
 Done in 2s · 1 eval · 1 below
 ```
 
-The target gates the variant cells only; the control reports. `minLift` needs a target that can
+The target gates the variant cells only; the baseline reports. `minLift` needs a target that can
 fail the run.
 
 | File | What it is |
 |---|---|
-| [`with-min-lift.eval.ts`](./with-min-lift.eval.ts) | The eval: the compare with `minLift`, four runs and a mean-score target |
+| [`with-min-lift.eval.ts`](./with-min-lift.eval.ts) | The eval: the compare with `minLift`, four trials and a mean-score target |
 | [`skills/jsdoc/SKILL.md`](./skills/jsdoc/SKILL.md) | The skill under test |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace, without and with the skill |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, and the real agents from `../profiles.ts` |
 
-[Measure lift against a control](../../docs/results/compare/lift.mdx) covers `minLift`.
+[Measure lift against a baseline](../../docs/results/compare/lift.mdx) covers `minLift`.

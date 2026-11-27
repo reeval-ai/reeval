@@ -19,7 +19,7 @@ pnpm eval
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
 graders have something to grade. In CI, the `pr` profile is Claude Code's from
-[`examples/profiles.ts`](../profiles.ts) with one attempt per cell and a budget; locally,
+[`examples/profiles.ts`](../profiles.ts) with one trial per cell and a budget; locally,
 `pnpm eval --profile pr` runs the same, and `--profile <name>` runs any other agent in that file.
 
 **Copying it out of the repo:** `reeval.config.ts` imports `../profiles.ts`. Copy
@@ -41,10 +41,10 @@ REEVAL v0.31.0  dry run
   ➜  Agent:     claude-code:claude-sonnet-5 (effort: medium)
   ➜  Sandbox:   docker
   ➜  Judge:     anthropic/claude-sonnet-5
-  ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 attempt (budget: 20 ✓)
+  ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 trial (budget: 20 ✓)
   ➜  Est. Time: ~3m 00s (serial)
 
-eval                 agents  variants  runs  attempts  target         notes
+eval                 agents  variants  runs  trials  target         notes
 with-github-pr-gate  1       —         1     1         regression(1)
   grader 1/2  has-file:src/math.js · built-in · weight 1
   grader 2/2  succeeded:node --test · built-in · weight 1

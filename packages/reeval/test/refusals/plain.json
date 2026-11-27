@@ -44,7 +44,7 @@
   "egress phases beside allow": "UsageError: egress in evals/a.eval.ts is one policy ({ allow }) or one per phase ({ setup, agent }), not both",
   "egress no phase": "UsageError: egress {} in evals/a.eval.ts names no phase: set setup, agent, or both",
   "egress a checks phase": "UsageError: Unknown egress key \"checks\" in evals/a.eval.ts: checks run under the agent's policy (egress.agent). Move what a check fetches into a setup step.",
-  "egress an install phase": "UsageError: Unknown egress key \"install\" in evals/a.eval.ts: image layers (install, from, dockerfile and plugin builds) build before the run, outside any attempt's egress. egress.setup covers the setup steps.",
+  "egress an install phase": "UsageError: Unknown egress key \"install\" in evals/a.eval.ts: image layers (install, from, dockerfile and plugin builds) build before the run, outside any trial's egress. egress.setup covers the setup steps.",
   "egress a phase typo": "UsageError: Unknown egress key \"agnt\" in evals/a.eval.ts. Did you mean \"agent\"? A policy per phase is { setup, agent }.",
   "egress a bad setup policy": "UsageError: egress.setup in evals/a.eval.ts is 'proxy' (the default), 'allow-all', 'deny-all', or { allow: ['api.example.com', '*.example.org'] } (got \"none\").",
   "egress a bad agent host": "UsageError: egress.agent.allow in evals/a.eval.ts: hosts are host names without a port: use 'x.com' (got 'x.com:443')",

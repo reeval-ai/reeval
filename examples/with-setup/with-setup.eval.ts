@@ -1,7 +1,7 @@
 import { defineEnvironment, defineEval } from 'reeval'
 import { notInDiff, observed } from 'reeval/graders'
 
-// Every attempt seeds data/users.json and checks the tests pass before the agent starts.
+// Every trial seeds data/users.json and checks the tests pass before the agent starts.
 const users = defineEnvironment('users', ({ directory }) => ({
   files: directory('./project'),
   setup: ['node scripts/seed.mjs', { run: 'node --test', timeout: '2m' }],

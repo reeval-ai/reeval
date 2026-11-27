@@ -40,9 +40,9 @@ import type { CollectedPlan, EngineRun, PlannedItem } from './engine/node.ts'
 import { inCI, loadEnvFiles } from './env.ts'
 import { environmentSandbox, placedSandbox, profileSandbox, workspaceLabel } from './environment.ts'
 import {
-  ATTEMPTS_HEARTBEAT_MS,
-  ATTEMPTS_HEARTBEAT_RANGE,
-  type AttemptsBeat,
+  TRIALS_HEARTBEAT_MS,
+  TRIALS_HEARTBEAT_RANGE,
+  type TrialsBeat,
   abandonedSockets,
   beatWith,
   displayUrl,
@@ -80,18 +80,18 @@ import type { CliInvocation } from './report/types.ts'
 import {
   CANCEL_SIGNAL,
   completedKeysFor,
-  erroredAttempts,
+  erroredTrials,
   eventsFile,
   holdRetry,
-  keptAttempts,
+  keptTrials,
   type LeftOut,
-  leftOutAttempts,
-  liveAttempts,
+  leftOutTrials,
+  liveTrials,
   loadPrevious,
   noRunHere,
   noteRetries,
   prepareResume,
-  previousAttempt,
+  previousTrial,
   pruneEvents,
   type ResumeTarget,
   removeStoppedStaging,
@@ -214,7 +214,7 @@ let interrupted = false
 /** The last signal that canceled the run: 130 after SIGINT, 143 after SIGTERM. */
 let stopCode: number = EXIT.interrupted
 /**
- * Set once the attempts and questions are done and whether the run stopped is decided, as
+ * Set once the trials and questions are done and whether the run stopped is decided, as
  * live.json turns `finishing`: a signal then has nothing left to cancel.
  */
 let finishing = false
@@ -226,7 +226,7 @@ const SAME_PRESS_MS = 1000
 function quitWithoutRecord(runId: string, stagingDir: string): string {
   return [
     `reeval: quit without writing run ${runId}'s record; its workers still destroy their sandboxes.`,
-    `  reeval run --resume ${runId} keeps the attempts that finished, runs the rest and writes the record.`,
+    `  reeval run --resume ${runId} keeps the trials that finished, runs the rest and writes the record.`,
     `  Deleting ${fromCwd(stagingDir)} discards the run.`,
   ].join('\n')
 }
@@ -514,7 +514,7 @@ async function run(argv: string[]): Promise<number> {
  * extracted project's, and the run continues there.
  */
 async function bundleRun(flags: Flags, filters: string[]): Promise<number> {
-  const planning = (['profile', 'tag', 'trait', 'runs', 'config', 'retry-errors', 'cloud'] as const)
+  const planning = (['profile', 'tag', 'trait', 'trials', 'config', 'retry-errors', 'cloud'] as const)
     .filter((f) => flags[f] !== undefined)
     .map((f) => `--${f}`)
   if (filters.length || planning.length) {
@@ -530,7 +530,7 @@ async function bundleRun(flags: Flags, filters: string[]): Promise<number> {
   const from = process.cwd()
   const resume = flags.resume
   if (resume !== undefined) checkResumeState(from, resume)
-  // A bundle on a machine with the VM service is a cloud run: its attempts go to VMs of their own,
+  // A bundle on a machine with the VM service is a cloud run: its trials go to VMs of their own,
   // in the dry run that checks the bundle's plan too.
   if (process.env.REEVAL_VM_URL) process.env[PLAN_TARGET] = 'cloud'
   const opened = await openBundle(file, log)
@@ -554,7 +554,7 @@ async function bundleRun(flags: Flags, filters: string[]): Promise<number> {
       ...(args.profile ? { profile: args.profile } : {}),
       tag: args.tags,
       trait: args.traits,
-      ...(args.runs ? { runs: args.runs } : {}),
+      ...(args.trials ? { trials: args.trials } : {}),
     },
     opened.config,
     args.filters,
@@ -594,10 +594,10 @@ async function historyConfig(
   return { ...config, history }
 }
 
-/** The dry run's prices, fetched only when a planned attempt or the judge has anything to price. */
+/** The dry run's prices, fetched only when a planned trial or the judge has anything to price. */
 async function dryRunPrices(planned: PlannedItem[], judgeModel: string | null) {
   const { needsPrices } = await import('./cost.ts')
-  const harnesses = planned.filter((p) => !p.attempt.plan.skip).map((p) => p.attempt.harness)
+  const harnesses = planned.filter((p) => !p.trial.plan.skip).map((p) => p.trial.harness)
   if (!needsPrices(harnesses, judgeModel)) return { table: null, why: 'nothing to price' }
   const { loadPrices } = await import('./prices.ts')
   return loadPrices()
@@ -868,7 +868,7 @@ async function imageBuildCommand(
   return EXIT.infra
 }
 
-/** What `reeval image` plans for: the harness and sandbox of each attempt, collected as `--dry-run` does. */
+/** What `reeval image` plans for: the harness and sandbox of each trial, collected as `--dry-run` does. */
 async function imageUses(
   flags: Flags,
   configPath: string | undefined,
@@ -878,9 +878,9 @@ async function imageUses(
   const plannedImageUses = planned ?? (await import('./sandbox/images.ts')).plannedImageUses
   const setup = await prepareRun({ ...flags, 'dry-run': true }, configPath)
   const ctx = await startRun(setup)
-  const { runId, stagingDir, config, runs, tags, concurrency, profile } = ctx
+  const { runId, stagingDir, config, trials, tags, concurrency, profile } = ctx
   const uses = await plannedImageUses(
-    { runId, stagingDir, config, runs, tags, concurrency, profile },
+    { runId, stagingDir, config, trials, tags, concurrency, profile },
     filters,
     (parts) => unmatchedFilter(config, parts),
   )
@@ -1247,7 +1247,7 @@ async function inBackground(flags: Flags, root: string): Promise<number> {
     engine.relay()
     console.error(
       red(
-        `reeval: run ${engine.runId} stopped (exit ${code}) before it finished: reeval run --resume ${engine.runId} keeps the attempts that finished and runs the rest`,
+        `reeval: run ${engine.runId} stopped (exit ${code}) before it finished: reeval run --resume ${engine.runId} keeps the trials that finished and runs the rest`,
       ),
     )
     return code
@@ -1431,7 +1431,7 @@ async function cloudTarget(
   if (given && !(setup.profile?.provider ?? setup.config.provider) && !setup.json) {
     console.log(
       dim(
-        `${given} applies to runs here: a cloud run runs as many attempts at once as the cloud gives it`,
+        `${given} applies to runs here: a cloud run runs as many trials at once as the cloud gives it`,
       ),
     )
   }
@@ -1494,7 +1494,7 @@ async function runCommand(
   if (continued && flags.cloud) return cloudContinue(flags, given, configPath)
   if (retry !== undefined && (given.length || flags.tag?.length || flags.trait?.length)) {
     throw new UsageError(
-      '--retry-errors runs every infra-errored attempt of the run again, with its plan: leave out filters, --tag and --trait.',
+      '--retry-errors runs every infra-errored trial of the run again, with its plan: leave out filters, --tag and --trait.',
     )
   }
   const resumed = continued ? await resumedRun(flags, given, configPath, bundled) : null
@@ -1560,7 +1560,7 @@ async function runCommand(
   const startedWith: RunInvocation | undefined = resumed
     ? (resumed.saved ?? undefined)
     : {
-        ...(setup.runs === undefined ? {} : { runs: setup.runs }),
+        ...(setup.trials === undefined ? {} : { trials: setup.trials }),
         ...(setup.profile ? { profile: setup.profile.name } : {}),
         ...(explicit === undefined ? {} : { concurrency: ctx.concurrency }),
         filters: savedFilters(setup.config.root, filters),
@@ -1603,13 +1603,13 @@ async function runCommand(
     startedWith.events = savedEvents
   }
   const eventsUrl = flags['events-url']
-  let heartbeat: AttemptsBeat | undefined
+  let heartbeat: TrialsBeat | undefined
   if (eventsTo || eventsUrl) {
     const ms = parseHeartbeat(
       'REEVAL_EVENTS_HEARTBEAT',
       process.env.REEVAL_EVENTS_HEARTBEAT,
-      ATTEMPTS_HEARTBEAT_MS,
-      ATTEMPTS_HEARTBEAT_RANGE,
+      TRIALS_HEARTBEAT_MS,
+      TRIALS_HEARTBEAT_RANGE,
     )
     const cwd = cwdIn(root)
     const from = continued && eventsTo && existsSync(eventsTo) ? statSync(eventsTo).size : 0
@@ -1623,7 +1623,7 @@ async function runCommand(
         harness,
         verbosity: ctx.verbosity ?? 0,
         ...(cwd === undefined ? {} : { cwd }),
-        ...(ms > 0 ? { attemptsHeartbeatMs: ms } : {}),
+        ...(ms > 0 ? { trialsHeartbeatMs: ms } : {}),
       },
       warn: (message) => process.stderr.write(yellow(`reeval: ${message}\n`)),
     })
@@ -1680,7 +1680,7 @@ async function runCommand(
   if ((interrupted || engineRun.canceled) && plan) {
     await cleanupRun(ctx.runId, [...plan.sandboxes, ...plan.graderSandboxes])
   }
-  // Every worker has exited, so this catches the sandboxes of one that was killed mid-attempt.
+  // Every worker has exited, so this catches the sandboxes of one that was killed mid-trial.
   if (plan) await reapOrphans([...plan.sandboxes, ...plan.graderSandboxes])
   if (engineRun.stopped || !plan) {
     live?.remove()
@@ -1703,7 +1703,7 @@ async function runCommand(
   }
 
   let stopped = cutShort || engineRun.canceled
-  // A canceled run keeps the per-attempt answers that came back before it stopped, and asks
+  // A canceled run keeps the per-trial answers that came back before it stopped, and asks
   // no pairwise question.
   if (stopped) questions?.cancel()
   let answers = stopped ? await questions?.answered() : await questions?.settle()
@@ -1743,7 +1743,7 @@ async function runCommand(
       leftOut,
       runner: runnerInfo(),
       ...(startedWith ? { invocation: startedWith } : {}),
-      ...(answers && (answers.evals.size || answers.attempts.size) ? { answers } : {}),
+      ...(answers && (answers.evals.size || answers.trials.size) ? { answers } : {}),
     },
     // Until the record lands, the studio shows the run as live.
     () => live?.stop(),
@@ -1752,7 +1752,7 @@ async function runCommand(
   // The studio and `reeval show` read the same outcome from the record.
   const outcome = runOutcome(record)
   const notRun = leftOut.filter((l) => !l.done).length
-  // Left incomplete by its filters, a resume exits on the attempts it ran, and `--json` says so.
+  // Left incomplete by its filters, a resume exits on the trials it ran, and `--json` says so.
   const ran =
     notRun > 0 && !stopped && record.status === 'interrupted'
       ? runOutcome({ ...record, status: 'complete' })
@@ -1865,7 +1865,7 @@ async function runCommand(
 /**
  * `reeval run --cloud --resume <run>`, or `--resume` where the config or its profile runs in the
  * cloud and the run is a cloud run's download here or isn't here at all: resumes the cloud run
- * and follows it. Its bundle fixed the filters, runs, tags and traits, so it takes none of them;
+ * and follows it. Its bundle fixed the filters, trials, tags and traits, so it takes none of them;
  * `--profile` only picks where it goes and the history `--download` files it in. It needs no
  * config: `found` is the config the cloud was picked from and, for a download, its cloud run.
  */
@@ -1886,13 +1886,13 @@ async function cloudContinue(
   }
   const fixed = [
     ...(filters.length ? ['filters'] : []),
-    ...(['runs', 'tag', 'trait'] as const)
+    ...(['trials', 'tag', 'trait'] as const)
       .filter((f) => flags[f] !== undefined)
       .map((f) => `--${f}`),
   ]
   if (fixed.length) {
     throw new UsageError(
-      `a cloud run resumes with the filters, runs, tags and traits it started with: leave out ${fixed.join(', ')}`,
+      `a cloud run resumes with the filters, trials, tags and traits it started with: leave out ${fixed.join(', ')}`,
     )
   }
   cloud.refuseLocalFlags(flags)
@@ -2028,7 +2028,7 @@ async function resumedRun(
   if (
     flags['retry-errors'] !== undefined &&
     target.previous &&
-    !erroredAttempts(target.previous).length
+    !erroredTrials(target.previous).length
   ) {
     const nothing = {
       nothing: `run ${target.runId} has no infra errors, so --retry-errors has nothing to run again.`,
@@ -2049,12 +2049,12 @@ async function resumedRun(
     (filters.length || flags.tag?.length || flags.trait?.length)
   ) {
     throw new UsageError(
-      `run ${target.runId} stopped during a --retry-errors, which runs every infra-errored attempt of the run again, with its plan: leave out filters, --tag and --trait.`,
+      `run ${target.runId} stopped during a --retry-errors, which runs every infra-errored trial of the run again, with its plan: leave out filters, --tag and --trait.`,
     )
   }
   const saved = await savedInvocation(root, target)
   if (!saved) {
-    const note = `run ${target.runId} saved no --runs, profile or filters, so this ${flags.resume === undefined ? 'retry' : 'resume'} plans with the ones given now`
+    const note = `run ${target.runId} saved no --trials, profile or filters, so this ${flags.resume === undefined ? 'retry' : 'resume'} plans with the ones given now`
     return {
       runId: target.runId,
       nothing: null,
@@ -2065,7 +2065,7 @@ async function resumedRun(
     }
   }
   const given = {
-    runs: flags.runs,
+    trials: flags.trials,
     profile: flags.profile,
     concurrency: flags.concurrency,
     tag: flags.tag,
@@ -2155,11 +2155,11 @@ async function prepareRun(
   if (recording && !flags['dry-run'] && !wantsCloud(flags, config, profile)) {
     storeCredentials(config.history)
   }
-  let runs: number | undefined
-  if (flags.runs !== undefined) {
-    runs = Number(flags.runs)
-    if (!(Number.isInteger(runs) && runs >= 1)) {
-      throw new UsageError(`--runs must be a whole number of at least 1 (got ${flags.runs})`)
+  let trials: number | undefined
+  if (flags.trials !== undefined) {
+    trials = Number(flags.trials)
+    if (!(Number.isInteger(trials) && trials >= 1)) {
+      throw new UsageError(`--trials must be a whole number of at least 1 (got ${flags.trials})`)
     }
   }
   const written = [
@@ -2176,7 +2176,7 @@ async function prepareRun(
     output,
     config,
     profile,
-    runs,
+    trials,
     tags: [...(flags.tag ?? []), ...(profile?.tags ?? [])],
     traits: traitFlags(flags.trait),
     ...(flags.cell?.length ? { cells: flags.cell } : {}),
@@ -2281,7 +2281,7 @@ async function startRun(
   {
     config,
     profile,
-    runs,
+    trials,
     tags,
     traits,
     cells,
@@ -2331,7 +2331,7 @@ async function startRun(
       runId: target.runId,
       stagingDir: stagingDir(config.root, target.runId),
       config,
-      runs,
+      trials,
       tags,
       traits,
       ...(cells?.length ? { cells } : {}),
@@ -2344,7 +2344,7 @@ async function startRun(
       worktreePatch: patch,
       author: who,
       scratch,
-      // Resume matches attempts by the entry each case ran as, so it reads the record that way.
+      // Resume matches trials by the entry each case ran as, so it reads the record that way.
       previous: previous && unfoldCases(previous),
       previousArtifacts: aside.artifacts ?? target.previousArtifacts,
       ...(retry === undefined ? {} : { retryTarget: target }),
@@ -2379,7 +2379,7 @@ async function startRun(
     // Workers create it with their first record; a run that never starts leaves nothing behind.
     stagingDir: stagingDir(config.root, runId),
     config,
-    runs,
+    trials,
     tags,
     traits,
     ...(cells?.length ? { cells } : {}),
@@ -2452,35 +2452,35 @@ function namesDeclaredSecret(evals: ReadonlyArray<{ id: string }>): UsageError |
  * not its placeholder, so a bundle plans alike where it runs), checks their `effort` and `params`
  * against it (exit 2, naming the eval and cell), gives each the effort it runs at, and notes each
  * eval's harnesses that run with none. A catalog that can't be read leaves the Cursor cells
- * unchecked and noted; each attempt then reports why it couldn't start.
+ * unchecked and noted; each trial then reports why it couldn't start.
  */
 async function planEfforts(planned: PlannedItem[]): Promise<CursorEfforts | undefined> {
-  const live = planned.filter((p) => !p.attempt.plan.skip)
+  const live = planned.filter((p) => !p.trial.plan.skip)
   const { effortNotes, withDefaultEffort } = await import('./harness/default-effort.ts')
   let cursor: CursorEfforts | undefined
   let unchecked = "CURSOR_API_KEY isn't set"
   const key = hostEnv().CURSOR_API_KEY
-  if (key && !isPlaceholder(key) && live.some((p) => p.attempt.harness.kind === 'cursor')) {
+  if (key && !isPlaceholder(key) && live.some((p) => p.trial.harness.kind === 'cursor')) {
     const { checkCursorPlan } = await import('./harness/cursor-catalog.ts')
     const checked = await checkCursorPlan(key, live)
     if (checked instanceof Error) {
       unchecked = `its request failed: ${checked.message}`
     } else {
       cursor = checked
-      for (const p of planned) p.attempt.harness = withDefaultEffort(p.attempt.harness, cursor)
+      for (const p of planned) p.trial.harness = withDefaultEffort(p.trial.harness, cursor)
     }
   }
   const byEval = new Map<string, PlannedItem[]>()
   for (const p of live) byEval.set(p.id, [...(byEval.get(p.id) ?? []), p])
   for (const items of byEval.values()) {
     const notes = effortNotes(
-      items.map((p) => p.attempt.harness),
+      items.map((p) => p.trial.harness),
       cursor,
       unchecked,
     )
-    for (const { attempt } of items) {
+    for (const { trial } of items) {
       for (const note of notes)
-        if (!attempt.plan.notes.includes(note)) attempt.plan.notes.push(note)
+        if (!trial.plan.notes.includes(note)) trial.plan.notes.push(note)
     }
   }
   return cursor
@@ -2498,26 +2498,26 @@ async function executeRun(
   started: {
     startedWith: RunInvocation | undefined
     notes: string[]
-    /** A resume whose filters or `--tag` replace the run's, so its plan may leave attempts out. */
+    /** A resume whose filters or `--tag` replace the run's, so its plan may leave trials out. */
     narrowed: boolean
     /** The event stream file, as live.json names it. */
     events?: string
-    /** The event stream's heartbeat of the attempts in progress. */
-    heartbeat?: AttemptsBeat
+    /** The event stream's heartbeat of the trials in progress. */
+    heartbeat?: TrialsBeat
     /** Where a run that asked for the cloud platform goes, and the dry run's line for it. */
     target?: RunTarget
     targetDetail?: string
   },
 ) {
   const { events } = started
-  const { runId, stagingDir, config, runs, tags, traits, concurrency, profile, verbosity } = ctx
+  const { runId, stagingDir, config, trials, tags, traits, concurrency, profile, verbosity } = ctx
   const { configFile } = ctx
   const run = JSON.parse(
     JSON.stringify({
       runId,
       stagingDir,
       config,
-      runs,
+      trials,
       tags,
       traits,
       ...(ctx.cells?.length ? { cells: ctx.cells } : {}),
@@ -2533,7 +2533,7 @@ async function executeRun(
   const { runEngine } = await import('./engine/node.ts')
   const {
     buildPlan,
-    checkAttemptBudget,
+    checkTrialBudget,
     planDocument,
     planInputs,
     planLine,
@@ -2562,11 +2562,11 @@ async function executeRun(
       ? noteRetries(planned, stagingDir, ctx.previous, false)
       : { errored: new Set<string>() }
     const completed = completedKeysFor(planned, stagingDir, ctx.previous)
-    // A retry runs the infra errors and the attempts a cancel stopped, and nothing else: not even
-    // an attempt the run skipped, such as one a best-of cell didn't need.
+    // A retry runs the infra errors and the trials a cancel stopped, and nothing else: not even
+    // a trial the run skipped, such as one a best-of cell didn't need.
     if (ctx.retry) {
       for (const { key } of planned) {
-        const was = previousAttempt(ctx.previous, key)
+        const was = previousTrial(ctx.previous, key)
         if (was && was.outcome !== 'infra_error') completed.add(key)
       }
     }
@@ -2574,23 +2574,23 @@ async function executeRun(
       completed.has(p.key)
         ? {
             ...p,
-            attempt: {
-              ...p.attempt,
+            trial: {
+              ...p.trial,
               skip: 'already completed in this run',
-              plan: { ...p.attempt.plan, skip: 'already completed in this run' },
+              plan: { ...p.trial.plan, skip: 'already completed in this run' },
             },
           }
         : p,
     )
     toRun = skipped
     for (const p of skipped)
-      for (const name of p.attempt.secretVars) registerSecret(process.env[name])
+      for (const name of p.trial.secretVars) registerSecret(process.env[name])
     const named = namesDeclaredSecret([...planned, ...excluded])
     if (named) throw named
     const efforts = await planEfforts(skipped)
     if (efforts) run.cursorEfforts = efforts
     if (ctx.retry && ctx.previous) {
-      // The record keeps the run's stack, so the attempts it runs again run on the same reeval.
+      // The record keeps the run's stack, so the trials it runs again run on the same reeval.
       const ranOn = ctx.previous.stack?.reeval
       if (ranOn && ranOn !== version) {
         throw new UsageError(
@@ -2601,8 +2601,8 @@ async function executeRun(
       const { judgePart } = await import('./history/assemble.ts')
       const { engineVersions } = await import('./engine/node.ts')
       const judged = judgePart(config, profile, version, engineVersions)
-      const runs = new Set(planned.map((p) => p.key).filter((key) => !completed.has(key)))
-      const changes = await retryChanges(ctx.previous, planned, runs, config.root, judged)
+      const trials = new Set(planned.map((p) => p.key).filter((key) => !completed.has(key)))
+      const changes = await retryChanges(ctx.previous, planned, trials, config.root, judged)
       if (changes.length) {
         throw new UsageError(
           `run ${runId}'s plan changed since it ran: ${changes.join('; ')}. ${retryVerb(ctx.retry, runId)} only with the plan they ran with: put it back, or start a new run with reeval run.`,
@@ -2622,7 +2622,7 @@ async function executeRun(
       continuing && !setup.dryRun
         ? noteRetries(planned, stagingDir, ctx.previous, true).errored
         : errored
-    const asks = skipped.some((p) => !p.attempt.plan.skip && p.attempt.plan.questions?.length)
+    const asks = skipped.some((p) => !p.trial.plan.skip && p.trial.plan.questions?.length)
     const models = asks ? await import('./analysis/model.ts') : undefined
     const judge = runJudgeModel(config, profile)
     const judgeModel = judge === undefined ? null : judgeModelName(judge)
@@ -2644,11 +2644,11 @@ async function executeRun(
       ? [
           ...new Set(
             skipped
-              .filter((p) => !p.attempt.plan.skip && capabilitiesOf(p.attempt.sandbox).isolated)
+              .filter((p) => !p.trial.plan.skip && capabilitiesOf(p.trial.sandbox).isolated)
               .filter(
                 (p) =>
-                  isDirect(p.attempt.egress.policy) ||
-                  isDirect(setupEgress(p.attempt.egress).policy),
+                  isDirect(p.trial.egress.policy) ||
+                  isDirect(setupEgress(p.trial.egress).policy),
               )
               .map((p) => p.id),
           ),
@@ -2665,11 +2665,11 @@ async function executeRun(
             ...new Set(
               skipped
                 .filter(
-                  ({ attempt }) =>
-                    !attempt.plan.skip &&
-                    !!attempt.egress.setup &&
-                    attempt.sandbox.kind === 'docker' &&
-                    attempt.sandbox.engine === 'podman',
+                  ({ trial }) =>
+                    !trial.plan.skip &&
+                    !!trial.egress.setup &&
+                    trial.sandbox.kind === 'docker' &&
+                    trial.sandbox.engine === 'podman',
                 )
                 .map((p) => p.id),
             ),
@@ -2681,17 +2681,17 @@ async function executeRun(
     }
     plan.warnings.push(...started.notes)
     if (started.narrowed) {
-      leftOut = leftOutAttempts(
+      leftOut = leftOutTrials(
         planned,
         stagingDir,
         ctx.previous,
-        await liveAttempts(stagingDir),
+        await liveTrials(stagingDir),
         new Set(excluded.map((e) => e.id)),
       )
       const notRun = leftOut.filter((l) => !l.done).length
       if (notRun) {
         plan.warnings.push(
-          `${notRun === 1 ? '1 attempt' : `${notRun} attempts`} run ${runId} planned ${notRun === 1 ? "isn't" : "aren't"} in this resume's filters: ${notRun === 1 ? 'it stays' : 'they stay'} not run and the run stays incomplete. reeval run --resume ${runId} runs ${notRun === 1 ? 'it' : 'them'}`,
+          `${notRun === 1 ? '1 trial' : `${notRun} trials`} run ${runId} planned ${notRun === 1 ? "isn't" : "aren't"} in this resume's filters: ${notRun === 1 ? 'it stays' : 'they stay'} not run and the run stays incomplete. reeval run --resume ${runId} runs ${notRun === 1 ? 'it' : 'them'}`,
         )
       }
     }
@@ -2704,16 +2704,16 @@ async function executeRun(
     }
     run.completed = [...completed]
     const done = leftOut.filter((l) => l.done).map((l) => l.key)
-    kept = keptAttempts([...completed, ...done], stagingDir, ctx.previous)
+    kept = keptTrials([...completed, ...done], stagingDir, ctx.previous)
     const { imageStages, imageTargets } = await import('./sandbox/images.ts')
     const targets = imageTargets(
       skipped
-        .filter((p) => !p.attempt.plan.skip)
+        .filter((p) => !p.trial.plan.skip)
         .map((p) => ({
-          id: p.attempt.family?.id ?? p.id,
-          harness: p.attempt.harness,
-          sandbox: p.attempt.sandbox,
-          plugins: p.attempt.pluginBuilds ?? [],
+          id: p.trial.family?.id ?? p.id,
+          harness: p.trial.harness,
+          sandbox: p.trial.sandbox,
+          plugins: p.trial.pluginBuilds ?? [],
         })),
     )
     if (setup.json && setup.dryRun) {
@@ -2731,8 +2731,8 @@ async function executeRun(
         kind: 'lockfile' as const,
       }))
       const inputs = planInputs(config.root, [...setup.configInputs, ...locks], skipped)
-      const running = skipped.filter((p) => !p.attempt.plan.skip)
-      const secrets = new Set(running.flatMap((p) => p.attempt.secretVars))
+      const running = skipped.filter((p) => !p.trial.plan.skip)
+      const secrets = new Set(running.flatMap((p) => p.trial.secretVars))
       const asking = plan.rows.flatMap((row) =>
         row.plan.skip || !models
           ? []
@@ -2746,7 +2746,7 @@ async function executeRun(
         sandboxes: plan.sandboxes,
         profile,
         questionModels: [...new Set(asking.map((a) => a.model))],
-        judges: running.flatMap((p) => (p.attempt.judge ? [p.attempt.judge] : [])),
+        judges: running.flatMap((p) => (p.trial.judge ? [p.trial.judge] : [])),
       })
       const { notCloud, secretChoice } = await import('./cloud-run.ts')
       for (const { names, cloudSets } of needed) {
@@ -2829,14 +2829,14 @@ async function executeRun(
       // startRun cleared this machine and the config's Boat accounts before the plan named the
       // Macs and the evals' own Boat accounts the run's VMs were on.
       const away = new Map<string, SandboxDescriptor>()
-      for (const { attempt } of planned) {
-        const { sandbox } = attempt
+      for (const { trial } of planned) {
+        const { sandbox } = trial
         const scope = sandboxKind(sandbox).cleanupScope?.(sandbox)
         if (scope) away.set(`${sandbox.kind}\0${scope.key}`, sandbox)
       }
       if (away.size) await cleanupRun(runId, [...away.values()]).catch(() => {})
     }
-    checkAttemptBudget(plan, setup.force, config.file)
+    checkTrialBudget(plan, setup.force, config.file)
     const questionModels = new Set<string>()
     const asked: EvalQuestions[] = []
     const scope = gatewayScope(config, profile)
@@ -2865,8 +2865,8 @@ async function executeRun(
     }
     const judges = new Map<string, PlannedJudge>()
     for (const p of skipped) {
-      const j = p.attempt.judge
-      if (j && !p.attempt.plan.skip) judges.set(`${j.model}\0${j.gateway ?? ''}`, j)
+      const j = p.trial.judge
+      if (j && !p.trial.plan.skip) judges.set(`${j.model}\0${j.gateway ?? ''}`, j)
     }
     const missing = missingCredentials(config, process.env, {
       harnesses: plan.harnessDescriptors,
@@ -2916,7 +2916,7 @@ async function executeRun(
             text: `question "${clip(answer.question, 80)}" on ${id} failed: ${answer.error}. Outcomes are unchanged.`,
           })
         },
-        onAttemptAnswer: (id, attempt, answer) => {
+        onTrialAnswer: (id, trial, answer) => {
           const once = `${id}\0${answer.question}`
           if (answer.error === undefined || warned.has(once)) return
           warned.add(once)
@@ -2924,7 +2924,7 @@ async function executeRun(
             type: 'notice',
             at: Date.now(),
             level: 'warn',
-            text: `question "${clip(answer.question, 80)}" on ${attempt} failed: ${answer.error}. Outcomes are unchanged; later failures of it on ${id} aren't shown.`,
+            text: `question "${clip(answer.question, 80)}" on ${trial} failed: ${answer.error}. Outcomes are unchanged; later failures of it on ${id} aren't shown.`,
           })
         },
         onUnshown: (id, error) => {
@@ -2932,15 +2932,15 @@ async function executeRun(
             type: 'notice',
             at: Date.now(),
             level: 'warn',
-            text: `${error} on ${id}, so each attempt's answer is that error. Outcomes are unchanged.`,
+            text: `${error} on ${id}, so each trial's answer is that error. Outcomes are unchanged.`,
           })
         },
       })
     }
-    const { prepareWorkspaces, sameTreeArms, workspaceKey } = await import('./workspace.ts')
-    const live = skipped.filter((p) => !p.attempt.plan.skip)
+    const { prepareWorkspaces, sameTreeEnvironments, workspaceKey } = await import('./workspace.ts')
+    const live = skipped.filter((p) => !p.trial.plan.skip)
     const outcomes = await prepareWorkspaces(
-      live.flatMap(({ attempt: a }) =>
+      live.flatMap(({ trial: a }) =>
         a.workspace ? [{ workspace: a.workspace, environment: a.cell.environment }] : [],
       ),
       { root: config.root, runId },
@@ -2952,18 +2952,18 @@ async function executeRun(
         renderer.onEvent({ type: 'notice', at, level: 'info', text })
         continue
       }
-      // Reported like a sandbox that failed to prepare: once, and only its attempts fail.
+      // Reported like a sandbox that failed to prepare: once, and only its trials fail.
       const key = workspaceKey(o.workspace)
       const user = live.find(
-        (p) => p.attempt.workspace && workspaceKey(p.attempt.workspace) === key,
+        (p) => p.trial.workspace && workspaceKey(p.trial.workspace) === key,
       )
       if (!user) continue
       const target = {
         kind: 'workspace',
         key: o.label,
         label: `workspace ${o.label}`,
-        sandbox: user.attempt.sandbox,
-        harness: user.attempt.harness,
+        sandbox: user.trial.sandbox,
+        harness: user.trial.harness,
         plugins: [],
         setBy: o.setBy,
         runWide: false,
@@ -2975,22 +2975,22 @@ async function executeRun(
         outcome: { target, ok: false, failure: o.failure, ms: 0 },
       })
     }
-    for (const text of sameTreeArms(live, outcomes)) {
+    for (const text of sameTreeEnvironments(live, outcomes)) {
       renderer.onEvent({ type: 'notice', at: Date.now(), level: 'warn', text })
     }
     try {
       const { GRADER_HARNESS } = await import('./grade/sandbox.ts')
       sandboxVersions = await preflight(
         skipped
-          .filter((p) => !p.attempt.plan.skip)
+          .filter((p) => !p.trial.plan.skip)
           .flatMap((p) => [
             {
-              harness: p.attempt.harness,
-              sandbox: p.attempt.sandbox,
-              plugins: p.attempt.pluginBuilds ?? [],
-              setBy: p.attempt.setBy,
+              harness: p.trial.harness,
+              sandbox: p.trial.sandbox,
+              plugins: p.trial.pluginBuilds ?? [],
+              setBy: p.trial.setBy,
             },
-            ...(p.attempt.graderSandboxes ?? []).map(({ grader, sandbox }) => {
+            ...(p.trial.graderSandboxes ?? []).map(({ grader, sandbox }) => {
               const by = `defineGrader("${grader}")`
               return { harness: GRADER_HARNESS, sandbox, setBy: { sandbox: by, harness: by } }
             }),
@@ -3013,7 +3013,7 @@ async function executeRun(
     }
     return true
   }
-  // budget.duration counts from the first attempt's start, not from collecting the files.
+  // budget.duration counts from the first trial's start, not from collecting the files.
   const startBudget = () => {
     const { duration } = setup.budget
     if (duration === undefined || budgetTimer) return
@@ -3022,19 +3022,19 @@ async function executeRun(
       mkdirSync(stagingDir, { recursive: true })
       writeFileSync(
         budgetMarker(stagingDir),
-        `The run reached budget.duration ${duration} before this attempt started`,
+        `The run reached budget.duration ${duration} before this trial started`,
       )
       renderer.onEvent({
         type: 'notice',
         at: Date.now(),
         level: 'warn',
-        text: `Budget: ${duration} reached; running attempts finish, queued ones are skipped`,
+        text: `Budget: ${duration} reached; running trials finish, queued ones are skipped`,
       })
     }, parseDuration(duration))
     budgetTimer.unref()
   }
   let engineRun: EngineRun
-  // A signal once the engine has returned finds no attempt left to cancel: the run isn't cut short.
+  // A signal once the engine has returned finds no trial left to cancel: the run isn't cut short.
   let cutShort = false
   const { MACHINES, MachineService } = await import('./sandbox/machine-service.ts')
   const machines = new MachineService()
@@ -3044,7 +3044,7 @@ async function executeRun(
   let exported: Promise<string | null> = Promise.resolve(null)
   let runStarted = false
   // reeval's own export (REEVAL_OTEL_*) takes the run's spans, logs and metrics; the agent export
-  // (OTEL_*) takes each attempt's agent spans.
+  // (OTEL_*) takes each trial's agent spans.
   let telemetry: import('./trace/telemetry.ts').Telemetry | null = null
   let agentTelemetry: import('./trace/telemetry.ts').Telemetry | null = null
   const trace = setup.dryRun
@@ -3149,11 +3149,11 @@ async function executeRun(
           live?.end(e.result)
           questions?.onEvalEnd(e.result)
         }
-        // Attempts cut short by Ctrl-C are reported from the merged record, in the summary.
+        // Trials cut short by Ctrl-C are reported from the merged record, in the summary.
         if (interrupted && e.type === 'eval-end' && e.result.state === 'skipped') return
         if (e.type === 'eval-progress' && e.progress.kind === 'secret-warning') {
           const { kind: _, at, ...warning } = e.progress
-          return renderer.onEvent({ type: 'secret-warning', at, attemptId: e.key, ...warning })
+          return renderer.onEvent({ type: 'secret-warning', at, trialId: e.key, ...warning })
         }
         renderer.onEvent(e)
       },
@@ -3272,7 +3272,7 @@ async function executeRun(
     questions,
     exported,
     leftOut,
-    /** The attempts that ran again after an infra error, by key; none on a dry run. */
+    /** The trials that ran again after an infra error, by key; none on a dry run. */
     retried: setup.dryRun ? new Set<string>() : retried,
   }
 }

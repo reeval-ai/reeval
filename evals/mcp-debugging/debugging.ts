@@ -1,6 +1,6 @@
 import { basename } from 'node:path'
 import {
-  type AttemptContext,
+  type TrialContext,
   defineGrader,
   type EvalSpec,
   type GraderContext,
@@ -62,7 +62,7 @@ export const fixtures: Array<{ fixture: string; cause: Cause; file: string; keep
     fixture: 'flaky-check',
     cause: 'flaky-check',
     file: 'evals/report.eval.ts',
-    keeps: [/runs: 6/, /dist\/report\.txt/, /target: regression\(\)/],
+    keeps: [/trials: 6/, /dist\/report\.txt/, /target: regression\(\)/],
   },
   {
     fixture: 'setup-step',
@@ -103,8 +103,8 @@ export const named = (value: unknown, names: string[]) => {
 
 // A study, not a gate: the numbers are each side's pass rate, the lift and the effort.
 export const study = (fixture: string, history?: { base: string }) => {
-  const { control, variant } = brokenProject(fixture, history)
-  return { compare: { control: control, variants: [variant] } }
+  const { baseline, variant } = brokenProject(fixture, history)
+  return { compare: { baseline: baseline, variants: [variant] } }
 }
 
 /** One field of answer.json as the agent left it; null when there's no answer.json or field. */
@@ -180,7 +180,7 @@ export const toolkit = { base: 'toolkit' }
  * Observes the records the agent changed as `touched-records`: it must leave them as they are,
  * though new runs it records are fine.
  */
-export const observeHistory = async (c: AttemptContext) =>
+export const observeHistory = async (c: TrialContext) =>
   c.observe(
     'touched-records',
     (await c.exec('git status --porcelain -- evals/.history')).stdout

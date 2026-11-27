@@ -6,7 +6,7 @@
       "mode": "run",
       "options": {
         "revision": 2,
-        "runs": 2,
+        "trials": 2,
         "timeout": "2m"
       },
       "children": [

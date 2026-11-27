@@ -6,8 +6,8 @@ const skilled = defineEnvironment('skilled', {
   sandbox: docker({ from: 'node:24-bookworm' }),
 })
 
-// compare.control replaces the config's `environments`.
+// compare.baseline replaces the config's `environments`.
 export default defineEval({
-  compare: { control: plain, variants: [skilled] },
+  compare: { baseline: plain, variants: [skilled] },
   task: async () => {},
 })

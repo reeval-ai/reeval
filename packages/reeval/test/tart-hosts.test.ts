@@ -1,5 +1,5 @@
 // `tart({ hosts })`: each Mac as `ssh` reaches it, preflight's one check of each, and which host an
-// attempt's VM starts on, against fake Macs that a fake `ssh` reaches (test/support/fake-tart.ts).
+// trial's VM starts on, against fake Macs that a fake `ssh` reaches (test/support/fake-tart.ts).
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import {
@@ -310,7 +310,7 @@ describe('preflight on each host', { skip: !posix && 'the fake ssh is a bash scr
   })
 })
 
-describe('the host an attempt starts on', {
+describe('the host a trial starts on', {
   skip: !posix && 'the fake ssh is a bash script',
 }, () => {
   test("counts reeval's VMs on each host and takes the one with room", async () => {
@@ -355,7 +355,7 @@ describe('the host an attempt starts on', {
         claimHost(slots, { signal: abort.signal, busy, prefix, deadline: { at: 0 } }),
         /waited/,
       )
-      // Full of VMs outside the run, past the attempt's deadline: an infra error.
+      // Full of VMs outside the run, past the trial's deadline: an infra error.
       mkdirSync(join(fake.dir, 'hosts', 'a', 'vms', 'dev-mac'))
       writeFileSync(join(fake.dir, 'hosts', 'a', 'vms', 'dev-mac', 'running'), '')
       await assert.rejects(
@@ -437,7 +437,7 @@ describe('the host an attempt starts on', {
     }
   })
 
-  test('a host that stays busy fails the attempt once its wait is up', async () => {
+  test('a host that stays busy fails the trial once its wait is up', async () => {
     const release = await holdLoopback()
     try {
       const fake = fakeTartHosts({ full: { images: [SEQUOIA], limit: 0 } })
@@ -456,7 +456,7 @@ describe('the host an attempt starts on', {
     }
   })
 
-  test('two attempts after the one slot of a vms: 1 host take it one at a time', async () => {
+  test('two trials after the one slot of a vms: 1 host take it one at a time', async () => {
     const release = await holdLoopback()
     try {
       const fake = fakeTartHosts({ one: { images: [SEQUOIA] } })

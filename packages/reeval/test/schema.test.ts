@@ -19,10 +19,12 @@ import { SHAPES } from '../scripts/schema/shapes.ts'
 import { readableEventLine } from '../src/view/events.ts'
 import {
   fillDefaults,
+  MIGRATIONS,
   NewerSchemaError,
   READ_DEFAULTS,
   readableAnalysis,
   readableRecord,
+  type ShapeName,
 } from '../src/view/record.ts'
 import { corpus } from './support/corpus.ts'
 import { testDir } from './support/fixture.ts'
@@ -104,18 +106,28 @@ describe('persisted shapes', () => {
       (c) => c.breaking && c.path !== 'schemaVersion',
     )
     assert.deepEqual(bare.map((c) => c.path).sort(), [
-      'evals[].attempts[].activity.llmCalls',
-      'evals[].attempts[].activity.maxToolMs',
-      'evals[].attempts[].activity.stalledTools',
-      'evals[].attempts[].effort',
-      'evals[].attempts[].egress.unresolved',
-      'evals[].attempts[].servedEffort',
+      'budget.attempts',
+      'config.runs',
+      'config.trials',
+      'evals[].attempts',
       'evals[].cells[].effort',
+      'evals[].cells[].lift.baseline',
+      'evals[].cells[].lift.control',
+      'evals[].cells[].role',
+      'evals[].cells[].runs',
+      'evals[].cells[].trials',
       'evals[].todo',
+      'evals[].trials',
+      'plan.attempts',
       'plan.sandboxWarnings',
+      'plan.trials',
+      'profile.defaults.runs',
+      'profile.limit.runs',
       'stack.harnesses[].effort',
       'stack.harnesses[].resolvedEffort',
       'stack.harnesses[].resolvedModels',
+      'summary.attempts',
+      'summary.trials',
     ])
     const report = checkShape(shape('run-record'), snapshot('run-record'), before80)
     assert.equal(explain([report]), '', 'READ_DEFAULTS covers every added required field')
@@ -158,16 +170,16 @@ describe('persisted shapes', () => {
   test("Zod's shapes are walked too: a `type` list and a discriminated union's `oneOf`", () => {
     const now = snapshot('run-report')
     const wider = copy(now)
-    const change = def(wider, 'Arm').properties?.change as Schema
+    const change = def(wider, 'CompareEnvironment').properties?.change as Schema
     assert.deepEqual(change.type, ['string', 'null'])
     change.type = ['string', 'null', 'number']
-    const ref = def(wider, 'AttemptRef')
+    const ref = def(wider, 'TrialRef')
     ref.properties = { ...ref.properties, gone: { type: 'string' } }
     const changes = compare(wider, now, none).filter((c) => c.breaking)
     assert.ok(
       changes.some(
         (c) =>
-          c.kind === 'narrowed' && c.path === 'evals[].primary.<kind=comparison>.arms[].change',
+          c.kind === 'narrowed' && c.path === 'evals[].primary.<kind=comparison>.environments[].change',
       ),
       changes.map((c) => c.path).join('\n'),
     )
@@ -183,7 +195,7 @@ describe('persisted shapes', () => {
 
     const fewerValues = copy(now)
     const fairness = def(fewerValues, 'EvalHeadline').properties?.fairness as Schema
-    assert.deepEqual(fairness.enum, ['clear', 'within-noise', 'too-few-runs'])
+    assert.deepEqual(fairness.enum, ['clear', 'within-noise', 'too-few-trials'])
     fairness.enum = ['clear', 'within-noise']
     assert.deepEqual(breaking(fewerValues), [['widened', 'evals[].headline.fairness']])
     assert.match(
@@ -203,7 +215,7 @@ describe('persisted shapes', () => {
     )
 
     const withOptional = copy(now)
-    const ref = def(withOptional, 'AttemptRef')
+    const ref = def(withOptional, 'TrialRef')
     ref.properties = { ...ref.properties, title: { type: 'string' } }
     assert.deepEqual(breaking(now, withOptional), [])
     assert.ok(
@@ -262,13 +274,13 @@ describe('persisted shapes', () => {
   test('a schemaVersion bump makes breaking changes pass only with a migration from the old version', () => {
     const old = without('EvalEntry', 'todo')
     const bumped = copy(snapshot('run-record'))
-    bumped['x-schemaVersion'] = 3
+    bumped['x-schemaVersion'] = 4
     const unmigrated = compare(old, bumped, none)
     assert.deepEqual(
       unmigrated.filter((c) => c.breaking).map((c) => c.kind),
       ['added-required', 'version'],
     )
-    const migrated = compare(old, bumped, { defaults: [], migrations: [2] })
+    const migrated = compare(old, bumped, { defaults: [], migrations: [3] })
     assert.deepEqual(
       migrated.filter((c) => c.breaking),
       [],
@@ -341,6 +353,20 @@ const has = (value: unknown, segments: string[]): boolean => {
   return children.every((c) => has(c, rest))
 }
 
+/** `value` as the readers see it before its read defaults: every migration applied. */
+function migrated(shape: ShapeName, value: unknown): unknown {
+  const steps = MIGRATIONS[shape] ?? {}
+  let v = structuredClone(value) as { schemaVersion?: number }
+  if (shape === 'run-events') {
+    for (const migrate of Object.values(steps)) v = migrate(v as never) as typeof v
+    return v
+  }
+  for (let version = v.schemaVersion; typeof version === 'number' && steps[version]; version++) {
+    v = steps[version]?.(v as never) as typeof v
+  }
+  return v
+}
+
 describe('read defaults', () => {
   const { records, trajectories, analyses, eventStreams } = corpus()
   const lines = trajectories.flatMap((f) =>
@@ -375,7 +401,9 @@ describe('read defaults', () => {
     }
     for (const [name, defaults] of Object.entries(READ_DEFAULTS)) {
       for (const d of defaults) {
-        const lacking = (files[name] ?? []).some((v) => !has(v, d.path.split('.')))
+        const lacking = (files[name] ?? []).some(
+          (v) => !has(migrated(name as ShapeName, v), d.path.split('.')),
+        )
         assert.ok(
           lacking,
           `READ_DEFAULTS['${name}'] has ${d.path}, but no file in test/fixtures/records/ lacks it, so nothing tests the default. Add a corpus entry recorded before the field existed (see AGENTS.md).`,
@@ -412,7 +440,7 @@ describe('read defaults', () => {
     const read = new Map<string, number | null>()
     for (const r of before)
       for (const e of readableRecord(copy(r.value) as never).evals)
-        for (const a of e.attempts)
+        for (const a of e.trials)
           read.set(`${e.key} ${a.cell.split(':')[0]}`, a.activity.reasoningMs)
     const edit = (h: string) => read.get(`edit.eval.ts › edits and reasons ${h}`)
     for (const h of ['codex', 'antigravity', 'opencode', 'fx']) assert.equal(edit(h), null, h)
@@ -423,37 +451,37 @@ describe('read defaults', () => {
   })
 
   test("twin: a 0 the turns recorded, the fake harness's, or one with no reasoning tokens stays 0", () => {
-    const attempt = (turns: object[], usage: object | null = null) => ({
+    const trial = (turns: object[], usage: object | null = null) => ({
       cell: 'c',
       turns,
       usage,
       activity: { reasoningMs: 0 },
     })
-    const record = (harnessKind: string, a: ReturnType<typeof attempt>) =>
+    const record = (harnessKind: string, a: ReturnType<typeof trial>) =>
       readableRecord({
         schemaVersion: 1,
-        evals: [{ cells: [{ key: 'c', harnessKind }], attempts: [a] }],
-      } as never).evals[0]?.attempts[0]?.activity.reasoningMs
-    assert.equal(record('codex', attempt([{ reasoningMs: 0 }])), 0)
-    assert.equal(record('fake', attempt([{}])), 0)
-    assert.equal(record('cursor', attempt([{}], { reasoning: 0 })), 0)
-    assert.equal(record('cursor', attempt([{}])), null)
-    assert.equal(record('fake', attempt([])), null)
+        evals: [{ cells: [{ key: 'c', harnessKind }], trials: [a] }],
+      } as never).evals[0]?.trials[0]?.activity.reasoningMs
+    assert.equal(record('codex', trial([{ reasoningMs: 0 }])), 0)
+    assert.equal(record('fake', trial([{}])), 0)
+    assert.equal(record('cursor', trial([{}], { reasoning: 0 })), 0)
+    assert.equal(record('cursor', trial([{}])), null)
+    assert.equal(record('fake', trial([])), null)
   })
 
   test('a file from a newer reeval throws NewerSchemaError naming both versions', () => {
     const record = copy(records[0]?.value) as Record<string, unknown>
-    record.schemaVersion = 3
+    record.schemaVersion = 4
     assert.throws(
       () => readableRecord(record as never),
       (e: Error) =>
         e instanceof NewerSchemaError &&
-        /written by a newer reeval \(schemaVersion 3; this reeval reads up to 2\)\. Upgrade reeval to read it\./.test(
+        /written by a newer reeval \(schemaVersion 4; this reeval reads up to 3\)\. Upgrade reeval to read it\./.test(
           e.message,
         ),
     )
     assert.throws(
-      () => readableAnalysis({ kind: 'reeval-analysis', schemaVersion: 3 } as never),
+      () => readableAnalysis({ kind: 'reeval-analysis', schemaVersion: 4 } as never),
       NewerSchemaError,
     )
   })
@@ -492,12 +520,13 @@ describe('version 1 runs read with trajectory fields', () => {
   test('an event stream: the header, a question state and the run-end record', () => {
     const read = (line: object) =>
       readableEventLine(line as never) as unknown as Record<string, any>
-    assert.equal(read({ type: 'header', schemaVersion: 1, runId: 'r' }).schemaVersion, 2)
+    assert.equal(read({ type: 'header', schemaVersion: 1, runId: 'r' }).schemaVersion, 3)
     const start = read({
       type: 'eval-start',
-      attempt: { plan: { questions: [{ state: { transcript: 'full' } }] } },
+      attempt: { plan: { runs: 2, questions: [{ state: { transcript: 'full' } }] } },
     })
-    assert.deepEqual(start.attempt.plan.questions[0].state, { trajectory: 'full' })
+    assert.deepEqual(start.trial.plan.questions[0].state, { trajectory: 'full' })
+    assert.equal(start.trial.plan.trials, 2)
     const end = read({
       type: 'run-end',
       record: {
@@ -505,8 +534,8 @@ describe('version 1 runs read with trajectory fields', () => {
         evals: [{ attempts: [{ files: { transcript: { path: 'a/transcript.jsonl' } } }] }],
       },
     })
-    assert.equal(end.record.schemaVersion, 2)
-    assert.deepEqual(end.record.evals[0].attempts[0].files, {
+    assert.equal(end.record.schemaVersion, 3)
+    assert.deepEqual(end.record.evals[0].trials[0].files, {
       trajectory: { path: 'a/transcript.jsonl' },
     })
   })

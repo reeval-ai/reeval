@@ -1,15 +1,15 @@
 ---
-title: "Ask questions across attempts"
-description: "Ask a language model about the attempts after they end, without changing the outcome."
+title: "Ask questions across trials"
+description: "Ask a language model about the trials after they end, without changing the outcome."
 ---
 
-A question asks a language model about the attempts after they end. Assertions and judgments grade one attempt. A question with `across` reads across attempts and asks which side did better. Questions never change pass, fail, or the exit code.
+A question asks a language model about the trials after they end. Assertions and judgments grade one trial. A question with `across` reads across trials and asks which side did better. Questions never change pass, fail, or the exit code.
 
-For more information about grading one attempt, see [Assertions](/evaluations/grading/assertions) and [Judge agent work](/evaluations/grading/judgments).
+For more information about grading one trial, see [Assertions](/evaluations/grading/assertions) and [Judge agent work](/evaluations/grading/judgments).
 
 ## Ask which side did better
 
-In the evaluation's options, add `questions`. This excerpt pairs Claude Code's attempts with Codex's in the same environment:
+In the evaluation's options, add `questions`. This excerpt pairs Claude Code's trials with Codex's in the same environment:
 
 ```ts title="with-compare-harness.eval.ts"
 questions: [
@@ -21,7 +21,7 @@ questions: [
 ],
 ```
 
-`across: 'harness'` pairs agents in the same environment, and `across: 'environment'` pairs every two environments on the same agent, the control first. reeval asks about each pair of attempts that passed their assertions, in both orders, with the sides unlabeled. After the run, the block prints each side's wins as `won W of N`. For a runnable project, see [`with-compare-harness`](https://github.com/reeval-ai/reeval/tree/main/examples/with-compare-harness). For more information about asking each attempt on its own without `across`, see [the `questions` option](/reference/options#questions).
+`across: 'harness'` pairs agents in the same environment, and `across: 'environment'` pairs every two environments on the same agent, the baseline first. reeval asks about each pair of trials that passed their assertions, in both orders, with the sides unlabeled. After the run, the block prints each side's wins as `won W of N`. For a runnable project, see [`with-compare-harness`](https://github.com/reeval-ai/reeval/tree/main/examples/with-compare-harness). For more information about asking each trial on its own without `across`, see [the `questions` option](/reference/options#questions).
 
 ## Set the question model
 
@@ -61,7 +61,7 @@ To ask the question, run the same command without `--dry-run`.
 
 ## Read the answers
 
-`npx reeval query question_pairs` lists the wins, ties, and splits of each pairwise question. `attempt_answers` lists each attempt's answer. For more information about both views, see [Query views](/reference/query-views).
+`npx reeval query question_pairs` lists the wins, ties, and splits of each pairwise question. `trial_answers` lists each trial's answer. For more information about both views, see [Query views](/reference/query-views).
 
 ## Reference
 

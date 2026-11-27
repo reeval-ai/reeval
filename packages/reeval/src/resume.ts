@@ -1,4 +1,4 @@
-// Resume a stopped, interrupted or budget-stopped run: same runId, skip the attempts that passed
+// Resume a stopped, interrupted or budget-stopped run: same runId, skip the trials that passed
 // or failed, restart ones that never wrote a record, only wrote `aborted` or ended in an infra
 // error. `--retry-errors` does the same to a finished run, which then reruns only its infra errors.
 import {
@@ -15,14 +15,14 @@ import { hostname } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
 import { UsageError } from './errors.ts'
 import { scratchDir } from './history/files.ts'
-import type { AttemptRecord, AttemptRetry, RunInvocation, RunRecord } from './history/types.ts'
+import type { TrialRecord, TrialRetry, RunInvocation, RunRecord } from './history/types.ts'
 import { RefError } from './history/views.ts'
 import { RUN_ID, recordFileName, relativeFile } from './ids.ts'
 import { type LiveKept, replace } from './live.ts'
 import type { EvalRecord, Outcome } from './types.ts'
 import {
   LIVE_FILE,
-  type LiveAttempt,
+  type LiveTrial,
   readableInvocation,
   readableLiveProgress,
 } from './view/live.ts'
@@ -110,7 +110,7 @@ export const CANCEL_SIGNAL = 'SIGUSR2'
 
 /**
  * Whether `reeval attach` may cancel the run `header` names: its live.json is that same
- * process, alive on this host, still running attempts and beating. A stream's pid alone could be
+ * process, alive on this host, still running trials and beating. A stream's pid alone could be
  * another process by now, or a run already canceling, which a signal would quit without a record.
  */
 export function cancelable(
@@ -201,7 +201,7 @@ export function readCurrent(root: string): string | null {
 }
 
 /** Finished with a real outcome: not queued, not skipped, not a cancel abort. */
-export function isCompletedAttempt(
+export function isCompletedTrial(
   outcome: Outcome,
   error: { kind: string } | null | undefined,
 ): boolean {
@@ -211,16 +211,16 @@ export function isCompletedAttempt(
 }
 
 /** Completed with a result a resume keeps, a pass or a fail; an infra error runs again. */
-export function isKeptAttempt(
+export function isKeptTrial(
   outcome: Outcome,
   error: { kind: string } | null | undefined,
 ): boolean {
-  return outcome !== 'infra_error' && isCompletedAttempt(outcome, error)
+  return outcome !== 'infra_error' && isCompletedTrial(outcome, error)
 }
 
 const keptFromRecord = (record: RunRecord): string[] =>
   record.evals.flatMap((e) =>
-    e.attempts.filter((a) => isKeptAttempt(a.outcome, a.error)).map((a) => a.key),
+    e.trials.filter((a) => isKeptTrial(a.outcome, a.error)).map((a) => a.key),
   )
 
 function readEvalRecord(path: string): EvalRecord | null {
@@ -234,7 +234,7 @@ function readEvalRecord(path: string): EvalRecord | null {
 function stagingRecordComplete(
   staging: string,
   key: string,
-  done: typeof isCompletedAttempt = isCompletedAttempt,
+  done: typeof isCompletedTrial = isCompletedTrial,
 ): boolean {
   const record = readEvalRecord(join(staging, 'evals', recordFileName(key)))
   if (!record) return false
@@ -242,7 +242,7 @@ function stagingRecordComplete(
 }
 
 /**
- * Attempt keys that already passed or failed in `staging` or in the previous record, so a
+ * Trial keys that already passed or failed in `staging` or in the previous record, so a
  * resume skips them and runs the rest, infra errors included.
  */
 export function completedKeysFor(
@@ -253,19 +253,19 @@ export function completedKeysFor(
   const keys = new Set<string>()
   const fromPrevious = new Set(previous ? keptFromRecord(previous) : [])
   for (const { key } of planned) {
-    if (stagingRecordComplete(staging, key, isKeptAttempt) || fromPrevious.has(key)) keys.add(key)
+    if (stagingRecordComplete(staging, key, isKeptTrial) || fromPrevious.has(key)) keys.add(key)
   }
   return keys
 }
 
-/** In staging: each attempt's earlier infra errors, by key, kept as the attempts run again. */
+/** In staging: each trial's earlier infra errors, by key, kept as the trials run again. */
 export const RETRIES_FILE = 'retries.json'
 
-export function readRetries(staging: string): Map<string, AttemptRetry[]> {
+export function readRetries(staging: string): Map<string, TrialRetry[]> {
   try {
     const parsed = JSON.parse(readFileSync(join(staging, RETRIES_FILE), 'utf8')) as Record<
       string,
-      AttemptRetry[]
+      TrialRetry[]
     >
     return new Map(Object.entries(parsed))
   } catch {
@@ -274,26 +274,26 @@ export function readRetries(staging: string): Map<string, AttemptRetry[]> {
 }
 
 /**
- * The planned attempts that ended in an infra error, in staging or the previous record, and so
+ * The planned trials that ended in an infra error, in staging or the previous record, and so
  * run again; and each one's earlier errors, which `retries.json` keeps once `write` is set, so
- * the record still has them after the worker replaces the attempt's staged record.
+ * the record still has them after the worker replaces the trial's staged record.
  */
 export function noteRetries(
   planned: readonly { key: string }[],
   staging: string,
   previous: RunRecord | null | undefined,
   write: boolean,
-): { errored: Set<string>; retries: Map<string, AttemptRetry[]> } {
+): { errored: Set<string>; retries: Map<string, TrialRetry[]> } {
   const retries = readRetries(staging)
   const errored = new Set<string>()
-  const add = (key: string, retry: AttemptRetry) => {
+  const add = (key: string, retry: TrialRetry) => {
     const list = retries.get(key) ?? []
-    const same = (r: AttemptRetry) => r.at === retry.at && r.error.message === retry.error.message
+    const same = (r: TrialRetry) => r.at === retry.at && r.error.message === retry.error.message
     if (!list.some(same)) list.push(retry)
     retries.set(key, list)
   }
   for (const { key } of planned) {
-    const was = previousAttempt(previous, key)
+    const was = previousTrial(previous, key)
     if (was?.retries?.length && !retries.has(key)) retries.set(key, [...was.retries])
     const staged = readEvalRecord(join(staging, 'evals', recordFileName(key)))
     const last = staged ?? (was ? { outcome: was.outcome, error: was.error } : null)
@@ -308,23 +308,23 @@ export function noteRetries(
   return { errored, retries }
 }
 
-/** An attempt the run planned that a filtered resume leaves out of its plan. */
-export type LeftOut = Pick<LiveAttempt, 'key' | 'evalId' | 'name' | 'file' | 'cell' | 'n'> & {
+/** A trial the run planned that a filtered resume leaves out of its plan. */
+export type LeftOut = Pick<LiveTrial, 'key' | 'evalId' | 'name' | 'file' | 'cell' | 'n'> & {
   /** Finished earlier in the run; else it never started or didn't finish, and stays not run. */
   done: boolean
 }
 
 /**
- * The attempts the run planned, from the previous record and the progress file a quit left,
+ * The trials the run planned, from the previous record and the progress file a quit left,
  * that this resume's plan leaves out. The record keeps them, so the run stays incomplete until
  * a resume runs the ones that aren't done. A todo or a declared skip, in the previous record or
  * `declared` (the ids this resume collected as `.skip` or `.todo`), never runs, so it's done.
  */
-export function leftOutAttempts(
+export function leftOutTrials(
   planned: readonly { key: string }[],
   staging: string,
   previous: RunRecord | null | undefined,
-  live: readonly LiveAttempt[],
+  live: readonly LiveTrial[],
   declared: ReadonlySet<string> = new Set(),
 ): LeftOut[] {
   const now = new Set(planned.map((p) => p.key))
@@ -335,43 +335,43 @@ export function leftOutAttempts(
     found.set(a.key, { ...a, done })
   }
   for (const e of previous?.evals ?? []) {
-    for (const a of e.attempts) {
+    for (const a of e.trials) {
       const at = { key: a.key, evalId: e.id, name: e.name, file: e.file, cell: a.cell, n: a.n }
-      add(at, e.todo || e.skip === true || isCompletedAttempt(a.outcome, a.error))
+      add(at, e.todo || e.skip === true || isCompletedTrial(a.outcome, a.error))
     }
   }
   for (const a of live) add(a, false)
   return [...found.values()]
 }
 
-/** The attempts in a stopped run's progress file, or none. */
-export async function liveAttempts(staging: string): Promise<LiveAttempt[]> {
+/** The trials in a stopped run's progress file, or none. */
+export async function liveTrials(staging: string): Promise<LiveTrial[]> {
   const text = await readFile(join(staging, LIVE_FILE), 'utf8').catch(() => null)
   try {
-    return (text ? readableLiveProgress(JSON.parse(text) as unknown)?.attempts : null) ?? []
+    return (text ? readableLiveProgress(JSON.parse(text) as unknown)?.trials : null) ?? []
   } catch {
     return []
   }
 }
 
 /**
- * How each completed attempt finished, for the progress file: from the previous assemble when it
- * has the attempt (as the record keeps it), else from its staged record, which has no duration.
+ * How each completed trial finished, for the progress file: from the previous assemble when it
+ * has the trial (as the record keeps it), else from its staged record, which has no duration.
  */
-export function keptAttempts(
+export function keptTrials(
   completed: Iterable<string>,
   staging: string,
   previous?: RunRecord | null,
 ): Map<string, LiveKept> {
   const kept = new Map<string, LiveKept>()
   for (const key of completed) {
-    const was = previousAttempt(previous, key)
-    if (was && was.outcome !== 'skipped' && isCompletedAttempt(was.outcome, was.error)) {
+    const was = previousTrial(previous, key)
+    if (was && was.outcome !== 'skipped' && isCompletedTrial(was.outcome, was.error)) {
       kept.set(key, { outcome: was.outcome, startedAt: was.startedAt, durationMs: was.durationMs })
       continue
     }
     const record = readEvalRecord(join(staging, 'evals', recordFileName(key)))
-    if (!record || !isCompletedAttempt(record.outcome, record.error)) continue
+    if (!record || !isCompletedTrial(record.outcome, record.error)) continue
     kept.set(key, {
       outcome: record.outcome,
       startedAt: record.startedAt ?? null,
@@ -562,7 +562,7 @@ function matchRef(candidates: Candidate[], ref: string): Candidate | undefined {
 const STALE_STAGING_MS = 24 * 60 * 60 * 1000
 
 /**
- * Staging a resume keeps something from: a finished attempt, or the record a resume or retry
+ * Staging a resume keeps something from: a finished trial, or the record a resume or retry
  * moved aside.
  */
 async function holdsWork(dir: string): Promise<boolean> {
@@ -570,13 +570,13 @@ async function holdsWork(dir: string): Promise<boolean> {
   const names = await readdir(join(dir, 'evals')).catch((): string[] => [])
   return names.some((name) => {
     const record = readEvalRecord(join(dir, 'evals', name))
-    return !!record && isCompletedAttempt(record.outcome, record.error)
+    return !!record && isCompletedTrial(record.outcome, record.error)
   })
 }
 
 /**
  * Removes staging untouched for a day that a resume would keep nothing from (a run that finished
- * assembling, one stopped before any attempt finished, or a stray entry), and returns the ids of
+ * assembling, one stopped before any trial finished, or a stray entry), and returns the ids of
  * the stale runs it keeps because `--resume` still can. A running run's staging, and `keep`'s,
  * are left alone.
  */
@@ -796,10 +796,10 @@ export async function resolveAttach(root: string, ref?: string): Promise<AttachT
   return { runId, file, live }
 }
 
-/** The attempts of a run that ended in an infra error (not a cancel). */
-export const erroredAttempts = (record: Pick<RunRecord, 'evals'>): AttemptRecord[] =>
+/** The trials of a run that ended in an infra error (not a cancel). */
+export const erroredTrials = (record: Pick<RunRecord, 'evals'>): TrialRecord[] =>
   record.evals.flatMap((e) =>
-    e.attempts.filter((a) => a.outcome === 'infra_error' && a.error?.kind !== 'aborted'),
+    e.trials.filter((a) => a.outcome === 'infra_error' && a.error?.kind !== 'aborted'),
   )
 
 /**
@@ -826,8 +826,8 @@ export async function prepareResume(
   }
   // So assemble can merge them if a later crash leaves only staging.
   for (const e of target.previous.evals) {
-    for (const a of e.attempts) {
-      if (!isCompletedAttempt(a.outcome, a.error)) continue
+    for (const a of e.trials) {
+      if (!isCompletedTrial(a.outcome, a.error)) continue
       const path = join(staging, 'evals', recordFileName(a.key))
       if (existsSync(path)) continue
       const record: EvalRecord = {
@@ -960,7 +960,7 @@ export function savedFilters(root: string, filters: readonly string[], cwd = pro
 
 /** The `reeval run` flags and filters that shape a run's plan, as the command line gives them. */
 export type RunSettings = {
-  runs?: string
+  trials?: string
   profile?: string
   concurrency?: string
   tag?: string[]
@@ -970,10 +970,10 @@ export type RunSettings = {
 }
 
 /**
- * The settings a resume plans with: each one left out is the run's saved one. `--runs` or a
- * profile other than the run's is refused, since it plans other attempts than the ones kept;
+ * The settings a resume plans with: each one left out is the run's saved one. `--trials` or a
+ * profile other than the run's is refused, since it plans other trials than the ones kept;
  * filters, `--tag` and `--trait` replace the run's for this resume, and `--concurrency` wins with a note.
- * A `--runs` that isn't a count is left for the usual check to refuse. Saved path filters are
+ * A `--trials` that isn't a count is left for the usual check to refuse. Saved path filters are
  * resolved from `root`, so the resume picks the same files from any directory.
  */
 export function resumeSettings(
@@ -988,14 +988,14 @@ export function resumeSettings(
 ): { settings: RunSettings; notes: string[] } {
   const refuse = (started: string, flag: string) =>
     new UsageError(
-      `run ${runId} was started ${started}, and ${continued} finishes the attempts it planned. Leave ${flag} out, or start a new run without ${continued}.`,
+      `run ${runId} was started ${started}, and ${continued} finishes the trials it planned. Leave ${flag} out, or start a new run without ${continued}.`,
     )
-  const runs = Number(given.runs)
-  const count = Number.isInteger(runs) && runs >= 1
-  if (given.runs !== undefined && count && runs !== saved.runs) {
+  const trials = Number(given.trials)
+  const count = Number.isInteger(trials) && trials >= 1
+  if (given.trials !== undefined && count && trials !== saved.trials) {
     throw refuse(
-      saved.runs === undefined ? 'without --runs' : `with --runs ${saved.runs}`,
-      '--runs',
+      saved.trials === undefined ? 'without --trials' : `with --trials ${saved.trials}`,
+      '--trials',
     )
   }
   const profile = given.profile ?? (env.REEVAL_PROFILE || undefined)
@@ -1020,7 +1020,7 @@ export function resumeSettings(
       ? given.filters
       : saved.filters.map((f) => (existsSync(resolve(root, f)) ? resolve(root, f) : f)),
   }
-  if (given.runs === undefined && saved.runs !== undefined) settings.runs = String(saved.runs)
+  if (given.trials === undefined && saved.trials !== undefined) settings.trials = String(saved.trials)
   if (profile === undefined && saved.profile !== undefined) settings.profile = saved.profile
   if (concurrency === undefined && saved.concurrency !== undefined) {
     settings.concurrency = String(saved.concurrency)
@@ -1031,8 +1031,8 @@ export function resumeSettings(
   return { settings, notes }
 }
 
-export const previousAttempt = (
+export const previousTrial = (
   previous: RunRecord | null | undefined,
   key: string,
-): AttemptRecord | undefined =>
-  previous?.evals.flatMap((e) => e.attempts).find((a) => a.key === key)
+): TrialRecord | undefined =>
+  previous?.evals.flatMap((e) => e.trials).find((a) => a.key === key)

@@ -4,7 +4,100 @@
   "title": "LiveProgress",
   "$ref": "#/$defs/LiveProgress",
   "$defs": {
-    "LiveAttempt": {
+    "LiveCounts": {
+      "description": "Trials finished, and of those how many passed, failed or errored; and how many are running.",
+      "type": "object",
+      "properties": {
+        "done": {
+          "type": "number"
+        },
+        "errored": {
+          "type": "number"
+        },
+        "failed": {
+          "type": "number"
+        },
+        "passed": {
+          "type": "number"
+        },
+        "running": {
+          "type": "number"
+        },
+        "skipped": {
+          "type": "number"
+        }
+      },
+      "required": ["done", "errored", "failed", "passed", "running", "skipped"]
+    },
+    "LivePhase": {
+      "description": "What the run is doing: running trials, canceling them, or assembling its record.",
+      "enum": ["cancelling", "finishing", "running"]
+    },
+    "LiveProgress": {
+      "type": "object",
+      "properties": {
+        "counts": {
+          "$ref": "#/$defs/LiveCounts"
+        },
+        "events": {
+          "description": "The file `reeval run --events` writes the run's event stream to, from the project root in posix form (`../…` outside it), for `reeval attach`; unset without one.",
+          "type": "string"
+        },
+        "heartbeatAt": {
+          "description": "Rewritten every few seconds while the run is alive.",
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "invocation": {
+          "description": "How the run was started, for a `--resume` after a quit that wrote no record.",
+          "$ref": "#/$defs/RunInvocation"
+        },
+        "phase": {
+          "$ref": "#/$defs/LivePhase"
+        },
+        "pid": {
+          "description": "The `reeval run` process and the host it runs on, so a killed run can be told apart.",
+          "type": "number"
+        },
+        "planned": {
+          "type": "number"
+        },
+        "runId": {
+          "type": "string"
+        },
+        "schemaVersion": {
+          "const": 2
+        },
+        "startedAt": {
+          "type": "string"
+        },
+        "trials": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LiveTrial"
+          }
+        }
+      },
+      "required": [
+        "counts",
+        "heartbeatAt",
+        "host",
+        "phase",
+        "pid",
+        "planned",
+        "runId",
+        "schemaVersion",
+        "startedAt",
+        "trials"
+      ]
+    },
+    "LiveStatus": {
+      "description": "Where a trial is: waiting, running, or finished with its outcome.",
+      "enum": ["fail", "infra_error", "pass", "queued", "running", "skipped"]
+    },
+    "LiveTrial": {
       "type": "object",
       "properties": {
         "cell": {
@@ -28,7 +121,7 @@
           "type": "string"
         },
         "key": {
-          "description": "The attempt key, `<eval id> # <cell key>#<n>`, as in the record.",
+          "description": "The trial key, `<eval id> # <cell key>#<n>`, as in the record.",
           "type": "string"
         },
         "n": {
@@ -63,101 +156,8 @@
         "status"
       ]
     },
-    "LiveCounts": {
-      "description": "Attempts finished, and of those how many passed, failed or errored; and how many are running.",
-      "type": "object",
-      "properties": {
-        "done": {
-          "type": "number"
-        },
-        "errored": {
-          "type": "number"
-        },
-        "failed": {
-          "type": "number"
-        },
-        "passed": {
-          "type": "number"
-        },
-        "running": {
-          "type": "number"
-        },
-        "skipped": {
-          "type": "number"
-        }
-      },
-      "required": ["done", "errored", "failed", "passed", "running", "skipped"]
-    },
-    "LivePhase": {
-      "description": "What the run is doing: running attempts, canceling them, or assembling its record.",
-      "enum": ["cancelling", "finishing", "running"]
-    },
-    "LiveProgress": {
-      "type": "object",
-      "properties": {
-        "attempts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/LiveAttempt"
-          }
-        },
-        "counts": {
-          "$ref": "#/$defs/LiveCounts"
-        },
-        "events": {
-          "description": "The file `reeval run --events` writes the run's event stream to, from the project root in posix form (`../…` outside it), for `reeval attach`; unset without one.",
-          "type": "string"
-        },
-        "heartbeatAt": {
-          "description": "Rewritten every few seconds while the run is alive.",
-          "type": "string"
-        },
-        "host": {
-          "type": "string"
-        },
-        "invocation": {
-          "description": "How the run was started, for a `--resume` after a quit that wrote no record.",
-          "$ref": "#/$defs/RunInvocation"
-        },
-        "phase": {
-          "$ref": "#/$defs/LivePhase"
-        },
-        "pid": {
-          "description": "The `reeval run` process and the host it runs on, so a killed run can be told apart.",
-          "type": "number"
-        },
-        "planned": {
-          "type": "number"
-        },
-        "runId": {
-          "type": "string"
-        },
-        "schemaVersion": {
-          "const": 1
-        },
-        "startedAt": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "attempts",
-        "counts",
-        "heartbeatAt",
-        "host",
-        "phase",
-        "pid",
-        "planned",
-        "runId",
-        "schemaVersion",
-        "startedAt"
-      ]
-    },
-    "LiveStatus": {
-      "description": "Where an attempt is: waiting, running, or finished with its outcome.",
-      "enum": ["fail", "infra_error", "pass", "queued", "running", "skipped"]
-    },
     "RunInvocation": {
-      "description": "The `reeval run` settings that shaped a run's plan, as it was first started. A resume keeps them, so it finishes the attempts the run planned.",
+      "description": "The `reeval run` settings that shaped a run's plan, as it was first started. A resume keeps them, so it finishes the trials the run planned.",
       "type": "object",
       "properties": {
         "cells": {
@@ -186,10 +186,6 @@
           "description": "The profile the run was sized with; unset when it had none.",
           "type": "string"
         },
-        "runs": {
-          "description": "`--runs`; unset when each cell ran its own `runs`.",
-          "type": "number"
-        },
         "tags": {
           "description": "`--tag`, without the profile's own tags.",
           "type": "array",
@@ -203,10 +199,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "trials": {
+          "description": "`--trials`; unset when each cell ran its own `trials`.",
+          "type": "number"
         }
       },
       "required": ["filters", "tags"]
     }
   },
-  "x-schemaVersion": 1
+  "x-schemaVersion": 2
 }

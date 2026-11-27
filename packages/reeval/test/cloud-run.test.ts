@@ -504,7 +504,7 @@ describe('reeval run on the cloud platform', () => {
         },
       })
       assert.equal(r.code, 0, r.stdout + r.stderr)
-      assert.match(r.stdout, /Running in the cloud \(1 attempt\), --local to run here/)
+      assert.match(r.stdout, /Running in the cloud \(1 trial\), --local to run here/)
       assert.match(r.stdout, /REEVAL_CONCURRENCY applies to runs here: a cloud run runs as many/)
       assert.ok(
         r.stdout.includes(`Started cloud run ${id}; reeval attach ${id} follows it`),
@@ -1022,7 +1022,7 @@ export default defineEval({ sandbox: podman(), async task() {} })
     }
   })
 
-  test("places a docker() run's attempts on VMs of their own: the uploaded plan has no images and the VM service's names", async () => {
+  test("places a docker() run's trials on VMs of their own: the uploaded plan has no images and the VM service's names", async () => {
     const vmNames = ['REEVAL_VM_TOKEN', 'REEVAL_VM_URL']
     const p = await platform({ secretNames: [], reserved: vmNames, fails: 'not started here' })
     try {
@@ -1539,8 +1539,8 @@ export default defineEval({
       assert.match(followed.stdout + followed.stderr, /Cloud run run_1 was canceled\n/)
       const said = followed.stdout.split('\n').filter((l) => l.includes('is queued'))
       assert.deepEqual(said, [
-        "Cloud run run_1 is queued: waiting for the org's limit on attempts or runs at once, position 2 in the org's queue",
-        "Cloud run run_1 is queued: waiting for the org's limit on attempts or runs at once, position 1 in the org's queue",
+        "Cloud run run_1 is queued: waiting for the org's limit on trials or runs at once, position 2 in the org's queue",
+        "Cloud run run_1 is queued: waiting for the org's limit on trials or runs at once, position 1 in the org's queue",
         'Cloud run run_1 is queued',
       ])
       const reads = p.seen.filter((s) => s.path === '/api/orgs/org_a/projects/proj_a/capacity')
@@ -2125,8 +2125,8 @@ describe("a cloud run's files, downloaded with --download", () => {
       assert.equal(again.code, 0, again.stdout + again.stderr)
       assert.match(again.stdout, new RegExp(`Run ${runId} of cloud run run_1 is already in`))
       // A link in a snapshot in the recorded run's folder is kept as one; elsewhere it's refused.
-      const attempt = `${folder}/${runId}/evals-answer/fake-cell/1`
-      const link = `${attempt}/snapshots/after/AGENTS.md`
+      const trial = `${folder}/${runId}/evals-answer/fake-cell/1`
+      const link = `${trial}/snapshots/after/AGENTS.md`
       const linkTo = (path: string, target: string): TarEntry => ({
         type: 'symlink',
         path,
@@ -2141,7 +2141,7 @@ describe("a cloud run's files, downloaded with --download", () => {
       assert.doesNotMatch(linked.stdout, / into \.reeval\/runs/, 'nothing new in .reeval/runs')
       assert.equal(readlinkSync(join(dir, link)), 'CLAUDE.md')
       const outside = tempDir('cloud-outside')
-      for (const at of [`${folder}/${runId}/out`, `${attempt}/trajectory.jsonl.link`]) {
+      for (const at of [`${folder}/${runId}/out`, `${trial}/trajectory.jsonl.link`]) {
         p.serve((machine) => [...machine, linkTo(at, outside)])
         const refused = await runCli(dir, ['attach', '--download', events], { env: env(p) })
         assert.equal(refused.code, 3, refused.stdout + refused.stderr)
@@ -2444,11 +2444,11 @@ describe("a cloud run's files, downloaded with --download", () => {
       const r = await runCli(dir, ['run', '--cloud'], { env: env(p) })
       assert.equal(r.code, 0, r.stdout + r.stderr)
       const events = `${p.base}/api/runs/run_1/events`
-      const attempt = (machine: TarEntry[]) => {
+      const trial = (machine: TarEntry[]) => {
         const at = machine
           .map((e) => /^(\.reeval\/runs\/[^/]+\/[^/]+\/[^/]+\/\d+)\//.exec(e.path)?.[1])
           .find(Boolean)
-        assert.ok(at, 'an attempt directory')
+        assert.ok(at, 'a trial directory')
         return at
       }
       const file = (path: string, data = 'x'): TarEntry => ({
@@ -2460,8 +2460,8 @@ describe("a cloud run's files, downloaded with --download", () => {
       })
       p.serve((machine) => [
         ...machine,
-        file(`${attempt(machine)}/twice.txt`, 'a'),
-        file(`${attempt(machine)}/twice.txt`, 'b'),
+        file(`${trial(machine)}/twice.txt`, 'a'),
+        file(`${trial(machine)}/twice.txt`, 'b'),
       ])
       const twice = await runCli(dir, ['attach', '--download', events], { env: env(p) })
       assert.equal(twice.code, 3, twice.stdout + twice.stderr)
@@ -2473,12 +2473,12 @@ describe("a cloud run's files, downloaded with --download", () => {
         ...machine,
         {
           type: 'symlink',
-          path: `${attempt(machine)}/snapshots/after/x`,
+          path: `${trial(machine)}/snapshots/after/x`,
           mode: 0o777,
           mtime: 0,
           target: '/tmp',
         },
-        file(`${attempt(machine)}/snapshots/after/x/through.txt`),
+        file(`${trial(machine)}/snapshots/after/x/through.txt`),
       ])
       const through = await runCli(dir, ['attach', '--download', events], { env: env(p) })
       assert.equal(through.code, 3, through.stdout + through.stderr)
@@ -2486,7 +2486,7 @@ describe("a cloud run's files, downloaded with --download", () => {
       assert.ok(!existsSync(join(dir, '.reeval/runs')), 'nothing written')
       let link = ''
       p.serve((machine) => {
-        link = `${attempt(machine)}/snapshots/after/AGENTS.md`
+        link = `${trial(machine)}/snapshots/after/AGENTS.md`
         return [
           ...machine,
           { type: 'symlink', path: link, mode: 0o777, mtime: 0, target: 'CLAUDE.md' },
@@ -2500,12 +2500,12 @@ describe("a cloud run's files, downloaded with --download", () => {
         ...machine,
         {
           type: 'symlink',
-          path: `${attempt(machine)}/snapshots/after/Dir`,
+          path: `${trial(machine)}/snapshots/after/Dir`,
           mode: 0o777,
           mtime: 0,
           target: outside,
         },
-        file(`${attempt(machine)}/snapshots/after/dir/f.txt`),
+        file(`${trial(machine)}/snapshots/after/dir/f.txt`),
       ])
       const folded = await runCli(dir, ['attach', '--download', events], { env: env(p) })
       assert.ok(!existsSync(join(outside, 'f.txt')), 'nothing written through the link')
@@ -2795,8 +2795,8 @@ describe('reeval run --cloud --resume', () => {
       const refused: Array<[string[], RegExp]> = [
         [['answer'], /leave out filters$/m],
         [
-          ['--runs', '2'],
-          /resumes with the filters, runs, tags and traits it started with: leave out --runs/,
+          ['--trials', '2'],
+          /resumes with the filters, trials, tags and traits it started with: leave out --trials/,
         ],
         [['--tag', 't'], /leave out --tag/],
         [['--trait', 'k=v'], /leave out --trait/],
@@ -2882,7 +2882,7 @@ describe('reeval run --cloud --resume', () => {
   test("a run of this machine's continues here, under its saved profile or with a note when that profile runs in the cloud", async () => {
     const p = await platform({ resume: [] })
     const env = { REEVAL_CLOUD_URL: p.base, REEVAL_TOKEN: 'cloud-test-token' }
-    /** The run's scratch record, rewritten as a budget stop that never ran its attempt. */
+    /** The run's scratch record, rewritten as a budget stop that never ran its trial. */
     const budgetStop = (dir: string) => {
       const runs = join(dir, '.reeval', 'runs')
       const names = readdirSync(runs).filter((f) => f.endsWith('.json'))
@@ -2893,7 +2893,7 @@ describe('reeval run --cloud --resume', () => {
       const run = JSON.parse(readFileSync(join(runs, name), 'utf8'))
       run.status = 'budget'
       for (const e of run.evals) {
-        e.attempts = e.attempts.map((a: object) => ({
+        e.trials = e.trials.map((a: object) => ({
           ...a,
           outcome: 'skipped',
           error: null,
@@ -2995,12 +2995,12 @@ describe('reeval run --cloud --resume', () => {
     const ran = await platform()
     const dir = await fixtureProject()
     let runId: string
-    /** Rewrites a scratch record as a budget stop that never ran its attempt. */
+    /** Rewrites a scratch record as a budget stop that never ran its trial. */
     const budgetStop = (file: string) => {
       const record = JSON.parse(readFileSync(file, 'utf8'))
       record.status = 'budget'
       for (const e of record.evals) {
-        e.attempts = e.attempts.map((a: object) => ({
+        e.trials = e.trials.map((a: object) => ({
           ...a,
           outcome: 'skipped',
           error: null,
@@ -3103,7 +3103,7 @@ describe('reeval run --cloud --resume', () => {
       const record = JSON.parse(readFileSync(file, 'utf8'))
       record.status = 'budget'
       for (const e of record.evals) {
-        e.attempts = e.attempts.map((a: object) => ({
+        e.trials = e.trials.map((a: object) => ({
           ...a,
           outcome: 'skipped',
           error: null,
@@ -3154,7 +3154,7 @@ describe('reeval run --cloud --resume', () => {
       const record = JSON.parse(readFileSync(file, 'utf8'))
       record.status = 'budget'
       for (const e of record.evals) {
-        e.attempts = e.attempts.map((a: object) => ({
+        e.trials = e.trials.map((a: object) => ({
           ...a,
           outcome: 'skipped',
           error: null,
@@ -3204,7 +3204,7 @@ describe('reeval run --cloud --resume', () => {
       const record = JSON.parse(readFileSync(file, 'utf8'))
       for (const e of record.evals) {
         for (const c of e.cells) c.environmentDigest = `sha256:${'0'.repeat(64)}`
-        for (const a of e.attempts) {
+        for (const a of e.trials) {
           a.outcome = 'infra_error'
           a.error = { kind: 'infra', message: 'the sandbox went away' }
         }

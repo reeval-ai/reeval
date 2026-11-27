@@ -12,19 +12,19 @@ export type AnalysisClaimRole = 'finding' | 'caveat' | 'action'
 
 export type AnalysisClaim = {
   text: string
-  /** Fact (`F3`), evidence (`E2`, `E2:L39`), attempt (`r2/scaffold/reeval-good#1`) or check ids. */
+  /** Fact (`F3`), evidence (`E2`, `E2:L39`), trial (`r2/scaffold/reeval-good#1`) or check ids. */
   cites: string[]
   confidence: Confidence
   /** Exact spans from the cited evidence; a claim whose quote isn't there is dropped. */
   quotes?: string[]
   /** Numbers in the text that no cited fact or evidence contains. */
   unverifiedNumbers?: string[]
-  /** Eval id this claim is about, when resolved from attempt cites; optional on older docs. */
+  /** Eval id this claim is about, when resolved from trial cites; optional on older docs. */
   evalId?: string
   /** Section role; optional on older docs (derived from which body array it sits in). */
   role?: AnalysisClaimRole
-  /** Attempt cites resolved to ids and paths; optional on older docs. */
-  attempts?: Array<{ attemptId: string; path: string }>
+  /** Trial cites resolved to ids and paths; optional on older docs. */
+  trials?: Array<{ trialId: string; path: string }>
 }
 
 export type AnomalyKind = 'reeval-bug' | 'eval-design' | 'judge' | 'noise' | 'other'
@@ -36,7 +36,7 @@ export type AnalysisAnomaly = {
   unverifiedNumbers?: string[]
   evalId?: string
   role?: AnalysisClaimRole
-  attempts?: Array<{ attemptId: string; path: string }>
+  trials?: Array<{ trialId: string; path: string }>
 }
 
 export type ActionKind = 'skill' | 'docs' | 'eval' | 'judge' | 'reeval' | 'harness'
@@ -57,7 +57,7 @@ export type AnalysisAction = {
   cites: string[]
   evalId?: string
   role?: AnalysisClaimRole
-  attempts?: Array<{ attemptId: string; path: string }>
+  trials?: Array<{ trialId: string; path: string }>
 }
 
 export type AnalysisBody = {
@@ -92,7 +92,7 @@ export type AnalysisScope = {
 
 export type AnalysisDoc = {
   kind: 'reeval-analysis'
-  schemaVersion: 1
+  schemaVersion: 2
   scope: AnalysisScope
   /** The run the analysis belongs to: the scope's head. */
   anchor: string
@@ -111,8 +111,8 @@ export type AnalysisDoc = {
   author: string
   validation: AnalysisValidation
   analysis: AnalysisBody
-  /** Short attempt ids used in citations, and where each attempt is. */
-  attempts: Record<string, { runId: string; evalSlug: string; attempt: string }>
+  /** Short trial ids used in citations, and where each trial is. */
+  trials: Record<string, { runId: string; evalSlug: string; trial: string }>
   /** Each cited fact or evidence id, summarized in one line. */
   cited: Record<string, string>
   /**
@@ -128,7 +128,7 @@ export type AnalysisDoc = {
  */
 export type AnalysisNote = {
   kind: 'reeval-analysis-note'
-  schemaVersion: 1
+  schemaVersion: 2
   runId: string
   evalId: string
   /** The harness id, as in the cell key. */
@@ -136,8 +136,8 @@ export type AnalysisNote = {
   model: string
   resolvedModel: string | null
   createdAt: string
-  /** The attempt ids (`<cell key>#<n>`) the note covers. */
-  attempts: string[]
+  /** The trial ids (`<cell key>#<n>`) the note covers. */
+  trials: string[]
   /** Empty when the call failed. */
   text: string
   /** Why the call failed; the run's outcomes don't change. */

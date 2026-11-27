@@ -29,10 +29,10 @@ one profile you need.
 
 ```text
 …
-  ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 attempt
+  ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 trial
 …
 adds-multiply.eval.ts
-  · adds-multiply  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
+  · adds-multiply  mean 100% · 1/1 trial at 100% (pass@1)  capability(1)
 
 Done in 18s · 1 eval · 1 report only
 ```

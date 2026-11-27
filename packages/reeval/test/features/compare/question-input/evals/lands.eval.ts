@@ -4,7 +4,7 @@ import { baseline, variant } from './env.ts'
 
 // The question's calls are saved with the prompt (its token masked) and the landing capture's ref.
 export default defineEval({
-  compare: { control: baseline, variants: [variant] },
+  compare: { baseline: baseline, variants: [variant] },
   graders: [pageStatus('landing', 200)],
   questions: [
     {

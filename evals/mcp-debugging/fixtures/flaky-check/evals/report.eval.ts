@@ -2,7 +2,7 @@ import { defineEval, regression } from 'reeval'
 import { observed } from 'reeval/graders'
 
 export default defineEval({
-  runs: 6,
+  trials: 6,
   graders: [observed<string | null>('report', (text) => text === 'ok\n')],
   target: regression(),
   task: async (c) => {

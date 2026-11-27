@@ -1,4 +1,4 @@
-// What evaluate, group and an attempt reach of the engine (engine/runtime.ts): the engine the
+// What evaluate, group and a trial reach of the engine (engine/runtime.ts): the engine the
 // worker installed, or a clear error outside reeval run.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'

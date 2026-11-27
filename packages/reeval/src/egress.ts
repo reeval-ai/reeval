@@ -1,4 +1,4 @@
-// Egress policies as the plan sees them: which one an attempt runs under, the hosts a restricted
+// Egress policies as the plan sees them: which one a trial runs under, the hosts a restricted
 // one allows on its own, and whether its sandbox can enforce it.
 import { isIP } from 'node:net'
 import {
@@ -36,10 +36,10 @@ export const SANDBOX_EGRESS = Object.fromEntries(
   Object.entries(SANDBOX_KINDS).map(([kind, k]) => [kind, k.capabilities.egress]),
 ) as Record<SandboxDescriptor['kind'], EgressCapabilities>
 
-/** The policy an attempt runs under when nothing sets one. */
+/** The policy a trial runs under when nothing sets one. */
 export const DEFAULT_EGRESS: EgressPolicy = 'proxy'
 
-/** The phases an attempt's egress can set a policy for. */
+/** The phases a trial's egress can set a policy for. */
 export type EgressPhase = 'setup' | 'agent'
 
 /** Whether `egress` sets a policy per phase, `{ setup, agent }`, rather than one for both. */
@@ -122,7 +122,7 @@ function mcpServerHosts(layers: readonly EnvironmentLayer[]): string[] {
 }
 
 /**
- * The policy each phase of an attempt runs under, and the hosts a restricted one allows on its
+ * The policy each phase of a trial runs under, and the hosts a restricted one allows on its
  * own: the harness's, the brokered secrets' `hosts` and the MCP servers'. Each phase cascades on
  * its own: config and profile defaults (`inherited`), then the environment's layers, then groups
  * and the eval (`own`). `setup` is set only when the setup phase's policy differs from the agent's.
@@ -185,11 +185,11 @@ const LEVELS: EgressCapabilities['enforce'][] = ['none', 'all-or-nothing', 'allo
 const onProvider = (s: SandboxDescriptor) => s.kind === 'boat' || s.kind === 'daytona'
 /** The sandbox in a refusal: a placed one by its provider. */
 const named = (s: SandboxDescriptor) => (onProvider(s) ? `${s.kind}()` : `the ${s.kind} sandbox`)
-/** Where else the attempt could run: off its provider, else in a sandbox that `fits`. */
+/** Where else the trial could run: off its provider, else in a sandbox that `fits`. */
 const instead = (s: SandboxDescriptor, fits: Parameters<typeof suggestedSandbox>[0]) =>
   onProvider(s) ? `leave provider: ${s.kind}() out` : `run it in ${suggestedSandbox(fits)}`
 
-/** Why the sandbox can't enforce the attempt's policies, or undefined when it can. */
+/** Why the sandbox can't enforce the trial's policies, or undefined when it can. */
 export function unenforceable(
   planned: PlannedEgress,
   sandbox: SandboxDescriptor,
@@ -197,7 +197,7 @@ export function unenforceable(
 ): string | undefined {
   if (!planned.setup) return unenforceablePhase(planned, sandbox, where, 'egress')
   if (!capabilitiesOf(sandbox).egress.switches) {
-    return `${where} runs under egress ${describeEgress(planned.setup.policy)} for setup and ${describeEgress(planned.policy)} for the agent, but ${named(sandbox)} can't change its egress policy during an attempt. Give both phases one policy, or ${instead(sandbox, (c) => c.isolated && c.egress.switches)}.`
+    return `${where} runs under egress ${describeEgress(planned.setup.policy)} for setup and ${describeEgress(planned.policy)} for the agent, but ${named(sandbox)} can't change its egress policy during a trial. Give both phases one policy, or ${instead(sandbox, (c) => c.isolated && c.egress.switches)}.`
   }
   return (
     unenforceablePhase(planned.setup, sandbox, where, 'egress.setup') ??
@@ -264,12 +264,12 @@ export const directOnCloud = (where: string) =>
   `egress 'allow-all' on ${where}: anything in the sandbox can reach the cloud metadata service (169.254.169.254, which hands out the machine's credentials), the host's network and its services around the egress gateway, unfiltered and unrecorded`
 
 /**
- * What running attempts with a setup policy of their own (`ids`) side by side on rootless Podman
+ * What running trials with a setup policy of their own (`ids`) side by side on rootless Podman
  * risks: a container leaving Podman's bridge, as one does at the switch, can cut the others on it
  * off from the host for seconds.
  */
 export const rootlessPodmanSwitch = (ids: readonly string[]) =>
-  `phased egress on rootless Podman: at the switch to the agent's policy an attempt's container leaves Podman's bridge network, which can cut the other containers on it off from the host for seconds, failing their direct connections (allow-all, and setup steps under it). Under it: ${ids.join(', ')}. Run with --concurrency 1, or on docker(), when those connections matter`
+  `phased egress on rootless Podman: at the switch to the agent's policy a trial's container leaves Podman's bridge network, which can cut the other containers on it off from the host for seconds, failing their direct connections (allow-all, and setup steps under it). Under it: ${ids.join(', ')}. Run with --concurrency 1, or on docker(), when those connections matter`
 
 /**
  * `deny-all + auto: api2.cursor.sh, …` or `allow-all` for the plan; '' under `proxy`, the default.

@@ -1,6 +1,6 @@
 // cloud() without Docker, against a fake VM service (support/vm-service.ts) in front of the fake
 // VM API (support/boat.ts), through REEVAL_VM_URL and REEVAL_VM_TOKEN: preflight, the pool's
-// limits, refused starts, a run's cleanup and an attempt's lifecycle, and nothing it says names
+// limits, refused starts, a run's cleanup and a trial's lifecycle, and nothing it says names
 // the upstream.
 import assert from 'node:assert/strict'
 import { after, before, describe, test } from 'node:test'
@@ -302,7 +302,7 @@ describe('a token refused mid-run', () => {
   })
 })
 
-describe('a VM granted less time than the attempt needs', () => {
+describe('a VM granted less time than the trial needs', () => {
   const start = async (p: FakeVmService, runId: string, timeoutS: number) => {
     const { provider } = await inRun(on(p), () =>
       openCloudPool(cloud(), { runId, root: process.cwd() }),
@@ -313,10 +313,10 @@ describe('a VM granted less time than the attempt needs', () => {
   }
   const tooShort = (granted: number, needs: number) =>
     new RegExp(
-      `^reeval gave sandbox bx_\\w+ ${granted}s to live, and the attempt needs ${needs}s, its timeout and setup: the VM service grants no more, so give the eval a shorter timeout$`,
+      `^reeval gave sandbox bx_\\w+ ${granted}s to live, and the trial needs ${needs}s, its timeout and setup: the VM service grants no more, so give the eval a shorter timeout$`,
     )
 
-  test('fails the start before the attempt runs, past the time the service grants, and deletes it', async () => {
+  test('fails the start before the trial runs, past the time the service grants, and deletes it', async () => {
     const p = await service()
     const error = await start(p, 'run-long', 7200)
     assert.equal(error.name, 'InfraError')
@@ -329,7 +329,7 @@ describe('a VM granted less time than the attempt needs', () => {
     const error = await start(p, 'run-late', 1200)
     assert.match(
       error.message,
-      /^reeval gave sandbox bx_\w+ (899|900)s to live, and the attempt needs 1200s, its timeout and setup/,
+      /^reeval gave sandbox bx_\w+ (899|900)s to live, and the trial needs 1200s, its timeout and setup/,
     )
     assert.deepEqual(p.live(), [])
   })
@@ -349,7 +349,7 @@ describe('a VM granted less time than the attempt needs', () => {
 })
 
 describe("the service's layout", () => {
-  const LAYOUT = { reuse: true, attemptsPerMachine: 1, machineType: 'small' }
+  const LAYOUT = { reuse: true, trialsPerMachine: 1, machineType: 'small' }
   const open = (p: FakeVmService, o: Parameters<typeof cloud>[0], runId: string) =>
     inRun(on(p), () => openCloudPool(cloud(o), { runId, root: process.cwd() }))
 
@@ -372,20 +372,20 @@ describe("the service's layout", () => {
     const p = await service({ layout: LAYOUT })
     const { provider, options } = await open(
       p,
-      { size: 'medium', reuse: false, attemptsPerMachine: 3 },
+      { size: 'medium', reuse: false, trialsPerMachine: 3 },
       'run-laid-out',
     )
-    assert.deepEqual([options.attemptsPerMachine, options.reuse], [1, true])
+    assert.deepEqual([options.trialsPerMachine, options.reuse], [1, true])
     assert.equal(await startedType(p, provider), 'small')
   })
 
   test('starts the machine type the layout names', async () => {
     const p = await service({
       maxType: 'default',
-      layout: { reuse: false, attemptsPerMachine: 2, machineType: 'default' },
+      layout: { reuse: false, trialsPerMachine: 2, machineType: 'default' },
     })
     const { provider, options } = await open(p, {}, 'run-medium')
-    assert.deepEqual([options.attemptsPerMachine, options.reuse], [2, false])
+    assert.deepEqual([options.trialsPerMachine, options.reuse], [2, false])
     assert.equal(await startedType(p, provider), 'default')
   })
 
@@ -394,11 +394,11 @@ describe("the service's layout", () => {
       undefined,
       null,
       { reuse: 'yes' },
-      { ...LAYOUT, attemptsPerMachine: 0 },
+      { ...LAYOUT, trialsPerMachine: 0 },
     ]) {
       const p = await service({ layout })
-      const { options } = await open(p, { reuse: true, attemptsPerMachine: 2 }, 'run-own')
-      assert.deepEqual([options.attemptsPerMachine, options.reuse], [2, true], String(layout))
+      const { options } = await open(p, { reuse: true, trialsPerMachine: 2 }, 'run-own')
+      assert.deepEqual([options.trialsPerMachine, options.reuse], [2, true], String(layout))
     }
   })
 
@@ -406,8 +406,8 @@ describe("the service's layout", () => {
     const p = await service({ maxLive: 3, layout: LAYOUT })
     await inRun(on(p), () => checkCloud(cloud({ size: 'medium' }), process.cwd()))
     assert.deepEqual(
-      await inRun(on(p), () => cloudCapacity(cloud({ attemptsPerMachine: 2, maxConcurrent: 5 }))),
-      { machines: 3, attempts: 3 },
+      await inRun(on(p), () => cloudCapacity(cloud({ trialsPerMachine: 2, maxConcurrent: 5 }))),
+      { machines: 3, trials: 3 },
     )
   })
 
@@ -424,7 +424,7 @@ describe("the service's layout", () => {
       error.message,
       `reeval took sandbox ${made.sandbox.id} back: 409 vm_released: The run holds 2 VMs, more than its 1 now.`,
     )
-    assert.deepEqual(p.live(), [made.sandbox.id], 'the client deletes it, after its last attempt')
+    assert.deepEqual(p.live(), [made.sandbox.id], 'the client deletes it, after its last trial')
     await inRun(on(p), () => provider.remove(made.sandbox.id))
     assert.deepEqual(p.live(), [])
   })
@@ -432,18 +432,18 @@ describe("the service's layout", () => {
 
 describe('a run the service ends', () => {
   for (const [code, httpStatus] of ENDS_RUN) {
-    test(`a ${httpStatus} ${code} stops the run's attempts at a reused VM's keep-alive`, async () => {
+    test(`a ${httpStatus} ${code} stops the run's trials at a reused VM's keep-alive`, async () => {
       const p = await service()
       const made = (await (await create(p)).json()) as { sandbox: { id: string } }
       const { provider } = await inRun(on(p), () =>
         openCloudPool(cloud({}), { runId: 'run-ended', root: process.cwd() }),
       )
-      p.stopRun(code, 'The run ended, so its VMs take no more attempts.', httpStatus)
+      p.stopRun(code, 'The run ended, so its VMs take no more trials.', httpStatus)
       const error = (await inRun(on(p), async () =>
         provider.keepAlive?.(made.sandbox.id, 1200),
       ).catch((e: Error) => e)) as Error
       assert.equal(error.name, 'RunStopped')
-      assert.match(error.message, /ended the run, so its machines take no more attempts/)
+      assert.match(error.message, /ended the run, so its machines take no more trials/)
     })
   }
 })
@@ -466,13 +466,13 @@ describe("a run's cleanup", () => {
 })
 
 describe("the service's capacity", () => {
-  test('is the free machines times attemptsPerMachine, capped by maxConcurrent', async () => {
+  test('is the free machines times trialsPerMachine, capped by maxConcurrent', async () => {
     const p = await service({ maxLive: 3 })
     const at = (o: Parameters<typeof cloud>[0]) => inRun(on(p), () => cloudCapacity(cloud(o)))
-    assert.deepEqual(await at({}), { machines: 3, attempts: 3 })
-    assert.deepEqual(await at({ attemptsPerMachine: 2, maxConcurrent: 5 }), {
+    assert.deepEqual(await at({}), { machines: 3, trials: 3 })
+    assert.deepEqual(await at({ trialsPerMachine: 2, maxConcurrent: 5 }), {
       machines: 3,
-      attempts: 5,
+      trials: 5,
     })
   })
 
@@ -486,7 +486,7 @@ export default defineConfig({ agents: fakeAgent(), concurrency: 2 })
 `,
       'evals/a.eval.ts': `
 import { defineEval } from 'reeval'
-export default defineEval({ runs: 8, async task() {} })
+export default defineEval({ trials: 8, async task() {} })
 `,
     })
     const planned = async (env: Record<string, string>) => {
@@ -512,7 +512,7 @@ export default defineConfig({ agents: fakeAgent(), sandbox: podman(), concurrenc
       'evals/a.eval.ts': `
 import { defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
-export default defineEval({ runs: 8, sandbox: docker(), async task() {} })
+export default defineEval({ trials: 8, sandbox: docker(), async task() {} })
 `,
     })
     const r = await runCli(unused.dir, ['run', '--dry-run', '--json'], { env: onVms })
@@ -521,7 +521,7 @@ export default defineEval({ runs: 8, sandbox: docker(), async task() {} })
   })
 })
 
-describe('an attempt on a VM it cannot reach', () => {
+describe('a trial on a VM it cannot reach', () => {
   const files = (size: string) => ({
     'reeval.config.ts': `
 import { defineConfig } from 'reeval'
@@ -586,11 +586,11 @@ export default defineEval({
     })
   })
 
-  test('waits on refused starts until the service ends the run, then records the attempt canceled', async () => {
+  test('waits on refused starts until the service ends the run, then records the trial canceled', async () => {
     const p = await service({ maxLive: 0 })
     const dir = (await project('cloud-ended', files(''))).dir
     const env = { [VM_URL]: p.url, [VM_TOKEN]: p.token }
-    // The service ends the run once it has refused a create, however long the attempt took to ask.
+    // The service ends the run once it has refused a create, however long the trial took to ask.
     const stopping = setInterval(() => {
       if (p.requests.some((q) => q.call === 'POST /vm/sandboxes' && q.status === 429)) {
         p.stopRun('run_deadline', 'The run waited past its start deadline.')

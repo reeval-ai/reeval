@@ -1,0 +1,7 @@
+profile pr (--profile) · 1 evals · 2 cells · 2 trials
+hint: 1 compare runs once per cell; below 4 trials a side its lift shows only a direction and its effort can't be tested (profile pr's limit.trials caps it; --trials 4 replaces it)
+compare-trials-2  a/base/docker     baseline         ungated    ×1  trials 2 → 1 (profile pr)
+                  a/skilled/docker  variant skilled  gated any  ×1
+excluded: —
+image docker · cursor · 1 evals
+  base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

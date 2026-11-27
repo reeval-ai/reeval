@@ -1,9 +1,9 @@
-no profile · 1 evals · 6 cells · 18 attempts
-hint: 1 compare runs 3 times per cell; below 4 runs a side its lift shows only a direction and its effort can't be tested (runs: 4)
-study  a/base/docker     control          ungated    ×3
+no profile · 1 evals · 6 cells · 18 trials
+hint: 1 compare runs 3 times per cell; below 4 trials a side its lift shows only a direction and its effort can't be tested (trials: 4)
+study  a/base/docker     baseline         ungated    ×3
        a/skilled/docker  variant skilled  gated any  ×3
        a/terse/docker    variant terse    gated any  ×3
-       b/base/docker     control          ungated    ×3
+       b/base/docker     baseline         ungated    ×3
        b/skilled/docker  variant skilled  gated any  ×3
        b/terse/docker    variant terse    gated any  ×3
 excluded: —

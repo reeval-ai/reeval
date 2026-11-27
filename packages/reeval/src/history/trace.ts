@@ -1,12 +1,12 @@
 // `reeval show --trace`: a run as Chrome Trace Event JSON, the format Perfetto (ui.perfetto.dev)
-// and chrome://tracing open. Each lane is a track holding attempts that didn't overlap, with each
-// attempt's phases nested under it and, where the trajectory was kept, its tool calls under its
+// and chrome://tracing open. Each lane is a track holding trials that didn't overlap, with each
+// trial's phases nested under it and, where the trajectory was kept, its tool calls under its
 // turns. A record has each turn's start but only each phase's total, so setup is placed from the
-// attempt's start and the diff, checks and judge after the last turn, marked `placed: estimated`.
+// trial's start and the diff, checks and judge after the last turn, marked `placed: estimated`.
 import { clip } from '../text.ts'
 import { commandLine } from '../view/judgments.ts'
 import type { TrajectoryLine } from '../view/model.ts'
-import type { AttemptRecord, RunRecord } from './types.ts'
+import type { TrialRecord, RunRecord } from './types.ts'
 
 /** One Trace Event: `X` a slice, `i` an instant, `C` a counter sample, `M` a track's name. */
 export type TraceEvent = {
@@ -25,7 +25,7 @@ export type TraceEvent = {
 export type RunTrace = {
   traceEvents: TraceEvent[]
   displayTimeUnit: 'ms'
-  otherData: { runId: string; lanes: number; attempts: number }
+  otherData: { runId: string; lanes: number; trials: number }
 }
 
 /** A slice before nesting: `[start, end)` in epoch ms; `rank` orders slices that start together. */
@@ -43,14 +43,14 @@ const RUN = { pid: 1, tid: 1 }
 /** The lanes' process; lane `n` is thread `n`, named `lane`, so its track reads `lane n`. */
 const LANES = 2
 
-/** The attempt's trajectory lines, by its key; an attempt without one gets no tool slices. */
+/** The trial's trajectory lines, by its key; a trial without one gets no tool slices. */
 export type Trajectories = ReadonlyMap<string, readonly TrajectoryLine[]>
 
 export function runTrace(run: RunRecord, trajectories: Trajectories = new Map()): RunTrace {
   const runStart = Date.parse(run.startedAt)
-  const attempts = run.evals
-    .flatMap((e) => e.attempts.map((a) => ({ evalName: e.name, a })))
-    .filter((x): x is { evalName: string; a: AttemptRecord & { startedAt: string } } =>
+  const trials = run.evals
+    .flatMap((e) => e.trials.map((a) => ({ evalName: e.name, a })))
+    .filter((x): x is { evalName: string; a: TrialRecord & { startedAt: string } } =>
       Boolean(x.a.startedAt),
     )
     .map((x) => {
@@ -58,18 +58,18 @@ export function runTrace(run: RunRecord, trajectories: Trajectories = new Map())
       return { ...x, start, end: start + Math.max(0, x.a.durationMs) }
     })
     .sort((x, y) => x.start - y.start || (x.a.seq ?? 0) - (y.a.seq ?? 0))
-  const base = Math.min(runStart, ...attempts.map((x) => x.start))
+  const base = Math.min(runStart, ...trials.map((x) => x.start))
   const us = (ms: number) => Math.round((ms - base) * 1000)
 
   const lanes: Array<{ end: number; spans: Span[] }> = []
-  for (const x of attempts) {
+  for (const x of trials) {
     let lane = lanes.find((l) => l.end <= x.start)
     if (!lane) {
       lane = { end: 0, spans: [] }
       lanes.push(lane)
     }
     lane.end = x.end
-    lane.spans.push(...attemptSpans(x.evalName, x.a, x.start, x.end, trajectories))
+    lane.spans.push(...trialSpans(x.evalName, x.a, x.start, x.end, trajectories))
   }
   const laneEnds = lanes.map((l) => l.end)
 
@@ -79,7 +79,7 @@ export function runTrace(run: RunRecord, trajectories: Trajectories = new Map())
     meta('process_name', RUN.pid, RUN.tid, { name: `run ${run.runId}` }),
     meta('process_sort_index', RUN.pid, RUN.tid, { sort_index: 0 }),
     meta('thread_name', RUN.pid, RUN.tid, { name: 'run' }),
-    meta('process_name', LANES, 0, { name: 'attempts' }),
+    meta('process_name', LANES, 0, { name: 'trials' }),
     meta('process_sort_index', LANES, 0, { sort_index: 1 }),
   ]
   const runEnd = Math.max(Date.parse(run.endedAt), ...laneEnds)
@@ -93,10 +93,10 @@ export function runTrace(run: RunRecord, trajectories: Trajectories = new Map())
       args: { runId: run.runId, status: run.status },
     },
   ]
-  const first = attempts[0]?.start
+  const first = trials[0]?.start
   if (first !== undefined && first > runStart)
     runSpans.push({
-      name: 'before the first attempt (plan, preflight)',
+      name: 'before the first trial (plan, preflight)',
       start: runStart,
       end: first,
       rank: 1,
@@ -111,7 +111,7 @@ export function runTrace(run: RunRecord, trajectories: Trajectories = new Map())
     )
     for (const s of nest(spans)) {
       events.push(
-        s.end > s.start || s.cat === 'attempt'
+        s.end > s.start || s.cat === 'trial'
           ? slice(s, LANES, tid, us)
           : {
               name: s.name,
@@ -126,7 +126,7 @@ export function runTrace(run: RunRecord, trajectories: Trajectories = new Map())
       )
     }
   }
-  const changes = attempts
+  const changes = trials
     .filter((x) => x.end > x.start)
     .flatMap((x) => [
       { at: x.start, d: 1 },
@@ -137,7 +137,7 @@ export function runTrace(run: RunRecord, trajectories: Trajectories = new Map())
   for (const c of changes) {
     running += c.d
     events.push({
-      name: 'attempts',
+      name: 'trials',
       ph: 'C',
       ts: us(c.at),
       ...RUN,
@@ -147,7 +147,7 @@ export function runTrace(run: RunRecord, trajectories: Trajectories = new Map())
   return {
     traceEvents: events,
     displayTimeUnit: 'ms',
-    otherData: { runId: run.runId, lanes: lanes.length, attempts: attempts.length },
+    otherData: { runId: run.runId, lanes: lanes.length, trials: trials.length },
   }
 }
 
@@ -164,9 +164,9 @@ const slice = (s: Span, pid: number, tid: number, us: (ms: number) => number): T
 
 const ESTIMATED = { placed: 'estimated' }
 
-function attemptSpans(
+function trialSpans(
   evalName: string,
-  a: AttemptRecord,
+  a: TrialRecord,
   start: number,
   end: number,
   trajectories: Trajectories,
@@ -181,7 +181,7 @@ function attemptSpans(
       start,
       end,
       rank: 0,
-      cat: 'attempt',
+      cat: 'trial',
       args: {
         key: a.key,
         outcome: a.outcome,

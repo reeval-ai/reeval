@@ -149,7 +149,7 @@ async function relay(
   }
 }
 
-/** An attempt key's eval id: `quick` for `quick # fake/-/fake#1`. */
+/** A trial key's eval id: `quick` for `quick # fake/-/fake#1`. */
 const nameOf = (key: string) => key.split(' # ')[0] ?? ''
 const readLines = (file: string) =>
   readFileSync(file, 'utf8')
@@ -169,7 +169,7 @@ describe('the stream', () => {
       { ...first, pid: 0 },
       {
         type: 'header',
-        schemaVersion: 2,
+        schemaVersion: 3,
         pid: 0,
         host: hostname(),
         ...header(),
@@ -415,7 +415,7 @@ describe('the stream', () => {
     ])
   })
 
-  test('a target that never comes back keeps one attempts heartbeat queued, and exit says what did not go', async () => {
+  test('a target that never comes back keeps one trials heartbeat queued, and exit says what did not go', async () => {
     const warnings: string[] = []
     const bodies: string[] = []
     const stream = openEventStream({
@@ -430,7 +430,7 @@ describe('the stream', () => {
       },
     })
     for (const key of ['one', 'two', 'three']) {
-      stream.heartbeat({ attempts: [{ key }], machines: [] })
+      stream.heartbeat({ trials: [{ key }], machines: [] })
     }
     await stream.end(1)
     const last = bodies.at(-1) ?? ''
@@ -575,7 +575,7 @@ describe('attach', () => {
       evals: 1,
       skipped: 0,
       cells: 1,
-      attempts: 1,
+      trials: 1,
       fewest: 1,
       budget: {},
       estimateMs: 0,
@@ -1182,27 +1182,27 @@ describe('heartbeats', () => {
     assert.equal('heartbeatMs' in (readLines(none)[0] as RunEventsHeader), false)
   })
 
-  test('a heartbeat with the attempts in progress is written as given, and none after the exit line', async () => {
-    const file = join(tempDir('events'), 'attempts.ndjson')
+  test('a heartbeat with the trials in progress is written as given, and none after the exit line', async () => {
+    const file = join(tempDir('events'), 'trials.ndjson')
     const stream = openEventStream({ file, header: header(), warn: assert.fail, heartbeatMs: 0 })
     const key = 'one # fake/-/fake#1'
-    stream.heartbeat({ attempts: [{ key, machine: 'm-1' }], machines: ['m-1', 'm-2'] })
-    stream.heartbeat({ attempts: [], machines: ['m-1'], done: true })
+    stream.heartbeat({ trials: [{ key, machine: 'm-1' }], machines: ['m-1', 'm-2'] })
+    stream.heartbeat({ trials: [], machines: ['m-1'], done: true })
     await stream.end(0)
-    stream.heartbeat({ attempts: [{ key: 'late' }], machines: [] })
+    stream.heartbeat({ trials: [{ key: 'late' }], machines: [] })
     const lines = readLines(file)
     assert.deepEqual(
       lines.map((l) => (l.type === 'heartbeat' ? { ...l, at: 0 } : l.type)),
       [
         'header',
-        { type: 'heartbeat', at: 0, attempts: [{ key, machine: 'm-1' }], machines: ['m-1', 'm-2'] },
-        { type: 'heartbeat', at: 0, attempts: [], machines: ['m-1'], done: true },
+        { type: 'heartbeat', at: 0, trials: [{ key, machine: 'm-1' }], machines: ['m-1', 'm-2'] },
+        { type: 'heartbeat', at: 0, trials: [], machines: ['m-1'], done: true },
         'exit',
       ],
     )
   })
 
-  test("a beat names each attempt's machine and every machine the pools hold", () => {
+  test("a beat names each trial's machine and every machine the pools hold", () => {
     const sent: unknown[] = []
     const { ms, beat } = beatWith(
       { ms: 1000, send: (b) => sent.push(b) },
@@ -1220,8 +1220,8 @@ describe('heartbeats', () => {
     beat(['a', 'b'], false)
     beat([], true)
     assert.deepEqual(sent, [
-      { attempts: [{ key: 'a', machine: 'm-1' }, { key: 'b' }], machines: ['m-1', 'm-2'] },
-      { attempts: [], machines: ['m-1', 'm-2'], done: true },
+      { trials: [{ key: 'a', machine: 'm-1' }, { key: 'b' }], machines: ['m-1', 'm-2'] },
+      { trials: [], machines: ['m-1', 'm-2'], done: true },
     ])
   })
 
@@ -1377,7 +1377,7 @@ import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     while (!existsSync(new URL('../go', import.meta.url))) await new Promise((r) => setTimeout(r, 50))
-    assert.equal(c.attempt.n, 1)
+    assert.equal(c.trial.n, 1)
   },
 })
 `
@@ -1429,7 +1429,7 @@ describe('reeval run --events and reeval attach', () => {
 import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
-    assert.equal(c.attempt.n, 1)
+    assert.equal(c.trial.n, 1)
   },
 })
 `,
@@ -1461,7 +1461,7 @@ export default defineEval({
     assert.match(below.stdout, /summary \.\.\/\.\.\/\.reeval\/runs\/\S+\/summary\.md/)
   })
 
-  test('an attempt reports its sandbox up before its setup steps run, and ready after', async () => {
+  test('a trial reports its sandbox up before its setup steps run, and ready after', async () => {
     const p = await project('events-sandbox-up', {
       'reeval.config.ts': config,
       'evals/slow.eval.ts': `import assert from 'node:assert/strict'
@@ -1487,15 +1487,15 @@ export default defineEval({
     assert.ok(at('sandbox-ready') - at('sandbox-up') >= 1000, 'the setup step runs in between')
   })
 
-  test('a heartbeat names the attempts in progress on REEVAL_EVENTS_HEARTBEAT, stops with the run, and draws nothing', async () => {
-    const p = await project('events-attempts-heartbeat', {
+  test('a heartbeat names the trials in progress on REEVAL_EVENTS_HEARTBEAT, stops with the run, and draws nothing', async () => {
+    const p = await project('events-trials-heartbeat', {
       'reeval.config.ts': config,
       'evals/quick.eval.ts': `import assert from 'node:assert/strict'
 import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await new Promise((r) => setTimeout(r, 2000))
-    assert.equal(c.attempt.n, 1)
+    assert.equal(c.trial.n, 1)
   },
 })
 `,
@@ -1504,38 +1504,38 @@ import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await new Promise((r) => setTimeout(r, 4500))
-    assert.equal(c.attempt.n, 1)
+    assert.equal(c.trial.n, 1)
   },
 })
 `,
     })
-    const stream = join(tempDir('events-attempts-heartbeat'), 'run.ndjson')
+    const stream = join(tempDir('events-trials-heartbeat'), 'run.ndjson')
     const ran = await runCli(p.dir, ['run', '--events-file', stream], {
       env: { REEVAL_EVENTS_HEARTBEAT: '1s' },
     })
     assert.equal(ran.code, 0, ran.stderr)
     const lines = readLines(stream)
-    assert.equal((lines[0] as RunEventsHeader).attemptsHeartbeatMs, 1000)
-    const beats = lines.flatMap((l, i) => (l.type === 'heartbeat' && l.attempts ? [{ i, l }] : []))
+    assert.equal((lines[0] as RunEventsHeader).trialsHeartbeatMs, 1000)
+    const beats = lines.flatMap((l, i) => (l.type === 'heartbeat' && l.trials ? [{ i, l }] : []))
     assert.deepEqual(
       beats.map(({ l }) => ({ ...l, at: 0 })).at(0),
-      { type: 'heartbeat', at: 0, attempts: [], machines: [] },
+      { type: 'heartbeat', at: 0, trials: [], machines: [] },
       'a beat as the files start',
     )
     assert.deepEqual(
       beats.map(({ l }) => ({ ...l, at: 0 })).at(-1),
-      { type: 'heartbeat', at: 0, attempts: [], machines: [], done: true },
+      { type: 'heartbeat', at: 0, trials: [], machines: [], done: true },
       'a done beat as they end',
     )
     const states = beats
       .map(({ l }) =>
-        (l.attempts ?? [])
+        (l.trials ?? [])
           .map((a) => nameOf(a.key))
           .sort()
           .join(','),
       )
       .filter((s, i, all) => s !== all[i - 1] && s !== '')
-    // A beat can land after one attempt has started and before the other has, in either order.
+    // A beat can land after one trial has started and before the other has, in either order.
     const both = states[0] === 'quick' || states[0] === 'slow' ? states.slice(1) : states
     assert.deepEqual(both, ['quick,slow', 'slow'])
     const end = lines.findIndex((l) => l.type === 'run-end')
@@ -1570,7 +1570,7 @@ export default defineEval({
 import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
-    assert.equal(c.attempt.n, 1)
+    assert.equal(c.trial.n, 1)
   },
 })
 `,

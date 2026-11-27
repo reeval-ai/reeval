@@ -148,9 +148,9 @@ function missingTrajectories(run: ScannedRun): string | null {
   if (run.artifacts === 'all') return null
   const which =
     run.artifacts === 'none'
-      ? 'no attempt keeps its trajectory'
-      : "passing attempts' trajectories weren't kept"
-  return `Run ${run.runId} was recorded with artifacts ${run.artifacts}, so ${which}: for future runs, history.artifacts: 'all' or reeval record --artifacts all records every attempt's.`
+      ? 'no trial keeps its trajectory'
+      : "passing trials' trajectories weren't kept"
+  return `Run ${run.runId} was recorded with artifacts ${run.artifacts}, so ${which}: for future runs, history.artifacts: 'all' or reeval record --artifacts all records every trial's.`
 }
 
 /**

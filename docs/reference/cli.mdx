@@ -50,7 +50,7 @@ Options:
 
 ## `reeval doctor`
 
-The `reeval doctor` command reports one line per check. It checks Node, not npm. With `--online`, each harness, judge, and analysis credential check authenticates supported credentials. The supported variables are `CURSOR_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `OPENAI_API_KEY`, and `OPENROUTER_API_KEY`; a variable reused by separate checks may be requested more than once, and any other credential is reported as set without an authentication request. The egress check names each policy the planned attempts run under, with the environments that set it, or the config's policy when the evaluations don't load.
+The `reeval doctor` command reports one line per check. It checks Node, not npm. With `--online`, each harness, judge, and analysis credential check authenticates supported credentials. The supported variables are `CURSOR_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `OPENAI_API_KEY`, and `OPENROUTER_API_KEY`; a variable reused by separate checks may be requested more than once, and any other credential is reported as set without an authentication request. The egress check names each policy the planned trials run under, with the environments that set it, or the config's policy when the evaluations don't load.
 
 [//]: # (generated:cli-help:doctor)
 
@@ -68,7 +68,7 @@ Options:
 
 ## `reeval run`
 
-The `reeval run` command plans the evaluations and runs their attempts. `--ui`, `--log-order`, `--log-prefix`, and `--output-logs` also accept `auto`, the default. `--resume latest` equals a bare `--resume`, and `--resume latest~N` counts back over the resumable runs. `--retry-errors` takes the same refs, over the finished runs. A stopped run with a finished attempt stays resumable until `reeval clean --staging`, and `reeval run` names it once it's a day old.
+The `reeval run` command plans the evaluations and runs their trials. `--ui`, `--log-order`, `--log-prefix`, and `--output-logs` also accept `auto`, the default. `--resume latest` equals a bare `--resume`, and `--resume latest~N` counts back over the resumable runs. `--retry-errors` takes the same refs, over the finished runs. A stopped run with a finished trial stays resumable until `reeval clean --staging`, and `reeval run` names it once it's a day old.
 
 [//]: # (generated:cli-help:run)
 
@@ -81,13 +81,13 @@ Options:
   --profile <name>          Profile from reeval.config.ts (default: defaultProfile)
   --dry-run                 Show the plan without running
   --json                    Print results as JSON on stdout
-  --force                   Run even when over budget.attempts
-  --runs <n>                Attempts per cell
-  --concurrency <n>         Attempts at once (default: 8)
+  --force                   Run even when over budget.trials
+  --trials <n>              Trials per cell
+  --concurrency <n>         Trials at once (default: 8)
   --registry <prefix>       Registry to pull sandbox images from before building
   --tag <tag>               Only evals with this tag; !tag excludes; repeatable
   --trait <key=value>       Only cells with this environment trait; repeatable
-  --cell <key>              Only this cell key or cell#n attempt id; repeatable
+  --cell <key>              Only this cell key or cell#n trial id; repeatable
   --record                  Also record the run to the history folder
   --resume [ref]            Resume a stopped or interrupted run (default: newest)
   --retry-errors [ref]      Re-run a finished run's infra errors (default: newest)
@@ -95,7 +95,7 @@ Options:
   --log-order <order>       Log order: stream or grouped (default: grouped in CI, else stream)
   --log-prefix <prefix>     Detail line prefix: task or none (default: task)
   --output-logs <level>     Detail lines to print: full, errors-only or none (default: none)
-  -v, --verbose             Print each attempt's trace
+  -v, --verbose             Print each trial's trace
   -vv                       Also print raw payloads and keep every trace
   -d, --detach              Run in the background; reeval attach follows it
 ```
@@ -109,21 +109,21 @@ reeval run --trait stack=next
 reeval run --trait auth=clerk --trait stack=next
 ```
 
-`--trait key=value` runs only the cells whose environment's [trait](/reference/environment-helpers#environmentspec) `key` is `value`, or lists it. Repeated flags must all hold. With `compare`, a cell goes by its control's traits, so every variant runs with its control or not at all.
+`--trait key=value` runs only the cells whose environment's [trait](/reference/environment-helpers#environmentspec) `key` is `value`, or lists it. Repeated flags must all hold. With `compare`, a cell goes by its baseline's traits, so every variant runs with its baseline or not at all.
 
 The filter applies after `where` and the cascade, together with a profile's [`limit.traits`](/reference/profiles#traits). `where` decides which pairs fit, whatever the run; `--trait` picks the ones to run now. The plan notes what it leaves out, as in `--trait stack=next leaves out vite-app`, and `--dry-run --json` lists those environments in each evaluation's `traitExcluded`, apart from `whereExcluded`. An evaluation, or a case, left with no cell is skipped: `no cell left: --trait stack=next matches none of vite-app`.
 
-reeval exits with code 2 for a flag that isn't `key=value`, and for a key that no control environment of the selected evaluations defines, with the closest key it does define.
+reeval exits with code 2 for a flag that isn't `key=value`, and for a key that no baseline environment of the selected evaluations defines, with the closest key it does define.
 
 A resume plans with the settings the run started with, which its record and progress file keep as `invocation`:
 
 | Setting | Left out | Given again |
 |---|---|---|
-| `--runs`, the profile (`--profile` or `REEVAL_PROFILE`) | The run's | Exits 2 unless it's the run's |
+| `--trials`, the profile (`--profile` or `REEVAL_PROFILE`) | The run's | Exits 2 unless it's the run's |
 | filters, `--tag`, `--trait` | The run's | Replaces the run's for this resume, so it can leave evals out or add ones the run didn't plan |
 | `--concurrency` (or `REEVAL_CONCURRENCY`) | The run's | Wins, with a note in the plan |
 
-Attempts the run planned that a resume's filters, `--tag` or `--trait` leave out stay in the record, as they finished or as `skipped`, with a warning in the plan. While any hasn't run, the run stays `interrupted` and exits on the attempts it ran, which is the outcome `--json` gives, without being recorded (`--record` prints `Not recorded`), or stays `budget` and exits 1. A `.todo` or `.skip` counts as done, whatever the resume's filters pick: the record marks it (`todo`, `skip`). A later `reeval run --resume` runs the rest.
+Trials the run planned that a resume's filters, `--tag` or `--trait` leave out stay in the record, as they finished or as `skipped`, with a warning in the plan. While any hasn't run, the run stays `interrupted` and exits on the trials it ran, which is the outcome `--json` gives, without being recorded (`--record` prints `Not recorded`), or stays `budget` and exits 1. A `.todo` or `.skip` counts as done, whatever the resume's filters pick: the record marks it (`todo`, `skip`). A later `reeval run --resume` runs the rest.
 
 `REEVAL_PROFILE` and `REEVAL_CONCURRENCY` count from a `.env` file too. A run with no profile resumes with none, whatever `defaultProfile` picks now. A run an older reeval started saved no `invocation`: its resume plans with the flags given, with a note.
 
@@ -136,22 +136,22 @@ reeval run --retry-errors
 reeval run --retry-errors 20261022T172927Z
 ```
 
-`--retry-errors [ref]` reruns a finished (`complete`) run's attempts whose outcome is `infra_error`, a judge call its provider never answered and a turn it stopped or timed out included, with the run's saved settings, as a resume does, and writes them back into that run under the same attempt ids. Its passes and fails stay as they were. A resume restarts infra-errored attempts too, alongside the ones that never finished.
+`--retry-errors [ref]` reruns a finished (`complete`) run's trials whose outcome is `infra_error`, a judge call its provider never answered and a turn it stopped or timed out included, with the run's saved settings, as a resume does, and writes them back into that run under the same trial ids. Its passes and fails stay as they were. A resume restarts infra-errored trials too, alongside the ones that never finished.
 
 | Case | Exit | What it prints |
 |---|---|---|
-| The run has infra errors | The run's outcome after the retry: 0, 1 or 3 | `retried 2 errored attempts: 1 now passes, 1 fails, 0 still error` |
+| The run has infra errors | The run's outcome after the retry: 0, 1 or 3 | `retried 2 errored trials: 1 now passes, 1 fails, 0 still error` |
 | The run has none | The run's own outcome: 0 or 1 | `run … has no infra errors, so --retry-errors has nothing to run again.`, and with `--json` the run's results |
-| The plan changed: an infra-errored attempt is gone, an attempt is new, or a retried cell's eval source, harness, gateway, gate or judge isn't the run's | 2 | `run …'s plan changed since it ran: the eval source of evals/a.eval.ts › fails changed. …`, and the run is left as it was |
-| A retried attempt resolved another environment than its cell had | 2 | `run …'s plan changed since it ran: the environment of evals/a.eval.ts › fails changed. …`, after the attempts ran; the run is left as it was |
+| The plan changed: an infra-errored trial is gone, a trial is new, or a retried cell's eval source, harness, gateway, gate or judge isn't the run's | 2 | `run …'s plan changed since it ran: the eval source of evals/a.eval.ts › fails changed. …`, and the run is left as it was |
+| A retried trial resolved another environment than its cell had | 2 | `run …'s plan changed since it ran: the environment of evals/a.eval.ts › fails changed. …`, after the trials ran; the run is left as it was |
 | This reeval isn't the version the run ran on | 2 | `run … ran on reeval 0.17.2, and this is 0.18.0. … install reeval 0.17.2, or start a new run with reeval run.` |
 | The run is still running | 2 | `run … is still running. Wait for it to finish, then reeval run --retry-errors …` |
 | The run didn't finish | 2 | `run … didn't finish. reeval run --resume … runs the rest and retries its infra errors.` |
-| Filters, `--tag`, `--trait` or `--resume` beside it | 2 | Leave them out: a retry runs every errored attempt of the run |
+| Filters, `--tag`, `--trait` or `--resume` beside it | 2 | Leave them out: a retry runs every errored trial of the run |
 
-Each retried attempt keeps the errors it ended with before in its record's [`retries`](/reference/run-record), as `{ error, at }`. A run already recorded into the history folder is recorded again with the new outcomes, also when a `--resume` finishes an interrupted retry. A retry runs only the infra errors: an attempt the run skipped, such as one a best-of cell didn't need, stays skipped.
+Each retried trial keeps the errors it ended with before in its record's [`retries`](/reference/run-record), as `{ error, at }`. A run already recorded into the history folder is recorded again with the new outcomes, also when a `--resume` finishes an interrupted retry. A retry runs only the infra errors: a trial the run skipped, such as one a best-of cell didn't need, stays skipped.
 
-The record keeps the run's `plan`, `git`, `dependencies` and `stack`, and its `durationMs` is the run's plus the retry's own. In the retry line, an attempt a Ctrl-C stopped or aborted counts under `didn't finish`, and the run is then `interrupted`. `reeval run --resume` finishes it as the retry would: with the same refusals, the run's record kept, and no filters, `--tag` or `--trait`. It does so after a kill too, when the retry wrote no record, and keeps the attempts that finished before the kill. The record's [`retriedAt`](/reference/run-record) lists when each retry started.
+The record keeps the run's `plan`, `git`, `dependencies` and `stack`, and its `durationMs` is the run's plus the retry's own. In the retry line, a trial a Ctrl-C stopped or aborted counts under `didn't finish`, and the run is then `interrupted`. `reeval run --resume` finishes it as the retry would: with the same refusals, the run's record kept, and no filters, `--tag` or `--trait`. It does so after a kill too, when the retry wrote no record, and keeps the trials that finished before the kill. The record's [`retriedAt`](/reference/run-record) lists when each retry started.
 
 ## `reeval attach`
 
@@ -175,11 +175,11 @@ From the npm package, `reeval run --bundle` installs with the lockfile's own pac
 
 - Bun runs a dependency's lifecycle scripts only when it's on Bun's default trusted list or `trustedDependencies` in `package.json` names it.
 - Bun doesn't migrate Yarn settings such as `nodeLinker`, so a Plug'n'Play project gets a `node_modules/` directory.
-- A lockfile Bun can't migrate, such as a `pnpm-lock.yaml` with a `lockfileVersion` below 7 (pnpm 8 and older) or a Yarn Berry lockfile with an entry Bun can't keep, fails the install with Bun's reason. The run exits 3 before any attempt.
+- A lockfile Bun can't migrate, such as a `pnpm-lock.yaml` with a `lockfileVersion` below 7 (pnpm 8 and older) or a Yarn Berry lockfile with an entry Bun can't keep, fails the install with Bun's reason. The run exits 3 before any trial.
 
 ## `reeval clean`
 
-The `reeval clean` command deletes local debug data, the attempts' snapshots and the event streams in `.reeval/events/` of runs with no staging left, and leaves the rest of the `.reeval/runs/` directory. `--keep` defaults to 0. `--images` prunes every Docker and Podman store that answers, and with Tart installed, deletes every Tart image reeval baked a harness into that isn't running. `--staging` deletes every stopped run's staging, after putting back any record a killed resume or retry moved into it, so `reeval run --resume` can no longer finish those runs.
+The `reeval clean` command deletes local debug data, the trials' snapshots and the event streams in `.reeval/events/` of runs with no staging left, and leaves the rest of the `.reeval/runs/` directory. `--keep` defaults to 0. `--images` prunes every Docker and Podman store that answers, and with Tart installed, deletes every Tart image reeval baked a harness into that isn't running. `--staging` deletes every stopped run's staging, after putting back any record a killed resume or retry moved into it, so `reeval run --resume` can no longer finish those runs.
 
 The command prints `Removed debug data and snapshots for <n> runs (<size>) from <directory> and .reeval/runs`, or `No debug data or snapshots to remove in <directory> or .reeval/runs`. With `--staging`, it then prints `Removed the staging of <n> stopped runs: <ids>`, or `No stopped runs in .reeval/staging to remove`. With `--images`, it then prints how many images it removed, or `No leftover images to remove`. When it deleted event streams, it ends with `Removed the event streams of <n> finished runs from .reeval/events`.
 
@@ -270,10 +270,10 @@ Options:
 
 | Track | What it holds |
 |---|---|
-| `run <run id>` | The whole run, the time before its first attempt started (planning and preflight), and an `attempts running` counter |
-| `attempts`, `lane <n>` | Attempts that didn't overlap, in start order: reeval puts each attempt on the first lane free when it started, so there are as many lanes as attempts ever ran at once |
+| `run <run id>` | The whole run, the time before its first trial started (planning and preflight), and an `trials running` counter |
+| `trials`, `lane <n>` | Trials that didn't overlap, in start order: reeval puts each trial on the first lane free when it started, so there are as many lanes as trials ever ran at once |
 
-Under each attempt, each `turn <n>` sits at the time it started, with the trajectory's text, reasoning and tool calls nested under it when the run kept the trajectory. A call that overlaps the one it started in is cut at that call's end and carries `clippedMs`. The record holds only the totals of `setup`, the `diff`, each `check <command>` and the `judge`, so `setup` is placed from the attempt's start and the rest one after another after the last turn, and each carries `placed: estimated` in its arguments. An estimated phase may really have run elsewhere: an eval's body can call `c.exec` before or between turns, and the diff is taken around each turn. Every slice's arguments hold its record fields, such as the attempt's key, outcome and phase timings.
+Under each trial, each `turn <n>` sits at the time it started, with the trajectory's text, reasoning and tool calls nested under it when the run kept the trajectory. A call that overlaps the one it started in is cut at that call's end and carries `clippedMs`. The record holds only the totals of `setup`, the `diff`, each `check <command>` and the `judge`, so `setup` is placed from the trial's start and the rest one after another after the last turn, and each carries `placed: estimated` in its arguments. An estimated phase may really have run elsewhere: an eval's body can call `c.exec` before or between turns, and the diff is taken around each turn. Every slice's arguments hold its record fields, such as the trial's key, outcome and phase timings.
 
 For more information about reading one run, see [Show one run](/results/output#show-one-run).
 
@@ -287,7 +287,7 @@ Usage: reeval export [run] [options]
 Export a run as its archive zip, or with --format in another format
 
 Options:
-  --format <name>           atif: an ATIF trajectory per attempt
+  --format <name>           atif: an ATIF trajectory per trial
   --out <path>              The zip or a directory for it, or the directory for --format (default: <run>.zip, <run>.<format>)
   --offline                 Read the history store's local copy without pulling
   --all-branches            Include every branch's runs, not only HEAD's
@@ -327,7 +327,7 @@ Options:
 ```text
 Usage: reeval regrade [filter...] [options]
 
-Grade recorded attempts again with today's graders (default: each eval's latest run)
+Grade recorded trials again with today's graders (default: each eval's latest run)
 
 Options:
   --tag <tag>               Only evals with this tag; !tag excludes; repeatable
@@ -598,7 +598,7 @@ Options:
 
 [//]: # (/generated:exit-codes)
 
-`reeval run` exits 0 on a pass, 1 on a fail, and 3 on an infrastructure error. A fail is a failed cell under a target that blocks, a `budget.duration` stop, or an error outside any attempt. A harness key the model API rejects, at the session start or in a turn, or a turn the model provider stopped (out of credit, over its quota, rate limited or overloaded), makes the attempt an infrastructure error, and the turn's `c.send()` throws, so no later check or judge runs. A turn in which the key served any call isn't a rejected key, and neither is a 401 the agent's own commands get. A cell under a target that only reports, such as the default `capability()`, can fail on a run that exits 0. Ctrl-C exits 130, and SIGTERM exits 143. Either one cancels the run and writes its record. A second Ctrl-C, or a second SIGTERM, quits at once without a record (a SIGTERM and a Ctrl-C within a second of each other, in either order, as pnpm passes it on, are one press and exit 130); a later `reeval run --resume` finishes that run.
+`reeval run` exits 0 on a pass, 1 on a fail, and 3 on an infrastructure error. A fail is a failed cell under a target that blocks, a `budget.duration` stop, or an error outside any trial. A harness key the model API rejects, at the session start or in a turn, or a turn the model provider stopped (out of credit, over its quota, rate limited or overloaded), makes the trial an infrastructure error, and the turn's `c.send()` throws, so no later check or judge runs. A turn in which the key served any call isn't a rejected key, and neither is a 401 the agent's own commands get. A cell under a target that only reports, such as the default `capability()`, can fail on a run that exits 0. Ctrl-C exits 130, and SIGTERM exits 143. Either one cancels the run and writes its record. A second Ctrl-C, or a second SIGTERM, quits at once without a record (a SIGTERM and a Ctrl-C within a second of each other, in either order, as pnpm passes it on, are one press and exit 130); a later `reeval run --resume` finishes that run.
 
 `reeval doctor` exits 1 when a check fails. A warning alone exits 0.
 

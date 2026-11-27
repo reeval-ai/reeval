@@ -11,21 +11,6 @@
     "AnalysisAction": {
       "type": "object",
       "properties": {
-        "attempts": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "attemptId": {
-                "type": "string"
-              },
-              "path": {
-                "type": "string"
-              }
-            },
-            "required": ["attemptId", "path"]
-          }
-        },
         "change": {
           "type": "string"
         },
@@ -60,6 +45,21 @@
         "title": {
           "type": "string"
         },
+        "trials": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "trialId": {
+                "type": "string"
+              }
+            },
+            "required": ["path", "trialId"]
+          }
+        },
         "verify": {
           "description": "An `reeval` command that shows the effect; null when the model's didn't parse as reeval's CLI.",
           "type": ["string", "null"]
@@ -84,21 +84,6 @@
     "AnalysisAnomaly": {
       "type": "object",
       "properties": {
-        "attempts": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "attemptId": {
-                "type": "string"
-              },
-              "path": {
-                "type": "string"
-              }
-            },
-            "required": ["attemptId", "path"]
-          }
-        },
         "cites": {
           "type": "array",
           "items": {
@@ -117,6 +102,21 @@
         },
         "text": {
           "type": "string"
+        },
+        "trials": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "trialId": {
+                "type": "string"
+              }
+            },
+            "required": ["path", "trialId"]
+          }
         },
         "unverifiedNumbers": {
           "description": "Numbers in the text that no cited fact or evidence contains.",
@@ -182,24 +182,8 @@
     "AnalysisClaim": {
       "type": "object",
       "properties": {
-        "attempts": {
-          "description": "Attempt cites resolved to ids and paths; optional on older docs.",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "attemptId": {
-                "type": "string"
-              },
-              "path": {
-                "type": "string"
-              }
-            },
-            "required": ["attemptId", "path"]
-          }
-        },
         "cites": {
-          "description": "Fact (`F3`), evidence (`E2`, `E2:L39`), attempt (`r2/scaffold/reeval-good#1`) or check ids.",
+          "description": "Fact (`F3`), evidence (`E2`, `E2:L39`), trial (`r2/scaffold/reeval-good#1`) or check ids.",
           "type": "array",
           "items": {
             "type": "string"
@@ -209,7 +193,7 @@
           "$ref": "#/$defs/Confidence"
         },
         "evalId": {
-          "description": "Eval id this claim is about, when resolved from attempt cites; optional on older docs.",
+          "description": "Eval id this claim is about, when resolved from trial cites; optional on older docs.",
           "type": "string"
         },
         "quotes": {
@@ -226,6 +210,22 @@
         },
         "text": {
           "type": "string"
+        },
+        "trials": {
+          "description": "Trial cites resolved to ids and paths; optional on older docs.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "trialId": {
+                "type": "string"
+              }
+            },
+            "required": ["path", "trialId"]
+          }
         },
         "unverifiedNumbers": {
           "description": "Numbers in the text that no cited fact or evidence contains.",
@@ -246,28 +246,6 @@
         "anchor": {
           "description": "The run the analysis belongs to: the scope's head.",
           "type": "string"
-        },
-        "attempts": {
-          "description": "Short attempt ids used in citations, and where each attempt is.",
-          "type": "object",
-          "propertyNames": {
-            "type": "string"
-          },
-          "additionalProperties": {
-            "type": "object",
-            "properties": {
-              "attempt": {
-                "type": "string"
-              },
-              "evalSlug": {
-                "type": "string"
-              },
-              "runId": {
-                "type": "string"
-              }
-            },
-            "required": ["attempt", "evalSlug", "runId"]
-          }
         },
         "author": {
           "type": "string"
@@ -338,10 +316,32 @@
         },
         "schemaVersion": {
           "type": "number",
-          "const": 1
+          "const": 2
         },
         "scope": {
           "$ref": "#/$defs/AnalysisScope"
+        },
+        "trials": {
+          "description": "Short trial ids used in citations, and where each trial is.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "evalSlug": {
+                "type": "string"
+              },
+              "runId": {
+                "type": "string"
+              },
+              "trial": {
+                "type": "string"
+              }
+            },
+            "required": ["evalSlug", "runId", "trial"]
+          }
         },
         "usage": {
           "type": "object",
@@ -362,7 +362,6 @@
       "required": [
         "analysis",
         "anchor",
-        "attempts",
         "author",
         "cited",
         "createdAt",
@@ -375,6 +374,7 @@
         "route",
         "schemaVersion",
         "scope",
+        "trials",
         "usage",
         "validation"
       ]
@@ -452,5 +452,5 @@
       "enum": ["high", "medium", "low"]
     }
   },
-  "x-schemaVersion": 1
+  "x-schemaVersion": 2
 }

@@ -17,7 +17,7 @@ import {
   skillUses,
 } from '../src/history/tool-class.ts'
 import { toolTarget } from '../src/history/tool-target.ts'
-import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
+import type { TrialRecord, RunRecord } from '../src/history/types.ts'
 import { statementCount, usesRunParameter } from '../src/query.ts'
 import { toolCalls } from '../src/view/classify.ts'
 import { harnessLabel, type TrajectoryLine } from '../src/view/model.ts'
@@ -36,11 +36,11 @@ const one = async (dir: string, sql: string) => (await query(dir, sql))[0] ?? {}
 
 /**
  * Rewrites the run records in `folder` (every one, or `runId`'s) as an older reeval wrote them:
- * each attempt with the labeled `expect` checks `checks` gives it, and each cell with their tallies.
+ * each trial with the labeled `expect` checks `checks` gives it, and each cell with their tallies.
  */
 function withOlderChecks(
   folder: string,
-  checks: (a: AttemptRecord) => Array<[string, boolean]>,
+  checks: (a: TrialRecord) => Array<[string, boolean]>,
   runId?: string,
 ) {
   if (!existsSync(folder)) return
@@ -49,7 +49,7 @@ function withOlderChecks(
     const file = join(folder, name)
     const run = JSON.parse(readFileSync(file, 'utf8')) as RunRecord
     for (const e of run.evals) {
-      for (const a of e.attempts) {
+      for (const a of e.trials) {
         a.assertions = checks(a).map(([label, ok]) => ({
           label,
           labelled: true,
@@ -59,7 +59,7 @@ function withOlderChecks(
         }))
       }
       for (const cell of e.cells) {
-        const mine = e.attempts.filter((a) => a.cell === cell.key)
+        const mine = e.trials.filter((a) => a.cell === cell.key)
         const labels = [...new Set(mine.flatMap((a) => (a.assertions ?? []).map((x) => x.label)))]
         cell.checks = labels.map((label) => {
           const all = mine.flatMap((a) => (a.assertions ?? []).filter((x) => x.label === label))
@@ -93,8 +93,8 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
 import { defineEval } from 'reeval'
 import { plain, skilled } from './envs.ts'
 export default defineEval({
-  compare: { control: plain, variants: [skilled] },
-  runs: 3,
+  compare: { baseline: plain, variants: [skilled] },
+  trials: 3,
   async task(c) {
     await c.send('go')
     assert.notEqual(await c.readFile('ok.txt'), null)
@@ -109,27 +109,27 @@ export default defineEval({
     const counts = await one(
       p.dir,
       `SELECT (SELECT COUNT(*) FROM runs) AS runs, (SELECT COUNT(*) FROM evals) AS evals,
-        (SELECT COUNT(*) FROM cells) AS cells, (SELECT COUNT(*) FROM attempts) AS attempts`,
+        (SELECT COUNT(*) FROM cells) AS cells, (SELECT COUNT(*) FROM trials) AS trials`,
     )
-    assert.deepEqual(counts, { runs: 1, evals: 1, cells: 2, attempts: 6 })
+    assert.deepEqual(counts, { runs: 1, evals: 1, cells: 2, trials: 6 })
     assert.ok(existsSync(join(p.dir, '.reeval/history.db')), 'reeval query builds it in .reeval/')
 
     const variant = run.evals[0]?.cells.find((c) => c.role === 'variant')
     const [lift] = await query(p.dir, 'lift')
     assert.deepEqual(
-      [lift?.run_id, lift?.variant, lift?.variant_pass, lift?.control_pass, lift?.points],
+      [lift?.run_id, lift?.variant, lift?.variant_pass, lift?.baseline_pass, lift?.points],
       [run.runId, 'skilled', 3, 0, variant?.lift?.points],
     )
     assert.deepEqual([lift?.lo, lift?.hi], [variant?.lift?.interval.lo, variant?.lift?.interval.hi])
-    assert.deepEqual([lift?.variant_pass_at_1, lift?.control_pass_at_1], [1, 0])
+    assert.deepEqual([lift?.variant_pass_at_1, lift?.baseline_pass_at_1], [1, 0])
     const cells = await query(p.dir, 'SELECT role, pass_at_1 FROM cells ORDER BY role')
     assert.deepEqual(cells, [
-      { role: 'control', pass_at_1: 0 },
+      { role: 'baseline', pass_at_1: 0 },
       { role: 'variant', pass_at_1: 1 },
     ])
 
-    const failing = await query(p.dir, 'SELECT * FROM failing_attempts')
-    assert.equal(failing.length, 3, 'the control fails its three attempts')
+    const failing = await query(p.dir, 'SELECT * FROM failing_trials')
+    assert.equal(failing.length, 3, 'the baseline fails its three trials')
     assert.ok(failing.every((f) => f.cell_key === 'fake/plain/fake' && f.skill === null))
 
     const trend = await query(p.dir, 'eval_trend')
@@ -180,12 +180,12 @@ export default defineEval({ async task() {} })
         ['c', 'fail', null],
       ],
     )
-    const attempts = await query(
+    const trials = await query(
       p.dir,
-      'SELECT case_key FROM attempts WHERE case_key IS NOT NULL ORDER BY case_key',
+      'SELECT case_key FROM trials WHERE case_key IS NOT NULL ORDER BY case_key',
     )
     assert.deepEqual(
-      attempts.map((a) => a.case_key),
+      trials.map((a) => a.case_key),
       ['a', 'b', 'c'],
     )
   })
@@ -212,7 +212,7 @@ export default defineEval({ skip: true, async task() {} })
     ])
   })
 
-  test('check_rates gives each labeled check’s pass rate per cell, on both arms of a compare, from an older record', async () => {
+  test('check_rates gives each labeled check’s pass rate per cell, on both environments of a compare, from an older record', async () => {
     const p = await project('query-check-rates', {
       'reeval.config.ts': fakeConfig({
         harness:
@@ -229,8 +229,8 @@ const styled = defineEnvironment('styled', ({ skill }) => ({
   skills: [skill.local('../skills/house')],
 }))
 export default defineEval({
-  compare: { control: plain, variants: [styled] },
-  runs: 2,
+  compare: { baseline: plain, variants: [styled] },
+  trials: 2,
   async task(c) {
     await c.send('go')
   },
@@ -259,11 +259,11 @@ export default defineEval({
     })
     assert.deepEqual(rows, [
       {
-        ...row('fake/plain/fake', 'plain', 'control', 'house style'),
+        ...row('fake/plain/fake', 'plain', 'baseline', 'house style'),
         ...{ pass: 0, fail: 2, error: 0, not_run: 0, rate: 0 },
       },
       {
-        ...row('fake/plain/fake', 'plain', 'control', 'writes ok.txt'),
+        ...row('fake/plain/fake', 'plain', 'baseline', 'writes ok.txt'),
         ...{ pass: 2, fail: 0, error: 0, not_run: 0, rate: 1 },
       },
       {
@@ -283,7 +283,7 @@ export default defineEval({
       'reeval.config.ts': fakeConfig(),
       'evals/steady.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
-  runs: 2,
+  trials: 2,
   async task(c) {
     await c.send('go')
   },
@@ -317,13 +317,13 @@ export default defineEval({
     assert.equal((await runCli(p.dir, ['run'])).code, 0, 'a scratch run is not counted')
     const rows = await query(
       p.dir,
-      'SELECT label, branch, runs, fails, streak_runs, streak_tries, last_run, ended_by FROM check_streaks ORDER BY label',
+      'SELECT label, branch, runs, fails, streak_runs, streak_trials, last_run, ended_by FROM check_streaks ORDER BY label',
     )
     assert.deepEqual(rows, [
       {
         label: 'always one',
         branch: 'main',
-        ...{ runs: 3, fails: 0, streak_runs: 3, streak_tries: 6, last_run: newest, ended_by: null },
+        ...{ runs: 3, fails: 0, streak_runs: 3, streak_trials: 6, last_run: newest, ended_by: null },
       },
       {
         label: 'flips',
@@ -332,7 +332,7 @@ export default defineEval({
           runs: 3,
           fails: 2,
           streak_runs: 2,
-          streak_tries: 4,
+          streak_trials: 4,
           last_run: newest,
           ended_by: broke,
         },
@@ -355,7 +355,7 @@ export default defineEval({
     assert.deepEqual(
       await one(
         p.dir,
-        'SELECT served_model, reasoning_effort, served_reasoning_effort FROM attempts',
+        'SELECT served_model, reasoning_effort, served_reasoning_effort FROM trials',
       ),
       {
         served_model: 'fake-1[effort=medium]',
@@ -381,7 +381,7 @@ export default defineEval({
       'lift',
       'flaky_cells',
       'drift',
-      'failing_attempts',
+      'failing_trials',
       'eval_trend',
       'verdict_flips',
     ]) {
@@ -424,7 +424,7 @@ export default defineEval({
     )
     rmSync(join(p.dir, '.reeval/runs', `${readRun(p.dir).run.runId}.json`))
     assert.equal((await one(p.dir, 'SELECT COUNT(*) AS n FROM runs')).n, 1)
-    assert.equal((await one(p.dir, 'SELECT COUNT(*) AS n FROM attempts')).n, 1)
+    assert.equal((await one(p.dir, 'SELECT COUNT(*) AS n FROM trials')).n, 1)
   })
 
   test('a database from another version, or --rebuild, is rebuilt from the records', async () => {
@@ -435,9 +435,9 @@ export default defineEval({
     assert.equal((await runCli(p.dir)).code, 0)
     await query(p.dir, 'SELECT 1')
     const db = new DatabaseSync(join(p.dir, '.reeval/history.db'))
-    db.exec("UPDATE meta SET value = '0' WHERE key = 'version'; DELETE FROM attempts")
+    db.exec("UPDATE meta SET value = '0' WHERE key = 'version'; DELETE FROM trials")
     db.close()
-    const r = await runCli(p.dir, ['query', 'SELECT COUNT(*) AS n FROM attempts', '--json'])
+    const r = await runCli(p.dir, ['query', 'SELECT COUNT(*) AS n FROM trials', '--json'])
     assert.match(r.stderr, /rebuilt, 1 read/)
     assert.deepEqual(JSON.parse(r.stdout), [{ n: 1 }])
     const again = await runCli(p.dir, ['query', 'SELECT 1', '--rebuild'])
@@ -508,7 +508,7 @@ export default defineEval({
       'evals/a.eval.ts': `import { defineEval } from 'reeval'\nexport default defineEval({ async task(c) { await c.send('x') } })\n`,
     })
     assert.equal((await runCli(p.dir)).code, 0)
-    const sql = '-- attempts per run\nSELECT COUNT(*) AS n FROM attempts'
+    const sql = '-- trials per run\nSELECT COUNT(*) AS n FROM trials'
     for (const argv of [
       ['query', sql, '--json'],
       ['query', '--json', sql],
@@ -539,7 +539,7 @@ export default defineEval({
       ['SELEC 1', /reeval query: near "SELEC": syntax error/],
       [
         'nope',
-        /no view or table named "nope"\. Views: attempt_answers, attempt_resources, attempt_values, case_lift, check_discrimination, check_rates, check_streaks, context_use, contrasts, drift, effort, eval_trend, factor_effects, failing_attempts.*\. Tables: artifacts, assertions, attempt_answers_m, attempt_context, attempt_values_m, attempts, case_checks, case_rates, cases, cell_checks, cells,/,
+        /no view or table named "nope"\. Views: case_lift, check_discrimination, check_rates, check_streaks, context_use, contrasts, drift, effort, eval_trend, factor_effects, failing_trials, .*, trial_answers, trial_resources, trial_values, verdict_flips\. Tables: artifacts, assertions, case_checks, case_rates, cases, cell_checks, cells, .*, trial_answers_m, trial_context, trial_values_m, trials, votes\./,
       ],
     ]
     for (const [sql, message] of cases) {
@@ -636,7 +636,7 @@ export default defineEval({
     )
     assert.deepEqual(rows, [{ skill: 'house-greeting', reads: 1, opened: 1 }])
 
-    // Recorded with history.artifacts' default, the passing attempt keeps no trajectory: its
+    // Recorded with history.artifacts' default, the passing trial keeps no trajectory: its
     // reads are unknown, so it has no row rather than a row saying it never read the skill.
     assert.equal((await runCli(p.dir, ['record'])).code, 0)
     assert.deepEqual(await query(p.dir, 'SELECT skill FROM skill_reads'), [])
@@ -647,7 +647,7 @@ export default defineEval({
       'reeval.config.ts': fakeConfig({
         harness: `{ tools: ${JSON.stringify(tools)}, files: ${JSON.stringify(files)} }`,
       }),
-      'evals/control.eval.ts': `import { defineEval } from 'reeval'
+      'evals/baseline.eval.ts': `import { defineEval } from 'reeval'
 import { defineEnvironment } from 'reeval'
 import { fakeSandbox } from 'reeval/sandbox'
 const bare = defineEnvironment('bare', { sandbox: fakeSandbox() })
@@ -689,7 +689,7 @@ export default defineEval({
     )
   })
 
-  test("an agent CLI's built-in skills are not skill use, in a control cell or any other", async () => {
+  test("an agent CLI's built-in skills are not skill use, in a baseline cell or any other", async () => {
     const rows = await unplacedProject('query-skill-builtin', [
       read('/root/.gemini/antigravity-cli/builtin/skills/agy-customizations/SKILL.md'),
       shell('cat ~/.gemini/antigravity-cli/builtin/skills/agy-customizations/SKILL.md'),
@@ -732,14 +732,14 @@ export default defineEval({
     assert.equal((await query(p.dir, 'effort')).length, 1)
   })
 
-  test('effort’s per-class call medians count an attempt with no tool calls as 0', async () => {
+  test('effort’s per-class call medians count a trial with no tool calls as 0', async () => {
     const p = await project('query-effort-zero-calls', {
       'reeval.config.ts': fakeConfig({ harness: "{ script: [[], [{ exec: 'true' }]] }" }),
       'evals/started.ts': 'export const started = { once: 0, turnless: 0 }\n',
       'evals/once.eval.ts': `import { defineEval } from 'reeval'
 import { started } from './started.ts'
 export default defineEval({
-  runs: 3,
+  trials: 3,
   async task(c) {
     await c.send('go')
     if (++started.once === 1) await c.send('again')
@@ -748,7 +748,7 @@ export default defineEval({
 `,
       'evals/never.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
-  runs: 3,
+  trials: 3,
   async task(c) {
     await c.send('go')
   },
@@ -757,7 +757,7 @@ export default defineEval({
       'evals/turnless.eval.ts': `import { defineEval } from 'reeval'
 import { started } from './started.ts'
 export default defineEval({
-  runs: 3,
+  trials: 3,
   async task(c) {
     if (++started.turnless > 1) return
     await c.send('go')
@@ -770,8 +770,8 @@ export default defineEval({
     const name = (r: Row) => String(r.eval_key)
     const calls = await query(
       p.dir,
-      `SELECT a.eval_key, a.turns, COUNT(t.line) AS n FROM attempts a LEFT JOIN tool_calls t
-        ON t.run_id = a.run_id AND t.attempt_key = a.key GROUP BY a.key ORDER BY a.eval_key, n, a.turns`,
+      `SELECT a.eval_key, a.turns, COUNT(t.line) AS n FROM trials a LEFT JOIN tool_calls t
+        ON t.run_id = a.run_id AND t.trial_key = a.key GROUP BY a.key ORDER BY a.eval_key, n, a.turns`,
     )
     assert.deepEqual(
       calls.map((r) => `${name(r)} ${r.turns} turns ${r.n} calls`),
@@ -857,18 +857,18 @@ export default defineEval({
     assert.equal(context.code, 0, context.stderr)
     const digest = JSON.parse(/```json\n([\s\S]*?)\n```/.exec(context.stdout)?.[1] ?? '{}')
     assert.deepEqual(
-      Object.values(digest.attempts as Record<string, Row>).map((a) => a.subagents),
+      Object.values(digest.trials as Record<string, Row>).map((a) => a.subagents),
       [2],
       'the explain digest counts them',
     )
   })
 
-  test('effort’s per-class call medians leave out an attempt with calls but no trajectory file', async () => {
+  test('effort’s per-class call medians leave out a trial with calls but no trajectory file', async () => {
     const p = await project('query-effort-missing-trajectory', {
       'reeval.config.ts': fakeConfig({ harness: "{ script: [[{ exec: 'true' }]] }" }),
       'evals/calls.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
-  runs: 3,
+  trials: 3,
   async task(c) {
     await c.send('go')
   },
@@ -877,12 +877,12 @@ export default defineEval({
     })
     assert.equal((await runCli(p.dir)).code, 0)
     const { run, dir } = readRun(p.dir)
-    const attempts = run.evals[0]?.attempts ?? []
+    const trials = run.evals[0]?.trials ?? []
     assert.deepEqual(
-      attempts.map((a) => a.activity.tools),
+      trials.map((a) => a.activity.tools),
       [1, 1, 1],
     )
-    for (const a of attempts.slice(1)) {
+    for (const a of trials.slice(1)) {
       rmSync(join(dir, ...(a.files.trajectory?.path ?? '').split('/')))
     }
     assert.deepEqual(
@@ -893,7 +893,7 @@ export default defineEval({
       [{ n: 3, tools_median: 1, workspace_calls_median: 1, llm_calls_median: null }],
     )
     // The fake harness reports no model calls and no steps: unknown, not 0.
-    assert.deepEqual(await query(p.dir, 'SELECT DISTINCT llm_calls FROM attempts'), [
+    assert.deepEqual(await query(p.dir, 'SELECT DISTINCT llm_calls FROM trials'), [
       { llm_calls: null },
     ])
   })
@@ -903,8 +903,8 @@ export default defineEval({
 import { defineEval } from 'reeval'
 import { plain, skilled } from './pool-envs.ts'
 export default defineEval({
-  compare: { control: plain, variants: [skilled] },
-  runs: 2,
+  compare: { baseline: plain, variants: [skilled] },
+  trials: 2,
   async task(c) {
     await c.send('${prompt}')
     assert.notEqual(await c.readFile('ok.txt'), null)
@@ -926,7 +926,7 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
       'evals/one.eval.ts': evalBody('go', 'one'),
       'evals/two.eval.ts': evalBody('go', 'two'),
     })
-    const sql = `SELECT run_id, strata, runs, variant_pass, variant_counted, control_pass, control_counted
+    const sql = `SELECT run_id, strata, runs, variant_pass, variant_counted, baseline_pass, baseline_counted
       FROM factor_effects WHERE tier = 'pooled' AND eval_key IS NULL ORDER BY run_id`
     assert.equal((await runCli(p.dir)).code, 0)
     const first = readRun(p.dir).run.runId
@@ -936,8 +936,8 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
       runs: run ? 1 : null,
       variant_pass: 4,
       variant_counted: 4,
-      control_pass: 0,
-      control_counted: 4,
+      baseline_pass: 0,
+      baseline_counted: 4,
     })
     assert.deepEqual(await query(p.dir, sql), [row(first)], 'one run: its own row, once')
 
@@ -952,7 +952,7 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
     )
   })
 
-  test('views read from trajectories say how many attempts the recorded artifacts left out', async () => {
+  test('views read from trajectories say how many trials the recorded artifacts left out', async () => {
     const p = await project('query-trajectory-coverage', {
       'reeval.config.ts': fakeConfig({
         harness: `{ script: [[{ exec: 'if test -f ~/.agents/skills/s/SKILL.md; then echo y > ok.txt; fi' }]] }`,
@@ -962,8 +962,8 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
 import { defineEval } from 'reeval'
 import { plain, skilled } from './pool-envs.ts'
 export default defineEval({
-  compare: { control: plain, variants: [skilled] },
-  runs: 2,
+  compare: { baseline: plain, variants: [skilled] },
+  trials: 2,
   async task(c) {
     await c.send('go')
     assert.notEqual(await c.readFile('ok.txt'), null)
@@ -993,9 +993,9 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
     assert.equal(recorded.code, 0, recorded.stderr)
     assert.match(
       recorded.stderr,
-      /note: tool_calls, skill_uses cover 2 of the 4 attempts that made tool calls; .* history\.artifacts: 'all'/,
+      /note: tool_calls, skill_uses cover 2 of the 4 trials that made tool calls; .* history\.artifacts: 'all'/,
     )
-    const run = await runCli(p.dir, ['query', 'SELECT * FROM attempts', '--json'])
+    const run = await runCli(p.dir, ['query', 'SELECT * FROM trials', '--json'])
     assert.doesNotMatch(run.stderr, /note:/, 'a view not read from trajectories has no note')
 
     assert.equal((await runCli(p.dir, ['run'])).code, 0)
@@ -1005,7 +1005,7 @@ export const skilled = defineEnvironment('skilled', ({ skill }) => ({
     assert.match((await runCli(p.dir, ['query', 'tool_calls'])).stderr, /covers 6 of the 8/)
   })
 
-  test('failing attempts join skills by environment digest, not name', async () => {
+  test('failing trials join skills by environment digest, not name', async () => {
     const p = await project('query-joins', {
       'reeval.config.ts': fakeConfig(),
       'skills/alpha/SKILL.md': skill('alpha'),
@@ -1044,7 +1044,7 @@ export default defineEval({
     assert.equal((await runCli(p.dir)).code, 1)
     const rows = await query(
       p.dir,
-      'SELECT eval_key, skill FROM failing_attempts ORDER BY eval_key',
+      'SELECT eval_key, skill FROM failing_trials ORDER BY eval_key',
     )
     assert.deepEqual(
       rows.map((r) => r.skill),
@@ -1053,12 +1053,12 @@ export default defineEval({
     // Twin: joining by the environment's name, as the record's names alone allow, mixes them up.
     const byName = await query(
       p.dir,
-      `SELECT a.eval_key, s.name FROM attempts a
+      `SELECT a.eval_key, s.name FROM trials a
        JOIN cells c ON c.run_id = a.run_id AND c.eval_key = a.eval_key AND c.key = a.cell_key
        JOIN environments e ON e.run_id = c.run_id AND e.name = c.environment
        JOIN env_skills s ON s.run_id = e.run_id AND s.digest = e.digest`,
     )
-    assert.equal(byName.length, 4, 'each attempt matches both environments named tools')
+    assert.equal(byName.length, 4, 'each trial matches both environments named tools')
   })
 
   test('two environments with the same contents keep a row each and count skills once', async () => {
@@ -1108,7 +1108,7 @@ export default defineEval({
       reads.map((r) => r.skill),
       ['greet', 'greet'],
     )
-    const failing = await query(p.dir, 'SELECT environment, skill FROM failing_attempts')
+    const failing = await query(p.dir, 'SELECT environment, skill FROM failing_trials')
     assert.deepEqual(failing.map((r) => `${r.environment}:${r.skill}`).sort(), [
       'alpha:greet',
       'beta:greet',
@@ -1136,11 +1136,11 @@ export default defineEval({
       'evals/flaky.eval.ts': `import { capability, defineEval } from 'reeval'
 import { prompt } from './helpers.ts'
 export default defineEval({
-  runs: 3,
+  trials: 3,
   target: capability(),
   async task(c) {
     await c.send(prompt)
-    if (c.attempt.n === 2) throw new Error('the second attempt fails')
+    if (c.trial.n === 2) throw new Error('the second trial fails')
   },
 })
 `,
@@ -1442,10 +1442,10 @@ describe('context_use and skill_files on real runs', () => {
       return JSON.parse(r.stdout) as Array<Record<string, unknown>>
     }
     const reads = await q(
-      "SELECT attempt_id, MAX(reads) AS reads FROM skill_files WHERE path LIKE '%/contract-probe/SKILL.md' GROUP BY attempt_id ORDER BY attempt_id",
+      "SELECT trial_id, MAX(reads) AS reads FROM skill_files WHERE path LIKE '%/contract-probe/SKILL.md' GROUP BY trial_id ORDER BY trial_id",
     )
     assert.deepEqual(
-      reads.map((r) => [String(r.attempt_id).split(':')[0], (r.reads as number) > 0]),
+      reads.map((r) => [String(r.trial_id).split(':')[0], (r.reads as number) > 0]),
       [
         ['claude-code', true],
         ['codex', true],
@@ -1453,10 +1453,10 @@ describe('context_use and skill_files on real runs', () => {
       ],
     )
     const classes = await q(
-      "SELECT attempt_id, class FROM context_use WHERE class IN ('web', 'context') ORDER BY attempt_id, class",
+      "SELECT trial_id, class FROM context_use WHERE class IN ('web', 'context') ORDER BY trial_id, class",
     )
     const of = (part: string) =>
-      classes.filter((r) => String(r.attempt_id).includes(`/${part}/`)).map((r) => r.class)
+      classes.filter((r) => String(r.trial_id).includes(`/${part}/`)).map((r) => r.class)
     assert.ok(of('closed').every((c) => c === 'web') && of('closed').length > 0)
     assert.ok(of('stamped').every((c) => c === 'context') && of('stamped').length > 0)
     const unclaimed = await q(
@@ -1473,13 +1473,13 @@ describe('context_use and skill_files on real runs', () => {
     const p = await recordFixture('fixtures/records/real-contract')
     const r = await runCli(p.dir, [
       'query',
-      "SELECT attempt_id, reads FROM skill_reads WHERE eval_key = 'evals/skill.eval.ts › skill' ORDER BY attempt_id",
+      "SELECT trial_id, reads FROM skill_reads WHERE eval_key = 'evals/skill.eval.ts › skill' ORDER BY trial_id",
       '--json',
     ])
     assert.equal(r.code, 0, r.stderr)
-    const rows = JSON.parse(r.stdout) as Array<{ attempt_id: string; reads: number }>
+    const rows = JSON.parse(r.stdout) as Array<{ trial_id: string; reads: number }>
     assert.deepEqual(
-      rows.map((row) => [row.attempt_id.split(':')[0], row.reads]),
+      rows.map((row) => [row.trial_id.split(':')[0], row.reads]),
       [
         ['claude-code', 1],
         ['codex', 1],
@@ -1489,7 +1489,7 @@ describe('context_use and skill_files on real runs', () => {
     )
   })
 
-  test('an attempt whose trajectory is gone has no skill_files or skill_reads rows', async () => {
+  test('a trial whose trajectory is gone has no skill_files or skill_reads rows', async () => {
     const p = await recordFixture('fixtures/records/real-contract')
     rmSync(
       join(
@@ -1501,29 +1501,29 @@ describe('context_use and skill_files on real runs', () => {
     const harnesses = async (sql: string) => {
       const r = await runCli(p.dir, ['query', sql, '--json'])
       assert.equal(r.code, 0, r.stderr)
-      const rows = JSON.parse(r.stdout) as Array<{ attempt_id: string }>
-      return rows.map((row) => row.attempt_id.split(':')[0]).sort()
+      const rows = JSON.parse(r.stdout) as Array<{ trial_id: string }>
+      return rows.map((row) => row.trial_id.split(':')[0]).sort()
     }
     assert.deepEqual(
       await harnesses(
-        "SELECT attempt_id FROM skill_files WHERE eval_key = 'evals/skill.eval.ts › skill' AND path LIKE '%/contract-probe/SKILL.md'",
+        "SELECT trial_id FROM skill_files WHERE eval_key = 'evals/skill.eval.ts › skill' AND path LIKE '%/contract-probe/SKILL.md'",
       ),
       ['codex', 'cursor'],
       "Claude Code's reads are unknown, not none",
     )
     assert.deepEqual(
       await harnesses(
-        "SELECT attempt_id FROM skill_reads WHERE eval_key = 'evals/skill.eval.ts › skill'",
+        "SELECT trial_id FROM skill_reads WHERE eval_key = 'evals/skill.eval.ts › skill'",
       ),
       ['codex', 'cursor'],
     )
     assert.ok(
       (
         await harnesses(
-          "SELECT attempt_id FROM skill_reads WHERE eval_key = 'evals/skill.eval.ts › skill canary'",
+          "SELECT trial_id FROM skill_reads WHERE eval_key = 'evals/skill.eval.ts › skill canary'",
         )
       ).includes('claude-code'),
-      'an attempt with no tool calls read nothing, and says so',
+      'a trial with no tool calls read nothing, and says so',
     )
   })
 })

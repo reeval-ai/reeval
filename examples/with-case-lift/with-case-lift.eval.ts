@@ -18,7 +18,7 @@ const documented = defineGrader('jsdoc-block', {
 
 export default defineEval({
   cases: functions,
-  compare: { control: math, variants: [withJsdoc], minLift: 0.2 },
+  compare: { baseline: math, variants: [withJsdoc], minLift: 0.2 },
   target: regression(),
   graders: [documented],
   task: async (c, { key: name }) => {

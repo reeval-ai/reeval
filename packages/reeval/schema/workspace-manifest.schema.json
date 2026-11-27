@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "Generated from WorkspaceManifest in src/history/types.ts by `pnpm schema:update`; don't edit. An attempt's workspace.json, the files of its kept workspace.tar.gz, in its run's directory.",
+  "$comment": "Generated from WorkspaceManifest in src/history/types.ts by `pnpm schema:update`; don't edit. A trial's workspace.json, the files of its kept workspace.tar.gz, in its run's directory.",
   "title": "WorkspaceManifest",
   "$ref": "#/$defs/WorkspaceManifest",
   "$defs": {
@@ -31,7 +31,7 @@
       "required": ["bytes", "path", "sha256"]
     },
     "WorkspaceManifest": {
-      "description": "An attempt's `workspace.json`: each entry of its `workspace.tar.gz`, as kept.",
+      "description": "A trial's `workspace.json`: each entry of its `workspace.tar.gz`, as kept.",
       "type": "object",
       "properties": {
         "files": {

@@ -1,9 +1,9 @@
-no profile · 3 evals · 5 cells · 5 attempts
-both-agents         cursor:composer-2.5/-/docker                        control  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on grok-build:grok-4.6
-                    grok-build:grok-4.6/-/docker                        control  gated any  ×1  effort medium
-own-id-and-effort   gb/-/docker                                         control  gated any  ×1  effort high
-toolchain-deny-all  cursor:composer-2.5/python/docker:python:3.12-slim  control  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on grok-build:grok-4.6 · egress "deny-all" + api2.cursor.sh, *.cursor.sh
-                    grok-build:grok-4.6/python/docker:python:3.12-slim  control  gated any  ×1  effort medium · egress "deny-all" + api.x.ai
+no profile · 3 evals · 5 cells · 5 trials
+both-agents         cursor:composer-2.5/-/docker                        baseline  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on grok-build:grok-4.6
+                    grok-build:grok-4.6/-/docker                        baseline  gated any  ×1  effort medium
+own-id-and-effort   gb/-/docker                                         baseline  gated any  ×1  effort high
+toolchain-deny-all  cursor:composer-2.5/python/docker:python:3.12-slim  baseline  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on grok-build:grok-4.6 · egress "deny-all" + api2.cursor.sh, *.cursor.sh
+                    grok-build:grok-4.6/python/docker:python:3.12-slim  baseline  gated any  ×1  effort medium · egress "deny-all" + api.x.ai
 excluded: —
 image docker · cursor · 1 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

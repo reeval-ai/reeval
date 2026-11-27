@@ -11,12 +11,12 @@
 ## Commands
 
 ```text
-reeval run [filter...]   --dry-run [--json] --runs <n> --tag <t> --trait <k=v> --profile <p>
+reeval run [filter...]   --dry-run [--json] --trials <n> --tag <t> --trait <k=v> --profile <p>
                          --record --ui plain -v
 reeval record            reeval history         reeval show [run]
 reeval compare [base] [head] [--md] [--fail-on-regression] [-v]
 reeval query lift        reeval query effort
-reeval query "SELECT … FROM failing_attempts"
+reeval query "SELECT … FROM failing_trials"
 reeval explain           one checked LLM reading of a run; --vs none for this
                          run only; --context for your own agent
 reeval studio [run]      the runs, served on 127.0.0.1 to the studio page
@@ -27,34 +27,34 @@ reeval doctor            Docker, keys and images, with fixes (--json, --online)
 
 ## From a failure to what the agent did
 
-- `reeval run`'s status list names each failed check with its message and line, and `reeval show` prints the result blocks. Then `.reeval/runs/<run>/summary.md` and each attempt's
+- `reeval run`'s status list names each failed check with its message and line, and `reeval show` prints the result blocks. Then `.reeval/runs/<run>/summary.md` and each trial's
   directory (`trajectory.jsonl`, `diff.patch`, `checks/<n>.log`, `judge-input.json`,
-  `setup.log`). `reeval run -v` prints a timestamped trace per attempt; `.reeval/debug/` keeps it.
+  `setup.log`). `reeval run -v` prints a timestamped trace per trial; `.reeval/debug/` keeps it.
 - For a slow run, `reeval show <run> --trace` writes `.reeval/traces/<run>.json`, a Perfetto
-  timeline: attempts in lanes with their setup, turns, tool calls, checks and judge.
-- Each attempt's directory in `.reeval/runs/<run>/` has `snapshots/final/`: its whole final
+  timeline: trials in lanes with their setup, turns, tool calls, checks and judge.
+- Each trial's directory in `.reeval/runs/<run>/` has `snapshots/final/`: its whole final
   workspace after the checks (the app the agent built, not only its diff), to read or run. A failed
-  attempt's result block in `reeval show` prints its path. `snapshot: 'turns'` on an eval also keeps
+  trial's result block in `reeval show` prints its path. `snapshot: 'turns'` on an eval also keeps
   `snapshots/turn-<n>/` after each `c.send`; `snapshot: { compress: true }` writes
   `<name>.tar.gz` instead; `snapshot: false` turns it off. Snapshots leave out `node_modules/`,
   `.git/` and caches, are capped (50 MB as a directory, 10 MB compressed), never go into the
   history folder, and are kept for the last `debug.keep` runs (20 by default) until `reeval clean`.
-  An attempt that timed out or was canceled has none.
-- `reeval query "SELECT … FROM failing_attempts"`: each failed attempt and infra error with its
+  A trial that timed out or was canceled has none.
+- `reeval query "SELECT … FROM failing_trials"`: each failed trial and infra error with its
   cell, skill and `first_failed_check` (the label of the first check that failed).
 - `reeval query lift` and `reeval query effort` list every variant cell's lift and effort from
   recorded runs. `reeval query "SELECT eval_key, label, verdict FROM check_discrimination WHERE
-  verdict LIKE 'both-%'"` finds checks that don't tell a variant from its control, and
+  verdict LIKE 'both-%'"` finds checks that don't tell a variant from its baseline, and
   `reeval query "SELECT cell_key, role, rate FROM check_rates WHERE label = 'flow works'"` is one
   check's pass rate per cell (`pass / (pass + fail)`; errors and not-run left out).
 - `reeval query flaky_cells` lists cells that both passed and failed over comparable runs:
-  `verdict` is `flaky` from 6 counted attempts, else `mixed` (too few to call it flaky; raise
-  `runs` or record more runs before treating it as flaky).
+  `verdict` is `flaky` from 6 counted trials, else `mixed` (too few to call it flaky; raise
+  `trials` or record more runs before treating it as flaky).
 - `reeval query skill_files` says which declared files (`SKILL.md`, references, rules) each
-  attempt opened, and `context_use` counts its tool calls as `context`, `dependency`
+  trial opened, and `context_use` counts its tool calls as `context`, `dependency`
   (`node_modules`, `--help`), `web`, `verify` or `workspace`: a heuristic, read it as counts.
 - `reeval query --schema` lists every view and its columns; `--json` on any query for a program.
-  `--run last` (or a run id) binds `:run`: `reeval query failing_attempts --run last`, or
+  `--run last` (or a run id) binds `:run`: `reeval query failing_trials --run last`, or
   `reeval query "SELECT … FROM cells WHERE run_id = :run" --run last`. Without it a query spans
   every run.
 - If your client has a `reeval` MCP server (`reeval mcp`), prefer its tools for reading results:
@@ -68,7 +68,7 @@ reeval doctor            Docker, keys and images, with fixes (--json, --online)
 command checks: not high if any check failed, low if a claim was dropped or a command rejected.
 Anomalies are number-checked, and a cited judge score that disagrees is dropped.
 
-When no eval's target can fail the run (the default `target: capability()`), it reads the run as a study: how the arms differ, grader by
+When no eval's target can fail the run (the default `target: capability()`), it reads the run as a study: how the environments differ, grader by
 grader, so name your graders. `analysis.instructions` is the question it answers.
 
 `analysis.model` is the model `reeval explain` uses (else the judge's, when it's a language
@@ -76,15 +76,15 @@ model), and the one questions without their own model use. `reeval init` sets it
 `AI_GATEWAY_API_KEY` only with `gateway: [vercel()]`).
 
 `reeval run` lists remarks under `Worth knowing:` beneath an eval that itself needs work, with no model: `flaky-check`,
-`slow-mcp-start`, `proxy-only-egress`, `setup-process-secret`, `setup-tunnel-closed`, `snapshot-too-large`, `too-few-tries`,
+`slow-mcp-start`, `proxy-only-egress`, `setup-process-secret`, `setup-tunnel-closed`, `snapshot-too-large`, `too-few-trials`,
 `cant-tell-apart` and `observe-throws` (concerns, at most three), and
 with `-v` `check-never-fails` (a suggestion). They go in `remarks.json` beside
 the run, which `reeval record` copies into the history folder. Each names the source line to change (`Fix at <file:line>: …`).
-Act on them: raise `runs`, make a task both arms always pass harder, tighten or remove the check, bake the MCP server's dependencies into
+Act on them: raise `trials`, make a task both environments always pass harder, tighten or remove the check, bake the MCP server's dependencies into
 the image, or set `egress: 'allow-all'` on an eval that needs raw TCP. Each prints once per eval
-version (`too-few-tries`, `slow-mcp-start`, `proxy-only-egress`, `setup-process-secret`, `setup-tunnel-closed` and `snapshot-too-large`
+version (`too-few-trials`, `slow-mcp-start`, `proxy-only-egress`, `setup-process-secret`, `setup-tunnel-closed` and `snapshot-too-large`
 every run); an edit
-re-arms it.
+re-environments it.
 One the cap or a run without `-v` hid isn't spent: the next `reeval run -v` prints it.
 
 ## Config discovery, filters and exit codes
@@ -107,23 +107,23 @@ no hidden default harness or include.
 | 130, 143 | Ctrl-C, SIGTERM |
 
 One Ctrl-C (or SIGTERM) cancels the run and still writes its record. A second one quits without a
-record: `reeval run --resume <id>` keeps the finished attempts and writes it. pnpm passes Ctrl-C on
+record: `reeval run --resume <id>` keeps the finished trials and writes it. pnpm passes Ctrl-C on
 as a SIGTERM, which counts as the same press, and gives the terminal back: the run prints the
 `kill <pid>` that quits it.
 
-`--resume` plans with the run's own `--runs`, profile, filters, `--tag`, `--trait` and
-`--concurrency`, so leave them out. Another `--runs` or profile exits 2; other filters, tags or
-traits replace the run's for that resume. Attempts the run planned that they leave out stay in
+`--resume` plans with the run's own `--trials`, profile, filters, `--tag`, `--trait` and
+`--concurrency`, so leave them out. Another `--trials` or profile exits 2; other filters, tags or
+traits replace the run's for that resume. Trials the run planned that they leave out stay in
 the record as not run (or as they finished), the run stays `interrupted` (or `budget`), and a
 later `--resume` runs them. A `.skip` or `.todo` never runs, so it counts as done. A resume
 keeps passes and fails and runs infra errors again.
 
 After an outage (a provider down, Docker out of disk), `reeval run --retry-errors [<id>]` runs a
-finished run's infra-errored attempts again into the same run, with the same attempt ids; passes
+finished run's infra-errored trials again into the same run, with the same trial ids; passes
 and fails stay. It exits 2 if an eval's source, harness, judge, environment, the reeval version
 or the plan changed since the run (start a new run instead). A run with no infra errors prints a
 note and exits with its own outcome, so `reeval run || reeval run --retry-errors` stays red
-after a real fail. Each retried attempt keeps its earlier errors in `retries`, and the run's exit
+after a real fail. Each retried trial keeps its earlier errors in `retries`, and the run's exit
 code is its outcome after the retry. A Ctrl-C or a kill stops the retry; `--resume` finishes
 the retry, with the same refusals.
 
@@ -152,7 +152,7 @@ regressed        greets in the house style
 
 A check head never reached reads `not run`, not a failure. `can't compare` names what changed
 (`changed  environment`, `evals/helpers.ts`): that flip isn't a regression. A changed gate
-(eval, config or profile `defaults`) keeps the eval comparable: base's attempts are re-scored
+(eval, config or profile `defaults`) keeps the eval comparable: base's trials are re-scored
 under head's gate, so a flip the gate alone explains is `gate changed`, not a regression, and
 one base would still have passed under the new gate is `regressed`. An eval Ctrl-C
 canceled is `can't compare` with that side `canceled`. An eval with `cases` is one row

@@ -29,12 +29,12 @@ import {
   resolveConfigData,
 } from '../../src/config.ts'
 import {
-  attemptAbortProblem,
-  attemptDoneProblem,
-  attemptRequestProblem,
-  attemptStartProblem,
+  trialAbortProblem,
+  trialDoneProblem,
+  trialRequestProblem,
+  trialStartProblem,
   execOptionsProblem,
-} from '../../src/contract/attempt.ts'
+} from '../../src/contract/trial.ts'
 import { declarationProblem } from '../../src/contract/declaration.ts'
 import type { DeclaredNode } from '../../src/declaration.ts'
 import { useEngine } from '../../src/engine/runtime.ts'
@@ -252,7 +252,7 @@ const cliRefuses = (files: Record<string, string>) => (name: string) => {
   if (status !== 0) throw new UsageError(`exit ${status}: ${stderr.trim()}`)
 }
 
-/** What `reeval run` refuses before the first attempt, of the config's keys in `env`. */
+/** What `reeval run` refuses before the first trial, of the config's keys in `env`. */
 const keys = (own: object, env: NodeJS.ProcessEnv) => () => {
   const config = resolveConfig(
     { agents: fakeAgent(), sandbox: fakeSandbox(), ...own },
@@ -311,9 +311,9 @@ const strict = (o: unknown) => () => {
     { config, profile: null, tags: [], concurrency: 1, file: undefined, order: 0 },
   )
 }
-/** What planning an eval with `options` refuses under a config's own options and `--runs`. */
+/** What planning an eval with `options` refuses under a config's own options and `--trials`. */
 const planned =
-  (o: unknown, own: object = {}, runs?: number) =>
+  (o: unknown, own: object = {}, trials?: number) =>
   () => {
     const config = resolveConfig(
       { agents: fakeAgent(), sandbox: fakeSandbox(), ...own },
@@ -322,7 +322,7 @@ const planned =
     )
     planEval(
       { name: 'e', mode: 'run', groups: [], options: o as never, source: { body: '0'.repeat(64) } },
-      { config, profile: null, runs, tags: [], concurrency: 1, file: undefined, order: 0 },
+      { config, profile: null, trials, tags: [], concurrency: 1, file: undefined, order: 0 },
     )
   }
 /** What planning an eval refuses with `provider` in the config, over docker() unless `own` names a sandbox. */
@@ -474,11 +474,11 @@ const evalNode = (o: object = {}) => ({
   ...o,
 })
 
-/** What a runner's attempt request is checked against. */
+/** What a runner's trial request is checked against. */
 const request =
   (call: unknown, id: unknown = '1') =>
   () => {
-    const problem = attemptRequestProblem({ id, call })
+    const problem = trialRequestProblem({ id, call })
     if (problem) throw new UsageError(problem)
   }
 /** What defineGrader() refuses of a judge grader's spec. */
@@ -496,12 +496,12 @@ const cell = {
   harness: 'fake',
   environment: 'plain',
   sandbox: 'docker',
-  role: 'control',
+  role: 'baseline',
 }
 const start = (o: object = {}) =>
-  lifecycle(attemptStartProblem, {
+  lifecycle(trialStartProblem, {
     type: 'start',
-    attempt: { id: 'a1b2', cell, n: 1 },
+    trial: { id: 'a1b2', cell, n: 1 },
     file: 'evals/greet.eval.ts',
     body: 'greets',
     ...o,
@@ -955,17 +955,17 @@ export const CASES: Record<string, Case[]> = {
       onProvider(boat(), { agents: cursor({ model: 'composer-2.5' }), egress: 'deny-all' }),
     ],
     ['boat() reuse not a boolean', any(boat, { reuse: 'yes' })],
-    ['boat() attemptsPerMachine over 8', any(boat, { attemptsPerMachine: 9 })],
-    ['boat() attemptsPerMachine not whole', any(boat, { attemptsPerMachine: 1.5 })],
+    ['boat() trialsPerMachine over 8', any(boat, { trialsPerMachine: 9 })],
+    ['boat() trialsPerMachine not whole', any(boat, { trialsPerMachine: 1.5 })],
     [
       'claudeCode sharing a boat() machine',
-      onProvider(boat({ attemptsPerMachine: 2 }), {
+      onProvider(boat({ trialsPerMachine: 2 }), {
         agents: claudeCode({ model: 'claude-haiku-5-5' }),
       }),
     ],
     [
       'cursor sharing a boat() machine',
-      onProvider(boat({ attemptsPerMachine: 3, reuse: true }), {
+      onProvider(boat({ trialsPerMachine: 3, reuse: true }), {
         agents: cursor({ model: 'composer-2.5' }),
       }),
     ],
@@ -1028,7 +1028,7 @@ export const CASES: Record<string, Case[]> = {
     ],
     [
       'claudeCode sharing a boat() machine in an image',
-      onProvider(boat({ attemptsPerMachine: 2 }), {
+      onProvider(boat({ trialsPerMachine: 2 }), {
         sandbox: docker({ image: 'acme/agent:1' }),
         agents: claudeCode({ model: 'claude-haiku-5-5' }),
         egress: 'deny-all',
@@ -1048,7 +1048,7 @@ export const CASES: Record<string, Case[]> = {
     ],
     ['daytona() size unknown', any(daytona, { size: 'huge' })],
     ['daytona() type, a boat() option', any(daytona, { type: 'large' })],
-    ['daytona() attemptsPerMachine over 8', any(daytona, { attemptsPerMachine: 9 })],
+    ['daytona() trialsPerMachine over 8', any(daytona, { trialsPerMachine: 9 })],
     ['daytona() dockerfile, a sandbox option', any(daytona, { dockerfile: './Dockerfile' })],
     ['daytona() root', any(daytona, { root: true })],
     ['daytona() as a sandbox', config({ sandbox: daytona() })],
@@ -1056,7 +1056,7 @@ export const CASES: Record<string, Case[]> = {
     ["daytona() as an eval's sandbox", options({ sandbox: daytona() })],
     [
       'claudeCode sharing a daytona() machine',
-      onProvider(daytona({ attemptsPerMachine: 2 }), {
+      onProvider(daytona({ trialsPerMachine: 2 }), {
         agents: claudeCode({ model: 'claude-haiku-5-5' }),
         egress: 'allow-all',
       }),
@@ -1071,7 +1071,7 @@ export const CASES: Record<string, Case[]> = {
     ['cloud() size unknown', any(cloud, { size: 'huge' })],
     ['cloud() type, a boat() option', any(cloud, { type: 'large' })],
     ['cloud() apiKey', any(cloud, { apiKey: 'k' })],
-    ['cloud() attemptsPerMachine over 8', any(cloud, { attemptsPerMachine: 9 })],
+    ['cloud() trialsPerMachine over 8', any(cloud, { trialsPerMachine: 9 })],
     ['cloud() image and from', any(cloud, { image: 'acme/agent:1', from: 'python:3.12' })],
     ['cloud() install empty', any(cloud, { install: [] })],
     ['cloud() dockerfile', any(cloud, { dockerfile: 'Dockerfile' })],
@@ -1396,41 +1396,41 @@ export const CASES: Record<string, Case[]> = {
   ],
   compare: [
     ['a list', options({ compare: [e1, e2] })],
-    ['no variants', options({ compare: { control: e1 } })],
-    ['variants not a list', options({ compare: { control: e1, variants: e1 } })],
-    ['empty variants', options({ compare: { control: e1, variants: [] } })],
+    ['no variants', options({ compare: { baseline: e1 } })],
+    ['variants not a list', options({ compare: { baseline: e1, variants: e1 } })],
+    ['empty variants', options({ compare: { baseline: e1, variants: [] } })],
     [
       'a variant that is not an environment',
-      options({ compare: { control: e1, variants: ['two'] } }),
+      options({ compare: { baseline: e1, variants: ['two'] } }),
     ],
     [
-      'a control that is not an environment',
-      options({ compare: { control: 'one', variants: [e2] } }),
+      'a baseline that is not an environment',
+      options({ compare: { baseline: 'one', variants: [e2] } }),
     ],
-    ['no control', options({ compare: { variants: [e2] } })],
-    ['a baseline', options({ compare: { baseline: e1, variants: [e2] } })],
-    ['a list as the control', options({ compare: { control: [e1, e2], variants: [e2] } })],
-    ['an unknown key', options({ compare: { control: e1, variants: [e2], arms: [] } })],
-    ['a gate', options({ compare: { control: e1, variants: [e2], gate: 'all' } })],
-    ['minLift above 1', options({ compare: { control: e1, variants: [e2], minLift: 2 } })],
-    ['minLift a string', options({ compare: { control: e1, variants: [e2], minLift: '0.1' } })],
-    ['harness not a list', options({ compare: { control: e1, variants: [e2], agents: 'cursor' } })],
+    ['no baseline', options({ compare: { variants: [e2] } })],
+    ['a control, the old name of baseline', options({ compare: { control: e1, variants: [e2] } })],
+    ['a list as the baseline', options({ compare: { baseline: [e1, e2], variants: [e2] } })],
+    ['an unknown key', options({ compare: { baseline: e1, variants: [e2], environments: [] } })],
+    ['a gate', options({ compare: { baseline: e1, variants: [e2], gate: 'all' } })],
+    ['minLift above 1', options({ compare: { baseline: e1, variants: [e2], minLift: 2 } })],
+    ['minLift a string', options({ compare: { baseline: e1, variants: [e2], minLift: '0.1' } })],
+    ['harness not a list', options({ compare: { baseline: e1, variants: [e2], agents: 'cursor' } })],
     ['compare false', options({ compare: false })],
     [
       'harness with a bad descriptor',
       options({
-        compare: { control: e1, variants: [e2], agents: [{ kind: 'cursor', modle: 'm' }] },
+        compare: { baseline: e1, variants: [e2], agents: [{ kind: 'cursor', modle: 'm' }] },
       }),
     ],
-    ['harness with a number', options({ compare: { control: e1, variants: [e2], agents: [3] } })],
+    ['harness with a number', options({ compare: { baseline: e1, variants: [e2], agents: [3] } })],
     [
       'environments beside compare',
-      options({ environments: e1, compare: { control: e1, variants: [e2] } }),
+      options({ environments: e1, compare: { baseline: e1, variants: [e2] } }),
     ],
     [
       'environments under a group compare',
       plannedUnder(
-        { compare: { control: e1, variants: [e2] } },
+        { compare: { baseline: e1, variants: [e2] } },
         { environments: defineEnvironment('three', {}) },
       ),
     ],
@@ -1438,15 +1438,15 @@ export const CASES: Record<string, Case[]> = {
       "a group's environments, the eval's compare",
       plannedUnder(
         { environments: defineEnvironment('three', {}) },
-        { compare: { control: e1, variants: [e2] } },
+        { compare: { baseline: e1, variants: [e2] } },
       ),
     ],
-    ['a variant that is the control', planned({ compare: { control: e1, variants: [e1, e2] } })],
+    ['a variant that is the baseline', planned({ compare: { baseline: e1, variants: [e1, e2] } })],
     [
       'good',
       options({
         compare: {
-          control: e1,
+          baseline: e1,
           variants: [e2],
           minLift: 0.1,
           agents: ['fake'],
@@ -1455,19 +1455,19 @@ export const CASES: Record<string, Case[]> = {
     ],
     [
       'data: a variant with a bad spec',
-      options({ compare: { control: e1, variants: [envData({ setpu: [] })] } }),
+      options({ compare: { baseline: e1, variants: [envData({ setpu: [] })] } }),
     ],
     [
-      'runs best of 3 on a compare',
-      planned({ runs: { bestOf: 3 }, compare: { control: e1, variants: [e2] } }),
+      'trials best of 3 on a compare',
+      planned({ trials: { bestOf: 3 }, compare: { baseline: e1, variants: [e2] } }),
     ],
     [
-      'runs best of 3 from the config on a compare',
-      planned({ compare: { control: e1, variants: [e2] } }, { runs: { bestOf: 3 } }),
+      'trials best of 3 from the config on a compare',
+      planned({ compare: { baseline: e1, variants: [e2] } }, { trials: { bestOf: 3 } }),
     ],
     [
-      'runs best of 3 on a compare, its runs replaced',
-      planned({ compare: { control: e1, variants: [e2] } }, { runs: { bestOf: 3 } }, 2),
+      'trials best of 3 on a compare, its trials replaced',
+      planned({ compare: { baseline: e1, variants: [e2] } }, { trials: { bestOf: 3 } }, 2),
     ],
   ],
   questions: [
@@ -1575,7 +1575,7 @@ export const CASES: Record<string, Case[]> = {
     [
       'good',
       options({
-        compare: { control: e1, variants: [e2] },
+        compare: { baseline: e1, variants: [e2] },
         questions: [
           { question: 'Q', trajectory: 'tools', turns: 'last' },
           { question: 'R', model: 'google/g', across: ['environment', 'agent'], diff: true },
@@ -2444,28 +2444,31 @@ export const CASES: Record<string, Case[]> = {
     ],
     ['yaml: empty', yaml('')],
     ['yaml: not YAML', yaml('agents: [a\n')],
-    ['yaml: a repeated key', yaml('runs: 1\nruns: 2\n')],
-    ['yaml: a list', yaml('- runs: 1\n')],
+    ['yaml: a repeated key', yaml('trials: 1\ntrials: 2\n')],
+    ['yaml: a list', yaml('- trials: 1\n')],
     ['yaml: a scalar', yaml('runs\n')],
     ['yaml: an unknown key', yaml('harness: []\n')],
-    ['yaml: runs 0', yaml('runs: 0\n')],
-    ['yaml: runs null', yaml('runs:\n')],
-    ['yaml: runs best of 2', yaml('runs: { bestOf: 2 }\n')],
-    ['yaml: runs best of 5', yaml('runs: { bestOf: 5 }\n')],
-    ['yaml: runs with a typo', yaml('runs: { bestof: 3 }\n')],
+    ['yaml: trials 0', yaml('trials: 0\n')],
+    ['yaml: trials null', yaml('trials:\n')],
+    ['yaml: trials best of 2', yaml('trials: { bestOf: 2 }\n')],
+    ['yaml: trials best of 5', yaml('trials: { bestOf: 5 }\n')],
+    ['yaml: trials with a typo', yaml('trials: { bestof: 3 }\n')],
     [
-      'yaml: a profile defaults runs best of 1',
-      yaml('profiles:\n  pr:\n    defaults: { runs: { bestOf: 1 } }\n'),
+      'yaml: a profile defaults trials best of 1',
+      yaml('profiles:\n  pr:\n    defaults: { trials: { bestOf: 1 } }\n'),
     ],
-    ['runs best of 4', options({ runs: { bestOf: 4 } })],
-    ['runs best of 1', options({ runs: { bestOf: 1 } })],
-    ['runs best of 3.5', options({ runs: { bestOf: 3.5 } })],
-    ['runs best of a string', options({ runs: { bestOf: '3' } })],
-    ['runs best of with another key', options({ runs: { bestOf: 3, min: 2 } })],
-    ['runs a string', options({ runs: 'adaptive' })],
-    ['runs 1.5', options({ runs: 1.5 })],
-    ['runs best of 3', options({ runs: { bestOf: 3 } })],
-    ['config runs best of 6', config({ runs: { bestOf: 6 } })],
+    ['trials best of 4', options({ trials: { bestOf: 4 } })],
+    ['trials best of 1', options({ trials: { bestOf: 1 } })],
+    ['trials best of 3.5', options({ trials: { bestOf: 3.5 } })],
+    ['trials best of a string', options({ trials: { bestOf: '3' } })],
+    ['trials best of with another key', options({ trials: { bestOf: 3, min: 2 } })],
+    ['trials a string', options({ trials: 'adaptive' })],
+    ['runs, the old name of trials', options({ runs: 4 })],
+    ['config runs, the old name of trials', config({ runs: 4 })],
+    ['yaml: runs, the old name of trials', yaml('runs: 4\n')],
+    ['trials 1.5', options({ trials: 1.5 })],
+    ['trials best of 3', options({ trials: { bestOf: 3 } })],
+    ['config trials best of 6', config({ trials: { bestOf: 6 } })],
     ['yaml: include null', yaml('include:\n')],
     ['yaml: a typo in history', yaml('history:\n  artifact: all\n')],
     ['yaml: history.dir', yaml('history:\n  dir: runs\n')],
@@ -2646,8 +2649,8 @@ export const CASES: Record<string, Case[]> = {
         'environments:\n  kind: environment\n  name: base\n  layers:\n    - name: base\n      spec:\n        files: { a.txt: hi }\n        setup: [ls]\n',
       ),
     ],
-    ['yaml: a profile with an unknown key', yaml('profiles:\n  pr:\n    limits: { runs: 1 }\n')],
-    ['yaml: a profile limit runs 0', yaml('profiles:\n  pr:\n    limit: { runs: 0 }\n')],
+    ['yaml: a profile with an unknown key', yaml('profiles:\n  pr:\n    limits: { trials: 1 }\n')],
+    ['yaml: a profile limit trials 0', yaml('profiles:\n  pr:\n    limit: { trials: 0 }\n')],
     [
       'yaml: a profile limit with a typo',
       yaml('profiles:\n  pr:\n    limit: { compare: { maxVariant: 1 } }\n'),
@@ -2687,7 +2690,7 @@ export const CASES: Record<string, Case[]> = {
       'yaml: capture viewport not whole',
       yaml('capture:\n  viewport: { width: 10.5, height: 10 }\n'),
     ],
-    ['yaml: a budget with a typo', yaml('budget: { attempt: 3 }\n')],
+    ['yaml: a budget with a typo', yaml('budget: { trial: 3 }\n')],
     ['yaml: question with a model', yaml('question: { model: google/g }\n')],
     ['yaml: question with a bare model', yaml('question: { model: gemini }\n')],
     ['yaml: question state', yaml('question:\n  state: { output: true }\n')],
@@ -2723,7 +2726,7 @@ agents:
   - { kind: fake, id: a }
   - { kind: cursor, model: composer-2.5 }
 sandbox: { kind: fake }
-runs: 2
+trials: 2
 target: { kind: capability, threshold: 0.5, blocking: true }
 timeout: 90s
 env:
@@ -2736,7 +2739,7 @@ capture: { viewport: full-page, timeout: 30s }
 concurrency: 2
 record: manual
 history: { store: { kind: local, dir: .history }, artifacts: failures }
-budget: { attempts: 20, duration: 1h }
+budget: { trials: 20, duration: 1h }
 defaultProfile: { ci: pr }
 secrets: { unbrokered: error }
 debug: { keep: 5, traceBufferMb: 2 }
@@ -2745,12 +2748,12 @@ analysis:
   maxInputTokens: 4000
 profiles:
   pr:
-    limit: { runs: 1, compare: false, agents: [a] }
-    budget: { attempts: 5 }
+    limit: { trials: 1, compare: false, agents: [a] }
+    budget: { trials: 5 }
     tags: ['!slow']
   nightly:
     defaults:
-      runs: 3
+      trials: 3
       environments:
         kind: environment
         name: nightly
@@ -3224,24 +3227,24 @@ environments:
       'target capability(): accepted with cases and a compare',
       targeted(capability(), {
         cases: [{ key: 'a' }, { key: 'b' }],
-        compare: { control: plainEnv, variants: [skillEnv] },
+        compare: { baseline: plainEnv, variants: [skillEnv] },
       }),
     ],
     [
       'target capability() with minLift',
       targeted(capability(), {
-        compare: { control: plainEnv, variants: [skillEnv], minLift: 0.2 },
+        compare: { baseline: plainEnv, variants: [skillEnv], minLift: 0.2 },
       }),
     ],
     [
       'target regression(0.5) with minLift: accepted',
       targeted(regression(0.5), {
-        compare: { control: plainEnv, variants: [skillEnv], minLift: 0.2 },
+        compare: { baseline: plainEnv, variants: [skillEnv], minLift: 0.2 },
       }),
     ],
     [
-      'target capability() with best-of runs: accepted',
-      targeted(capability(), { runs: { bestOf: 3 } }),
+      'target capability() with best-of trials: accepted',
+      targeted(capability(), { trials: { bestOf: 3 } }),
     ],
     ['cases: not a list', withCases({ cases: 'abc' })],
     ['cases: an empty list', withCases({ cases: [] })],
@@ -3258,8 +3261,8 @@ environments:
     ['cases: a key with surrounding whitespace', withCases({ cases: [{ key: ' a ' }] })],
     ['cases: two cases with one key', withCases({ cases: [{ key: 'a' }, { key: 'a', n: 2 }] })],
     [
-      'cases: with best-of runs',
-      withCases({ cases: [{ key: 'a' }, { key: 'b' }], runs: { bestOf: 3 } }),
+      'cases: with best-of trials',
+      withCases({ cases: [{ key: 'a' }, { key: 'b' }], trials: { bestOf: 3 } }),
     ],
     ['where: without cases', withCases({ where: () => true })],
     ['where: not a function', withCases({ cases: [{ key: 'a' }], where: true })],
@@ -3330,7 +3333,7 @@ environments:
     ['load: an id with a space', defines({ task: async () => {} }, 'evals/a b.eval.ts')],
     ['load: an id with a tab', defines({ task: async () => {} }, 'evals/sub/a\tb.eval.ts')],
     ['load: a nested id is accepted', defines({ task: async () => {} }, 'evals/sub/dir/a.eval.ts')],
-    ['load: no task', defines({ runs: 2 })],
+    ['load: no task', defines({ trials: 2 })],
     ['load: a task that is not a function', defines({ task: 'greet' })],
     ['load: environments', defines({ environments: plainEnv, task: async () => {} })],
     ['load: environment is accepted', defines({ environment: plainEnv, task: async () => {} })],
@@ -3436,57 +3439,57 @@ environments:
     [
       'good',
       tree([
-        { type: 'group', name: 'g', mode: 'skip', options: { runs: 2 }, children: [evalNode()] },
+        { type: 'group', name: 'g', mode: 'skip', options: { trials: 2 }, children: [evalNode()] },
         evalNode({ family: { name: 'case %#', case: 1, cases: 2 } }),
         { type: 'todo', name: 'later' },
       ]),
     ],
   ],
   lifecycle: [
-    ['start without its attempt', start({ attempt: undefined })],
-    ['start with run 0', start({ attempt: { id: 'a1b2', cell, n: 0 } })],
-    ['start with a cell typo', start({ attempt: { id: 'a', cell: { ...cell, rol: 'x' }, n: 1 } })],
+    ['start without its trial', start({ trial: undefined })],
+    ['start with run 0', start({ trial: { id: 'a1b2', cell, n: 0 } })],
+    ['start with a cell typo', start({ trial: { id: 'a', cell: { ...cell, rol: 'x' }, n: 1 } })],
     [
       'start with an unknown role',
-      start({ attempt: { id: 'a', cell: { ...cell, role: 'arm' }, n: 1 } }),
+      start({ trial: { id: 'a', cell: { ...cell, role: 'environment' }, n: 1 } }),
     ],
     ['start with an empty body', start({ body: '' })],
     [
       'abort with an unknown reason',
-      lifecycle(attemptAbortProblem, { type: 'abort', reason: 'oom', message: 'x' }),
+      lifecycle(trialAbortProblem, { type: 'abort', reason: 'oom', message: 'x' }),
     ],
     [
       'abort without a message',
-      lifecycle(attemptAbortProblem, { type: 'abort', reason: 'timeout' }),
+      lifecycle(trialAbortProblem, { type: 'abort', reason: 'timeout' }),
     ],
-    ['done with a string error', lifecycle(attemptDoneProblem, { type: 'done', error: 'boom' })],
+    ['done with a string error', lifecycle(trialDoneProblem, { type: 'done', error: 'boom' })],
     [
       'done with an error without a message',
-      lifecycle(attemptDoneProblem, { type: 'done', error: { name: 'Error' } }),
+      lifecycle(trialDoneProblem, { type: 'done', error: { name: 'Error' } }),
     ],
     [
       'done with a typo',
-      lifecycle(attemptDoneProblem, { type: 'done', eror: { name: 'E', message: 'm' } }),
+      lifecycle(trialDoneProblem, { type: 'done', eror: { name: 'E', message: 'm' } }),
     ],
     ['good: start', start()],
     [
       'good: start for a variant',
       start({
-        attempt: { id: 'a', cell: { ...cell, role: 'variant', variant: 'with-skill' }, n: 2 },
+        trial: { id: 'a', cell: { ...cell, role: 'variant', variant: 'with-skill' }, n: 2 },
       }),
     ],
     [
       'good: abort',
-      lifecycle(attemptAbortProblem, {
+      lifecycle(trialAbortProblem, {
         type: 'abort',
         reason: 'timeout',
         message: 'Eval timed out after 600s',
       }),
     ],
-    ['good: done', lifecycle(attemptDoneProblem, { type: 'done' })],
+    ['good: done', lifecycle(trialDoneProblem, { type: 'done' })],
     [
       'good: done with an error',
-      lifecycle(attemptDoneProblem, {
+      lifecycle(trialDoneProblem, {
         type: 'done',
         error: { name: 'AssertionError', message: 'expected 1 to be 2', stack: 'at …' },
       }),

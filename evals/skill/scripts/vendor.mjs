@@ -1,4 +1,4 @@
-// Writes vendor/, which the evals seed into each attempt and which git ignores:
+// Writes vendor/, which the evals seed into each trial and which git ignores:
 //   reeval.tgz            this checkout's reeval, packed (run `pnpm build` first)
 //   docs/                 the docs site's pages, with {{ pkg }} rendered as reeval
 //   skill-current/reeval  the skill as it was before the split, from CURRENT_SKILL_REF

@@ -86,7 +86,7 @@ describe('suiteResult over the record corpus', () => {
           [...s.files.map((f) => f.path)].sort(),
         )
         for (const c of cellsOf(s)) {
-          assert.equal(c.attempts, c.passed + c.failed + c.infraError + c.skipped, c.path)
+          assert.equal(c.trials, c.passed + c.failed + c.infraError + c.skipped, c.path)
         }
         assert.deepEqual(suiteResult(record), s, 'pure')
       })
@@ -123,7 +123,7 @@ describe('effect', () => {
     ['2 of 3 against 1 of 2 is better: rates, not counts', 'better', side(2, 3), side(1, 2)],
     ['1 of 2 against 2 of 4 is the same rate', 'same', side(1, 2), side(2, 4)],
   ]
-  for (const [name, expected, variant, control] of cases) {
+  for (const [name, expected, variant, baseline] of cases) {
     test(name, () => {
       const t = (s: ReturnType<typeof side>): CheckTally => ({
         pass: s.pass,
@@ -131,8 +131,8 @@ describe('effect', () => {
         error: 0,
         notRun: 0,
       })
-      assert.equal(checkEffect(t(variant), t(control)), expected)
-      assert.equal(effectOf(variant, control), expected)
+      assert.equal(checkEffect(t(variant), t(baseline)), expected)
+      assert.equal(effectOf(variant, baseline), expected)
     })
   }
 
@@ -142,11 +142,11 @@ describe('effect', () => {
     const failed: CheckTally = { pass: 0, fail: 4, error: 0, notRun: 0 }
     assert.equal(checkEffect(passed, notRun), null)
     assert.equal(checkEffect(notRun, passed), null)
-    // The same 4 attempts, counted as fails, would be a difference.
+    // The same 4 trials, counted as fails, would be a difference.
     assert.equal(checkEffect(passed, failed), 'better')
   })
 
-  test('not-run attempts of a check that ran elsewhere are not counted', () => {
+  test('not-run trials of a check that ran elsewhere are not counted', () => {
     const partly: CheckTally = { pass: 4, fail: 0, error: 0, notRun: 4 }
     const passed: CheckTally = { pass: 4, fail: 0, error: 0, notRun: 0 }
     assert.equal(checkEffect(partly, passed), 'same')
@@ -157,32 +157,32 @@ describe('a record with checks that never ran', () => {
   const entry = entries.find((e) => e.name === 'with-named-checks')
   const raw = entry?.runs[0]?.raw as Record<string, unknown>
 
-  /** The skill compare, with 4 counted attempts an arm and the control's checks never reached. */
+  /** The skill compare, with 4 counted trials an environment and the baseline's checks never reached. */
   function fourEach(): RunRecord {
     const record = read(raw)
     const e = record.evals.find((x) => x.name === 'greets in the house style')
     assert.ok(e)
     e.cells = e.cells.filter((c) => c.harness === 'fake')
-    e.attempts = e.attempts.filter((a) => e.cells.some((c) => c.key === a.cell))
-    e.attempts = e.attempts.flatMap((a) =>
+    e.trials = e.trials.filter((a) => e.cells.some((c) => c.key === a.cell))
+    e.trials = e.trials.flatMap((a) =>
       [1, 2, 3, 4].map((n) => ({ ...a, id: `${a.cell}#${n}`, n })),
     )
     for (const c of e.cells) {
-      const outcome = c.role === 'control' ? 'fail' : 'pass'
+      const outcome = c.role === 'baseline' ? 'fail' : 'pass'
       Object.assign(c, {
-        runs: 4,
+        trials: 4,
         pass: outcome === 'pass' ? 4 : 0,
         fail: outcome === 'fail' ? 4 : 0,
       })
       c.checks = c.checks?.map((k) =>
-        c.role === 'control'
+        c.role === 'baseline'
           ? { label: k.label, pass: 0, fail: 0, error: 0, notRun: 4 }
           : { label: k.label, pass: 4, fail: 0, error: 0, notRun: 0 },
       )
       if (c.lift) {
         c.lift = {
           ...c.lift,
-          control: { pass: 0, counted: 4 },
+          baseline: { pass: 0, counted: 4 },
           variant: { pass: 4, counted: 4 },
           interval: { lo: 0.307, hi: 1, level: 0.95, method: 'newcombe-wilson' },
           withinNoise: false,
@@ -192,15 +192,15 @@ describe('a record with checks that never ran', () => {
     return record
   }
 
-  test('a check no attempt reached is not run, never 0 of N', () => {
+  test('a check no trial reached is not run, never 0 of N', () => {
     const s = suiteResult(fourEach())
     const e = s.files.flatMap((f) => f.evals).find((x) => x.name === 'greets in the house style')
-    const [control, variant] = e?.cells ?? []
-    assert.ok(control && variant)
+    const [baseline, variant] = e?.cells ?? []
+    assert.ok(baseline && variant)
     assert.equal(e?.across, 'change')
-    assert.equal(control.baseline, true)
-    assert.equal(variant.vs, control.key)
-    for (const k of control.checks) {
+    assert.equal(baseline.baseline, true)
+    assert.equal(variant.vs, baseline.key)
+    for (const k of baseline.checks) {
       assert.deepEqual(k.outcome, { status: 'not run' })
       assert.equal(k.effect, null)
     }
@@ -212,48 +212,48 @@ describe('a record with checks that never ran', () => {
     assert.deepEqual(variant.interval, { low: 0.307, high: 1 })
   })
 
-  test('a baseline with no counted attempt gives each variant check no effect', () => {
+  test('a baseline with no counted trial gives each variant check no effect', () => {
     const record = read(raw)
     const e = record.evals.find((x) => x.name === 'greets in the house style')
-    const control = e?.cells.find((c) => c.key === 'fake/plain/docker')
-    assert.ok(e && control)
-    delete control.checks
-    Object.assign(control, { pass: 0, fail: 0, infraError: control.runs })
-    for (const a of e.attempts) if (a.cell === control.key) a.outcome = 'infra_error'
+    const baseline = e?.cells.find((c) => c.key === 'fake/plain/docker')
+    assert.ok(e && baseline)
+    delete baseline.checks
+    Object.assign(baseline, { pass: 0, fail: 0, infraError: baseline.trials })
+    for (const a of e.trials) if (a.cell === baseline.key) a.outcome = 'infra_error'
     const s = suiteResult(record)
     const variant = cellsOf(s).find((c) => c.key === 'fake/with-house-greeting/docker')
     assert.ok(variant?.checks.length)
-    assert.equal(variant.vs, control.key)
+    assert.equal(variant.vs, baseline.key)
     for (const k of variant.checks) assert.equal(k.effect, null, k.label)
-    const baseline = cellsOf(s).find((c) => c.key === control.key)
+    const shown = cellsOf(s).find((c) => c.key === baseline.key)
     assert.deepEqual(
-      baseline?.checks.map((k) => [k.label, k.outcome.status]),
+      shown?.checks.map((k) => [k.label, k.outcome.status]),
       variant.checks.map((k) => [k.label, 'not run']),
-      'a cell with no counted attempt lists every declared check as not run',
+      'a cell with no counted trial lists every declared check as not run',
     )
   })
 
   test("a check's assertion is a failure's message before an error's", () => {
     const record = read(raw)
     const e = record.evals.find((x) => x.name === 'greets in the house style')
-    const control = e?.cells.find((c) => c.key === 'fake/plain/docker')
-    const attempt = e?.attempts.find((a) => a.cell === control?.key)
-    const check = control?.checks?.[0]
-    assert.ok(e && control && attempt && check)
-    const failed = attempt.assertions?.find((x) => x.label === check.label)
+    const baseline = e?.cells.find((c) => c.key === 'fake/plain/docker')
+    const trial = e?.trials.find((a) => a.cell === baseline?.key)
+    const check = baseline?.checks?.[0]
+    assert.ok(e && baseline && trial && check)
+    const failed = trial.assertions?.find((x) => x.label === check.label)
     assert.ok(failed)
     Object.assign(failed, { status: 'fail', message: 'expected it to pass' })
-    const errored = { ...attempt, id: `${attempt.id}-e`, n: attempt.n + 1 }
+    const errored = { ...trial, id: `${trial.id}-e`, n: trial.n + 1 }
     errored.assertions = [{ ...failed, status: 'error', message: "couldn't read it" }]
-    e.attempts.unshift(errored)
+    e.trials.unshift(errored)
     const s = suiteResult(record)
     const k = cellsOf(s)
-      .find((c) => c.key === control.key)
+      .find((c) => c.key === baseline.key)
       ?.checks.find((x) => x.label === check.label)
     assert.equal(k?.outcome.status === 'ran' && k.outcome.assertion, 'expected it to pass')
   })
 
-  test('effort is set only from 4 counted attempts', () => {
+  test('effort is set only from 4 counted trials', () => {
     const s = suiteResult(fourEach())
     const four = cellsOf(s).filter(
       (c) => c.harness === 'fake' && c.path.includes('greets in the house style'),
@@ -283,17 +283,17 @@ describe('outcomes the record alone has', () => {
     s.files.flatMap((f) => f.evals).find((e) => e.name === name || e.template === name)
   const text = (s: SuiteResult) => render(s, null, { color: false, verbose: false }).join('\n')
 
-  /** An interrupted run, its `writes greet.js` attempt canceled mid-turn. */
+  /** An interrupted run, its `writes greet.js` trial canceled mid-turn. */
   function interrupted(): RunRecord {
     const record = read(raw)
     record.status = 'interrupted'
     const e = record.evals.find((x) => x.name === 'writes greet.js')
     const [cell] = e?.cells ?? []
-    const [attempt] = e?.attempts ?? []
-    assert.ok(e && cell && attempt)
+    const [trial] = e?.trials ?? []
+    assert.ok(e && cell && trial)
     e.outcome = 'fail'
     Object.assign(cell, { outcome: 'fail', pass: 0, fail: 1 })
-    Object.assign(attempt, {
+    Object.assign(trial, {
       outcome: 'fail',
       error: { kind: 'aborted', message: 'The run was canceled' },
       assertions: [],
@@ -301,7 +301,7 @@ describe('outcomes the record alone has', () => {
     return record
   }
 
-  test('an eval whose only failed attempts were canceled is canceled, not a fail', () => {
+  test('an eval whose only failed trials were canceled is canceled, not a fail', () => {
     const before = suiteResult(read(raw)).tally
     const s = suiteResult(interrupted())
     assert.equal(evalOf(s, 'writes greet.js')?.outcome, 'canceled')
@@ -313,21 +313,21 @@ describe('outcomes the record alone has', () => {
     assert.match(text(s), /^\d+ evals · .* · 1 canceled · \d+ skipped$/m)
   })
 
-  test('a real failure beside a canceled attempt is still a fail', () => {
+  test('a real failure beside a canceled trial is still a fail', () => {
     const record = interrupted()
     const e = record.evals.find((x) => x.name === 'writes greet.js')
-    const [attempt] = e?.attempts ?? []
-    assert.ok(e && attempt)
-    e.attempts.push({
-      ...attempt,
-      id: `${attempt.id}-2`,
+    const [trial] = e?.trials ?? []
+    assert.ok(e && trial)
+    e.trials.push({
+      ...trial,
+      id: `${trial.id}-2`,
       n: 2,
       error: { kind: 'assertion', message: 'writes greet.js: expected it to exist' },
     })
     assert.equal(evalOf(suiteResult(record), 'writes greet.js')?.outcome, 'fail')
   })
 
-  test('an error outside any attempt fails the outcome, is listed and leads the tally', () => {
+  test('an error outside any trial fails the outcome, is listed and leads the tally', () => {
     const record = read(raw)
     assert.equal(suiteResult(record).errors.length, 0)
     record.errors = ['evals/a.eval.ts: Cannot find module ./missing.ts']
@@ -343,19 +343,19 @@ describe('outcomes the record alone has', () => {
   const family = 'greets %s in the house style'
   const familyId = 'greets in the house style'
 
-  test("a family's first case with no counted attempt lists the checks its other cases ran", () => {
+  test("a family's first case with no counted trial lists the checks its other cases ran", () => {
     const record = unfoldCases(read(raw))
     const [first] = record.evals.filter(
       (e) => e.family?.id.endsWith(familyId) && e.family.case === 0,
     )
     assert.ok(first)
-    for (const a of first.attempts) {
+    for (const a of first.trials) {
       Object.assign(a, { outcome: 'infra_error', assertions: [] })
       a.error = { kind: 'infra', message: 'Docker is not running' }
     }
     for (const c of first.cells) {
       delete c.checks
-      Object.assign(c, { pass: 0, fail: 0, infraError: c.runs, outcome: 'infra_error' })
+      Object.assign(c, { pass: 0, fail: 0, infraError: c.trials, outcome: 'infra_error' })
     }
     const k = evalOf(suiteResult(record), family)?.cases?.[0]
     assert.equal(k?.label, 'Ada')
@@ -376,7 +376,7 @@ describe('outcomes the record alone has', () => {
     )
     assert.ok(first)
     first.outcome = 'skipped'
-    for (const a of first.attempts) Object.assign(a, { outcome: 'skipped', error: null })
+    for (const a of first.trials) Object.assign(a, { outcome: 'skipped', error: null })
     const [k, other] = evalOf(suiteResult(record), family)?.cases ?? []
     assert.deepEqual([k?.notRun, other?.notRun], [true, false])
     assert.match(text(suiteResult(record)), /^ {4}#Ada +not run$/m)
@@ -385,7 +385,7 @@ describe('outcomes the record alone has', () => {
     assert.doesNotMatch(text(suiteResult(record)), /#Ada +not run/)
   })
 
-  test("a family's pooled arm and columns come from any case, not only the first", () => {
+  test("a family's pooled environment and columns come from any case, not only the first", () => {
     const record = unfoldCases(read(raw))
     const [first] = record.evals.filter(
       (e) => e.family?.id.endsWith(familyId) && e.family.case === 0,
@@ -393,7 +393,7 @@ describe('outcomes the record alone has', () => {
     assert.ok(first)
     const variant = 'fake/with-skill/fake'
     first.cells = first.cells.filter((c) => c.key !== variant)
-    first.attempts = first.attempts.filter((a) => a.cell !== variant)
+    first.trials = first.trials.filter((a) => a.cell !== variant)
     const s = suiteResult(record)
     const e = evalOf(s, family)
     assert.deepEqual(
@@ -456,7 +456,7 @@ import { defineEnvironment, defineEval } from 'reeval'
 const plain = defineEnvironment('plain', {})
 const bye = defineEnvironment('bye', { files: { 'bye.txt': 'bye' } })
 export default defineEval({
-  compare: { control: plain, variants: [bye] },
+  compare: { baseline: plain, variants: [bye] },
   async task(c) {
     console.log('a log line from the eval')
     process.stdout.write('a direct write\\n')
@@ -507,7 +507,7 @@ export default defineEval({ async task(c) { await c.send('hi') } })
     const r = await runCli(p.dir, ['run', '--dry-run', '--json'])
     assert.equal(r.code, 0, r.stderr)
     const plan = JSON.parse(r.stdout)
-    assert.equal(plan.totals.attempts, 1)
+    assert.equal(plan.totals.trials, 1)
     assert.equal(plan.evals.length, 1)
   })
 })

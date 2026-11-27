@@ -1,13 +1,13 @@
 · learns-the-house-style-from-the-skill  50%  metric()
   learner
-    arm             pass            vs control
+    environment     pass            vs baseline
     plain           0 of 4
     with-skill      4 of 4  helped  "house greeting" +100 pts
     check           plain   with-skill
     house greeting  0 of 4  4 of 4
       expected command to succeed, exit code 1
   terse
-    arm             pass
+    environment     pass
     plain           0 of 4
     with-skill      0 of 4  same
     check           plain   with-skill

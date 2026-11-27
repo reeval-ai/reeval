@@ -1,25 +1,25 @@
-no profile · 7 evals · 18 cells · 50–52 attempts
-hint: 1 compare runs 2 times per cell; below 4 runs a side its lift shows only a direction and its effort can't be tested (runs: 4)
-best-of             a/-/docker        control          gated passRate 0.5  best of 3  target regression(0.8)
-                    b/-/docker        control          gated passRate 0.5  best of 3
-capability-reports  a/-/docker        control          gated any           ×3         target capability(0.5)
-                    b/-/docker        control          gated any           ×3
-capability          a/-/docker        control          gated any           ×3         target capability(1, { blocking: true })
-                    b/-/docker        control          gated any           ×3
-cases-regression    a/-/docker        control          gated               ×2         target regression(0.8) · 2 cases
-                    b/-/docker        control          gated               ×2
+no profile · 7 evals · 18 cells · 50–52 trials
+hint: 1 compare runs 2 times per cell; below 4 trials a side its lift shows only a direction and its effort can't be tested (trials: 4)
+best-of             a/-/docker        baseline         gated passRate 0.5  best of 3  target regression(0.8)
+                    b/-/docker        baseline         gated passRate 0.5  best of 3
+capability-reports  a/-/docker        baseline         gated any           ×3         target capability(0.5)
+                    b/-/docker        baseline         gated any           ×3
+capability          a/-/docker        baseline         gated any           ×3         target capability(1, { blocking: true })
+                    b/-/docker        baseline         gated any           ×3
+cases-regression    a/-/docker        baseline         gated               ×2         target regression(0.8) · 2 cases
+                    b/-/docker        baseline         gated               ×2
                     case chat         a/-/docker ×1, b/-/docker ×1
                     case rag          a/-/docker ×1, b/-/docker ×1
-compare-regression  a/base/docker     control          ungated             ×2         target regression(0.8)
+compare-regression  a/base/docker     baseline         ungated             ×2         target regression(0.8)
                     a/skilled/docker  variant skilled  gated               ×2
-                    b/base/docker     control          ungated             ×2
+                    b/base/docker     baseline         ungated             ×2
                     b/skilled/docker  variant skilled  gated               ×2
-compare-reports     a/base/docker     control          ungated             ×4
+compare-reports     a/base/docker     baseline         ungated             ×4
                     a/skilled/docker  variant skilled  gated any           ×4
-                    b/base/docker     control          ungated             ×4
+                    b/base/docker     baseline         ungated             ×4
                     b/skilled/docker  variant skilled  gated any           ×4
-reports             a/-/docker        control          gated any           ×3
-                    b/-/docker        control          gated any           ×3
+reports             a/-/docker        baseline         gated any           ×3
+                    b/-/docker        baseline         gated any           ×3
 excluded: —
 image docker · cursor · 7 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

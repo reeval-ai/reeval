@@ -44,7 +44,7 @@ jobs:
       # The @cursor/sdk shape and the real-tier fixtures on Cursor: on the default list, or on a
       # latest leg that names the cursor row (drift.yml's, after a new @cursor/sdk).
       CURSOR_CHECKS: ${{ inputs.harnesses == '' || (inputs.versions == 'latest' && contains(format(',{0},', inputs.harnesses), ',cursor,')) }}
-      # The hard cap for this job: the contract on all seventeen rows (contract.test.ts's attemptsFor:
+      # The hard cap for this job: the contract on all seventeen rows (contract.test.ts's trialsFor:
       # 29 on Claude Code, whose plugins don't load rules and which takes every shared option; 27 on
       # Antigravity, whose plugins load rules and which sets no effort but has a reasoning model,
       # and on OpenCode, with no hooks or rules; 26 on Cursor, as Antigravity without a reasoning
@@ -56,8 +56,8 @@ jobs:
       # the core contract (4 turns on each of the nine) and the real-tier fixtures (2 each, 18 of
       # them): 29 + 27 + 27 + 26 + 50 + 21 + 21 + 20 + 42 + 60 + 48 + 18 + 36 + 36 = 461, plus 5 of
       # headroom. The latest leg skips the e2e and the core contract (407), so it fits too. Each
-      # reserves its attempts in the ledger first, and fails rather than go over.
-      REEVAL_REAL_ATTEMPT_BUDGET: '466'
+      # reserves its trials in the ledger first, and fails rather than go over.
+      REEVAL_REAL_TRIAL_BUDGET: '466'
       REEVAL_REAL_LEDGER: ${{ github.workspace }}/../reeval-real-ledger
       CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
       GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
@@ -120,7 +120,7 @@ jobs:
         if: ${{ !cancelled() && inputs.versions == 'pinned' }}
         working-directory: packages/agents
         run: node --test --test-timeout=3600000 --experimental-strip-types --no-warnings test/contract.test.ts
-      # One real attempt on the fake harness: the Jev judge and the analysis model through
+      # One real trial on the fake harness: the Jev judge and the analysis model through
       # openrouter(), recording the served model, the upstream provider and the cost.
       - name: reeval's own calls on OpenRouter
         if: ${{ !cancelled() && contains(inputs.harnesses, 'openrouter') }}
@@ -157,7 +157,7 @@ jobs:
         name: summary
         run: |
           [ -f "$RUNNER_TEMP/contract-summary.md" ] && cat "$RUNNER_TEMP/contract-summary.md" >> "$GITHUB_STEP_SUMMARY"
-          [ -f "$REEVAL_REAL_LEDGER" ] && { echo '### Real attempts reserved'; echo; echo '```'; cat "$REEVAL_REAL_LEDGER"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          [ -f "$REEVAL_REAL_LEDGER" ] && { echo '### Real trials reserved'; echo; echo '```'; cat "$REEVAL_REAL_LEDGER"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           true
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
