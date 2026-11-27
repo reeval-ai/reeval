@@ -202,15 +202,18 @@ const tokenLike = (value: string) =>
   /[A-Za-z]/.test(value) &&
   /\d/.test(value)
 
-/** Windows that could be an ordinary word or number (`password`, `20260926`) aren't masked alone. */
+/**
+ * Windows that could be an ordinary word or number (`password`, `20260926`) are weak, whatever
+ * the secret: masked only in a stretch of at least `MIN_WEAK_FRAGMENT` characters of fragments.
+ */
 const WORDISH = /^(?:[a-z]+|[A-Z]+|\d+)$/
 /**
- * Windows of one kind of character joined by `-`, `_` or `.` (`reeval-f`, `2026-11-`) read as
- * words, so they're masked only in a stretch of at least `MIN_WEAK_FRAGMENT` characters of
- * fragments: a secret's readable prefix (`reeval-fixture-token-`) would otherwise mask every
- * `/tmp/reeval-fx-probe.txt`. A random key's characters mix kinds, so its windows aren't weak.
+ * Letters of one case joined by `-`, `_` or `.` (`reeval-f`) are weak too in a secret that also
+ * has other windows: its readable prefix (`reeval-fixture-token-`) would otherwise mask every
+ * `/tmp/reeval-fx-probe.txt`. A secret with no other windows (`correct-horse-battery-staple`)
+ * would then leak whole in short pieces, so there they're masked alone.
  */
-const WEAK = /^(?:[a-z._-]+|[A-Z._-]+|[\d._-]+)$/
+const WEAK = /^(?:[a-z._-]+|[A-Z._-]+)$/
 const MIN_WEAK_FRAGMENT = 12
 /**
  * Windows with quotes, backslashes, commas, brackets or whitespace aren't masked alone: they can
@@ -233,6 +236,8 @@ type Secrets = {
   formRules: Map<string, string>
   /** Every `MIN_FRAGMENT`-character window of the values whose fragments are masked, and its rule. */
   windows: Map<string, string>
+  /** The windows that are weak in every value they're a window of. */
+  weakWindows: Set<string>
   /** Bit `i` is set when some window starts with the two characters that hash to `i`. */
   starts: Uint8Array
 }
@@ -306,19 +311,29 @@ function envSecrets(env: NodeJS.ProcessEnv, also: readonly string[] = []): Secre
   }
   const forms = [...formRules.keys()].sort((a, b) => b.length - a.length)
   const windows = new Map<string, string>()
+  const weakWindows = new Set<string>()
   const starts = new Uint8Array(0x10000)
   for (const value of values) {
     if (!(declared.has(value) ? value.length >= 12 : tokenLike(value))) continue
+    const own: string[] = []
     for (let i = 0; i + MIN_FRAGMENT <= value.length; i++) {
       const window = value.slice(i, i + MIN_FRAGMENT)
-      if (WORDISH.test(window) || STRUCTURAL.test(window)) continue
-      if (!windows.has(window)) windows.set(window, rules.get(value) as string)
+      if (STRUCTURAL.test(window)) continue
+      own.push(window)
       starts[pairHash(value, i)] = 1
+    }
+    const mixed = own.some((w) => !WORDISH.test(w) && !WEAK.test(w))
+    for (const window of own) {
+      const weak = WORDISH.test(window) || (mixed && WEAK.test(window))
+      if (!windows.has(window)) {
+        windows.set(window, rules.get(value) as string)
+        if (weak) weakWindows.add(window)
+      } else if (!weak) weakWindows.delete(window)
     }
   }
   const keyForms = forms.filter((f) => f.length >= MIN_FRAGMENT)
   const shortest = Math.min(MIN_FRAGMENT, ...forms.map((f) => f.length))
-  const secrets = { forms, keyForms, shortest, formRules, windows, starts }
+  const secrets = { forms, keyForms, shortest, formRules, windows, weakWindows, starts }
   cached = { key, secrets }
   return secrets
 }
@@ -330,7 +345,7 @@ function envSecrets(env: NodeJS.ProcessEnv, also: readonly string[] = []): Secre
  */
 function fragmentRanges(
   text: string,
-  { windows, starts }: Secrets,
+  { windows, weakWindows, starts }: Secrets,
 ): Array<[number, number, string, boolean]> {
   const ranges: Array<[number, number, string, boolean]> = []
   if (windows.size === 0) return ranges
@@ -339,7 +354,7 @@ function fragmentRanges(
     const window = text.slice(i, i + MIN_FRAGMENT)
     const rule = windows.get(window)
     if (rule === undefined) continue
-    const strong = !WEAK.test(window)
+    const strong = !weakWindows.has(window)
     const last = ranges.at(-1)
     if (last && i <= last[1]) {
       last[1] = i + MIN_FRAGMENT
@@ -410,7 +425,11 @@ function secretRanges(text: string, secrets: Secrets, forms = secrets.forms): Ra
       last.known ||= range.known
     } else merged.push({ ...range })
   }
-  for (const r of merged) r.known ||= weak.some(([start, end]) => start < r.end && end > r.start)
+  let w = 0
+  for (const r of merged) {
+    while (w < weak.length && (weak[w] as [number, number])[1] <= r.start) w++
+    if (w < weak.length && (weak[w] as [number, number])[0] < r.end) r.known = true
+  }
   return merged
 }
 

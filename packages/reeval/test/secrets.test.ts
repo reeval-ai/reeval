@@ -1067,6 +1067,26 @@ describe('redacting fragments of a secret', () => {
         }
       }
     })
+
+    test('a word inside the prefix joins the stretch around it', () => {
+      const env4 = { MY_TOKEN: 'my-incomprehensible-passphrase-7c1d' }
+      assert.equal(redactSecrets('x y-incomprehensible-p y', env4), 'x [REDACTED] y')
+    })
+  })
+
+  test('a secret that is all words or numbers is masked in short pieces', () => {
+    for (const [secret, text, want] of [
+      [
+        'correct-horse-battery-staple',
+        'correct-ho\nrse-batter\ny-staple',
+        '[REDACTED]\n[REDACTED]\n[REDACTED]',
+      ],
+      ['correct-horse-battery-staple', 'tail=tery-staple', 'tail=[REDACTED]'],
+      ['PROD_DB_MASTER_PASSWORD', 'PROD_DB_MAS\nTER_PASSWORD', '[REDACTED]\n[REDACTED]'],
+      ['4111-2222-3333-4444', 'a=4111-2222-\nb=3333-4444', 'a=[REDACTED]\nb=[REDACTED]'],
+    ]) {
+      assert.equal(redactJsonText(text as string, {}, [secret as string]), want, text)
+    }
   })
 
   test("never breaks a record's JSON: a JSON-valued variable and quoted windows aren't masked alone", () => {
