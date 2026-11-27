@@ -47,11 +47,11 @@ Cursor ⋅ Claude Code ⋅ Codex ⋅ Antigravity ⋅ OpenCode ⋅ Goose ⋅ pi �
 npm i -D reeval
 ```
 
-reeval runs on Node.js 22.16 or later. Real runs also need a sandbox runtime (Docker or Podman) and an API keys for the agents. `npx reeval doctor` checks both and names the fix for anything missing.
+reeval runs on Node.js 22.16 or later. Real runs also need a sandbox runtime (Docker or Podman) and API keys for the agents. `npx reeval doctor` checks both and names the fix for anything missing.
 
 ## Quickstart
 
-Scaffold a config and one eval, then check that reeval loads them:
+Initialize a suite in your repo, run your first trials, and inspect the results in Studio:
 
 ```bash
 npx reeval init
@@ -74,7 +74,7 @@ A coding agent can also follow the [setup skill](skills/setup/SKILL.md).
 To check the plan without starting a sandbox or spending tokens, run `npx reeval run --dry-run`:
 
 ```text
-REEVAL v0.16.1  dry run
+REEVAL v0.31.0  dry run
 
   ➜  Run:       …
   ➜  Agent:     cursor:composer-2.5 (effort: not checked)
@@ -89,64 +89,81 @@ greet  1       —         1     1         capability(1)  effort: cursor:compose
 …
 ```
 
-Then build the agent's sandbox image, add its key, and run it for real:
+### Or set up by hand
+
+This example uses Docker for its sandbox. The [Quickstart](docs/getting-started/quickstart.mdx) lists every requirement and explains each step.
+
+```bash
+npm install -D reeval
+npx reeval init --agent claude-code
+```
+
+Add the keys to `.env.local`, next to `reeval.config.ts`. The Google key is optional: it's for `reeval analyze`, and a run without it still runs the task:
+
+```bash title=".env.local"
+ANTHROPIC_API_KEY=replace-with-anthropic-key
+GOOGLE_GENERATIVE_AI_API_KEY=replace-with-google-key
+```
+
+Build the image the harness runs in, then check Node, Docker, the image, and the keys:
 
 ```bash
 npx reeval image build
-echo 'CURSOR_API_KEY=…' >> .env.local
-npx reeval run
+npx reeval doctor
 ```
-
-Without `--yes`, `init` asks which agent to configure. The starter eval only proves the setup works; the next section is what reeval is for.
 
 ## Measure whether a skill helps
 
-The Vercel AI SDK deprecates `generateObject` in favor of `Output.object`, and agents trained on older code still reach for the old call. This eval measures whether a skill shipped with the SDK fixes that. It runs the same task in two arms, four attempts each: `plain` has no skill, and `with-skill` adds the one in `skills/ai-sdk`.
+The Quickstart writes a page with no styling, then runs it with and without Anthropic's `brand-guidelines` skill. The baseline, `page`, has no skill. The variant, `brand-guidelines`, adds the one from `anthropics/skills`. Both arms get the same prompt and graders, four trials each.
 
-```ts
-// evals/ai-sdk.eval.ts
-import { defineEnvironment, defineEval } from 'reeval';
-import { hasFile } from 'reeval/graders';
+```ts title="evals/environments.ts"
+import { defineEnvironment } from 'reeval'
 
-const plain = defineEnvironment('plain', {});
+export const page = defineEnvironment('page', ({ directory }) => ({
+  files: directory('./project'),
+}))
 
-const withSkill = plain.extendEnvironment('with-skill', ({ skill }) => ({
-  skills: [skill.local('../skills/ai-sdk')],
-}));
+export const withSkill = page.extendEnvironment(
+  'brand-guidelines',
+  ({ skill }) => ({
+    skills: [
+      skill.git('github:anthropics/skills', {
+        ref: 'dbd4588f9e1033efb41dad4bef2f7947c8993d44',
+        path: 'skills',
+        only: ['brand-guidelines'],
+      }),
+    ],
+  }),
+)
+```
+
+```ts title="evals/brand.eval.ts"
+import { defineEval } from 'reeval'
+import { hasFile } from 'reeval/graders'
+import { page, withSkill } from './environments.ts'
 
 export default defineEval({
+  compare: { control: page, variants: [withSkill] },
   runs: 4,
-  compare: { control: plain, variants: [withSkill] },
   graders: [
-    hasFile('triage.ts', { name: 'writes triage.ts' }),
-    hasFile('triage.ts', /Output\.object/, { name: 'uses Output.object' }),
+    hasFile('index.html', /href="styles\.css"/, {
+      name: 'links-styles-css',
+    }),
+    hasFile('styles.css', /#d97757/i, { name: 'brand-orange' }),
+    hasFile('styles.css', /Poppins[\s\S]*Lora|Lora[\s\S]*Poppins/, {
+      name: 'brand-fonts',
+    }),
   ],
   task: async (c) => {
-    await c.send(`
-      Add triage.ts: triageIssue(title, body) uses the ai package to
-      return a typed { labels, priority, duplicateOf }.
-    `);
+    await c.send(
+      "Give index.html Anthropic's look: write styles.css with Anthropic's " +
+        'brand colors and fonts, and link it from index.html.',
+    )
   },
-});
+})
 ```
 
-```text
-$ npx reeval run evals/ai-sdk.eval.ts
-…
-$ npx reeval show
-…
-pass             triages a GitHub issue with the AI SDK
-  arm                 pass
-  plain               0 of 4
-  with-skill          4 of 4  helped
-  check               plain   with-skill
-  uses Output.object  0 of 4  4 of 4
-  +1 more passed
-…
-1 pass
-```
-
-Without the skill, no attempt used `Output.object`; with it, all four did. `helped` means the variant passed more often than the baseline, and `made it worse` less often. When the 95% interval of the difference spans zero (`-v` prints it), the `too-few-tries` remark names the `runs` that would make it hold. `+1 more passed` folds the checks that every arm passed.
+Run it with `npx reeval run brand`. The [Quickstart](docs/getting-started/quickstart.mdx) shows the result block it prints. `helped` means the variant passed more often than the baseline, and `made it worse` less often.
 
 ## Run in CI and inspect runs
 
