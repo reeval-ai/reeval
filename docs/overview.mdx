@@ -1,103 +1,54 @@
 ---
 title: "Overview"
-description: "Evaluate how coding agents discover and use developer tools."
+description: "reeval is an open-source TypeScript evaluation harness that shows where coding agents fail with your SDKs, CLIs, MCP servers, skills, and docs."
 ---
 
-## Introduction
+AI agents are now first-class users of your software. They read your docs, call your APIs, and use your SDKs, CLIs, MCP servers, and skills. When an agent fails with your product, users churn. Deterministic tests check that your software behaves as expected, not that an agent reliably completes a task.
 
-**reeval** is an open-source evaluation runner built for developer tools, including SDKs, CLIs, MCP servers, skills, and documentation.
+**reeval** is an open-source TypeScript evaluation harness, and your evals and results live alongside your code in git.
 
-It runs coding agents inside isolated sandboxes, then grades their output using assertions and LLM judgments. Run identical prompted tasks across a control and a variant (your change) to compare whether it improves or regresses pass rates, tokens, and time.
+reeval tests agents the way they use your product. You write a [task](/reference/glossary#task): the prompt an agent gets, and the graders that check what it leaves behind. reeval runs real coding agents on the task, with each [trial](/reference/glossary#trial) in its own [sandbox](/reference/glossary#sandbox), and each [trajectory](/reference/glossary#trajectory) shows the step where an agent went wrong.
 
-The evaluation is code, committed alongside the tool, skill, or doc you are changing. The result is reproducible evidence you can share in pull requests, docs, or release notes.
-
-Ask a coding agent to set reeval up with the setup skill:
-
-```bash
-npx skills add https://github.com/reeval-ai/reeval --skill setup
-```
-
-To set it up by hand, install reeval:
+Install it and follow the [Quickstart](/getting-started/quickstart):
 
 ```bash
 npm install -D reeval
 ```
 
-<Card title="Quick start" href="/getting-started/quickstart">
-  Set up a project and run a control against a variant.
-</Card>
+Each run pinpoints where and why agents fail, so you can fix your product until agents succeed more reliably, in fewer steps, and at lower cost. The same evals catch regressions as your product and your agents change.
+
+## What you can find out
+
+<CardGroup cols={2}>
+  <Card title="Whether a skill helps" href="/recipes/measure-a-skill">
+    Run one task with and without the skill, and read the lift.
+  </Card>
+  <Card title="Whether docs help" href="/recipes/measure-your-docs">
+    Run one task with and without the docs, and read the effect.
+  </Card>
+  <Card title="Whether an MCP server helps" href="/recipes/measure-mcp-servers">
+    Check that agents call the server's tools, and whether answers improve.
+  </Card>
+  <Card title="Whether agents can use an SDK or CLI" href="/recipes/test-an-sdk">
+    Ask the agent to build with it, then run a hidden check. A CLI works the same way.
+  </Card>
+  <Card title="Whether agents pick your product" href="/recipes/test-recommendations">
+    Prompt for a final state without naming a tool, and judge what the agent picks.
+  </Card>
+  <Card title="Regressions before release" href="/recipes/gate-pull-requests">
+    Fail a pull request when this run regresses against a past run.
+  </Card>
+</CardGroup>
+
+Ranking models on public benchmarks is a different job. See [reeval and Harbor](/competitors/harbor).
 
 ## How reeval works
 
-Agents, environments, and attempts multiply into sandboxes: each attempt of each agent in each environment runs in its own sandbox. Grading reads the workspace in each sandbox. reeval then measures the results, compares them with the control and with past runs, and analyzes them.
+You set up [agents](/reference/glossary#agent), [variants](/reference/glossary#variant) and [trials](/reference/glossary#trial), and reeval multiplies them into [sandboxes](/reference/glossary#sandbox): each trial of each agent on each variant runs in its own sandbox. [Graders](/reference/glossary#grader) read the workspace that each sandbox leaves behind. reeval then measures the results, compares them with the [baseline](/reference/glossary#baseline) and with [past runs](/reference/glossary#past-runs), and [analyzes](/reference/glossary#analysis) them.
 
-<Image
-  theme="light"
-  src="/assets/mental-model-v26-light.png"
-  alt="Agents, environments, and attempts configure the run, and each attempt runs in its own sandbox with the agent, the environment, the task, and a workspace. Grading reads each workspace, and the results are measured, compared with the control and past runs, and analyzed."
-  width={828}
-/>
-<Image
-  theme="dark"
-  src="/assets/mental-model-v26-dark.png"
-  alt="Agents, environments, and attempts configure the run, and each attempt runs in its own sandbox with the agent, the environment, the task, and a workspace. Grading reads each workspace, and the results are measured, compared with the control and past runs, and analyzed."
-  width={828}
-/>
+[Graders](/reference/glossary#grader) check files and commands first, and a [model grader](/reference/glossary#model-grader) judges only what code can't. Each trajectory stays in the [results viewer](/results/inspection/studio).
 
-## Run an evaluation
-
-The following evaluation asks an agent for a page in Anthropic's brand. The control runs without Anthropic's `brand-guidelines` skill, and the variant runs with it. The environments go in one file:
-
-```ts title="evals/environments.ts"
-import { defineEnvironment } from 'reeval'
-
-export const page = defineEnvironment('page', ({ directory }) => ({
-  files: directory('./project'),
-}))
-
-export const withSkill = page.extendEnvironment(
-  'brand-guidelines',
-  ({ skill }) => ({
-    skills: [
-      skill.git('github:anthropics/skills', {
-        ref: 'dbd4588f9e1033efb41dad4bef2f7947c8993d44',
-        path: 'skills',
-        only: ['brand-guidelines'],
-      }),
-    ],
-  }),
-)
-```
-
-The evaluation goes in its own file:
-
-```ts title="evals/brand.eval.ts"
-import { defineEval } from 'reeval'
-import { hasFile } from 'reeval/graders'
-import { page, withSkill } from './environments.ts'
-
-export default defineEval({
-  compare: { control: page, variants: [withSkill] },
-  runs: 4,
-  graders: [
-    hasFile('index.html', /href="styles\.css"/, {
-      name: 'links-styles-css',
-    }),
-    hasFile('styles.css', /#d97757/i, { name: 'brand-orange' }),
-    hasFile('styles.css', /Poppins[\s\S]*Lora|Lora[\s\S]*Poppins/, {
-      name: 'brand-fonts',
-    }),
-  ],
-  task: async (c) => {
-    await c.send(
-      "Give index.html Anthropic's look: write styles.css with Anthropic's " +
-        'brand colors and fonts, and link it from index.html.',
-    )
-  },
-})
-```
-
-The prompt never names the color or the fonts, so those graders pass only when the agent knows them. `reeval run` prints the outcome for each side:
+The brand example in the [Quickstart](/getting-started/quickstart) prints a result like this:
 
 ```text
 └─ · brand  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
@@ -107,64 +58,38 @@ The prompt never names the color or the fonts, so those graders pass only when t
      brand-guidelines  4 of 4  helped
 ```
 
-The variant passed in 4 of 4 attempts and the control in none, so the skill `helped`.
-
-## What you can find out
-
-<CardGroup cols={2}>
-  <Card title="How each agent handles a tool" href="/recipes/compare-harnesses">
-    Run the same task on each agent and compare the results.
-  </Card>
-  <Card title="Which tools agents choose" href="/recipes/test-recommendations">
-    Prompt for an outcome without naming a tool, and judge what the agent picks.
-  </Card>
-  <Card title="Whether an MCP server helps" href="/recipes/measure-mcp-servers">
-    Run one task with and without the server, and read the effect.
-  </Card>
-  <Card title="Whether docs help" href="/recipes/measure-your-docs">
-    Run one task with and without the docs, and read the effect.
-  </Card>
-  <Card title="Whether agents can use an SDK" href="/recipes/test-an-sdk">
-    Ask the agent to build with the SDK, then run a hidden check.
-  </Card>
-  <Card title="Regressions before release" href="/recipes/gate-pull-requests">
-    Fail a pull request when this run regresses against a past run.
-  </Card>
-</CardGroup>
+The [baseline](/reference/glossary#baseline) passed 0 of 4 trials and the [variant](/reference/glossary#variant) passed 4 of 4, so the [statistical lift](/reference/glossary#statistical-lift) reads `helped`. The skill ships with evidence behind it. Run the same comparison on each later change, and a drop in lift shows up before users see it.
 
 ## Explore the docs
+
+### Terms
+
+<Card title="Glossary" href="/reference/glossary">Define each term in a run, its config, and its result.</Card>
 
 ### Configuration
 
 <CardGroup cols={2}>
-  <Card title="Agents" href="/configuration/agents">Pick the harness and model that each evaluation runs on.</Card>
-  <Card title="Environments" href="/configuration/environments">Set the files, skills, rules, and servers each attempt starts with.</Card>
-  <Card title="Attempts" href="/evaluations/runs/running#set-the-attempts">Set how many times each agent runs in each environment.</Card>
-  <Card title="Sandboxes" href="/configuration/sandboxes">Run each attempt in a fresh container on the host.</Card>
+  <Card title="Agents" href="/configuration/agents">Pick the agent harness and model that each run uses.</Card>
+  <Card title="Environments" href="/configuration/environments">Set the files, skills, rules, and servers each trial starts with.</Card>
+  <Card title="Sandboxes" href="/configuration/sandboxes">Choose the container each trial runs in.</Card>
+  <Card title="Gateways" href="/configuration/gateways">Route model calls through a gateway.</Card>
 </CardGroup>
 
-### Evaluation
+### Task
 
 <CardGroup cols={2}>
-  <Card title="Task" href="/evaluations/evaluate">Write the prompt that the agent works on in each attempt.</Card>
-  <Card title="Workspace" href="/results/inspection/debugging#read-the-workspace-and-artifacts">Open the artifacts and the trajectory that an attempt leaves behind.</Card>
-</CardGroup>
-
-<CardGroup cols={3}>
-  <Card title="Assertions" href="/evaluations/grading/assertions">Check the files, commands, and strings that each attempt produces.</Card>
-  <Card title="Judgments" href="/evaluations/grading/judgments">Grade the agent's work with an LLM judge's yes or no.</Card>
-  <Card title="Questions" href="/evaluations/grading/questions">Ask a model what the attempts show when taken together.</Card>
+  <Card title="Evaluate" href="/evaluations/evaluate">Write a task: its prompt, its turns, and its graders.</Card>
+  <Card title="Grading" href="/evaluations/grading/assertions">Check files, commands, and model judgments.</Card>
+  <Card title="Runs" href="/evaluations/runs/running">Run, profile, and record tasks, and run them in CI.</Card>
+  <Card title="Hosted" href="/getting-started/cloud">Run trials off your machine in reeval cloud.</Card>
 </CardGroup>
 
 ### Results
 
 <CardGroup cols={2}>
+  <Card title="Output" href="/results/output">Read the result block that a run prints.</Card>
   <Card title="Measure" href="/results/measure">Read pass rate, tokens, tool calls, turns, cost, and time.</Card>
-  <Card title="Lift" href="/results/compare/lift">See whether the variant did better than the control.</Card>
-  <Card title="Past runs" href="/results/compare/past-runs">Catch regressions by comparing this run with earlier ones.</Card>
+  <Card title="Compare" href="/results/compare/lift">See the statistical lift against a baseline, and past runs.</Card>
   <Card title="Analyze" href="/results/analyze">Explain a run's results with an analysis model.</Card>
+  <Card title="Inspect" href="/results/inspection/studio">Open trajectories and artifacts in the results viewer.</Card>
 </CardGroup>
-
-## Next steps
-
-Install reeval and run a comparison of a control and a variant in [Quick start](/getting-started/quickstart).
