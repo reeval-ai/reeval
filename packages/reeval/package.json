@@ -171,7 +171,7 @@
     "commander": "15.0.0",
     "diff": "9.0.0",
     "get-tsconfig": "4.14.3",
-    "google-auth-library": "^11.3.1",
+    "google-auth-library": "^11.3.4",
     "hono": "4.13.17",
     "ink": "8.0.0",
     "jiti": "2.7.0",
