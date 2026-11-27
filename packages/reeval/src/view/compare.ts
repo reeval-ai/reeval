@@ -6,6 +6,7 @@ import type {
   ScoreSummary,
   StackSummary,
 } from '../history/types.ts'
+import { blocks } from '../target.ts'
 import type { Outcome } from '../types.ts'
 import { gateLabel, rescore } from './gate.ts'
 
@@ -196,7 +197,7 @@ type ComparableEval = Pick<
   HistoryEval,
   'id' | 'fingerprint' | 'outcome' | 'sources' | 'source' | 'revision' | 'cells'
 > &
-  Partial<Pick<HistoryEval, 'cases' | 'lifts' | 'rates' | 'scores' | 'graders'>> & {
+  Partial<Pick<HistoryEval, 'cases' | 'lifts' | 'rates' | 'scores' | 'graders' | 'target'>> & {
     verdict?: 'family'
   }
 
@@ -394,6 +395,7 @@ const caseEvals = (e: ComparableEval): ComparableEval[] =>
     sources: e.sources,
     ...(e.source ? { source: { ...e.source, ...(k.hash ? { case: k.hash } : {}) } } : {}),
     ...(e.revision !== undefined ? { revision: e.revision } : {}),
+    ...(e.target ? { target: e.target } : {}),
     cells: k.cells,
   }))
 
@@ -598,11 +600,18 @@ function casesRow(
   if (graderChanged && from !== out.head) return { ...out, status: 'drift' }
   const caseRegressed = caseRows.some((r) => r.status === 'regressed' && r.verdict !== 'family')
   if ((from === 'pass' && out.head === 'fail') || caseRegressed) {
-    return { ...out, status: 'regressed' }
+    return { ...out, status: flipOf(h, 'regressed') }
   }
-  if (from === 'fail' && out.head === 'pass') return { ...out, status: 'fixed' }
+  if (from === 'fail' && out.head === 'pass') return { ...out, status: flipOf(h, 'fixed') }
   return { ...out, status: out.base === out.head ? 'same' : 'gate' }
 }
+
+/**
+ * A flip between pass and fail, which head's target decides: `same` under a target that can't
+ * fail the run, as `reeval run` counts it report only either way.
+ */
+const flipOf = (h: ComparableEval, status: 'regressed' | 'fixed'): CompareStatus =>
+  h.target && !blocks(h.target) ? 'same' : status
 
 function evalRows(
   baseEvals: readonly ComparableEval[],
@@ -651,8 +660,8 @@ function evalRows(
     const from = gate?.rescored ?? row.base
     if (row.canceled) return { ...row, status: 'drift' }
     if ((graderChanged || graders) && from !== row.head) return { ...row, status: 'drift' }
-    if (from === 'pass' && row.head === 'fail') return { ...row, status: 'regressed' }
-    if (from === 'fail' && row.head === 'pass') return { ...row, status: 'fixed' }
+    if (from === 'pass' && row.head === 'fail') return { ...row, status: flipOf(h, 'regressed') }
+    if (from === 'fail' && row.head === 'pass') return { ...row, status: flipOf(h, 'fixed') }
     return { ...row, status: row.base === row.head ? 'same' : 'gate' }
   })
 }

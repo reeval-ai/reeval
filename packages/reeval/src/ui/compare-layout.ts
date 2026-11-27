@@ -26,7 +26,6 @@ import {
   type CellResult,
   type CheckResult,
   type EvalResult,
-  isStudy,
   type ResultOutcome,
   type SuiteResult,
   type SuiteTally,
@@ -122,7 +121,7 @@ const statusWord = (c: Colors, row: CompareRow): Text => {
   return word ? t(word, c.dim) : t(WORD[row.status], paintStatus(c, row.status))
 }
 
-/** A side's outcome as its row reads it: an ungated eval's pass is `not_gated`, which reads `ran`. */
+/** A side's outcome as its row reads it: a report-only eval's pass or fail is `not_gated`, which reads `ran`. */
 type Shown = ResultOutcome | 'not_gated'
 
 const OUTCOME: Record<Shown, string> = {
@@ -147,10 +146,13 @@ const paintOutcome = (c: Colors, o: Shown): Paint =>
 const sideOutcome = (row: CompareRow, side: 'base' | 'head'): ResultOutcome | null =>
   row.canceled?.includes(side) ? 'canceled' : row[side]
 
-/** One side's outcome as its eval's row in `reeval run` reads it: an ungated eval's pass is `ran`. */
+/**
+ * One side's outcome as `reeval history` marks it: `ran` for a pass or fail under a target that
+ * can't fail the run, which `reeval run` counts as report only.
+ */
 const shownOutcome = (row: CompareRow, side: 'base' | 'head', unit?: Unit): Shown | null => {
   const o = sideOutcome(row, side)
-  return o === 'pass' && isStudy(unit?.result.cells ?? []) ? 'not_gated' : o
+  return (o === 'pass' || o === 'fail') && unit && !unit.result.blocking ? 'not_gated' : o
 }
 
 /** An eval, or one case of an eval with `cases`, as compare rows name it: by its id or case key. */
