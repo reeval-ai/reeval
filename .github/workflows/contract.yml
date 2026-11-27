@@ -45,17 +45,19 @@ jobs:
       # latest leg that names the cursor row (drift.yml's, after a new @cursor/sdk).
       CURSOR_CHECKS: ${{ inputs.harnesses == '' || (inputs.versions == 'latest' && contains(format(',{0},', inputs.harnesses), ',cursor,')) }}
       # The hard cap for this job: the contract on all seventeen rows (contract.test.ts's attemptsFor:
-      # 25 on Antigravity, whose plugins load rules and which sets no effort but has a reasoning
-      # model; 24 on Cursor, the same without one; 23 on Claude Code and Grok Build, whose plugins
-      # don't load rules; 21 on OpenCode, with no hooks or rules; 19 on Goose and pi, with no hooks,
-      # subagents or rules; 18 on Codex and fx, which also set no effort; 15 on the two OpenCode
-      # rows without plugins; 14 on the six Goose and pi rows without plugins or effort), the e2e
-      # (2) on the nine harnesses' own rows, the core contract (4 turns on each of the nine) and the
-      # real-tier fixtures (2 each, 18 of them):
-      # 25 + 24 + 46 + 21 + 38 + 36 + 30 + 84 + 18 + 36 + 36 = 394, plus 5 of headroom. The latest
-      # leg skips the e2e and the core contract (340), so it fits too. Each reserves its attempts in
-      # the ledger first, and fails rather than go over.
-      REEVAL_REAL_ATTEMPT_BUDGET: '399'
+      # 29 on Claude Code, whose plugins don't load rules and which takes every shared option; 27 on
+      # Antigravity, whose plugins load rules and which sets no effort but has a reasoning model,
+      # and on OpenCode, with no hooks or rules; 26 on Cursor, as Antigravity without a reasoning
+      # model; 25 on Grok Build, as Claude Code with instructions alone, and on pi, with no hooks,
+      # subagents or rules; 21 on Goose, as pi with instructions alone, and on Codex, which also
+      # sets no effort and takes instructions and systemPrompt; 20 on fx, as Codex with instructions
+      # alone; 21 on the two OpenCode rows without plugins; 20 on the three pi rows and 16 on the
+      # three Goose rows without plugins or effort), the e2e (2) on the nine harnesses' own rows,
+      # the core contract (4 turns on each of the nine) and the real-tier fixtures (2 each, 18 of
+      # them): 29 + 27 + 27 + 26 + 50 + 21 + 21 + 20 + 42 + 60 + 48 + 18 + 36 + 36 = 461, plus 5 of
+      # headroom. The latest leg skips the e2e and the core contract (407), so it fits too. Each
+      # reserves its attempts in the ledger first, and fails rather than go over.
+      REEVAL_REAL_ATTEMPT_BUDGET: '466'
       REEVAL_REAL_LEDGER: ${{ github.workspace }}/../reeval-real-ledger
       CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
       GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}

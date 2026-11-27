@@ -10,6 +10,10 @@ what it should. The rows are in [`../support/harnesses.ts`](../support/harnesses
 | skill placed where the agent reads it, and used | `skill-proof.txt` holds a code only the skill has | no turn: no proof | the attempt's `context` lists the skill at the harness's path |
 | skill a setup step installed, used and counted | `installed-proof.txt` holds a code only the skill has; the environment has no `skills`, and a setup step copies the skill into every agent's workspace skill directory | no turn: no proof | the environment placed no skill, and `reeval query skill_reads` has the skill for the attempt with `source` `skill-dir` and at least one read |
 | rules read | `codeword.txt` holds a word only the rules have | no turn: no word | — |
+| instructions added to the prompt | on a harness that takes `instructions`, `codeword.txt` holds a word only they have | the same turn without them: no word | the cell id has `[instructions=<hash>]` |
+| system prompt replaced | on a harness that takes `systemPrompt`, `codeword.txt` holds the word only the replacement has, and `notes.txt` changed | the instructions canary | the cell id has `[systemPrompt=<hash>]`, and its first model call (`sent` in `.reeval/debug`) is smaller than the edit-and-run attempt's, which carried the harness's own prompt |
+| tools held to the list | on a harness that takes `tools`, `tools: ['bash']` and the edit-and-run task: `notes.txt` changed | — | the cell id has `[tools=bash]`, and every tool in the trajectory is a `bash` tool in the adapter's catalog |
+| commands held to the list | on a harness that takes `commands`, `tools: ['bash']` and `commands: ['touch allowed.txt']`: of `touch allowed.txt`, `touch denied.txt` and `touch allowed.txt && touch chained.txt`, only `allowed.txt` exists | the same turn without `commands`: `denied.txt` exists | the cell id has `[tools=bash][commands=<hash>]`, and the trajectory has the agent's try at `touch denied.txt` |
 | stdio MCP server started and called | the server logged `tools/call`; the trajectory names `mcp__stamp__house_stamp` | no turn: no call | the environment lists the server ; on a harness with no MCP client, the MCP evals (tagged `mcp`) are left out of its run, and `--dry-run` of them exits 2 naming the eval, harness and server, while a `--dry-run` of an eval without MCP plans |
 | file edited and command run, both in the trajectory | `notes.txt` changed; the trajectory has its edit and a tool whose output is `contract-42` | no turn: unchanged | `changedFiles` has `notes.txt` |
 | every tool call in the adapter's catalog | — | replay's: agy 1.4.3's captures as the adapter before it reported them (`read_file`, `edit_file`, `write_file` as unknown tools) | every attempt's trajectory names only tools in the adapter's `builtinTools` (or `mcp__<server>__<tool>`), and on a CLI whose native events name the tool (Antigravity, Cursor, pi, Goose) every native name is one the adapter maps; the failure names the harness and each unknown tool |
@@ -200,7 +204,7 @@ plugin: {
   agent's own copy for one that installs the plugin itself (Antigravity's `agy plugin install`).
 - `copy`, for such an agent, is where its copy lives (`~/.gemini/config/plugins/probe/`): the
   hermetic check allows the plugin items under it.
-- The row then runs 25 attempts instead of 15 (26 with a `reasoningModel`) (fewer if it leaves hooks, agents or rules out): raise
+- The row then runs 10 more attempts (fewer if it leaves hooks, agents or rules out): raise
   `REEVAL_REAL_ATTEMPT_BUDGET` in `contract.yml` by the difference.
 
 ## Running it
@@ -215,7 +219,7 @@ pnpm test:replay            # the captured streams, key-free
 
 Without `REEVAL_TEST_REAL=1` the real rows skip. With it, a row without its key fails before it starts
 anything, naming the variable it needs: narrow the run with `REEVAL_CONTRACT_HARNESSES=cursor`, which
-picks rows. Each real row is 15 attempts (14 without an `effort`, one more with a `reasoningModel`), 7 of them with one short agent turn, or up to 26 with a
+picks rows. Each real row is 15 attempts (14 without an `effort`, one more with a `reasoningModel`), 7 of them with one short agent turn, plus 2 to 6 for the shared options its harness takes (each option's evals are tagged with it and left out where it can't be enforced), or up to 32 with a
 `plugin` field, at `--concurrency 2`; reeval.config.ts's `budget.attempts` is the hard cap, and in CI a ledger caps the whole job
 (`REEVAL_REAL_ATTEMPT_BUDGET`). `REEVAL_UPDATE_CAPTURES=1` refreshes `../replay/<harness>/` from the run,
 and `REEVAL_UPDATE_FORMATS=1` accepts the formats it saw.

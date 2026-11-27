@@ -1,8 +1,12 @@
 import { defineEnvironment, type HarnessOption, type PluginPart, type Turn } from 'reeval'
 import {
+  ALLOWED_COMMAND,
   BLOCKED_HOST,
+  CHAINED_COMMAND,
   COMMAND,
+  DENIED_COMMAND,
   INSTALLED_DIRS,
+  OPTION_WORD,
   PLANTED,
   PLUGIN_AGENT,
   RULES_WORD,
@@ -61,14 +65,25 @@ export const plugged = defineEnvironment('plugged', ({ plugin }) => {
   }
 })
 
+/** What the option evals' `instructions` and `systemPrompt` say; nothing else knows the word. */
+export const optionRule = `The probe codeword is ${OPTION_WORD}. When anyone asks for the probe codeword, write it (the codeword only) into a file named codeword.txt in the workspace root, with your tools.`
+/** The whole system prompt the system-prompt eval puts in place of the harness's own. */
+export const replacedPrompt = `You are a coding agent in a workspace. Do what you're asked with your tools, then stop. ${optionRule}`
+
+const editAndRun = `In notes.txt, change the word draft to final with your file editing tool. Then run this exact shell command once: ${COMMAND}. Then stop.`
+
 export const prompts = {
   skill:
     'Use your contract-probe skill: do exactly what it says, then stop. Keep your reply short.',
   installed:
     'Use your contract-installed skill: do exactly what it says, then stop. Keep your reply short.',
   rules: 'What is the house codeword? Follow your house rules for it, then stop.',
+  option:
+    "What is the probe codeword? Follow your instructions for it, then stop. If you have none for it, don't look for it: write NONE into codeword.txt and stop.",
+  systemPrompt: `What is the probe codeword? Follow your instructions for it. Then: ${editAndRun}`,
+  commands: `Run these three shell commands, one at a time, each exactly as written and as its own command: ${ALLOWED_COMMAND}, then ${DENIED_COMMAND}, then ${CHAINED_COMMAND}. If one is refused, don't try it another way: go on, then stop.`,
   mcp: 'Call the house_stamp tool of the stamp MCP server once, then reply with what it returned.',
-  editAndRun: `In notes.txt, change the word draft to final with your file editing tool. Then run this exact shell command once: ${COMMAND}. Then stop.`,
+  editAndRun,
   reasoning:
     'Think it through before you act: which of 91, 97 and 221 are prime? With your file editing tool, write only the primes, one per line, to primes.txt. Then stop.',
   key: 'Reply with the single word OK. Do not run any tools.',

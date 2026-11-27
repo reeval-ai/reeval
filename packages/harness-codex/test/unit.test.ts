@@ -92,6 +92,12 @@ test('effort is model_reasoning_effort in the config', () => {
   assert.doesNotMatch(buildCodexConfig({}), /model_reasoning_effort/)
 })
 
+test('systemPrompt is model_instructions_file in the config', () => {
+  const config = buildCodexConfig({ systemPromptFile: '/h/.codex/system-prompt.md' })
+  assert.match(config, /"model_instructions_file" = "\/h\/\.codex\/system-prompt\.md"/)
+  assert.doesNotMatch(buildCodexConfig({}), /model_instructions_file/)
+})
+
 test("the config turns off analytics and plugins, asks for reasoning summaries, and uses reeval's HTTP provider on the key", () => {
   const config = buildCodexConfig({})
   assert.equal(

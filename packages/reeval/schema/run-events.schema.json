@@ -20,6 +20,10 @@
           "description": "Cell id; defaults to `antigravity:<model>`, or `antigravity:<model>[effort=<value>]` when `effort` is set.",
           "type": "string"
         },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
+          "type": "string"
+        },
         "kind": {
           "const": "antigravity"
         },
@@ -1634,7 +1638,7 @@
           "type": "string"
         },
         "harness": {
-          "description": "The harness id: `id` when set, otherwise `<kind>:<model>` (`<kind>` alone without a model), with `[effort=<value>]` appended whenever `effort` is set.",
+          "description": "The harness id: `id` when set, otherwise `<kind>:<model>` (`<kind>` alone without a model), with `[effort=<value>]` appended whenever `effort` is set, then a tag for each shared option set (`[tools=<names>]`, `[commands=<hash>]`, …).",
           "type": "string"
         },
         "key": {
@@ -1830,7 +1834,7 @@
           "type": "string"
         },
         "harness": {
-          "description": "The harness id: `id` when set, otherwise `<kind>:<model>` (`<kind>` alone without a model), with `[effort=<value>]` appended whenever `effort` is set.",
+          "description": "The harness id: `id` when set, otherwise `<kind>:<model>` (`<kind>` alone without a model), with `[effort=<value>]` appended whenever `effort` is set, then a tag for each shared option set (`[tools=<names>]`, `[commands=<hash>]`, …).",
           "type": "string"
         },
         "harnessKind": {
@@ -2023,6 +2027,13 @@
       "description": "Claude Code through `@ai-sdk/harness-claude-code`, made by `claudeCode()`.",
       "type": "object",
       "properties": {
+        "commands": {
+          "description": "The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other. A prefix has no shell operators: Claude Code and pi refuse any command with one, and OpenCode runs a chained command only when each part is allowed. An allowed command still runs what it runs, such as a script the agent wrote.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "effort": {
           "description": "Reasoning effort the Agent SDK `/effort` control takes: `low`, `medium`, `high`, `xhigh` (Extra in the UI) or `max`.",
           "enum": ["high", "low", "max", "medium", "xhigh"]
@@ -2033,6 +2044,10 @@
         },
         "id": {
           "description": "Cell id; defaults to `claude-code:<model>`, or `claude-code:<model>[effort=<value>]` when `effort` is set.",
+          "type": "string"
+        },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
           "type": "string"
         },
         "kind": {
@@ -2065,6 +2080,17 @@
               "type": "string"
             }
           ]
+        },
+        "systemPrompt": {
+          "description": "Replaces the harness's own system prompt. The environment's rules and skills are still added, and OpenCode still adds its sections on the model and its tools.",
+          "type": "string"
+        },
+        "tools": {
+          "description": "The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills and MCP tools stay. OpenCode keeps `write` and `edit` only together.",
+          "type": "array",
+          "items": {
+            "enum": ["bash", "edit", "glob", "grep", "read", "webSearch", "write"]
+          }
         }
       },
       "required": ["kind", "model"]
@@ -2175,6 +2201,10 @@
           "description": "Cell id; defaults to `codex:<model>`, or `codex:<model>[effort=<value>]` when `effort` is set.",
           "type": "string"
         },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
+          "type": "string"
+        },
         "kind": {
           "const": "codex"
         },
@@ -2205,6 +2235,10 @@
               "type": "string"
             }
           ]
+        },
+        "systemPrompt": {
+          "description": "Replaces the harness's own system prompt. The environment's rules and skills are still added, and OpenCode still adds its sections on the model and its tools.",
+          "type": "string"
         }
       },
       "required": ["kind", "model"]
@@ -2431,6 +2465,10 @@
         },
         "id": {
           "description": "Cell id; defaults to `cursor:<model>`, or `cursor:<model>[effort=<value>]` when `effort` is set.",
+          "type": "string"
+        },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
           "type": "string"
         },
         "kind": {
@@ -4540,6 +4578,10 @@
           "description": "Cell id; defaults to `fx:<model>`, or `fx:<model>[effort=<value>]` when `effort` is set.",
           "type": "string"
         },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
+          "type": "string"
+        },
         "kind": {
           "const": "fx"
         },
@@ -4710,6 +4752,10 @@
         },
         "id": {
           "description": "Cell id; defaults to `goose:<model>`, or `goose:<model>[effort=<value>]` when `effort` is set.",
+          "type": "string"
+        },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
           "type": "string"
         },
         "kind": {
@@ -4950,6 +4996,10 @@
         },
         "id": {
           "description": "Cell id; defaults to `grok-build:<model>`, or `grok-build:<model>[effort=<value>]` when `effort` is set.",
+          "type": "string"
+        },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
           "type": "string"
         },
         "kind": {
@@ -5530,6 +5580,13 @@
       "description": "OpenCode through `@reeval/harness-opencode` (`opencode acp`), made by `opencode()`. It runs on any provider whose key OpenCode sends in a header on known hosts, with that provider's key, and reports no usage (its ACP server counts one call).",
       "type": "object",
       "properties": {
+        "commands": {
+          "description": "The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other. A prefix has no shell operators: Claude Code and pi refuse any command with one, and OpenCode runs a chained command only when each part is allowed. An allowed command still runs what it runs, such as a script the agent wrote.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "effort": {
           "description": "Reasoning effort for that provider: `options.reasoningEffort` (OpenAI) or `options.thinking` (Anthropic). Values are whatever that provider takes.",
           "type": "string"
@@ -5540,6 +5597,10 @@
         },
         "id": {
           "description": "Cell id; defaults to `opencode:<model>`, or `opencode:<model>[effort=<value>]` when `effort` is set.",
+          "type": "string"
+        },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
           "type": "string"
         },
         "kind": {
@@ -5572,6 +5633,17 @@
               "type": "string"
             }
           ]
+        },
+        "systemPrompt": {
+          "description": "Replaces the harness's own system prompt. The environment's rules and skills are still added, and OpenCode still adds its sections on the model and its tools.",
+          "type": "string"
+        },
+        "tools": {
+          "description": "The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills and MCP tools stay. OpenCode keeps `write` and `edit` only together.",
+          "type": "array",
+          "items": {
+            "enum": ["bash", "edit", "glob", "grep", "read", "webSearch", "write"]
+          }
         }
       },
       "required": ["kind", "model"]
@@ -5686,6 +5758,13 @@
       "description": "pi through `@reeval/harness-pi` (`pi --mode json` in the sandbox), made by `pi()`. It runs a model on its provider's key and reports each model call's tokens. It takes stdio and HTTP MCP servers, not SSE ones.",
       "type": "object",
       "properties": {
+        "commands": {
+          "description": "The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other. A prefix has no shell operators: Claude Code and pi refuse any command with one, and OpenCode runs a chained command only when each part is allowed. An allowed command still runs what it runs, such as a script the agent wrote.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "effort": {
           "description": "Reasoning effort, passed as pi's `--thinking` (the CLI's name). Values are whatever that flag takes, e.g. `off`, `minimal`, `low`, `medium`, `high`, `xhigh` or `max`.",
           "type": "string"
@@ -5696,6 +5775,10 @@
         },
         "id": {
           "description": "Cell id; defaults to `pi:<model>`, or `pi:<model>[effort=<value>]` when `effort` is set.",
+          "type": "string"
+        },
+        "instructions": {
+          "description": "Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.",
           "type": "string"
         },
         "kind": {
@@ -5728,6 +5811,17 @@
               "type": "string"
             }
           ]
+        },
+        "systemPrompt": {
+          "description": "Replaces the harness's own system prompt. The environment's rules and skills are still added, and OpenCode still adds its sections on the model and its tools.",
+          "type": "string"
+        },
+        "tools": {
+          "description": "The only built-in tools the agent has, by the AI SDK's common names: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `webSearch`. Its other built-in tools are off; skills and MCP tools stay. OpenCode keeps `write` and `edit` only together.",
+          "type": "array",
+          "items": {
+            "enum": ["bash", "edit", "glob", "grep", "read", "write"]
+          }
         }
       },
       "required": ["kind", "model"]

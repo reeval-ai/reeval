@@ -7,12 +7,13 @@ import type { PiMcpServer, PiModelInfo } from '@reeval/harness-pi'
 import type { AgentKind } from './catalog/entry.ts'
 import { providerOf } from './catalog/provider-model.ts'
 import { AgentError } from './errors.ts'
+import type { HarnessOptions } from './options.ts'
 import { vercelApi } from './routes/vercel.ts'
 import { type VertexSettings, vertexRegion } from './routes/vertex.ts'
 import type { PlacedPlugin } from './spec.ts'
 
-/** Which harness a session runs, on which model. */
-export type HarnessSpec =
+/** Which harness a session runs, on which model, with which of the options it enforces. */
+export type HarnessSpec = (
   | {
       kind: 'cursor'
       model: string
@@ -22,12 +23,14 @@ export type HarnessSpec =
     }
   | { kind: 'claude-code'; model: string; effort?: ClaudeCodeEffort }
   | { kind: Exclude<AgentKind, 'cursor' | 'claude-code'>; model: string; effort?: string }
+) &
+  Omit<HarnessOptions, 'model'>
 
 /** The reasoning effort Claude Code's `/effort` control takes. */
 export type ClaudeCodeEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 
 type SpecOf<K extends AgentKind> = Omit<Extract<HarnessSpec, { kind: K }>, 'kind'>
-type Spec = { model: string; effort?: string }
+type Spec = { model: string; effort?: string } & Omit<HarnessOptions, 'model'>
 
 export const cursor = (spec: SpecOf<'cursor'>): HarnessSpec => ({ kind: 'cursor', ...spec })
 export const claudeCode = (spec: SpecOf<'claude-code'>): HarnessSpec => ({
@@ -157,6 +160,24 @@ const servers = <T>(mcpServers: Record<string, unknown> | undefined) =>
 
 const effortOf = (effort: string | undefined) => (effort ? { effort } : {})
 
+const systemPromptOf = ({ systemPrompt }: HarnessSpec) =>
+  systemPrompt !== undefined ? { systemPrompt } : {}
+
+/** `tools` and `commands`, for an adapter that filters them itself. */
+const filtersOf = ({ tools, commands }: HarnessSpec) => ({
+  ...(tools ? { tools } : {}),
+  ...(commands ? { commands } : {}),
+})
+
+/**
+ * The variables the patched Claude Code bridge reads its system prompt and allowed commands
+ * from; it takes them out of the CLI's environment.
+ */
+const claudeBridgeEnv = ({ systemPrompt, commands }: HarnessSpec): Record<string, string> => ({
+  ...(systemPrompt !== undefined ? { REEVAL_SYSTEM_PROMPT: systemPrompt } : {}),
+  ...(commands ? { REEVAL_ALLOWED_COMMANDS: JSON.stringify(commands) } : {}),
+})
+
 const pluginDirs = (plugins: readonly PlacedPlugin[]) =>
   plugins.length ? { plugins: plugins.map(({ name, dir }) => ({ name, dir })) } : {}
 
@@ -186,6 +207,7 @@ export async function catalogAdapter(c: AdapterContext): Promise<HarnessV1> {
           // and flags that can't change between runs.
           CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
           ...vertex,
+          ...claudeBridgeEnv(harness),
         },
       }) as unknown as HarnessV1
     }
@@ -214,6 +236,8 @@ export async function catalogAdapter(c: AdapterContext): Promise<HarnessV1> {
         model,
         ...(vertex ? { vertex } : { vars }),
         ...effortOf(effort),
+        ...systemPromptOf(harness),
+        ...filtersOf(harness),
         ...servers<OpenCodeMcpServer>(mcpServers),
         requireCredentialBrokering: c.requireBrokering ?? true,
       }) as unknown as HarnessV1
@@ -266,6 +290,8 @@ export async function catalogAdapter(c: AdapterContext): Promise<HarnessV1> {
         auth,
         ...source,
         ...effortOf(effort),
+        ...systemPromptOf(harness),
+        ...(filtersOf(harness) as Pick<Parameters<typeof pi.createPi>[0], 'tools' | 'commands'>),
         ...servers<PiMcpServer>(mcpServers),
         requireCredentialBrokering: c.requireBrokering ?? true,
       }) as unknown as HarnessV1
@@ -280,6 +306,7 @@ export async function catalogAdapter(c: AdapterContext): Promise<HarnessV1> {
         auth,
         ...(provider ? { provider } : {}),
         ...effortOf(effort),
+        ...systemPromptOf(harness),
         ...servers<Record<string, unknown>>(mcpServers),
         ...pluginDirs(plugins),
         requireCredentialBrokering: c.requireBrokering ?? true,

@@ -135,6 +135,9 @@ export function observed(
  */
 const INTERACTIVE_TOOLS = ['askUserQuestions']
 
+/** The adapters' names for the tool that loads a skill, which `tools` never turns off. */
+const SKILL_TOOLS = ['Skill', 'skill']
+
 /** The adapter's built-in tools the driver turns off: those of {@link INTERACTIVE_TOOLS} it offers. */
 export function interactiveTools(adapter: HarnessV1): string[] {
   return INTERACTIVE_TOOLS.filter((name) => Object.hasOwn(adapter.builtinTools, name))
@@ -211,6 +214,13 @@ export type StartAgentOptions = {
   /** The workspace the agent works in, relative to the runner's `cwd`. */
   workDir: string
   skills?: ConstructorParameters<typeof HarnessAgent>[0]['skills']
+  /** Added to the harness's own system prompt, the AI SDK's `instructions`. */
+  instructions?: string
+  /**
+   * The only built-in tools, by common name, on an adapter that filters them (the AI SDK's
+   * `activeTools`), its skill tool kept; an adapter that doesn't took them in its settings.
+   */
+  tools?: readonly string[]
   /** Aborting it stops the session starting. */
   signal: AbortSignal
   log: AgentLog
@@ -248,7 +258,12 @@ export async function startAgent(options: StartAgentOptions): Promise<HarnessSes
     }),
     model,
     permissionMode: 'allow-all',
-    ...(off.length ? { inactiveTools: off } : {}),
+    ...(options.instructions !== undefined ? { instructions: options.instructions } : {}),
+    ...(options.tools && adapter.supportsBuiltinToolFiltering
+      ? { activeTools: [...options.tools, ...SKILL_TOOLS.filter((t) => t in adapter.builtinTools)] }
+      : off.length
+        ? { inactiveTools: off }
+        : {}),
     sandboxConfig: { workDir: options.workDir },
     ...(options.skills?.length ? { skills: options.skills } : {}),
   })

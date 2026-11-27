@@ -56,7 +56,7 @@
           "type": "string"
         },
         "harness": {
-          "description": "The harness id: `id` when set, otherwise `<kind>:<model>` (`<kind>` alone without a model), with `[effort=<value>]` appended whenever `effort` is set.",
+          "description": "The harness id: `id` when set, otherwise `<kind>:<model>` (`<kind>` alone without a model), with `[effort=<value>]` appended whenever `effort` is set, then a tag for each shared option set (`[tools=<names>]`, `[commands=<hash>]`, …).",
           "type": "string"
         },
         "key": {

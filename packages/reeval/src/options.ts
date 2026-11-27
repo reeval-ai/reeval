@@ -1,5 +1,6 @@
 // The options cascade shared by the config, profiles, groups and evals, and the cells it expands to.
 
+import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { opencodeModelError } from './agent.ts'
 import { pairFactors } from './compare/pairs.ts'
@@ -71,6 +72,7 @@ import type {
   EvalPlan,
   HarnessDescriptor,
   HarnessEdit,
+  HarnessOptions,
   JudgeOptions,
   PairFactor,
   PinnableKey,
@@ -164,11 +166,29 @@ const PINNABLE: PinnableKey[] = ['agents', 'runs', 'compare']
 
 const ID = /^[A-Za-z0-9._:@+\-=[\]]+$/
 
+const digest = (value: unknown) =>
+  createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0, 8)
+
+/** The shared options in a cell id: `[tools=bash+read]`, the others as a hash of their value. */
+function optionsId(h: HarnessDescriptor): string {
+  const o = h as Partial<HarnessOptions>
+  const set = (list: readonly string[]) => [...new Set(list)].sort()
+  return [
+    ...(o.tools ? [`[tools=${set(o.tools).join('+')}]`] : []),
+    ...(o.commands ? [`[commands=${digest(set(o.commands))}]`] : []),
+    ...(['instructions', 'systemPrompt'] as const).flatMap((key) =>
+      o[key] === undefined ? [] : [`[${key}=${digest(o[key])}]`],
+    ),
+  ].join('')
+}
+
 export function harnessId(h: HarnessDescriptor): string {
   if (h.id) return h.id
   const effort = harnessEffort(h)
-  const suffix = effort ? `[effort=${idPart(effort)}]` : ''
-  if (h.kind === 'fake') return `fake${suffix}`
+  const effortPart = effort ? `[effort=${idPart(effort)}]` : ''
+  // The fake agent takes none of the shared options: its `tools` are its own scripted calls.
+  if (h.kind === 'fake') return `fake${effortPart}`
+  const suffix = `${effortPart}${optionsId(h)}`
   const base = h.model ? `${h.kind}:${idPart(h.model)}` : h.kind
   return `${base}${suffix}`
 }

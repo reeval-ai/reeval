@@ -294,6 +294,7 @@ export const cases: PlanCase[] = [
   { dir: 'fx', name: 'fx', args: [] },
   { dir: 'cursor', name: 'cursor', args: [] },
   { dir: 'effort', name: 'effort', args: [] },
+  { dir: 'harness-options', name: 'harness-options', args: [] },
   { dir: 'default-effort', name: 'no-cursor-key', args: [] },
   {
     dir: 'default-effort',
