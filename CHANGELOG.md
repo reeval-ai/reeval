@@ -1,5 +1,73 @@
 # Changelog
 
+## [0.32.0](https://github.com/reeval-ai/reeval/compare/v0.31.0...v0.32.0) (2026-11-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* rename attempts to trials and control to baseline ([#1157](https://github.com/reeval-ai/reeval/issues/1157))
+* **cli:** rename reeval analyze to reeval explain ([#1155](https://github.com/reeval-ai/reeval/issues/1155))
+* remove metric() and default to capability() ([#1151](https://github.com/reeval-ai/reeval/issues/1151))
+* rename transcript to trajectory ([#1145](https://github.com/reeval-ai/reeval/issues/1145))
+* remove expect and c.judge from the task ([#1140](https://github.com/reeval-ai/reeval/issues/1140))
+* targets replace gate ([#1120](https://github.com/reeval-ai/reeval/issues/1120))
+* **cases:** cases are objects with a required key ([#1108](https://github.com/reeval-ai/reeval/issues/1108))
+* one eval per file with defineEval, and harnesses renamed to agents ([#1106](https://github.com/reeval-ai/reeval/issues/1106))
+* **trace:** export agent traces on OTEL_* and move reeval's own telemetry to REEVAL_OTEL_* ([#1097](https://github.com/reeval-ai/reeval/issues/1097))
+
+### Features
+
+* **attempt:** c.decide ([#1116](https://github.com/reeval-ai/reeval/issues/1116)) ([8b12050](https://github.com/reeval-ai/reeval/commit/8b1205099c9455036b4625f6c7b7664e8a94fccf))
+* **attempt:** EvalError and the attempt's failure ([#1107](https://github.com/reeval-ai/reeval/issues/1107)) ([3964a38](https://github.com/reeval-ai/reeval/commit/3964a38f55d6307a819dfd126fe8b395fcd696a0))
+* **attempt:** keep the trajectory and the final workspace ([#1110](https://github.com/reeval-ai/reeval/issues/1110)) ([1184c9d](https://github.com/reeval-ai/reeval/commit/1184c9d00cfb4d3cf859251a56198538f560d8c5))
+* **cases:** cases are objects with a required key ([#1108](https://github.com/reeval-ai/reeval/issues/1108)) ([cfd4abf](https://github.com/reeval-ai/reeval/commit/cfd4abf18d3d137a0eed209d78958e37991f748d))
+* **cli:** brand-color the home screen mark and share one tagline ([#1082](https://github.com/reeval-ai/reeval/issues/1082)) ([faf0a8f](https://github.com/reeval-ai/reeval/commit/faf0a8fb7c6331cc66b2a011d675cbddbdb9447e))
+* **cli:** export a run as its archive or as ATIF trajectories ([#1109](https://github.com/reeval-ai/reeval/issues/1109)) ([894c18a](https://github.com/reeval-ai/reeval/commit/894c18a2d6f68d4530843b0374e4b51ba29b3d91))
+* **cli:** group reeval --help by command and hide cloud and bundle commands ([#1095](https://github.com/reeval-ai/reeval/issues/1095)) ([7bdf264](https://github.com/reeval-ai/reeval/commit/7bdf264206b1e0d37bd037eb7f9ec7186d47f051))
+* **cli:** reeval regrade ([#1125](https://github.com/reeval-ai/reeval/issues/1125)) ([6fa6cf3](https://github.com/reeval-ai/reeval/commit/6fa6cf369fe46cbf1b1802011d4d488ffb6ef954))
+* **cli:** rename reeval analyze to reeval explain ([#1155](https://github.com/reeval-ai/reeval/issues/1155)) ([34a5032](https://github.com/reeval-ai/reeval/commit/34a5032e975b1005a3c5a59bd51a116763f2b6b7))
+* **cli:** results against each eval's target ([#1123](https://github.com/reeval-ai/reeval/issues/1123)) ([214e9d4](https://github.com/reeval-ai/reeval/commit/214e9d4506ffc15fe98dd021ab65d27e35d6b99b))
+* **cli:** run local runs in the background so they can be detached ([#1096](https://github.com/reeval-ai/reeval/issues/1096)) ([6a2e92c](https://github.com/reeval-ai/reeval/commit/6a2e92cf2976eff2e7f077a3ca67482229478531))
+* **config:** write each attempt's ATIF trajectory with exports: ['atif'] ([#1112](https://github.com/reeval-ai/reeval/issues/1112)) ([a6c01cc](https://github.com/reeval-ai/reeval/commit/a6c01cc013967d6c1660ed3814c563b6a65f5c7c))
+* defineGrader and graders on defineEval ([#1113](https://github.com/reeval-ai/reeval/issues/1113)) ([ea5153c](https://github.com/reeval-ai/reeval/commit/ea5153c6e4d03db89506c98a62398d066ad8b4a9))
+* **graders:** built-in graders in reeval/graders ([#1118](https://github.com/reeval-ai/reeval/issues/1118)) ([366e41d](https://github.com/reeval-ai/reeval/commit/366e41d42f3e0fd11e817ce1bdf58130ff0b9498))
+* **graders:** judge graders ([#1115](https://github.com/reeval-ai/reeval/issues/1115)) ([763c49b](https://github.com/reeval-ai/reeval/commit/763c49bc502af1f2429be3aebc1b58959918e40e))
+* **graders:** sandboxed graders with env and data ([#1119](https://github.com/reeval-ai/reeval/issues/1119)) ([0303e5a](https://github.com/reeval-ai/reeval/commit/0303e5aa8aa154e4681c1ce556d19fb988b3eeaf))
+* **harness:** record each turn's subagents and count their tokens in its usage ([#1098](https://github.com/reeval-ai/reeval/issues/1098)) ([286c1e0](https://github.com/reeval-ai/reeval/commit/286c1e02462819dfeabe3816f95de3532d6499d3))
+* **harness:** shared harness options instructions, systemPrompt, tools and commands ([#1150](https://github.com/reeval-ai/reeval/issues/1150)) ([17ff92d](https://github.com/reeval-ai/reeval/commit/17ff92dc4c185ed8b2e192a4cc07df7c436fbed6))
+* **history:** count each attempt's LLM calls ([#1111](https://github.com/reeval-ai/reeval/issues/1111)) ([1db3cfc](https://github.com/reeval-ai/reeval/commit/1db3cfc28869812dcb2c06c87090ba50a64be402))
+* **judge:** retry a judge grader's provider failure as an infra error ([#1142](https://github.com/reeval-ai/reeval/issues/1142)) ([43152ef](https://github.com/reeval-ai/reeval/commit/43152ef8ba34089b7eb0b524f8876210022754ca))
+* **judge:** show subagents to judges and questions, and list them in reeval query ([#1099](https://github.com/reeval-ai/reeval/issues/1099)) ([2db54e5](https://github.com/reeval-ai/reeval/commit/2db54e5b0c31e35f7b173e54b836792305f341f2))
+* one eval per file with defineEval, and harnesses renamed to agents ([#1106](https://github.com/reeval-ai/reeval/issues/1106)) ([c2b27a0](https://github.com/reeval-ai/reeval/commit/c2b27a051e71d645fb2f44638b18333e42a8d44e))
+* remove expect and c.judge from the task ([#1140](https://github.com/reeval-ai/reeval/issues/1140)) ([29e71e9](https://github.com/reeval-ai/reeval/commit/29e71e971b04571564922b45403555c184658fae))
+* remove metric() and default to capability() ([#1151](https://github.com/reeval-ai/reeval/issues/1151)) ([2fc02a2](https://github.com/reeval-ai/reeval/commit/2fc02a249f91eb81053536b7a7db48474603d9bf))
+* **sandbox:** group a run's docker containers as a compose project ([#1094](https://github.com/reeval-ai/reeval/issues/1094)) ([b0ec06a](https://github.com/reeval-ai/reeval/commit/b0ec06abcb9bfa7b4489b66046476d22dca78344))
+* **sandbox:** name a Boat network policy that blocks a run ([#1156](https://github.com/reeval-ai/reeval/issues/1156)) ([94509e3](https://github.com/reeval-ai/reeval/commit/94509e3bc6595bd95e76b4bc7a68699571a02ccb))
+* **sandbox:** pass /dev/kvm into docker() with devices: ['kvm'] ([#1090](https://github.com/reeval-ai/reeval/issues/1090)) ([78ebb0c](https://github.com/reeval-ai/reeval/commit/78ebb0ca100538611b4a68d9576309d3e311d724))
+* targets replace gate ([#1120](https://github.com/reeval-ai/reeval/issues/1120)) ([abc2506](https://github.com/reeval-ai/reeval/commit/abc2506244a7ae855fe157ff23b9e14905cfda54))
+* **trace:** export agent traces on OTEL_* and move reeval's own telemetry to REEVAL_OTEL_* ([#1097](https://github.com/reeval-ai/reeval/issues/1097)) ([83d155a](https://github.com/reeval-ai/reeval/commit/83d155a423d5f1bd86b3ffa0ea5589c21c669098))
+* **trace:** send each turn's agent spans as it ends ([#1102](https://github.com/reeval-ai/reeval/issues/1102)) ([a5dd6fb](https://github.com/reeval-ai/reeval/commit/a5dd6fb93c606de4b407b07634478561ae14354e))
+* **transcript:** keep tool input and output on file-edit, web-search and web-fetch events ([#1092](https://github.com/reeval-ai/reeval/issues/1092)) ([36e2857](https://github.com/reeval-ai/reeval/commit/36e2857c6e92f2dd4e099ec53488068ea97f31c5))
+* **transcript:** number each transcript event's step from finish-step parts ([#1093](https://github.com/reeval-ai/reeval/issues/1093)) ([1337e75](https://github.com/reeval-ai/reeval/commit/1337e75e14efab309891727e695b1af5977e3698))
+* **transcript:** record the http status and size of claude code's web fetches ([#1089](https://github.com/reeval-ai/reeval/issues/1089)) ([241a24e](https://github.com/reeval-ai/reeval/commit/241a24e9b6efe3f5e6e9de17b16a40ca25563609))
+
+
+### Bug Fixes
+
+* **compare:** read a report-only eval's flip as the same and its outcome as ran ([#1153](https://github.com/reeval-ai/reeval/issues/1153)) ([1884441](https://github.com/reeval-ai/reeval/commit/188444130da6d4b023b12a3c8906df333dfb7808))
+* **history:** mark report-only evals as ran and keep metric out of the plan ([#1152](https://github.com/reeval-ai/reeval/issues/1152)) ([e7a6cf0](https://github.com/reeval-ai/reeval/commit/e7a6cf000507f82f31212a757cd70c9dd5eac736))
+* **redact:** stop masking short word-like stretches of a secret ([#1154](https://github.com/reeval-ai/reeval/issues/1154)) ([bbda9a5](https://github.com/reeval-ai/reeval/commit/bbda9a5b982639dc99cb5f87563a592c3c3789e2))
+* **regrade:** regrade custom graders on attempts with no environment ([#1127](https://github.com/reeval-ai/reeval/issues/1127)) ([61b607d](https://github.com/reeval-ai/reeval/commit/61b607d3998ef8dd4422c35d6509790866ca8bc4))
+* **regrade:** time out a hung grader instead of exiting ([#1141](https://github.com/reeval-ai/reeval/issues/1141)) ([a537340](https://github.com/reeval-ai/reeval/commit/a537340cc56e29c173fca2bb1c5baa6a1230e274))
+* **view:** headline graded evals against their target in the run report ([#1128](https://github.com/reeval-ai/reeval/issues/1128)) ([f8ab488](https://github.com/reeval-ai/reeval/commit/f8ab4889614763b1b619935393fed7096a39ec6d))
+* **view:** read judge and built-in grade kinds in the run report ([#1124](https://github.com/reeval-ai/reeval/issues/1124)) ([befb9db](https://github.com/reeval-ai/reeval/commit/befb9dbd2a60c196adc26bb5499e1ee566d20278))
+
+
+### Code Refactoring
+
+* rename attempts to trials and control to baseline ([#1157](https://github.com/reeval-ai/reeval/issues/1157)) ([dcb68e1](https://github.com/reeval-ai/reeval/commit/dcb68e1f6eef7af4c07654c96a68cb402017415b))
+* rename transcript to trajectory ([#1145](https://github.com/reeval-ai/reeval/issues/1145)) ([b62ce29](https://github.com/reeval-ai/reeval/commit/b62ce296f1132c89a9e62df553eb5ef81a121d12))
+
 ## [0.31.0](https://github.com/reeval-ai/reeval/compare/v0.30.1...v0.31.0) (2026-11-17)
 
 
