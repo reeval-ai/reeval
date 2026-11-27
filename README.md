@@ -59,8 +59,8 @@ REEVAL v0.16.1  dry run
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 trial
   ➜  Est. Time: ~3m 00s (serial)
 
-eval                                    agents     variants  runs  trials  notes
-evals/greet.eval.ts › creates greet.js  1          —         1     1         effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set)
+eval                                    agents  variants  trials  total  notes
+evals/greet.eval.ts › creates greet.js  1       —         1       1      effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set)
 …
 ```
 
@@ -127,7 +127,7 @@ Without the skill, no trial used `Output.object`; with it, all four did. `helped
 
 | Command | Use it for |
 | --- | --- |
-| <code>reeval&nbsp;run&nbsp;--profile&nbsp;pr</code> | A run sized for a pull request. In the config `init` writes, that is one run per cell, no variants, and at most 20 trials. |
+| <code>reeval&nbsp;run&nbsp;--profile&nbsp;pr</code> | A run sized for a pull request. In the config `init` writes, that is one trial per cell, no variants, and at most 20 trials. |
 | <code>reeval&nbsp;compare&nbsp;--fail-on-regression</code> | Diff a run against its nearest recorded ancestor, and exit 1 when an eval regressed. |
 | <code>reeval&nbsp;show&nbsp;--md</code> | One run's results as Markdown, for a job summary or a PR comment. |
 | <code>reeval&nbsp;query</code> | Read-only SQL over every run, or built-in views such as `lift`, `effort`, and `failing_trials`. |

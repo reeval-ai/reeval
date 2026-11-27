@@ -103,8 +103,7 @@ export async function evalFile(
  * One level's options with each harness, sandbox, environment and judge model by its id rather
  * than its object: the cell's other fingerprint parts already cover what they hold, and their
  * objects carry host paths and functions. Some keys hash under older names (`harness` for
- * `agents`, `environment`, `compare.baseline` for `compare.baseline`), so records that hashed
- * them stay comparable.
+ * `agents`, `environment`), so records that hashed them stay comparable.
  */
 function canonicalOptions(options: EvalOptions): Record<string, unknown> {
   const out: Record<string, unknown> = {}
@@ -123,12 +122,11 @@ function canonicalOptions(options: EvalOptions): Record<string, unknown> {
   return out
 }
 
-/** `compare` with `baseline` hashed as `baseline` and `agents` as `harness`. */
+/** `compare` with `agents` hashed as `harness`. */
 function compareForm(compare: Record<string, unknown>): Record<string, unknown> {
-  const { baseline, agents, ...rest } = compare
+  const { agents, ...rest } = compare
   return {
     ...rest,
-    ...(baseline !== undefined ? { baseline: baseline } : {}),
     ...(agents !== undefined
       ? { harness: Array.isArray(agents) ? agents.map(harnessForm) : agents }
       : {}),

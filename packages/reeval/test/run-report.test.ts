@@ -488,6 +488,24 @@ describe('readableRunReport', () => {
     assert.equal(choose?.headline.primary.kind, 'measure')
   })
 
+  test("reads a version 4 report's links to its trials as the anchors the renderer writes", () => {
+    const file = corpusEntries()
+      .find((e) => e.name === 'before-llm-calls')
+      ?.runs.at(-1)
+      ?.file.replace(/\.json$/, '/report.json')
+    assert.ok(file)
+    const text = readFileSync(file, 'utf8')
+    assert.match(text, /"href": "#attempt-/)
+    const read = JSON.stringify(readableRunReport(JSON.parse(text)))
+    assert.doesNotMatch(read, /#attempt-/)
+    const markdown = runReportMarkdown(readableRunReport(JSON.parse(text)))
+    const ids = [...read.matchAll(/"href":"#(trial-[^"]+)"/g)].map((m) => m[1])
+    assert.ok(ids.length > 0)
+    for (const id of ids) {
+      assert.ok(markdown.includes(`<a id="${id}">`), `${id} is an anchor in the markdown`)
+    }
+  })
+
   test('refuses a report from a newer reeval', () => {
     const newer = { ...golden(), reportVersion: REPORT_VERSION + 1 }
     assert.throws(() => readableRunReport(newer), NewerSchemaError)

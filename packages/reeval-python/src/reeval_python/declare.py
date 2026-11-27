@@ -25,7 +25,7 @@ from reeval_python.options import CaseOptions, EvalOptions
 from reeval_python.wire import options_to_wire
 
 if TYPE_CHECKING:
-    from reeval_python.context import TrialContext, SyncTrialContext
+    from reeval_python.context import SyncTrialContext, TrialContext
 
 Mode = w.DeclaredMode
 

@@ -95,8 +95,13 @@ export function remarkId(kind: Remark['kind'], evalId: string, entry: EvalEntry,
         : entry.sources.map((s) => [s.path, s.sha256]),
     ),
   )
-  return sha256(JSON.stringify([kind, evalId, sources, ...(extra ? [extra] : [])]))
+  return sha256(
+    JSON.stringify([HASHED_AS[kind] ?? kind, evalId, sources, ...(extra ? [extra] : [])]),
+  )
 }
+
+/** Kinds hashed under the name older remarks files recorded them by, so a remark keeps its id. */
+const HASHED_AS: Partial<Record<Remark['kind'], string>> = { 'too-few-trials': 'too-few-tries' }
 
 const trials = (n: number) => `${n} ${n === 1 ? 'trial' : 'trials'}`
 const capital = (s: string) => `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`

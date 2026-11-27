@@ -1,6 +1,6 @@
 """Python eval authoring API for reeval (*.eval.py)."""
 
-from reeval_python.context import TrialContext, SyncTrialContext
+from reeval_python.context import SyncTrialContext, TrialContext
 from reeval_python.declare import evaluate, group, todo
 from reeval_python.environment import (
     DEFAULT_EGRESS_ALLOW,

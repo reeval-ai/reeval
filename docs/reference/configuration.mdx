@@ -54,7 +54,7 @@ The callback form of the `defineConfig()` function receives one `ConfigHelpers` 
 ```ts title="reeval.config.ts"
 // ...
 export default defineConfig(({ secret, ci, profile }) => ({
-  runs: ci ? 1 : 4,
+  trials: ci ? 1 : 4,
   record: profile === 'nightly' ? 'always' : 'ci',
   env: {
     GITHUB_TOKEN: secret.fromEnv('GITHUB_TOKEN', {

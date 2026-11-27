@@ -29,8 +29,8 @@ times, the graders score each trial, and the question pairs Claude Code's trials
 Codex's run by run:
 
 ```text
-eval                 agents  variants  runs  trials  target         notes
-with-compare-agents  2       1         4     12        capability(1)  runs 4 (compare default)
+eval                 agents  variants  trials  total  target         notes
+with-compare-agents  2       1         4       12     capability(1)  trials 4 (compare default)
   grader 1/2  succeeded:node --test · built-in · weight 1
   grader 2/2  has-file:src/math.js · built-in · weight 1
   question 1/1  Which multiply() is easier to read? · after the run · shows diff · agent · 4 pairs · anthropic/claude-sonnet-5

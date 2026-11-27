@@ -43,9 +43,9 @@ adds-subtract.eval.ts
 Under a profile, the profile's agents replace the eval's, and the plan notes it:
 
 ```text
-eval           agents  variants  runs  trials  target         notes
-adds-multiply  1       —         1     1         capability(1)  agents set by profile claude-code
-adds-subtract  1       —         1     1         capability(1)  agents set by profile claude-code
+eval           agents  variants  trials  total  target         notes
+adds-multiply  1       —         1       1      capability(1)  agents set by profile claude-code
+adds-subtract  1       —         1       1      capability(1)  agents set by profile claude-code
 ```
 
 `{ only: 'fake-quick' }` keeps inherited harnesses by id. Every id must be inherited, so it suits

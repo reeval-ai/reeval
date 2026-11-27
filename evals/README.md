@@ -28,7 +28,7 @@ channel to learn it from and four authoring tasks, and compares the channels:
 |---|---|---|
 | `judge.eval.ts` | A CLI and a fake-agent config | The eval it writes typechecks, plans, passes on the fake agent, has a judge grader named `explains-usage` and fails the run on a miss |
 | `compare.eval.ts` | An eval that screenshots a page | The plan has 2 cells, 4 trials and a pairwise question that sees the screenshot |
-| `fix-config.eval.ts` | A config with four mistakes | `--dry-run` plans 2 cells × 3 runs, `reeval run` passes, `docs/` untouched |
+| `fix-config.eval.ts` | A config with four mistakes | `--dry-run` plans 2 cells × 3 trials, `reeval run` passes, `docs/` untouched |
 | `debug.eval.ts` | A run whose grader is wrong | The fixed eval passes, keeps the grader, and the answer names it |
 
 Every environment passed every task on Cursor (`composer-2.5`), so the difference is in effort. The
@@ -213,7 +213,7 @@ After, `failures` answers "is this failure new" in one call:
            effort: tools 2 vs 10 (×0.20), agent 9.9s vs 39s (×0.25), tokens 136k vs 421k (×0.32): too few trials to test
 ```
 
-With 2 runs a cell, no single cell's effort difference is significant. The direction holds,
+With 2 trials a cell, no single cell's effort difference is significant. The direction holds,
 though: after the fixes, the MCP side used fewer tokens in 15 of 16 history cells across both
 harnesses, against 4 of 8 before. Pass rates barely move, since both sides nearly always get
 there.

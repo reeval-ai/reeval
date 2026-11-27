@@ -679,7 +679,7 @@ For more information about environments, see [Define an environment](/configurat
 <Property name="trials" type="number | { bestOf: number }" optional>
   A whole number of at least 1, or `{ bestOf: n }` with `n` odd and at least 3, which stops each cell once trials that reach the target's threshold, or those that don't, have a majority of `n` and gates on that majority. `bestOf` is refused on an evaluation with `compare`. `--trials` replaces it after a profile `limit`, pinned or not.
 
-  Unset at every level, an evaluation with `compare` variants runs 4 a cell, the fewest a side a lift verdict needs, and the plan notes `runs 4 (compare default)`. Anything else runs once. That includes an evaluation with two or more `cases` and a `compare`, whose lift pairs cases rather than runs, so more cases add power; the plan notes `runs 1 a case (compare with cases: the lift pairs cases)`.
+  Unset at every level, an evaluation with `compare` variants runs 4 a cell, the fewest a side a lift verdict needs, and the plan notes `trials 4 (compare default)`. Anything else runs once. That includes an evaluation with two or more `cases` and a `compare`, whose lift pairs cases rather than trials, so more cases add power; the plan notes `trials 1 a case (compare with cases: the lift pairs cases)`.
 </Property>
 
 ## `target`

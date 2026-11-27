@@ -16,8 +16,8 @@ from typing import Any
 import pytest
 
 from reeval_python import (
-    TrialContext,
     BuiltinGrader,
+    TrialContext,
     define_environment,
     docker,
     evaluate,

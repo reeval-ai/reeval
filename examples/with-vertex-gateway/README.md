@@ -50,8 +50,8 @@ A model the project can't call there gets the fix: enable it in Model Garden, or
 another region with `vertex({ regions: { anthropic: '<region>' } })`.
 
 ```text
-eval                 agents  variants  runs  trials  target         notes
-with-vertex-gateway  1       —         1     1         capability(1)  gateway: claude-code:claude-sonnet-5-5 → vertex
+eval                 agents  variants  trials  total  target         notes
+with-vertex-gateway  1       —         1       1      capability(1)  gateway: claude-code:claude-sonnet-5-5 → vertex
 ```
 
 Claude ids are the same on Vertex as on Anthropic's API, so the same string works with `direct()`

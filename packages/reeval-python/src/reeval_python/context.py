@@ -10,11 +10,11 @@ from datetime import timedelta
 from typing import Any, Literal, TypeVar, cast, overload
 
 from reeval_python._wire import (
+    DecideStatePart,
+    DecideStatePartInputs,
     TrialCall,
     TrialCallDecide,
     TrialCallExec,
-    DecideStatePart,
-    DecideStatePartInputs,
 )
 from reeval_python.errors import ReevalCallError
 from reeval_python.types import BackgroundHandle, Decision, ExecResult, Turn

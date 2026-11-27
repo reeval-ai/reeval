@@ -152,7 +152,7 @@ export const MIGRATIONS: Partial<Record<ShapeName, Record<number, (value: never)
       reportVersion: 4,
     }),
     4: (report: object) => ({
-      ...revalued(renamed(report, REPORT_TRIALS, trialKey), REPORT_TRIAL_VALUES),
+      ...trialHrefs(revalued(renamed(report, REPORT_TRIALS, trialKey), REPORT_TRIAL_VALUES)),
       reportVersion: 5,
     }),
   },
@@ -352,6 +352,22 @@ function revalued<T extends object>(value: T, paths: string[]): T {
       const v = parent[key]
       if (typeof v === 'string' && v in TRIAL_VALUES) parent[key] = TRIAL_VALUES[v]
     })
+  }
+  return value
+}
+
+/** Points every `href` at a trial's anchor as `trialAnchorId` names it, at any depth. */
+function trialHrefs<T>(value: T): T {
+  if (Array.isArray(value)) {
+    for (const v of value) trialHrefs(v)
+  } else if (isObject(value)) {
+    for (const [k, v] of Object.entries(value)) {
+      if (k === 'href' && typeof v === 'string' && v.startsWith('#attempt-')) {
+        value[k] = `#trial-${v.slice('#attempt-'.length)}`
+      } else {
+        trialHrefs(v)
+      }
+    }
   }
   return value
 }

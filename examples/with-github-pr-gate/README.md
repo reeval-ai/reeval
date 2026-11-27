@@ -44,8 +44,8 @@ REEVAL v0.31.0  dry run
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 trial (budget: 20 ✓)
   ➜  Est. Time: ~3m 00s (serial)
 
-eval                 agents  variants  runs  trials  target         notes
-with-github-pr-gate  1       —         1     1         regression(1)
+eval                 agents  variants  trials  total  target         notes
+with-github-pr-gate  1       —         1       1      regression(1)
   grader 1/2  has-file:src/math.js · built-in · weight 1
   grader 2/2  succeeded:node --test · built-in · weight 1
 images  1 sandbox image: 1 ready

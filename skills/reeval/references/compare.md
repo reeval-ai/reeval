@@ -16,12 +16,12 @@ both sides: the baseline is what each variant is measured against, and `baseline
 Each variant runs as that environment on its own, with the same prompt and checks. `compare`
 does not layer, inherit or extend. Share setup first (the example is in SKILL.md).
 
-- Trials = evals × harnesses × (1 baseline + variants) × runs. The example is 1 eval, 2 cells
+- Trials = evals × harnesses × (1 baseline + variants) × trials per cell. The example is 1 eval, 2 cells
   (`<harness>/plain/<sandbox>` baseline, `<harness>/house-style/<sandbox>` variant), 8 trials.
 - With `trials` unset at every level, a compare with variants runs 4 a cell, the fewest trials a
-  side a lift verdict needs (the plan notes `runs 4 (compare default)`); anything else runs once,
+  side a lift verdict needs (the plan notes `trials 4 (compare default)`); anything else runs once,
   including a compare with two or more `cases`: its lift pairs cases, so add cases rather than
-  runs (the plan notes `runs 1 a case`).
+  trials (the plan notes `trials 1 a case`).
   Any level that sets `trials`, `trials: 1` and `--trials` included, replaces it, and a profile's
   `limit.trials` caps it. A compare with `cases` runs each case once: its lift pools over the cases.
   Don't set `trials: 1` in the config unless you mean every compare to run once.
@@ -39,7 +39,7 @@ does not layer, inherit or extend. Share setup first (the example is in SKILL.md
 
 - Only variant cells gate, by the eval's `target`. A baseline's misses
   show in its environment's count (`plain  0 of 2`) and never fail the run. `compare.agents: [cursor({ model: 'composer-2.5' })]` compares on some harnesses only.
-- With `runs > 1` and `target: regression()`, a cell passes only if every counted trial passes
+- With `trials > 1` and `target: regression()`, a cell passes only if every counted trial passes
   (pass^k), and the default `capability()` passes when one does (pass@k) and only reports. `minLift` needs a target
   that can fail the run. Infra errors don't count; a cell is `infra_error`
   only when nothing counted.

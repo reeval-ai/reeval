@@ -7,7 +7,7 @@ reeval's word in code and messages.
 |---|---|
 | eval (`defineEval`, one file) | task, test case |
 | case (an item of `cases`) | sample, example, instance |
-| trial (one run of a cell; `runs: n`) | trial (Anthropic, Harbor), epoch (Inspect), repetition |
+| trial (one run of a cell; `trials: n`) | trial (Anthropic, Harbor), epoch (Inspect), repetition |
 | harness (`cursor()`, …) | agent harness, scaffold, solver (reeval itself is the *evaluation* harness) |
 | cell (harness × environment × sandbox) | a factorial-design cell |
 | baseline, variant | baseline, treatment |

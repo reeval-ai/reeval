@@ -22,9 +22,9 @@ from pathlib import Path
 from typing import Any, BinaryIO, TextIO, cast
 
 from reeval_python._wire import TrialCall
-from reeval_python.context import TrialContext, SyncTrialContext, track_calls, unawaited
+from reeval_python.context import SyncTrialContext, TrialContext, track_calls, unawaited
 from reeval_python.declare import collect_eval_file, get_body, is_async
-from reeval_python.errors import TrialAborted, EvalError, ReevalCallError
+from reeval_python.errors import EvalError, ReevalCallError, TrialAborted
 
 RUNNER_PROTOCOL = 3
 

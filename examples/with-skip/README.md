@@ -29,10 +29,10 @@ one profile you need.
 no trials, with its reason in the notes:
 
 ```text
-eval           agents  variants  runs  trials  target         notes
-adds-divide    0       —         2     0         capability(1)  skipped: divide by zero isn't specified yet
-adds-multiply  1       —         2     2         capability(1)
-adds-subtract  1       —         1     1         capability(1)
+eval           agents  variants  trials  total  target         notes
+adds-divide    0       —         2       0      capability(1)  skipped: divide by zero isn't specified yet
+adds-multiply  1       —         2       2      capability(1)
+adds-subtract  1       —         1       1      capability(1)
 ```
 
 The default target, `capability()`, passes a cell when one of its runs passes and only reports;

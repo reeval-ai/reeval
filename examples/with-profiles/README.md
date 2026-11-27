@@ -42,8 +42,8 @@ REEVAL v0.31.0  dry run
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 2 trials
   ➜  Est. Time: ~207ms (concurrency: 4) · ~413ms (serial)
 
-eval           agents  variants  runs  trials  target         notes
-with-profiles  1       —         2     2         capability(1)
+eval           agents  variants  trials  total  target         notes
+with-profiles  1       —         2       2      capability(1)
   grader 1/2  has-file:src/math.js · built-in · weight 1
   grader 2/2  succeeded:node --test · built-in · weight 1
 
@@ -56,8 +56,8 @@ REEVAL v0.31.0  dry run
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 trial (budget: 10 ✓)
   ➜  Est. Time: ~207ms (serial)
 
-eval           agents  variants  runs  trials  target         notes
-with-profiles  1       —         1     1         capability(1)  runs 2 → 1 (profile pr)
+eval           agents  variants  trials  total  target         notes
+with-profiles  1       —         1       1      capability(1)  trials 2 → 1 (profile pr)
   grader 1/2  has-file:src/math.js · built-in · weight 1
   grader 2/2  succeeded:node --test · built-in · weight 1
 
@@ -70,8 +70,8 @@ REEVAL v0.31.0  dry run
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 4 trials (budget: 2h)
   ➜  Est. Time: ~207ms (concurrency: 4) · ~826ms (serial)
 
-eval           agents  variants  runs  trials  target         notes
-with-profiles  1       —         4     4         capability(1)
+eval           agents  variants  trials  total  target         notes
+with-profiles  1       —         4       4      capability(1)
   grader 1/2  has-file:src/math.js · built-in · weight 1
   grader 2/2  succeeded:node --test · built-in · weight 1
 ```

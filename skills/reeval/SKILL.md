@@ -35,9 +35,9 @@ compare a skill, fix a config, read a failure. Read a reference file when the ta
 | [../eval-rubric/SKILL.md](../eval-rubric/SKILL.md) | A `Worth knowing:` list after a run, or reviewing an eval's name, prompts and judge questions: one section per remark kind, with its fix |
 
 Use reeval's terms in code and messages: eval (`defineEval`), trial (one run of a cell;
-`runs: n`), harness (`cursor()`, …), cell (harness × environment × sandbox), baseline and variant,
+`trials: n`), harness (`cursor()`, …), cell (harness × environment × sandbox), baseline and variant,
 lift (variant mean score − baseline mean score, 95% interval), target, graders and judge, trajectory, effort
-(measured tool calls, agent time, tokens). Not "trial" or "baseline/treatment";
+(measured tool calls, agent time, tokens). Not "attempt" or "control/treatment";
 [references/vocabulary.md](references/vocabulary.md) maps other frameworks' words to these.
 
 ## Workflow
@@ -101,7 +101,7 @@ export default defineConfig({
   agents: cursor({ model: 'composer-2.5' }), // model required; CURSOR_API_KEY
   // no default judge model; pin versions
   judge: { model: 'typesafe-ai/jev-1.14.0', threshold: 0.8 },
-  // runs: trials per cell; unset, 1, or 4 for a compare with variants
+  // trials per cell; unset, 1, or 4 for a compare with variants
   timeout: '15m',                             // per trial
 })
 ```
@@ -130,7 +130,7 @@ export default defineConfig({
 - `defineConfig` and each eval's `defineEval` take the same options (`agents`, `sandbox`,
   `environment`, `env`, `judge`, `trials`, `target`, `timeout`, `tags`, …); profile `defaults` apply
   first unless the eval sets `pin`. Options are plain objects, never functions. Unknown
-  keys are errors with a hint (`repeat` → "Did you mean runs?"), and type errors in a
+  keys are errors with a hint (`repeat` → "Did you mean trials?"), and type errors in a
   `defineConfig` object.
 - `trials: { bestOf: 5 }` (odd, 3 or more) stops each cell once trials that reach the target's
   threshold, or those that don't, have a majority (3 to 5 trials) and gates on it. Use it to settle a flaky pass/fail for less than a
@@ -285,7 +285,7 @@ export default defineEval({
   `mcp: { docs: mcp.stdio('npx', ['-y', '@acme/docs-mcp@1.0.0']) }`,
   `setup: [{ run: 'npm ci', timeout: '5m' }]`. More in
   [references/environments.md](references/environments.md).
-- Trials = evals × agents × (1 baseline + variants) × runs. The example is 1 eval, 2 cells
+- Trials = evals × agents × (1 baseline + variants) × trials per cell. The example is 1 eval, 2 cells
   (`<harness>/plain/<sandbox>` baseline, `<harness>/house-style/<sandbox>` variant), 8 trials:
   without `trials`, a compare runs 4 a cell, the fewest whose lift often holds (with `cases`, once a
   case: the lift pairs cases). A `trials` below 4 shows

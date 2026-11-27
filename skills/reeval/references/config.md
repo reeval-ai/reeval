@@ -143,4 +143,4 @@ ids as `anthropic/…`, never `openrouter/…` or `vercel/…`.
 | `compare` | Groups and evals only |
 
 Options are plain objects, never functions. Unknown keys are errors with a hint (`repeat` → "Did
-you mean runs?").
+you mean trials?").

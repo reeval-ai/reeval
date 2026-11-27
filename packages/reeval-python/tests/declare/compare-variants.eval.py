@@ -5,7 +5,9 @@ skilled = base.extend("skilled", {"env": {"MODE": "skilled"}})
 terse = base.extend("terse", {"env": {"MODE": "terse"}})
 
 
-@evaluate("baseline and two variants", {"compare": {"baseline": base, "variants": [skilled, terse]}})
+@evaluate(
+    "baseline and two variants", {"compare": {"baseline": base, "variants": [skilled, terse]}}
+)
 async def baseline_and_two(c): ...
 
 
