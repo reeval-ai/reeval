@@ -1,10 +1,10 @@
 import { basename } from 'node:path'
 import {
-  type TrialContext,
   defineGrader,
   type EvalSpec,
   type GraderContext,
   type JSONValue,
+  type TrialContext,
 } from 'reeval'
 import { notInDiff, observed, succeeded } from 'reeval/graders'
 import { brokenProject } from './environments.ts'

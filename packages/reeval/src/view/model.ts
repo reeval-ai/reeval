@@ -1,11 +1,11 @@
 import { sampleReasons } from '../compare/pairs.ts'
 import type {
-  TrialRecord,
   CellRecord,
   EvalEntry,
   HistoryCell,
   HistoryEntry,
   RunRecord,
+  TrialRecord,
 } from '../history/types.ts'
 import { blocks } from '../target.ts'
 import { plural } from '../text.ts'
@@ -673,8 +673,7 @@ export function trajectoryItems(lines: TrajectoryLine[]): TrajectoryItem[] {
 export const findEval = (record: Pick<RunRecord, 'evals'>, slug: string) =>
   record.evals.find((e) => e.slug === slug)
 
-export const findTrial = (e: EvalEntry, trialId: string) =>
-  e.trials.find((a) => a.id === trialId)
+export const findTrial = (e: EvalEntry, trialId: string) => e.trials.find((a) => a.id === trialId)
 
 /** The trial to open by default: the first failure, else the first trial. */
 export const defaultTrial = (e: EvalEntry) =>

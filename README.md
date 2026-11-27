@@ -121,7 +121,7 @@ pass             triages a GitHub issue with the AI SDK
 1 pass
 ```
 
-Without the skill, no trial used `Output.object`; with it, all four did. `helped` means the variant passed more often than the baseline, and `made it worse` less often. When the 95% interval of the difference spans zero (`-v` prints it), the `too-few-tries` remark names the `trials` that would make it hold. `+1 more passed` folds the checks that every environment passed.
+Without the skill, no trial used `Output.object`; with it, all four did. `helped` means the variant passed more often than the baseline, and `made it worse` less often. When the 95% interval of the difference spans zero (`-v` prints it), the `too-few-trials` remark names the `trials` that would make it hold. `+1 more passed` folds the checks that every environment passed.
 
 ## Run in CI and inspect runs
 

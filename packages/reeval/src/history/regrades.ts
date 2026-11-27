@@ -4,7 +4,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { trialScore, scoreFailure } from '../grade/run.ts'
+import { scoreFailure, trialScore } from '../grade/run.ts'
 import { randomSuffix } from '../ids.ts'
 import { redactSecrets } from '../redact.ts'
 import { thresholdOf } from '../target.ts'

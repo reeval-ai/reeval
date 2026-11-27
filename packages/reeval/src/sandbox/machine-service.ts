@@ -5,7 +5,7 @@
 // a worker, from pools in its own process) and gives it back when its trial is done.
 import { backstops } from '../engine/backstop.ts'
 import { callService } from '../scheduler/services.ts'
-import { trialSpan, emitSpan, openSpan } from '../trace/spans.ts'
+import { emitSpan, openSpan, trialSpan } from '../trace/spans.ts'
 import type { MachineDescriptor } from './machine.ts'
 import { MACHINE_PROVIDERS } from './machines.ts'
 import { type GoneMachine, type LeaseFacts, MachinePool, type PoolLease } from './pool.ts'

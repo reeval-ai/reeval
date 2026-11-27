@@ -3,8 +3,8 @@
 // kind's name, so a new kind is one more entry. A kind whose trials each run on a machine of
 // their own is a MachineProvider (machines.ts), whose entry kindOf() derives.
 import { DOCKER_EGRESS, type EgressCapabilities } from '@reeval/sandbox-docker'
-import type { ListenerSource } from '../trial/serve.ts'
 import type { Check, DoctorDeps } from '../doctor.ts'
+import type { ListenerSource } from '../trial/serve.ts'
 import type {
   DockerSandboxDescriptor,
   FakeSandboxDescriptor,

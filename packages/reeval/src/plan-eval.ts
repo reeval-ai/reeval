@@ -2,7 +2,7 @@
 // matrix, the egress, MCP and plugin refusals, and each trial's gate. Pure but for reading local
 // plugins: whoever declared the eval (an eval file's `evaluate`, or a declaration tree) registers
 // what it returns.
-import { type TrialSpec, setupAllowance } from './trial/index.ts'
+
 import type { DeclaredFamily, DeclaredSource } from './declaration.ts'
 import { MAX_TIMER_MS, parseDuration } from './duration.ts'
 import { allowedHosts, unenforceable } from './egress.ts'
@@ -30,7 +30,7 @@ import { vercelBaseUrl, vercelBaseUrlProblem, vercelCredentialProblem } from './
 import { type VertexSettings, vertexSettings } from './gateway/vertex.ts'
 import { refusedMcp, refusedPlugins, refusedSharedMachine } from './harness/agents.ts'
 import { withDefaultEffort } from './harness/default-effort.ts'
-import { trialId, trialKey, evalId, relativeFile } from './ids.ts'
+import { evalId, relativeFile, trialId, trialKey } from './ids.ts'
 import {
   brokeredIn,
   type Cascading,
@@ -47,10 +47,10 @@ import {
   plainHeaderError,
   plainHeaders,
   type ResolvedEval,
-  trialsOf,
   sandboxProvider,
   sandboxSetBy,
   secretVarsIn,
+  trialsOf,
   unbrokered,
   unbrokeredError,
 } from './options.ts'
@@ -59,8 +59,8 @@ import { place, type Target } from './sandbox/place.ts'
 import type { Limits } from './scheduler/core.ts'
 import { startEnv } from './startup.ts'
 import { baselineTraitKeys, filtersLabel, pickTraits, traitFilters } from './traits.ts'
+import { setupAllowance, type TrialSpec } from './trial/index.ts'
 import type {
-  TrialMeta,
   EnvVars,
   EvalOptions,
   EvalSource,
@@ -70,6 +70,7 @@ import type {
   ResolvedGateway,
   RunContext,
   TraitFilter,
+  TrialMeta,
 } from './types.ts'
 import { type CaseWhere, type PickedPairs, pickPairs } from './where.ts'
 
@@ -97,7 +98,14 @@ export type EvalDeclaration = {
 /** Where the eval is planned: the run, the eval file, and how many evals the file planned before it. */
 export type PlanContext = Pick<
   RunContext,
-  'config' | 'profile' | 'trials' | 'tags' | 'traits' | 'concurrency' | 'completed' | 'cursorEfforts'
+  | 'config'
+  | 'profile'
+  | 'trials'
+  | 'tags'
+  | 'traits'
+  | 'concurrency'
+  | 'completed'
+  | 'cursorEfforts'
 > & {
   /** The eval file's path, absolute. */
   file: string | undefined
@@ -121,7 +129,8 @@ export type PlannedTest = {
 }
 
 function configLevel(config: ResolvedConfig): Cascading {
-  const { trials, bestOf } = config.trials !== undefined ? trialsOf(config.trials) : { trials: undefined }
+  const { trials, bestOf } =
+    config.trials !== undefined ? trialsOf(config.trials) : { trials: undefined }
   return {
     harness: config.harness,
     sandbox: config.sandbox,

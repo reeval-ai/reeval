@@ -219,7 +219,12 @@ export function runsToSettle(variantRate: number, baselineRate: number, from = 1
 }
 
 /** Binary pairs over cases: both pass, only the variant, only the baseline, neither. */
-export type PairCounts = { both: number; variantOnly: number; baselineOnly: number; neither: number }
+export type PairCounts = {
+  both: number
+  variantOnly: number
+  baselineOnly: number
+  neither: number
+}
 
 /**
  * The difference of two paired pass rates (variant minus baseline) with Newcombe's score interval

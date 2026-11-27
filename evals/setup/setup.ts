@@ -1,4 +1,4 @@
-import { type TrialContext, defineGrader, type GraderContext } from 'reeval'
+import { defineGrader, type GraderContext, type TrialContext } from 'reeval'
 import { observed, ran } from 'reeval/graders'
 import { execOf } from 'reeval/graders/match'
 import { environments, type Target } from './environments.ts'

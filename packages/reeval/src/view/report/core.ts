@@ -20,12 +20,12 @@ export {
   usdFigure,
 } from './format.ts'
 export {
+  idOf,
+  selectedEvals,
   type TrialIdMap,
   trialAnchor,
   trialAnchorId,
   trialIds,
-  idOf,
-  selectedEvals,
 } from './ids.ts'
 export {
   COMPARE_STATUS_LABEL,
@@ -42,13 +42,13 @@ export {
   verdictLabel,
 } from './labels.ts'
 export {
-  trialHref,
-  trialRef,
   captureHref,
   evalAnchorHref,
   gfmAnchor,
   questionHref,
   recordHref,
+  trialHref,
+  trialRef,
   withBase,
   worktreePatchLink,
 } from './links.ts'

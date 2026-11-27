@@ -7,7 +7,7 @@ import { loadPrices, type Prices } from '../prices.ts'
 import type { CostTotal, CostUsd, TokenUsage } from '../types.ts'
 import { totalTokens } from '../usage.ts'
 import { sumCosts } from '../view/cost.ts'
-import type { TrialRecord, JudgmentRecord, RunRecord } from './types.ts'
+import type { JudgmentRecord, RunRecord, TrialRecord } from './types.ts'
 
 const used = (u: TokenUsage | null | undefined): u is TokenUsage => !!u && totalTokens(u) > 0
 const micro = (usd: number) => Math.round(usd * 1e6) / 1e6

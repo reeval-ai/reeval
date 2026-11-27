@@ -7,22 +7,21 @@ import { join } from 'node:path'
 import { generateText, Output } from 'ai'
 import { z } from 'zod'
 import { cannedModel, type HostModelSettings, hostModel, isFake } from '../analysis/model.ts'
-import { observedName } from '../trial/observe.ts'
 import type { EngineEval } from '../engine/node.ts'
 import type { VertexSettings } from '../gateway/vertex.ts'
 import { mergeOutcome } from '../history/outcome.ts'
-import type { TrialRecord, FileRef, RunRecord } from '../history/types.ts'
+import type { FileRef, RunRecord, TrialRecord } from '../history/types.ts'
 import { recordFileName } from '../ids.ts'
 import { judgeDiff } from '../judge/patch.ts'
 import { trajectoryForJudge } from '../judge/trajectory.ts'
 import type { PlanRow } from '../plan.ts'
 import { redactSecrets } from '../redact.ts'
 import { clip } from '../text.ts'
+import { observedName } from '../trial/observe.ts'
 import type {
-  TrialAnswer,
-  BlindTrial,
   BlindPair,
   BlindSide,
+  BlindTrial,
   BlindTurn,
   CompareAnswer,
   EvalRecord,
@@ -38,6 +37,7 @@ import type {
   QuestionStateOptions,
   ResolvedQuestionStateOptions,
   TrajectoryEvent,
+  TrialAnswer,
 } from '../types.ts'
 import {
   acrossOf,

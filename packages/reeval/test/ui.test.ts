@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path'
 import { describe, test } from 'node:test'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { attach } from '../src/attach.ts'
-import { TRIALS_HEARTBEAT_RANGE, EventStreamError, openEventStream } from '../src/events.ts'
+import { EventStreamError, openEventStream, TRIALS_HEARTBEAT_RANGE } from '../src/events.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { writeLiveProgress } from '../src/live.ts'
 import type { TrialMeta } from '../src/types.ts'
@@ -50,7 +50,7 @@ const trial = (name: string, group: string[]): TrialMeta => ({
   harness: { kind: 'cursor', model: 'composer-2.5' },
   sandbox: { kind: 'docker' },
   gate: 'all',
-  plan: { harnesses: 1, variants: null, trials: 1, trials: 1, notes: [], warnings: [] },
+  plan: { harnesses: 1, variants: null, trials: 1, totalTrials: 1, notes: [], warnings: [] },
 })
 
 const progress = (id: string, at: number, p: Omit<Progress, 'at'>): ReevalEvent =>
@@ -277,7 +277,7 @@ const LIST = [
     '#1  0%  the fixture repo is missing',
   ],
   [
-    '· starts its sandbox           infra error                            regression(1)',
+    '· starts its sandbox           infra error                              regression(1)',
     '#1  infra error  the fake sandbox fell over',
   ],
   ['– greets in Welsh              skipped'],
@@ -572,15 +572,15 @@ describe('plain renderer', () => {
   test('on a terminal: one status line under the logs, rewritten in place, cleared before the result', () => {
     const out = render(interleaved, options({ statusLine: true, outputLogs: 'none' }))
     const clear = '\r\x1b[2K'
-    assert.ok(out.includes(`${clear}2 evals · 0/2 tries`), out)
-    assert.ok(out.includes(`${clear}2 evals · 1/2 tries`), out)
+    assert.ok(out.includes(`${clear}2 evals · 0/2 trials`), out)
+    assert.ok(out.includes(`${clear}2 evals · 1/2 trials`), out)
     assert.ok(
-      out.includes(`  ◆  Running...\n\n${clear}2 evals · 0/2 tries`) ||
-        out.includes(`  ◆  Running...\n\n${clear}1 eval · 0/1 tries`),
+      out.includes(`  ◆  Running...\n\n${clear}2 evals · 0/2 trials`) ||
+        out.includes(`  ◆  Running...\n\n${clear}1 eval · 0/1 trials`),
       out,
     )
     assert.ok(
-      out.includes(`${clear}2 evals · 2/2 tries${clear}evals/results.eval.ts`),
+      out.includes(`${clear}2 evals · 2/2 trials${clear}evals/results.eval.ts`),
       'no second gap above the list',
     )
     assert.doesNotMatch(out, /running after/)
@@ -588,7 +588,7 @@ describe('plain renderer', () => {
     const logs = render(interleaved, options({ statusLine: true, logOrder: 'stream' }))
     assert.ok(
       logs.includes(
-        `${clear}[adds#1 cursor]  +1:09 stdout | seeding greet.js\n2 evals · 0/2 tries`,
+        `${clear}[adds#1 cursor]  +1:09 stdout | seeding greet.js\n2 evals · 0/2 trials`,
       ),
       'a log line prints above the status line, which is drawn again under it',
     )
@@ -1323,8 +1323,8 @@ test('progress counts against the planned total while later files are still to b
   assert.equal(beats[0], '… 0 of 4 evals done (1m 00s)')
   assert.equal(beats.at(-1), '… 1 of 4 evals done (6m 00s)')
   const status = render(events, options({ statusLine: true, outputLogs: 'none' }))
-  assert.ok(status.includes('\r\x1b[2K4 evals · 0/4 tries'), status)
-  assert.doesNotMatch(status, /2 evals · \d\/2 tries/)
+  assert.ok(status.includes('\r\x1b[2K4 evals · 0/4 trials'), status)
+  assert.doesNotMatch(status, /2 evals · \d\/2 trials/)
 })
 
 test('the interactive list counts against the planned total too', async () => {

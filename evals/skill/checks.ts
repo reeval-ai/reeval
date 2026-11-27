@@ -1,4 +1,4 @@
-import type { TrialContext, GraderContext } from 'reeval'
+import type { GraderContext, TrialContext } from 'reeval'
 
 /** What the graders read of `reeval run --dry-run --json`. */
 type Plan = {

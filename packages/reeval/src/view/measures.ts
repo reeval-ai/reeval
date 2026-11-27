@@ -6,7 +6,7 @@
 // read it.
 import { pairTallies } from '../compare/pairs.ts'
 import { casePairs } from '../history/families.ts'
-import type { TrialRecord, CellCheck, EvalEntry, FamilyLift } from '../history/types.ts'
+import type { CellCheck, EvalEntry, FamilyLift, TrialRecord } from '../history/types.ts'
 import {
   COMPARE_TRIALS,
   containsZero,
@@ -17,9 +17,9 @@ import {
   minimumP,
   normalCdf,
   PAIRED_MIN,
+  signedRank,
   TRIALS_TO_HOLD_MAX,
   trialsToHold,
-  signedRank,
 } from '../stats.ts'
 import { clip } from '../text.ts'
 import {
@@ -176,8 +176,7 @@ function proportionP(v: Side, c: Side): number {
   const z = Math.abs(v.pass / v.counted - c.pass / c.counted) / se
   return 2 * (1 - normalCdf(z))
 }
-const isCounted = (a: Pick<TrialRecord, 'outcome'>) =>
-  a.outcome === 'pass' || a.outcome === 'fail'
+const isCounted = (a: Pick<TrialRecord, 'outcome'>) => a.outcome === 'pass' || a.outcome === 'fail'
 const sign = (x: number) => (x > 0 ? '+' : x < 0 ? '−' : '±')
 const pts = (x: number) => `${sign(x)}${Math.round(Math.abs(x) * 100)} pts`
 const mean = (n: readonly number[]) => n.reduce((a, b) => a + b, 0) / n.length
@@ -345,7 +344,10 @@ const valuesOf = (
   })
 
 /** One environment's counted trials in one case (one entry, for a cell). */
-type CompareEnvironment = { trials: readonly TrialRecord[]; checks: readonly CellCheck[] | undefined }
+type CompareEnvironment = {
+  trials: readonly TrialRecord[]
+  checks: readonly CellCheck[] | undefined
+}
 
 type Input = {
   variant: CompareEnvironment[]
@@ -625,7 +627,10 @@ function questionWins(
   return out
 }
 
-const environmentOf = (e: Pick<EvalEntry, 'trials' | 'cells'>, key: string): CompareEnvironment => ({
+const environmentOf = (
+  e: Pick<EvalEntry, 'trials' | 'cells'>,
+  key: string,
+): CompareEnvironment => ({
   trials: e.trials.filter((a) => a.cell === key && isCounted(a)),
   checks: e.cells.find((c) => c.key === key)?.checks,
 })

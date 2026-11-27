@@ -18,11 +18,11 @@ import {
   writeTar,
 } from '@reeval/sandbox-docker'
 import { streamPreview } from '../../sandbox-docker/src/trace.ts'
-import { archiveWorkspace, cleanArchive, takeSnapshot } from '../src/trial/snapshot.ts'
-import type { Trial } from '../src/trial/state.ts'
 import { optionsHash } from '../src/eval-source.ts'
 import type { TrialRecord } from '../src/history/types.ts'
 import type { Sandbox } from '../src/sandbox/index.ts'
+import { archiveWorkspace, cleanArchive, takeSnapshot } from '../src/trial/snapshot.ts'
+import type { Trial } from '../src/trial/state.ts'
 import { fakeConfig, project, readRun, runCli, tempDir } from './helpers.ts'
 
 const SECRET = `ghp_${'a1B2'.repeat(9)}`

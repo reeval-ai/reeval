@@ -2,11 +2,11 @@
 // queried. The fixture `history/eval-error` checks the same from inside a trial.
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
-import { recordTaskFailure } from '../src/trial/record.ts'
-import type { Trial } from '../src/trial/state.ts'
 // biome-ignore lint/suspicious/noShadowRestrictedNames: reeval's EvalError stands in for the global one
 import { EvalError } from '../src/eval-error.ts'
 import { errorFrom } from '../src/language-runner/transport.ts'
+import { recordTaskFailure } from '../src/trial/record.ts'
+import type { Trial } from '../src/trial/state.ts'
 import type { EvalRecord } from '../src/types.ts'
 import { fakeConfig, project, readRun, runCli } from './helpers.ts'
 

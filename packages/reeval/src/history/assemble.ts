@@ -1,10 +1,10 @@
 import { readFile, stat } from 'node:fs/promises'
 import { join, posix } from 'node:path'
 import type {
-  AskedTrialAnswer,
   AskedCall,
   AskedQuestion,
   AskedScreenshot,
+  AskedTrialAnswer,
   SettledQuestions,
 } from '../compare/questions.ts'
 import { UNRECORDED_QUESTION_STATE } from '../compare/state.ts'
@@ -19,7 +19,7 @@ import {
   resolvedEffortOf,
   servedEffortOf,
 } from '../harness/effort.ts'
-import { trialId, trialKey, evalSlug, recordFileName, sha256 } from '../ids.ts'
+import { evalSlug, recordFileName, sha256, trialId, trialKey } from '../ids.ts'
 import { DEFAULT_THRESHOLD, judgeModelName } from '../judge/index.ts'
 import { collapseDependencies, patchForJudge } from '../judge/patch.ts'
 import { mergeJudge } from '../judge/state-options.ts'
@@ -28,8 +28,8 @@ import {
   majorityOf,
   plannedSandboxes,
   profileJudge,
-  trialsOf,
   sandboxId,
+  trialsOf,
 } from '../options.ts'
 import type { RunPlan } from '../plan.ts'
 import type { SandboxVersions } from '../preflight.ts'
@@ -45,8 +45,6 @@ import { containsZero, liftInterval, round3 } from '../stats.ts'
 import { targetOfGates, thresholdOf } from '../target.ts'
 import { formatDuration } from '../text.ts'
 import type {
-  TrialAnswer,
-  TrialQuestionInput,
   Cell,
   CellGate,
   DecisionRecord,
@@ -69,6 +67,8 @@ import type {
   RunContext,
   Snapshot,
   TrajectoryEvent,
+  TrialAnswer,
+  TrialQuestionInput,
   WebEventType,
 } from '../types.ts'
 import { promptTokens, sumUsage } from '../usage.ts'
@@ -93,9 +93,6 @@ import { familiesOf, pooledPassRate } from './families.ts'
 import { mergeOutcome } from './outcome.ts'
 import { FINGERPRINT_SCOPE, judgeVersion, packageVersions, WORKTREE_PATCH_LIMIT } from './state.ts'
 import {
-  type TrialFiles,
-  type TrialRecord,
-  type TrialRetry,
   type CellRecord,
   type ContextFile,
   type Cost,
@@ -115,6 +112,9 @@ import {
   SCHEMA_VERSION,
   type Stack,
   type SubagentRecord,
+  type TrialFiles,
+  type TrialRecord,
+  type TrialRetry,
   WORKSPACE_ARCHIVE,
   WORKSPACE_MANIFEST,
 } from './types.ts'
@@ -1229,9 +1229,7 @@ const fileOf = (s: Snapshot) => (s.form === 'tar.gz' ? `${s.name}.tar.gz` : s.na
  * none.
  */
 function secretWarningsOf(trials: readonly TrialRecord[]): Pick<RunRecord, 'secretWarnings'> {
-  const all = trials.flatMap((a) =>
-    (a.secretWarnings ?? []).map((w) => ({ ...w, trialId: a.key })),
-  )
+  const all = trials.flatMap((a) => (a.secretWarnings ?? []).map((w) => ({ ...w, trialId: a.key })))
   return all.length ? { secretWarnings: all } : {}
 }
 
@@ -1537,9 +1535,7 @@ function rollUp(evals: EvalEntry[]): void {
       entry.verdict = 'family'
     } else delete entry.verdict
     const gated = new Set(entry.cells.filter((c) => c.gate !== 'none').map((c) => c.key))
-    entry.passRate = passRateOf(
-      entry.trials.filter((a) => gated.has(a.cell)).map((a) => a.outcome),
-    )
+    entry.passRate = passRateOf(entry.trials.filter((a) => gated.has(a.cell)).map((a) => a.outcome))
     entry.scores = meanScores(targetCells(entry.cells).map((c) => c.scores))
     entry.target ??= targetOfGates(entry.cells.map((c) => c.gate))
     entry.fingerprint = sha256(

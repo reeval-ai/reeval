@@ -10,9 +10,9 @@ import type {
   DaytonaSize,
 } from '../types.ts'
 import {
-  BOAT_TRIALS_PER_MACHINE_MAX,
   BOAT_PREFIX,
   BOAT_PREFIX_MAX,
+  BOAT_TRIALS_PER_MACHINE_MAX,
   SANDBOX_KEYS,
   sandboxKeyMessage,
 } from './boat.ts'

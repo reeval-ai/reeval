@@ -15,8 +15,7 @@ export const asCheck = <T>(a: Trial, fn: () => Promise<T>) =>
   a.phases ? a.phases.checks(fn) : fn()
 
 /** The trial's sandbox, started (with its session) by the first call that needs it. */
-export const sandboxFor = async (a: Trial, who: string): Promise<Sandbox> =>
-  (await a.start(who))[0]
+export const sandboxFor = async (a: Trial, who: string): Promise<Sandbox> => (await a.start(who))[0]
 
 /**
  * `c.exec`'s own `env` as the sandbox gets it: each brokered secret's host value in it replaced

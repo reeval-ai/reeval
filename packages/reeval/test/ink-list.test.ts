@@ -17,7 +17,7 @@ const row = (id: string, over: Partial<StatusRow> = {}): StatusRow => ({
   id,
   name: id,
   icon: 'pass',
-  summary: '1 of 1 run passed',
+  summary: '1 of 1 trial passed',
   detail: [],
   remarks: 0,
   compare: false,
@@ -31,9 +31,9 @@ const files = (): StatusFile[] => [
       row('writes greet.js'),
       row('greets in French', {
         icon: 'fail',
-        summary: '0 of 1 run passed',
+        summary: '0 of 1 trial passed',
         detail: [
-          { depth: 0, mark: 'fail', text: 'says bonjour  failed 1 of 1 run' },
+          { depth: 0, mark: 'fail', text: 'says bonjour  failed 1 of 1 trial' },
           { depth: 1, text: 'expected greeting to be bonjour', tone: 'dim' },
           { depth: 1, text: 'the file as the agent left it', tone: 'dim', only: 'full' },
         ],
@@ -79,9 +79,9 @@ test('frameLines tags each line with its row and opens only the expanded one', (
     lines.map((l) => [l.row, l.text.trimEnd()]),
     [
       [-1, 'evals/a.eval.ts'],
-      [0, '  ✓ writes greet.js   1 of 1 run passed'],
-      [1, '❯ ✗ greets in French  0 of 1 run passed'],
-      [1, '      ✗ says bonjour  failed 1 of 1 run'],
+      [0, '  ✓ writes greet.js   1 of 1 trial passed'],
+      [1, '❯ ✗ greets in French  0 of 1 trial passed'],
+      [1, '      ✗ says bonjour  failed 1 of 1 trial'],
       [1, '        expected greeting to be bonjour'],
       [-1, ''],
       [-1, 'evals/b.eval.ts'],
@@ -105,7 +105,7 @@ test('while the run goes: a spinner, the count, and the arrows move and open a r
     app.stdin.write(KEY.right)
     await settle()
     assert.match(app.frame(), /^❯ ✗ greets in French/m)
-    assert.match(app.frame(), /^ {6}✗ says bonjour {2}failed 1 of 1 run$/m)
+    assert.match(app.frame(), /^ {6}✗ says bonjour {2}failed 1 of 1 trial$/m)
     assert.doesNotMatch(
       app.frame(),
       /the file as the agent left it/,
@@ -664,11 +664,7 @@ test('an eval with cases is one row while it runs, its case table filling in as 
       ['queued', 'green  queued  queued'],
     ],
   )
-  assert.equal(
-    rows()[0]?.detail[2]?.note,
-    'no',
-    "a failed trial's message is its case row's note",
-  )
+  assert.equal(rows()[0]?.detail[2]?.note, 'no', "a failed trial's message is its case row's note")
   for (const [k, h] of [
     ['red', 'codex'],
     ['blue', 'codex'],
@@ -703,20 +699,22 @@ test("a compare's live case table heads its columns as the finished table does, 
   live.collected(
     'evals/a.eval.ts',
     ['a', 'b'].flatMap((k, i) =>
-      [environment('skilled', 'variant', 'skilled'), environment('app', 'baseline')].map((cell) => ({
-        id: `w [${k}]`,
-        key: `w [${k}] # ${cell.key}#1`,
-        group: [],
-        name: `w [${k}]`,
-        skipped: false,
-        trial: {
-          n: 1,
-          gate: 'all',
-          label: cell.role === 'baseline' ? 'baseline' : 'skilled',
-          cell,
-          family: { id: 'w', name: 'w', case: i, cases: 2 },
-        } as never,
-      })),
+      [environment('skilled', 'variant', 'skilled'), environment('app', 'baseline')].map(
+        (cell) => ({
+          id: `w [${k}]`,
+          key: `w [${k}] # ${cell.key}#1`,
+          group: [],
+          name: `w [${k}]`,
+          skipped: false,
+          trial: {
+            n: 1,
+            gate: 'all',
+            label: cell.role === 'baseline' ? 'baseline' : 'skilled',
+            cell,
+            family: { id: 'w', name: 'w', case: i, cases: 2 },
+          } as never,
+        }),
+      ),
     ),
   )
   assert.equal(live.files()[0]?.rows[0]?.detail[0]?.text, '  case  app (baseline)  skilled')

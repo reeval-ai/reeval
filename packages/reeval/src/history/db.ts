@@ -19,7 +19,7 @@ import { DERIVED, DERIVED_TABLES, deriveFacts, PART_COLUMNS } from './facts.ts'
 import { readingStamp, readRecord, recordNames, scratchDir, warnUnreadable } from './files.ts'
 import { rowsOf } from './rows.ts'
 import type { ToolClass } from './tool-class.ts'
-import type { TrialRecord, CellRecord, RunRecord } from './types.ts'
+import type { CellRecord, RunRecord, TrialRecord } from './types.ts'
 
 /** Bump when the tables or views change: a database from another version is rebuilt. */
 const DB_VERSION = 27

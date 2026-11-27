@@ -484,7 +484,12 @@ export type CaptureShot = {
 }
 
 export type CaptureGallery = {
-  rows: Array<{ harness: string; environment: string | null; case: string | null; shots: CaptureShot[] }>
+  rows: Array<{
+    harness: string
+    environment: string | null
+    case: string | null
+    shots: CaptureShot[]
+  }>
 }
 
 export type FailureCluster = {

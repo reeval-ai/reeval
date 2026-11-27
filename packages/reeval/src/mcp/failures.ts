@@ -5,13 +5,13 @@ import { allRuns } from '../commands.ts'
 import { readRecord, scratchDir } from '../history/files.ts'
 import { toolTarget } from '../history/tool-target.ts'
 import type {
-  TrialRecord,
   CellRecord,
   EvalEntry,
   FingerprintParts,
   HistoryCell,
   HistoryEntry,
   RunRecord,
+  TrialRecord,
 } from '../history/types.ts'
 import { resolveRun } from '../history/views.ts'
 import type { ResolvedConfig } from '../types.ts'

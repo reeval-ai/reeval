@@ -4,7 +4,6 @@
 export { caseEntries, familyOf } from '../history/cases.ts'
 export type {
   ArtifactRef,
-  TrialRecord,
   CellRecord,
   EvalEntry,
   FamilyLift,
@@ -18,6 +17,7 @@ export type {
   RunRecord,
   RunScope,
   StackSummary,
+  TrialRecord,
 } from '../history/types.ts'
 export type {
   CaptureConsoleMessage,

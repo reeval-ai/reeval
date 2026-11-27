@@ -42,12 +42,12 @@ import { keptFacts, summaryFiles } from './summary.ts'
 import type {
   ArtifactLevel,
   ArtifactRef,
-  TrialFiles,
-  TrialRecord,
   FileRef,
   HistoryEntry,
   RunDebug,
   RunRecord,
+  TrialFiles,
+  TrialRecord,
 } from './types.ts'
 
 export class HistoryError extends Error {

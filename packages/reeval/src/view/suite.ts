@@ -5,7 +5,6 @@
 
 import { unfoldCases } from '../history/cases.ts'
 import type {
-  TrialRecord,
   CellRecord,
   CheckTally,
   EvalEntry,
@@ -13,17 +12,18 @@ import type {
   FamilyRecord,
   FamilyVerdict,
   RunRecord,
+  TrialRecord,
   UpstreamCount,
 } from '../history/types.ts'
 import { COMPARE_TRIALS } from '../stats.ts'
 import { blocks, DEFAULT_TARGET } from '../target.ts'
-import type { TrialFailure, ErrorKind, Outcome, RecordedTarget } from '../types.ts'
+import type { ErrorKind, Outcome, RecordedTarget, TrialFailure } from '../types.ts'
 import { cellEffort } from './effort.ts'
 import { caseLabel } from './family.ts'
 import { targetCells } from './gate.ts'
 import { checksByLabel, checkTries, labeledJudgments } from './judgments.ts'
 import { cellMeasures, familyMeasures, type Measure } from './measures.ts'
-import { trialAnswerRows, notRunYet, runOutcome } from './model.ts'
+import { notRunYet, runOutcome, trialAnswerRows } from './model.ts'
 import { type ObservedTally, observedTallies } from './observations.ts'
 
 /**
@@ -856,9 +856,7 @@ const caseVerdict = (e: EvalEntry): ResultOutcome =>
   e.verdict === 'family' && e.outcome === 'fail' ? 'pass' : outcomeOf(e)
 
 /** Each question any case asked, in first-asked order, with its votes or answers summed over the cases. */
-function familyQuestions(
-  cases: readonly EvalEntry[],
-): Array<QuestionResult | TrialQuestionResult> {
+function familyQuestions(cases: readonly EvalEntry[]): Array<QuestionResult | TrialQuestionResult> {
   const out = new Map<string, QuestionResult | TrialQuestionResult>()
   for (const q of cases.flatMap(questionsOf)) {
     const key = `${q.kind}\0${q.question}`

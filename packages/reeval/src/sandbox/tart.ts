@@ -14,9 +14,9 @@ import {
   WORKSPACE_DIR,
 } from '@reeval/sandbox-docker'
 import { shellQuote as q, unsetOtel } from '@reeval/sandbox-docker/process'
-import { trialDebug } from '../debug/trial.ts'
 import { untraced } from '../debug/docker.ts'
-import { trialSpan, openSpan } from '../trace/spans.ts'
+import { trialDebug } from '../debug/trial.ts'
+import { openSpan, trialSpan } from '../trace/spans.ts'
 import type { TartSandboxDescriptor } from '../types.ts'
 import type { SandboxOptions } from './index.ts'
 import { type BootedMachine, startSandbox } from './start.ts'

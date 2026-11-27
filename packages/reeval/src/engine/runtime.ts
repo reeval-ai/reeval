@@ -2,7 +2,7 @@
 // the worker's engine installs itself here before it loads an eval file.
 import { UsageError } from '../errors.ts'
 import type { Limits, Rank } from '../scheduler/core.ts'
-import type { TrialMeta, EvalMeta, RunContext } from '../types.ts'
+import type { EvalMeta, RunContext, TrialMeta } from '../types.ts'
 import type { Progress } from '../ui/events.ts'
 import type { DebugLine } from '../view/debug.ts'
 

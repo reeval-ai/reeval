@@ -305,9 +305,7 @@ try {
 } catch {}
 check(
   'Ctrl-C on reeval run through the launcher: reeval saves the run as interrupted and exits 130',
-  stopped.status === 130 &&
-    stopped.out.includes('Interrupted: trials') &&
-    status === 'interrupted',
+  stopped.status === 130 && stopped.out.includes('Interrupted: trials') && status === 'interrupted',
 )
 
 // The platform wheel carries the binary, so nothing is downloaded, even with an empty cache. CI

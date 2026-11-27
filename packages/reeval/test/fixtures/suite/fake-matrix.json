@@ -622,7 +622,7 @@
                     "leaning": "better",
                     "text": "pass rate +100 pts",
                     "needed": 4,
-                    "unit": "runs",
+                    "unit": "trials",
                     "short": {
                       "now": 1,
                       "at": 4
@@ -641,7 +641,7 @@
                     "leaning": null,
                     "text": "same tool calls",
                     "needed": null,
-                    "unit": "runs",
+                    "unit": "trials",
                     "short": null
                   },
                   {
@@ -657,7 +657,7 @@
                     "leaning": null,
                     "text": "same agent time",
                     "needed": null,
-                    "unit": "runs",
+                    "unit": "trials",
                     "short": null
                   }
                 ],

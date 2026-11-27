@@ -92,8 +92,7 @@ function harness(c: Colors, h: RunHeader, id: string): string {
 }
 
 function scope(c: Colors, h: RunHeader): string {
-  const trials =
-    h.fewest < h.trials ? `${h.fewest}–${h.trials} trials` : plural(h.trials, 'trial')
+  const trials = h.fewest < h.trials ? `${h.fewest}–${h.trials} trials` : plural(h.trials, 'trial')
   const parts = [
     plural(h.files, 'eval file'),
     plural(h.evals, 'eval') + (h.skipped ? ` (${h.skipped} skipped)` : ''),

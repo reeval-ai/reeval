@@ -1,4 +1,4 @@
-import type { TrialRecord, ExportFormat, RunRecord } from './history/types.ts'
+import type { ExportFormat, RunRecord, TrialRecord } from './history/types.ts'
 import { toAtif } from './view/atif.ts'
 import type { TrajectoryLine } from './view/model.ts'
 

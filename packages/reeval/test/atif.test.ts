@@ -329,10 +329,7 @@ export default defineEval({
     const record = JSON.parse(readFileSync(join(history, file as string), 'utf8')) as RunRecord
     const [trial] = record.evals.flatMap((e) => e.trials)
     const ref = trial?.files.atif
-    assert.equal(
-      ref?.path,
-      trial?.files.trajectory?.path.replace('trajectory.jsonl', 'atif.json'),
-    )
+    assert.equal(ref?.path, trial?.files.trajectory?.path.replace('trajectory.jsonl', 'atif.json'))
     const trajectory = JSON.parse(readFileSync(join(history, record.runId, ref.path), 'utf8'))
     const parsed = trajectorySchema.safeParse(trajectory)
     assert.ok(parsed.success, JSON.stringify(parsed.error?.issues, null, 2))

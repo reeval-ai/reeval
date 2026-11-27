@@ -23,7 +23,6 @@ import { redactSecrets, redactValue } from '../redact.ts'
 import { InfraError } from '../sandbox/types.ts'
 import { clip, formatDuration } from '../text.ts'
 import type {
-  TrialContext,
   Capture,
   DecideModel,
   DecisionRecord,
@@ -31,6 +30,7 @@ import type {
   GatewayName,
   JSONValue,
   StateInputs,
+  TrialContext,
   Turn,
 } from '../types.ts'
 import { tokenUsage } from '../usage.ts'

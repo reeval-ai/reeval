@@ -71,13 +71,7 @@ import {
 } from './support/fake-tart.ts'
 import { fixture, testDir } from './support/fixture.ts'
 import { type GitHttp, gitHttpServer } from './support/git-http.ts'
-import {
-  type HarnessRow,
-  harnesses,
-  harnessOf,
-  keyOf,
-  reserveTrials,
-} from './support/harnesses.ts'
+import { type HarnessRow, harnesses, harnessOf, keyOf, reserveTrials } from './support/harnesses.ts'
 import {
   boatSandbox as boat,
   createBoatSandbox as createBoat,

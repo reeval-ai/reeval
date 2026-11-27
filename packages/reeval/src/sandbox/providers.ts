@@ -14,7 +14,6 @@ import type { ParsedTartHost } from '../contract/tart.ts'
 import { pluginBuildId } from '../environment/plugins.ts'
 import { UsageError } from '../errors.ts'
 import type {
-  TrialImage,
   BoatSandboxDescriptor,
   CloudSandboxDescriptor,
   DaytonaSandboxDescriptor,
@@ -24,6 +23,7 @@ import type {
   PluginSource,
   SandboxBase,
   TartSandboxDescriptor,
+  TrialImage,
   VmImage,
 } from '../types.ts'
 import type { BoatImage, BoatImageTimings } from './boat-images.ts'

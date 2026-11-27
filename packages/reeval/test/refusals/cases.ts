@@ -28,14 +28,14 @@ import {
   resolveConfig,
   resolveConfigData,
 } from '../../src/config.ts'
+import { declarationProblem } from '../../src/contract/declaration.ts'
 import {
+  execOptionsProblem,
   trialAbortProblem,
   trialDoneProblem,
   trialRequestProblem,
   trialStartProblem,
-  execOptionsProblem,
 } from '../../src/contract/trial.ts'
-import { declarationProblem } from '../../src/contract/declaration.ts'
 import type { DeclaredNode } from '../../src/declaration.ts'
 import { useEngine } from '../../src/engine/runtime.ts'
 import { buildRefusal, readMarketplace } from '../../src/environment/plugins.ts'
@@ -1414,7 +1414,10 @@ export const CASES: Record<string, Case[]> = {
     ['a gate', options({ compare: { baseline: e1, variants: [e2], gate: 'all' } })],
     ['minLift above 1', options({ compare: { baseline: e1, variants: [e2], minLift: 2 } })],
     ['minLift a string', options({ compare: { baseline: e1, variants: [e2], minLift: '0.1' } })],
-    ['harness not a list', options({ compare: { baseline: e1, variants: [e2], agents: 'cursor' } })],
+    [
+      'harness not a list',
+      options({ compare: { baseline: e1, variants: [e2], agents: 'cursor' } }),
+    ],
     ['compare false', options({ compare: false })],
     [
       'harness with a bad descriptor',
@@ -3458,10 +3461,7 @@ environments:
       'abort with an unknown reason',
       lifecycle(trialAbortProblem, { type: 'abort', reason: 'oom', message: 'x' }),
     ],
-    [
-      'abort without a message',
-      lifecycle(trialAbortProblem, { type: 'abort', reason: 'timeout' }),
-    ],
+    ['abort without a message', lifecycle(trialAbortProblem, { type: 'abort', reason: 'timeout' })],
     ['done with a string error', lifecycle(trialDoneProblem, { type: 'done', error: 'boom' })],
     [
       'done with an error without a message',

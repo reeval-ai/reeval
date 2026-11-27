@@ -1,4 +1,4 @@
-import { trialDebug, debugLog } from '../debug/trial.ts'
+import { debugLog, trialDebug } from '../debug/trial.ts'
 import { allowedHosts } from '../egress.ts'
 import { builtPlugins, pluginBuildId } from '../environment/plugins.ts'
 import { type ResolvedEnvironment, resolveEnvironment } from '../environment/resolve.ts'

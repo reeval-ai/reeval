@@ -511,9 +511,7 @@ export function planLine(plan: RunPlan, config?: string, runId?: string): string
   )
   const { trials, duration } = plan.budget
   const caps = [
-    trials !== undefined
-      ? `${plural(trials, 'trial')} ${plan.trials <= trials ? '✓' : '✗'}`
-      : '',
+    trials !== undefined ? `${plural(trials, 'trial')} ${plan.trials <= trials ? '✓' : '✗'}` : '',
     duration !== undefined ? `${duration}` : '',
   ].filter(Boolean)
   if (caps.length) parts.push(`budget ${caps.join(', ')}`)

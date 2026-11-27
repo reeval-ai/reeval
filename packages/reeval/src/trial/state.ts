@@ -10,7 +10,6 @@ import type { ResourceMeter } from '../sandbox/resources.ts'
 import type { PreparedHost } from '../sandbox/tart-hosts.ts'
 import { childSpan } from '../trace/spans.ts'
 import type {
-  TrialContext,
   BackgroundHandle,
   CaptureOptions,
   EnvVars,
@@ -20,6 +19,7 @@ import type {
   ResolvedSnapshot,
   SandboxBase,
   TokenUsage,
+  TrialContext,
   Turn,
   TurnRecord,
 } from '../types.ts'

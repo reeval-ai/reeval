@@ -7,7 +7,6 @@ import { tmpdir } from 'node:os'
 import { describe, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { fakeAgent } from '../src/agent.ts'
-import { setupAllowance } from '../src/trial/index.ts'
 import { neededCredentials, resolveConfig } from '../src/config.ts'
 import { SANDBOX_EGRESS } from '../src/egress.ts'
 import { agentSandboxProblem } from '../src/harness/agent.ts'
@@ -28,6 +27,7 @@ import { kindOf, type MachineProvider } from '../src/sandbox/machine.ts'
 import { MACHINE_PROVIDERS } from '../src/sandbox/machines.ts'
 import { classifyTart, createProviders, tartHostProblem } from '../src/sandbox/providers.ts'
 import { docker, fakeSandbox, podman, tart } from '../src/sandbox.ts'
+import { setupAllowance } from '../src/trial/index.ts'
 import type {
   BoatSandboxDescriptor,
   ResolvedConfig,

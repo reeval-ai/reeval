@@ -3,7 +3,6 @@
 // feature fixtures and sandbox-docker's tests.
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
-import { recordEgress } from '../src/trial/record.ts'
 import {
   allowedHosts,
   DEFAULT_EGRESS_ALLOW,
@@ -22,6 +21,7 @@ import { applied, defineEnvironment } from '../src/environment.ts'
 import { cascade, expand, type Resolved } from '../src/options.ts'
 import { gatewayGlue } from '../src/sandbox/docker.ts'
 import { InfraError } from '../src/sandbox/types.ts'
+import { recordEgress } from '../src/trial/record.ts'
 import type { Egress, EgressPolicy, EvalRecord, HarnessDescriptor } from '../src/types.ts'
 
 const fake: HarnessDescriptor = { kind: 'fake' }

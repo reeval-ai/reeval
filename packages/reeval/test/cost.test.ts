@@ -20,7 +20,7 @@ import {
 } from '../src/cost.ts'
 import { UsageError } from '../src/errors.ts'
 import { priceRecord } from '../src/history/cost.ts'
-import type { TrialRecord, RunRecord } from '../src/history/types.ts'
+import type { RunRecord, TrialRecord } from '../src/history/types.ts'
 import { loadPrices, modelLimits, type Price, type Prices } from '../src/prices.ts'
 import type { Cell } from '../src/types.ts'
 import { tokenUsage } from '../src/usage.ts'

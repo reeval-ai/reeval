@@ -12,16 +12,14 @@ import {
   verdictLabel,
 } from '../view/report/labels.ts'
 import type {
-  EnvironmentRow,
   AssertionRow,
-  TrialIndexRow,
-  TrialRef,
   BlockMarkdown,
   BreakdownRow,
   CaptureGallery,
   ChoiceBreakdown,
   ContrastRow,
   DiscoveryRate,
+  EnvironmentRow,
   EvalHeadline,
   EvalSection,
   ExecutiveRollup,
@@ -38,6 +36,8 @@ import type {
   RunHeader,
   RunReport,
   TaskResults,
+  TrialIndexRow,
+  TrialRef,
   VariantComparison,
 } from '../view/report/types.ts'
 

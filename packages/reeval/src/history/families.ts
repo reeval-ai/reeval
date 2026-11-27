@@ -18,7 +18,6 @@ import {
 import type { ExcludedPair } from '../types.ts'
 import { EFFORT_ALPHA, type EffortSample, effortSample } from '../view/effort.ts'
 import type {
-  TrialRecord,
   CellRecord,
   EvalEntry,
   FamilyEffort,
@@ -27,6 +26,7 @@ import type {
   FamilyLift,
   FamilyRate,
   FamilyRecord,
+  TrialRecord,
 } from './types.ts'
 
 const isCounted = (a: TrialRecord) => a.outcome === 'pass' || a.outcome === 'fail'

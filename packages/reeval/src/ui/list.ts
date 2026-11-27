@@ -5,8 +5,8 @@ import { formatDuration, plural } from '../text.ts'
 import type { Cell, CellGate } from '../types.ts'
 import { caseLabel } from '../view/family.ts'
 import type { Colors } from './colors.ts'
-import type { TrialRef, CollectedEval, EvalResult, Progress } from './events.ts'
-import { trialAxes, failureReason, outcomeOf, phaseOf } from './format.ts'
+import type { CollectedEval, EvalResult, Progress, TrialRef } from './events.ts'
+import { failureReason, outcomeOf, phaseOf, trialAxes } from './format.ts'
 import {
   columns,
   type DetailLine,
@@ -244,8 +244,7 @@ function liveMark(own: LiveTrial[], failedEval: boolean): DetailMark {
  */
 function caseLines(trials: LiveTrial[], failedEval: boolean): DetailLine[] {
   const places = new Map<string, Cell>()
-  for (const a of trials)
-    if (a.cell && a.place && !places.has(a.cell)) places.set(a.cell, a.place)
+  for (const a of trials) if (a.cell && a.place && !places.has(a.cell)) places.set(a.cell, a.place)
   const label = heading([...places.values()])
   const heads = new Map<string, string>()
   const baseline = (a: LiveTrial) => Number(a.place?.role === 'baseline')
@@ -459,9 +458,7 @@ export class LiveList {
       .filter(Boolean)
       .join(' · ')
     // With cases, a failed trial's message is its case row's note.
-    const detail = cases
-      ? caseLines(e.trials, failed)
-      : e.trials.map((a) => this.#trialLine(a))
+    const detail = cases ? caseLines(e.trials, failed) : e.trials.map((a) => this.#trialLine(a))
     return { id: e.id, name: e.name, icon, summary, detail, remarks: 0, compare: false }
   }
 

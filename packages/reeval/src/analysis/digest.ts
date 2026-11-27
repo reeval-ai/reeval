@@ -10,13 +10,7 @@ import { caseEntries, familyOf } from '../history/cases.ts'
 import type { HistoryDb } from '../history/db.ts'
 import { FLAKY_MIN_TRIALS } from '../history/facts.ts'
 import { TOOL_CLASSES } from '../history/tool-class.ts'
-import type {
-  TrialRecord,
-  CheckTally,
-  EvalEntry,
-  FamilyLift,
-  RunRecord,
-} from '../history/types.ts'
+import type { CheckTally, EvalEntry, FamilyLift, RunRecord, TrialRecord } from '../history/types.ts'
 import { sha256 } from '../ids.ts'
 import {
   COMPARE_TRIALS,

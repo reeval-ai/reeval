@@ -4,12 +4,12 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { describe, test } from 'node:test'
 import { validate } from '../scripts/schema/validate.ts'
-import { observedFileBytes, observer } from '../src/trial/observe.ts'
-import type { Trial } from '../src/trial/state.ts'
 import { trialInput } from '../src/compare/questions.ts'
 import { resolveQuestionState } from '../src/compare/state.ts'
-import type { TrialRecord, FileRef } from '../src/history/types.ts'
+import type { FileRef, TrialRecord } from '../src/history/types.ts'
 import { sha256 } from '../src/ids.ts'
+import { observedFileBytes, observer } from '../src/trial/observe.ts'
+import type { Trial } from '../src/trial/state.ts'
 import type { EvalRecord } from '../src/types.ts'
 import { observedLine, observedTallies } from '../src/view/observations.ts'
 import { fakeConfig, project, readRun, runCli } from './helpers.ts'
@@ -41,11 +41,7 @@ describe('c.observe', () => {
     assert.equal(observedFileBytes(a as unknown as Trial), JSON.stringify(kept?.value).length)
     observe('small', 1)
     observe('big', 'short now')
-    assert.equal(
-      observedFileBytes(a as unknown as Trial),
-      0,
-      'only the last value per name counts',
-    )
+    assert.equal(observedFileBytes(a as unknown as Trial), 0, 'only the last value per name counts')
   })
 
   test("refuses large values past the trial's 100 MiB", () => {
@@ -448,10 +444,7 @@ import { judge } from 'reeval/graders'
       { name: '[REDACTED]', value: 'kept', turn: 1, sha256: sha256('"kept"') },
     ])
     assert.deepEqual(trial?.answers?.[0]?.stateOptions.observations, ['[REDACTED]'])
-    assert.equal(
-      trial?.answers?.[0]?.text,
-      JSON.stringify([{ name: '[REDACTED]', value: 'kept' }]),
-    )
+    assert.equal(trial?.answers?.[0]?.text, JSON.stringify([{ name: '[REDACTED]', value: 'kept' }]))
     const record = JSON.stringify(run)
     assert.ok(!record.includes(token) && !record.includes('z'.repeat(36)), record)
   })

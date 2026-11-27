@@ -36,11 +36,11 @@ import { buildSteps, pluginBuildId, pluginCall } from '../environment/plugins.ts
 import { stepCommand } from '../environment.ts'
 import { ownFile } from '../root.ts'
 import type {
-  TrialImage,
   DockerSandboxDescriptor,
   HarnessDescriptor,
   PluginBuild,
   PluginSource,
+  TrialImage,
 } from '../types.ts'
 import { PrepareError } from './provider.ts'
 import { bakedKey, harnessRecipe, installLayer, installSteps, pluginLayer } from './recipe.ts'

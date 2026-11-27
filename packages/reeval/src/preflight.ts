@@ -13,7 +13,7 @@ import {
 } from './sandbox/preflight.ts'
 import { imageHarness } from './sandbox/prepare.ts'
 import { PrepareError, type SandboxProvider } from './sandbox/provider.ts'
-import { trialImage, createProviders } from './sandbox/providers.ts'
+import { createProviders, trialImage } from './sandbox/providers.ts'
 
 export type SandboxImage = {
   ref: string

@@ -2,7 +2,7 @@ import { OBSERVE_NAME } from '../contract/trial.ts'
 import { UsageError } from '../errors.ts'
 import { OBSERVATION_INLINE, WORKSPACE_LIMIT } from '../history/types.ts'
 import { REDACTED, redactSecrets, redactValue } from '../redact.ts'
-import type { TrialContext, JSONValue } from '../types.ts'
+import type { JSONValue, TrialContext } from '../types.ts'
 import { formatBytes } from '../view/debug.ts'
 import type { Trial } from './state.ts'
 

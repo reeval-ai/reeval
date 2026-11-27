@@ -1,5 +1,5 @@
 // biome-ignore lint/suspicious/noShadowRestrictedNames: reeval's EvalError stands in for the global one
-import { type TrialContext, EvalError } from 'reeval'
+import { EvalError, type TrialContext } from 'reeval'
 
 /** Stops the trial with an `EvalError` when `file` isn't there after the agent's turn. */
 export async function built(c: TrialContext, file: string): Promise<void> {

@@ -1,5 +1,5 @@
 // What the engine hands the CLI: the plan it collected and each trial's result.
-import type { TrialMeta, RunContext } from '../types.ts'
+import type { RunContext, TrialMeta } from '../types.ts'
 import type { EvalResult, ReevalEvent } from '../ui/events.ts'
 
 /** One trial's result. */

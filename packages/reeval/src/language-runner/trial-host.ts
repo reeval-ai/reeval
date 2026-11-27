@@ -7,18 +7,18 @@ import type {
 } from 'ai'
 import { TURN_STATUS } from '../assert.ts'
 import {
+  type DecideCallData,
   type TrialCall,
   type TrialReply,
   type TrialRequest,
   trialRequestProblem,
-  type DecideCallData,
 } from '../contract/trial.ts'
 import { UsageError } from '../errors.ts'
 import { registerExecEnv } from '../redact.ts'
 import type {
-  TrialContext,
   BackgroundHandle,
   DecideCall,
+  TrialContext,
   Turn,
   TurnData,
   TurnStatus,

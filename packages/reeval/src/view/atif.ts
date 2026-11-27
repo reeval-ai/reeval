@@ -6,7 +6,7 @@
 // subagent's events are an embedded trajectory its spawn call's result refers to. What ATIF has
 // no field for (tool timing, `ok`, cost basis, the outcome) goes in `extra`. The eval's own
 // `c.decide` calls aren't the agent's, so they're left out.
-import type { TrialRecord, RunRecord } from '../history/types.ts'
+import type { RunRecord, TrialRecord } from '../history/types.ts'
 import type { TokenUsage } from '../types.ts'
 import type { Metrics, ObservationResult, Step, ToolCall, Trajectory } from './atif-schema.ts'
 import type { TrajectoryLine } from './model.ts'
@@ -45,11 +45,7 @@ function tokens(u: TokenUsage): Metrics {
 }
 
 /** The ATIF trajectory of `trial`, from its record and its `trajectory.jsonl` lines. */
-export function toAtif(
-  run: RunRecord,
-  trial: TrialRecord,
-  lines: TrajectoryLine[],
-): Trajectory {
+export function toAtif(run: RunRecord, trial: TrialRecord, lines: TrajectoryLine[]): Trajectory {
   const cell = run.evals
     .find((e) => e.trials.some((a) => a.key === trial.key))
     ?.cells.find((c) => c.key === trial.cell)

@@ -90,7 +90,10 @@ export function runScope(record: RunRecord): RunScope {
   return {
     profile: record.profile?.name ?? null,
     subset:
-      filters.length > 0 || tags.length > 0 || traits.length > 0 || invocation?.trials !== undefined,
+      filters.length > 0 ||
+      tags.length > 0 ||
+      traits.length > 0 ||
+      invocation?.trials !== undefined,
     configKey: sha256Hex(canonical(key)),
   }
 }

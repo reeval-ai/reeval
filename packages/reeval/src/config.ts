@@ -52,7 +52,6 @@ import { type Credential, isSandboxKind, sandboxKind } from './sandbox/kinds.ts'
 import { docker } from './sandbox.ts'
 import { resolveHistory } from './store/resolve.ts'
 import type {
-  TrialMeta,
   Budget,
   BuiltinGraderData,
   ConfigHelpers,
@@ -71,6 +70,7 @@ import type {
   ResolvedHistory,
   ResolvedProfile,
   SandboxDescriptor,
+  TrialMeta,
 } from './types.ts'
 
 export { UsageError }

@@ -13,7 +13,7 @@ import {
   type ToolClass,
 } from '../history/tool-class.ts'
 import { targetText, toolTarget } from '../history/tool-target.ts'
-import type { TrialRecord, RunRecord } from '../history/types.ts'
+import type { RunRecord, TrialRecord } from '../history/types.ts'
 import type { TrajectoryLine } from './model.ts'
 
 const ADAPTER_HOME = /^~\/\.ai-sdk-harness\/\.harness-bootstrap\/[^/]+\/(?:implementation\/)?home\//

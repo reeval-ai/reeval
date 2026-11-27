@@ -19,9 +19,9 @@ import {
 import { HistoryError, isMissing, sha256File } from './files.ts'
 import {
   type ArtifactRef,
-  type TrialRecord,
   type ExecLine,
   type FileRef,
+  type TrialRecord,
   WORKSPACE_RAW_LIMIT,
   type WorkspaceFile,
   type WorkspaceManifest,
@@ -150,10 +150,7 @@ async function fromArchive(archive: string, path: string): Promise<Buffer | null
 }
 
 /** The trial's `decisions.jsonl`, line by line. */
-export async function readDecisions(
-  runDir: string,
-  trial: TrialRecord,
-): Promise<DecisionRecord[]> {
+export async function readDecisions(runDir: string, trial: TrialRecord): Promise<DecisionRecord[]> {
   const ref = trial.files.decisions
   if (!ref) return []
   return (await readRef(runDir, ref))

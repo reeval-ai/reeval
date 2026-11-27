@@ -1,7 +1,7 @@
 // `reeval/testing`: helpers for fixture evals. Not the authoring API.
 import type { TrialReply, TrialRequest } from './contract/trial.ts'
 import { replyToTrial } from './language-runner/trial-host.ts'
-import type { TrialContext, BackgroundHandle } from './types.ts'
+import type { BackgroundHandle, TrialContext } from './types.ts'
 
 export type { FakeInstructionStep, FakeInstructions } from './capture/fake-instructions.ts'
 export { fakeInstructions } from './capture/fake-instructions.ts'

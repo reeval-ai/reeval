@@ -1,6 +1,6 @@
 // The run files `reeval mcp` reads beside the records: trajectories, setup and check logs.
 import { readFile } from 'node:fs/promises'
-import type { TrialRecord, RunRecord } from '../history/types.ts'
+import type { RunRecord, TrialRecord } from '../history/types.ts'
 import { resolveFile, type StudioSource } from '../studio/source.ts'
 import type { ResolvedConfig } from '../types.ts'
 import type { TrajectoryLine } from '../view/model.ts'

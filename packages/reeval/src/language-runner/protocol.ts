@@ -56,11 +56,7 @@ export type RunnerTrialReply = TrialReply & Keyed
 
 export type RunnerTrialAbort = TrialAbort & Keyed
 
-export type ToRunner =
-  | SessionToRunner
-  | RunnerTrialStart
-  | RunnerTrialAbort
-  | RunnerTrialReply
+export type ToRunner = SessionToRunner | RunnerTrialStart | RunnerTrialAbort | RunnerTrialReply
 
 export type RunnerTrialRequest = TrialRequest & Keyed
 

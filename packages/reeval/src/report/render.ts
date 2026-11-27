@@ -150,8 +150,7 @@ export function renderMarkdown(b: ReportBundle, attachedFiles: string[]): string
   if (!b.run) out.push(b.runError ? `No run: ${b.runError}` : 'No run.')
   else {
     out.push(`${runLine(b)}, status ${b.run.status}.`)
-    if (b.run.moreFailures)
-      out.push('', `${b.run.moreFailures} more failing trials aren't shown.`)
+    if (b.run.moreFailures) out.push('', `${b.run.moreFailures} more failing trials aren't shown.`)
     for (const f of b.run.failures) {
       out.push('', `### ${f.key}`, '', `Outcome ${f.outcome}.`)
       if (f.error) out.push(...fence('text', [`${f.error.kind}: ${f.error.message}`]))

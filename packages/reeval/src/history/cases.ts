@@ -27,9 +27,7 @@ import type {
  * body, counts it `notRun`.
  */
 export function checkTallies(entry: Pick<EvalEntry, 'trials' | 'cells'>): void {
-  const labels = [
-    ...new Set(entry.trials.flatMap((a) => (a.assertions ?? []).map((x) => x.label))),
-  ]
+  const labels = [...new Set(entry.trials.flatMap((a) => (a.assertions ?? []).map((x) => x.label)))]
   if (!labels.length) return
   for (const c of entry.cells) {
     const counted = entry.trials.filter(

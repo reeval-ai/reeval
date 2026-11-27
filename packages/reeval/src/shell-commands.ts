@@ -3,7 +3,7 @@
 // functions and backticks aren't followed.
 import { parse } from 'shell-quote'
 import { isObjectLike } from './object.ts'
-import type { TrialContext, TrajectoryEvent, Turn } from './types.ts'
+import type { TrajectoryEvent, TrialContext, Turn } from './types.ts'
 
 /** One program a shell call ran: a segment of its command line, after its wrappers. */
 export type ShellCommand = {

@@ -173,7 +173,10 @@ test('a compare whose effort holds prints its comparison, which every reader sha
     .split('\n')
     .filter((l) => l.startsWith('     '))
     .map((l) => l.trim())
-  assert.ok(environments.length > 0 && environments.every((l) => show.stdout.includes(l)), show.stdout)
+  assert.ok(
+    environments.length > 0 && environments.every((l) => show.stdout.includes(l)),
+    show.stdout,
+  )
   assert.doesNotMatch(list, /Worth knowing|can't tell them apart|looks different/)
   const rows = await runCli(p.dir, ['query', 'measure_effects', '--json'])
   assert.equal(rows.code, 0, rows.stderr)

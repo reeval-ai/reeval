@@ -14,7 +14,6 @@ import { type ObservedTally, observedLine } from '../view/observations.ts'
 import type { RunRemarks } from '../view/remarks.ts'
 import type {
   Across,
-  TrialQuestionResult,
   CaseResult,
   CellError,
   CellResult,
@@ -24,6 +23,7 @@ import type {
   PooledEnvironment,
   QuestionResult,
   SuiteResult,
+  TrialQuestionResult,
 } from '../view/suite.ts'
 import { canceledOf, countedOf } from '../view/suite.ts'
 import { standing, targetNumber } from '../view/target.ts'
@@ -213,7 +213,9 @@ export function labeler(cells: CellResult[], parts: Array<'harness' | 'environme
   const used = vary.length ? vary : parts.slice(0, 1)
   return (cell: CellResult) =>
     used
-      .map((p) => (p === 'harness' ? cell.harness : p === 'environment' ? environmentOf(cell) : cell.sandbox))
+      .map((p) =>
+        p === 'harness' ? cell.harness : p === 'environment' ? environmentOf(cell) : cell.sandbox,
+      )
       .join(' · ')
 }
 
@@ -342,7 +344,12 @@ function versus(measures: readonly Measure[] | null, verbose: boolean): string {
 type CompareEnvironment = { label: string; count: string; effect: Text; vs: string }
 
 /** An environments table's header and a row per environment, with a `vs baseline` column when some environment has one. */
-function environmentItems(c: Colors, indent: number, head: string, environments: CompareEnvironment[]): Row[] {
+function environmentItems(
+  c: Colors,
+  indent: number,
+  head: string,
+  environments: CompareEnvironment[],
+): Row[] {
   const column = environments.some((a) => a.vs)
   return [
     { indent, cells: [head, t('pass', c.dim), ...(column ? ['', t('vs baseline', c.dim)] : [])] },
@@ -374,7 +381,10 @@ function measureBody(c: Colors, cells: CellResult[], indent: number, o: BodyOpti
     const stats = o.verbose ? statsLine(cell, cells) : null
     if (stats) environments.push({ indent: indent + 2, free: t(stats, c.dim) })
     for (const err of o.explained.has(cell.key) ? [] : cell.errors) {
-      environments.push({ indent: indent + 2, free: t(`${errorKind(err)}  ${errorText(err)}`, c.dim) })
+      environments.push({
+        indent: indent + 2,
+        free: t(`${errorKind(err)}  ${errorText(err)}`, c.dim),
+      })
     }
   }
   const labels = [
@@ -518,7 +528,12 @@ function gatedEffect(
   environment: { effect: Effect | null; minLift: number | null; interval: Interval | null },
 ): Text {
   const effect = effectText(c, environment.effect)
-  if (environment.minLift === null || !environment.interval || environment.interval.low >= environment.minLift) return effect
+  if (
+    environment.minLift === null ||
+    !environment.interval ||
+    environment.interval.low >= environment.minLift
+  )
+    return effect
   const short = `not by minLift ${Math.round(environment.minLift * 100)}`
   return t(effect.text ? `${effect.text}, ${short}` : short, c.red)
 }

@@ -445,7 +445,7 @@ export default defineEval({
     assert.match(r.stdout, /^ {2}➜ {2}Scope: +1 eval file · 1 eval · 2 cells · 4 trials$/m)
     // A successful compare reads as one: the baseline's expected misses aren't failures.
     const block =
-      /✓ writes-ok {2}mean 100% · 2\/2 trials at 100% {2}regression\(1\)\n[│ ]+environment +pass\n[│ ]+base +0 of 2\n[│ ]+error {2}score 0\.00 below 1: has-file:ok\.txt scored 0\.00 \(2 runs\)\n[│ ]+skilled +2 of 2 {2}helped\n/
+      /✓ writes-ok {2}mean 100% · 2\/2 trials at 100% {2}regression\(1\)\n[│ ]+environment +pass\n[│ ]+base +0 of 2\n[│ ]+error {2}score 0\.00 below 1: has-file:ok\.txt scored 0\.00 \(2 trials\)\n[│ ]+skilled +2 of 2 {2}helped\n/
     assert.match(r.stdout, block)
     assert.match(r.stdout, /^Done in \S+ · 1 eval · 1 on target$/m)
 
@@ -631,8 +631,14 @@ export default defineEval({
       r.stdout,
       /✓ any-one +mean 80% · 4\/5 trials at 100% \(pass@5\) +capability\(1, \{ blocking: true \}\)$/m,
     )
-    assert.match(r.stdout, /· default +mean 80% · 4\/5 trials at 100% \(pass@5\) +capability\(1\)$/m)
-    assert.match(r.stdout, /✗ every-one +mean 80% · 4\/5 trials at 100%, worst 0% +regression\(1\)$/m)
+    assert.match(
+      r.stdout,
+      /· default +mean 80% · 4\/5 trials at 100% \(pass@5\) +capability\(1\)$/m,
+    )
+    assert.match(
+      r.stdout,
+      /✗ every-one +mean 80% · 4\/5 trials at 100%, worst 0% +regression\(1\)$/m,
+    )
     assert.match(r.stdout, /^Done in \S+ · 3 evals · 1 on target · 1 below · 1 report only$/m)
   })
 
@@ -699,7 +705,7 @@ describe('profiles', () => {
       r.stdout,
       /^ {2}➜ {2}Profile: +pr \(auto: CI is set\)\n(.*\n)* {2}➜ {2}Scope: +3 eval files · 3 evals \(1 skipped\) · 4 cells · 6 trials \(budget: 5 ✗\)$/m,
     )
-    assert.match(r.stdout, /^eval +agents +variants +runs +trials +target +notes$/m)
+    assert.match(r.stdout, /^eval +agents +variants +trials +total +target +notes$/m)
     assert.equal(existsSync(join(p.dir, '.reeval/runs')), false, 'a dry run writes no run')
 
     const over = await runCli(p.dir, ['run'], { env: { CI: 'true' } })
@@ -1184,7 +1190,7 @@ describe('common mistakes', { concurrency: 4 }, () => {
       [
         'pinning something that cannot be pinned',
         () => ({ pin: ['timeout'] as never, task: async () => {} }),
-        /pin in evals\/m\d+\.eval\.ts lists agents, runs and\/or compare \(got "timeout"\)/,
+        /pin in evals\/m\d+\.eval\.ts lists agents, trials and\/or compare \(got "timeout"\)/,
       ],
       [
         'a harness edit naming a harness the eval does not inherit',
@@ -1197,9 +1203,9 @@ describe('common mistakes', { concurrency: 4 }, () => {
         /agents in evals\/m\d+\.eval\.ts takes \{ add \} or \{ only \}, not both/,
       ],
       [
-        'repeat instead of runs',
+        'repeat instead of trials',
         () => ({ repeat: 3, task: async () => {} }) as never,
-        /Unknown option "repeat".*Did you mean "runs"\?/,
+        /Unknown option "repeat".*Did you mean "trials"\?/,
       ],
       [
         'an eval with no function',

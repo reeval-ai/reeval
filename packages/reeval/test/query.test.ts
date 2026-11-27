@@ -17,7 +17,7 @@ import {
   skillUses,
 } from '../src/history/tool-class.ts'
 import { toolTarget } from '../src/history/tool-target.ts'
-import type { TrialRecord, RunRecord } from '../src/history/types.ts'
+import type { RunRecord, TrialRecord } from '../src/history/types.ts'
 import { statementCount, usesRunParameter } from '../src/query.ts'
 import { toolCalls } from '../src/view/classify.ts'
 import { harnessLabel, type TrajectoryLine } from '../src/view/model.ts'
@@ -323,7 +323,14 @@ export default defineEval({
       {
         label: 'always one',
         branch: 'main',
-        ...{ runs: 3, fails: 0, streak_runs: 3, streak_trials: 6, last_run: newest, ended_by: null },
+        ...{
+          runs: 3,
+          fails: 0,
+          streak_runs: 3,
+          streak_trials: 6,
+          last_run: newest,
+          ended_by: null,
+        },
       },
       {
         label: 'flips',
@@ -1042,10 +1049,7 @@ export default defineEval({
 `,
     })
     assert.equal((await runCli(p.dir)).code, 1)
-    const rows = await query(
-      p.dir,
-      'SELECT eval_key, skill FROM failing_trials ORDER BY eval_key',
-    )
+    const rows = await query(p.dir, 'SELECT eval_key, skill FROM failing_trials ORDER BY eval_key')
     assert.deepEqual(
       rows.map((r) => r.skill),
       ['alpha', 'beta'],

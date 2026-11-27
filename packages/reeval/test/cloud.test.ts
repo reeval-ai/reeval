@@ -390,12 +390,7 @@ describe("the service's layout", () => {
   })
 
   test("keeps the eval's options when the service names no layout, or one it can't read", async () => {
-    for (const layout of [
-      undefined,
-      null,
-      { reuse: 'yes' },
-      { ...LAYOUT, trialsPerMachine: 0 },
-    ]) {
+    for (const layout of [undefined, null, { reuse: 'yes' }, { ...LAYOUT, trialsPerMachine: 0 }]) {
       const p = await service({ layout })
       const { options } = await open(p, { reuse: true, trialsPerMachine: 2 }, 'run-own')
       assert.deepEqual([options.trialsPerMachine, options.reuse], [2, true], String(layout))

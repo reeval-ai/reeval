@@ -1,8 +1,8 @@
 import { caseName } from '../../history/cases.ts'
-import type { TrialRecord, CellRecord, EvalEntry, RunRecord } from '../../history/types.ts'
+import type { CellRecord, EvalEntry, RunRecord, TrialRecord } from '../../history/types.ts'
 import { COMPARE_TRIALS, containsZero, liftInterval } from '../../stats.ts'
 import { targetLabel } from '../../target.ts'
-import type { TrialFailure, CapturePageFile, GradeRecord } from '../../types.ts'
+import type { CapturePageFile, GradeRecord, TrialFailure } from '../../types.ts'
 import { totalTokens } from '../../usage.ts'
 import type { AnalysisDoc } from '../analysis.ts'
 import type { TrialFacts } from '../classify.ts'
@@ -11,7 +11,7 @@ import { contrastsOf } from '../contrasts.ts'
 import { runCost } from '../cost.ts'
 import { effortSample, filesChanged, formatCount, formatSeconds } from '../effort.ts'
 import { labeledJudgments } from '../judgments.ts'
-import { trialAnswerRows, isUngatedMiss } from '../model.ts'
+import { isUngatedMiss, trialAnswerRows } from '../model.ts'
 import type { RunRemarks } from '../remarks.ts'
 import { runScope } from '../scope.ts'
 import { type EvalResult, factSegment, messageLine, suiteResult } from '../suite.ts'
@@ -32,25 +32,23 @@ import {
   tokensText,
   usdFigure,
 } from './format.ts'
-import { type TrialIdMap, trialIds, selectedEvals } from './ids.ts'
+import { selectedEvals, type TrialIdMap, trialIds } from './ids.ts'
 import { measurePhrase, PASS_RATE_OUTCOME_LABEL, passRateOutcomeFromMatchers } from './labels.ts'
-import { trialHref, trialRef, captureHref, gfmAnchor, withBase } from './links.ts'
+import { captureHref, gfmAnchor, trialHref, trialRef, withBase } from './links.ts'
 import { REPORT_POLICY } from './policy.ts'
 import { provenanceState } from './provenance.ts'
 import type {
-  CompareEnvironment,
-  EnvironmentRef,
-  EnvironmentRow,
   AssertionRow,
-  TrialIndexRow,
-  TrialRef,
   BreakdownRow,
   CaptureGallery,
   ChangeRow,
   CheckCell,
   ChoiceBreakdown,
+  CompareEnvironment,
   ContrastRow,
   DiscoveryRate,
+  EnvironmentRef,
+  EnvironmentRow,
   EvalHeadline,
   EvalSection,
   EvalShape,
@@ -77,6 +75,8 @@ import type {
   RunTally,
   Spread,
   TaskResults,
+  TrialIndexRow,
+  TrialRef,
   VariantComparison,
 } from './types.ts'
 
@@ -489,9 +489,8 @@ function shapesOf(e: EvalEntry, prior: boolean): EvalShape[] {
 function designOf(e: EvalEntry): string {
   const harnesses = new Set(e.cells.map((c) => c.harness)).size
   const environments = new Set(e.cells.map((c) => c.environment)).size
-  const prompts = new Set(
-    e.trials.flatMap((a) => (a.turns[0]?.prompt ? [a.turns[0].prompt] : [])),
-  ).size
+  const prompts = new Set(e.trials.flatMap((a) => (a.turns[0]?.prompt ? [a.turns[0].prompt] : [])))
+    .size
   const trials = e.trials.filter((a) => a.seq !== null).length
   const parts: string[] = []
   if (prompts > 1) parts.push(`${prompts} prompts`)
@@ -1091,7 +1090,10 @@ function buildTaskResults(e: EvalEntry): TaskResults | null {
   return { kind: 'task', columns, assertions, axes, breakdown, median: medianRow }
 }
 
-function buildVariantComparison(e: EvalEntry, environments: CompareEnvironment[]): VariantComparison {
+function buildVariantComparison(
+  e: EvalEntry,
+  environments: CompareEnvironment[],
+): VariantComparison {
   const baseline = environments.find((a) => a.role === 'baseline')
   const trialsFor = (environment: CompareEnvironment) =>
     e.trials.filter((a) => {
@@ -1099,9 +1101,7 @@ function buildVariantComparison(e: EvalEntry, environments: CompareEnvironment[]
       return cell && (cell.environmentDigest ?? cell.environment) === environment.id
     })
 
-  const baseTrials = baseline
-    ? trialsFor(baseline).filter((a) => countedOutcome(a.outcome))
-    : []
+  const baseTrials = baseline ? trialsFor(baseline).filter((a) => countedOutcome(a.outcome)) : []
   const baseMeasures = measuresOf(baseTrials)
   const baseRate = passRateForTrials(baseTrials)
 
@@ -1111,7 +1111,11 @@ function buildVariantComparison(e: EvalEntry, environments: CompareEnvironment[]
     const measures = measuresOf(trials)
     const vs = emptyMeasureVsBaseline()
     for (const key of MEASURE_KEYS) {
-      vs[key] = measureVs(measures[key], environment.role === 'baseline' ? null : baseMeasures[key], null)
+      vs[key] = measureVs(
+        measures[key],
+        environment.role === 'baseline' ? null : baseMeasures[key],
+        null,
+      )
     }
     if (environment.role === 'baseline') {
       return {
@@ -1229,7 +1233,11 @@ function buildVariantComparison(e: EvalEntry, environments: CompareEnvironment[]
         : []
       const baseM = measuresOf(baseH)
       for (const key of MEASURE_KEYS) {
-        vs[key] = measureVs(measures[key], environment.role === 'baseline' ? null : baseM[key], null)
+        vs[key] = measureVs(
+          measures[key],
+          environment.role === 'baseline' ? null : baseM[key],
+          null,
+        )
       }
       return {
         harness: h,
@@ -1896,9 +1904,7 @@ function buildIntegrity(ctx: Ctx): IntegrityIssue[] {
       })
     }
     const preHits = e.trials.flatMap((a) =>
-      (a.assertions ?? [])
-        .filter((x) => x.preSatisfied)
-        .map((x) => ({ trial: a, label: x.label })),
+      (a.assertions ?? []).filter((x) => x.preSatisfied).map((x) => ({ trial: a, label: x.label })),
     )
     if (preHits.length) {
       const labels = [...new Set(preHits.map((h) => h.label))]

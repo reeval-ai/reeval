@@ -1,4 +1,4 @@
-import { type TrialContext, defineEnvironment } from 'reeval'
+import { defineEnvironment, type TrialContext } from 'reeval'
 import { docker, fakeSandbox, podman } from 'reeval/sandbox'
 
 /** The Docker and Podman tiers run the same containers. */

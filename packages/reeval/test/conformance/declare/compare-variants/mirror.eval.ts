@@ -9,6 +9,10 @@ evaluate(
 )
 evaluate(
   'every cell gated, with a minimum lift',
-  { compare: { baseline: base, variants: [skilled], minLift: 0.2 }, target: regression(), trials: 2 },
+  {
+    compare: { baseline: base, variants: [skilled], minLift: 0.2 },
+    target: regression(),
+    trials: 2,
+  },
   async () => {},
 )

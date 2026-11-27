@@ -2,7 +2,7 @@
 // it, the history's derived views. No model is involved. Pure: what the history and the eval's
 // source say comes in through `RemarkContext`.
 import { FLAKY_MIN_TRIALS } from '../history/facts.ts'
-import type { TrialRecord, EvalEntry, RunRecord } from '../history/types.ts'
+import type { EvalEntry, RunRecord, TrialRecord } from '../history/types.ts'
 import { sha256 } from '../ids.ts'
 import {
   COMPARE_TRIALS,
@@ -10,11 +10,11 @@ import {
   familySmallSample,
   liftInterval,
   PAIRED_MIN,
-  TRIALS_TO_HOLD_MAX,
-  trialsToHold,
   runsToSettle,
   SMALL_SAMPLE_MARGIN,
   smallSample,
+  TRIALS_TO_HOLD_MAX,
+  trialsToHold,
 } from '../stats.ts'
 import { blocks } from '../target.ts'
 import { clip } from '../text.ts'
@@ -109,7 +109,8 @@ function units(e: EvalResult): Array<{ id: string; cells: CellResult[] }> {
   return [{ id: e.id, cells: e.cells ?? [] }]
 }
 
-const environmentOf = (c: CellResult) => c.variant ?? (c.environment === '-' ? 'baseline' : c.environment)
+const environmentOf = (c: CellResult) =>
+  c.variant ?? (c.environment === '-' ? 'baseline' : c.environment)
 
 /** `evals/a.eval.ts:12` from `source:evals/a.eval.ts#L12`. */
 const location = (at: string) => at.replace(/^source:/, '').replace(/#L(\d+)$/, ':$1')
@@ -281,7 +282,9 @@ function tooFewTries(e: EvalResult, entry: EvalEntry, ctx: RemarkContext): Candi
       const base = unit.cells.find((c) => c.key === variant.vs)
       if (!variant.vs || !base || !counted(variant) || !counted(base)) continue
       const bound =
-        Math.min(counted(variant), counted(base)) >= COMPARE_TRIALS ? bounded([variant, base]) : null
+        Math.min(counted(variant), counted(base)) >= COMPARE_TRIALS
+          ? bounded([variant, base])
+          : null
       if (bound) {
         const tie = tieOf(bound, variant.measures)
         if (tie === 'tie') ties.push({ variant, base, bound })

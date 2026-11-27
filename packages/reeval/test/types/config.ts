@@ -11,7 +11,9 @@ const app = defineEnvironment('app', {})
 const config = defineConfig({
   agents: fakeAgent(),
   environments: app,
-  profiles: { smoke: { limit: { agents: ['fake'] }, defaults: { trials: 1, agents: fakeAgent() } } },
+  profiles: {
+    smoke: { limit: { agents: ['fake'] }, defaults: { trials: 1, agents: fakeAgent() } },
+  },
 })
 const profiles: object | undefined = config.profiles
 void profiles

@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { isAbsolute, relative, resolve } from 'node:path'
 import picomatch from 'picomatch'
 import { glob } from 'tinyglobby'
-import { trialId, relativeFile } from '../ids.ts'
+import { relativeFile, trialId } from '../ids.ts'
 
 /** Never searched for eval files. */
 export const DEFAULT_EXCLUDE = ['**/node_modules/**', '**/.git/**']

@@ -17,10 +17,10 @@ import {
 import { trialDebug } from '../debug/trial.ts'
 import { registerSecret } from '../redact.ts'
 import type {
-  TrialImage,
   BoatSandboxDescriptor,
   CloudSandboxDescriptor,
   SandboxBase,
+  TrialImage,
 } from '../types.ts'
 import { containerSandbox } from './docker.ts'
 import type { SandboxOptions } from './index.ts'

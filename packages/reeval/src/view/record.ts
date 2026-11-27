@@ -173,7 +173,9 @@ export const MIGRATIONS: Partial<Record<ShapeName, Record<number, (value: never)
       schemaVersion: 2,
     }),
   },
-  'analysis-note': { 1: (note: object) => ({ ...renamed(note, ['attempts'], trialKey), schemaVersion: 2 }) },
+  'analysis-note': {
+    1: (note: object) => ({ ...renamed(note, ['attempts'], trialKey), schemaVersion: 2 }),
+  },
   regrade: { 1: (doc: object) => ({ ...renamed(doc, ['attempts'], trialKey), schemaVersion: 2 }) },
   remarks: { 1: (doc: object) => remarksV2(doc) },
   'live-progress': {

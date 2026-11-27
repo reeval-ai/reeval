@@ -40,9 +40,6 @@ import type { CollectedPlan, EngineRun, PlannedItem } from './engine/node.ts'
 import { inCI, loadEnvFiles } from './env.ts'
 import { environmentSandbox, placedSandbox, profileSandbox, workspaceLabel } from './environment.ts'
 import {
-  TRIALS_HEARTBEAT_MS,
-  TRIALS_HEARTBEAT_RANGE,
-  type TrialsBeat,
   abandonedSockets,
   beatWith,
   displayUrl,
@@ -51,6 +48,9 @@ import {
   isEventsUrl,
   notEventStream,
   openEventStream,
+  TRIALS_HEARTBEAT_MS,
+  TRIALS_HEARTBEAT_RANGE,
+  type TrialsBeat,
   teeRenderer,
 } from './events.ts'
 import { gatewayScope, modelGatewayOrNone, resolveModelGateway } from './gateway/models.ts'
@@ -514,7 +514,9 @@ async function run(argv: string[]): Promise<number> {
  * extracted project's, and the run continues there.
  */
 async function bundleRun(flags: Flags, filters: string[]): Promise<number> {
-  const planning = (['profile', 'tag', 'trait', 'trials', 'config', 'retry-errors', 'cloud'] as const)
+  const planning = (
+    ['profile', 'tag', 'trait', 'trials', 'config', 'retry-errors', 'cloud'] as const
+  )
     .filter((f) => flags[f] !== undefined)
     .map((f) => `--${f}`)
   if (filters.length || planning.length) {
@@ -2479,8 +2481,7 @@ async function planEfforts(planned: PlannedItem[]): Promise<CursorEfforts | unde
       unchecked,
     )
     for (const { trial } of items) {
-      for (const note of notes)
-        if (!trial.plan.notes.includes(note)) trial.plan.notes.push(note)
+      for (const note of notes) if (!trial.plan.notes.includes(note)) trial.plan.notes.push(note)
     }
   }
   return cursor
@@ -2531,15 +2532,8 @@ async function executeRun(
     }),
   ) as typeof ctx
   const { runEngine } = await import('./engine/node.ts')
-  const {
-    buildPlan,
-    checkTrialBudget,
-    planDocument,
-    planInputs,
-    planLine,
-    planTable,
-    runHeader,
-  } = await import('./plan.ts')
+  const { buildPlan, checkTrialBudget, planDocument, planInputs, planLine, planTable, runHeader } =
+    await import('./plan.ts')
   let plan: RunPlan | undefined
   let sandboxVersions: SandboxVersions = { images: [] }
   let preflightStop: Error | undefined
@@ -2647,8 +2641,7 @@ async function executeRun(
               .filter((p) => !p.trial.plan.skip && capabilitiesOf(p.trial.sandbox).isolated)
               .filter(
                 (p) =>
-                  isDirect(p.trial.egress.policy) ||
-                  isDirect(setupEgress(p.trial.egress).policy),
+                  isDirect(p.trial.egress.policy) || isDirect(setupEgress(p.trial.egress).policy),
               )
               .map((p) => p.id),
           ),
@@ -2954,9 +2947,7 @@ async function executeRun(
       }
       // Reported like a sandbox that failed to prepare: once, and only its trials fail.
       const key = workspaceKey(o.workspace)
-      const user = live.find(
-        (p) => p.trial.workspace && workspaceKey(p.trial.workspace) === key,
-      )
+      const user = live.find((p) => p.trial.workspace && workspaceKey(p.trial.workspace) === key)
       if (!user) continue
       const target = {
         kind: 'workspace',

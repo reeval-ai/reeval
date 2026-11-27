@@ -2,7 +2,7 @@
 // channel, specified in ./PROTOCOL.md, with JSON Schemas in schema/plan/. A worker may come from
 // another copy of reeval (the project's own), so both check PROTOCOL before anything else.
 import type { Limits, Rank } from '../scheduler/core.ts'
-import type { TrialMeta, EvalMeta, RunContext } from '../types.ts'
+import type { EvalMeta, RunContext, TrialMeta } from '../types.ts'
 import type { Progress } from '../ui/events.ts'
 import type { DebugLine } from '../view/debug.ts'
 import type { SerializedError } from './errors.ts'

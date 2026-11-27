@@ -85,11 +85,11 @@ import type {
   ResolvedProfile,
   ResolvedSnapshot,
   Revision,
-  Trials,
   SandboxDescriptor,
   SandboxWarning,
   SnapshotOption,
   Target,
+  Trials,
 } from './types.ts'
 
 /** Every eval/group option key `checkOptions` accepts. The feature matrix holds each to an inventory entry. */
@@ -1193,7 +1193,9 @@ export function expand(
             : '',
       ].filter(Boolean)
       for (let n = 1; n <= resolved.trials; n++) {
-        const label = [axes.join(' · '), resolved.trials > 1 ? `#${n}` : ''].filter(Boolean).join(' ')
+        const label = [axes.join(' · '), resolved.trials > 1 ? `#${n}` : '']
+          .filter(Boolean)
+          .join(' ')
         trials.push({
           cell,
           harness,
@@ -1443,11 +1445,7 @@ export function evalPlan(
 ): EvalPlan {
   const { resolved, skip } = r
   const capture = captureNote(resolved.capture)
-  const notes = [
-    ...r.notes,
-    ...(capture ? [capture] : []),
-    ...unbrokeredHere(resolved.env, trials),
-  ]
+  const notes = [...r.notes, ...(capture ? [capture] : []), ...unbrokeredHere(resolved.env, trials)]
   return {
     harnesses: skip ? 0 : resolved.harness.length,
     variants: resolved.compare

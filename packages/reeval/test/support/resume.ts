@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { hostname } from 'node:os'
 import { join } from 'node:path'
 import { fileEvalId } from '../../src/eval-id.ts'
-import { trialKey, recordFileName } from '../../src/ids.ts'
+import { recordFileName, trialKey } from '../../src/ids.ts'
 
 const DEFAULT_INCLUDE = ['evals/**/*.eval.ts', 'evals/**/*.eval.py'] as const
 const evalKey = (file: string) => fileEvalId(DEFAULT_INCLUDE, file)

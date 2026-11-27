@@ -11,12 +11,12 @@ import { validate } from '../scripts/schema/validate.ts'
 import { zodDefs } from '../scripts/schema/zod.ts'
 import {
   TRIAL_SCHEMAS,
+  trajectoryEventSchema,
   trialAbortSchema,
   trialDoneSchema,
   trialReplySchema,
   trialRequestSchema,
   trialStartSchema,
-  trajectoryEventSchema,
 } from '../src/contract/trial.ts'
 import type { TrajectoryEvent, TurnData } from '../src/types.ts'
 import { MIGRATIONS, readableTrajectoryLine } from '../src/view/record.ts'

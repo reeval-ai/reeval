@@ -1,12 +1,6 @@
 // Per-key judge rates and collapsed score/threshold lines for the run summary and studio.
 // Display only: the trial still fails if any judge fails, and the record is unchanged.
-import type {
-  TrialRecord,
-  CellRecord,
-  EvalEntry,
-  JudgmentRecord,
-  Lift,
-} from '../history/types.ts'
+import type { CellRecord, EvalEntry, JudgmentRecord, Lift, TrialRecord } from '../history/types.ts'
 import { containsZero, liftInterval, round3 } from '../stats.ts'
 import { clip } from '../text.ts'
 import type { TokenUsage } from '../types.ts'

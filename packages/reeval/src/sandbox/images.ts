@@ -27,7 +27,6 @@ import { buildSteps, pluginBuildId, pluginBuildsLabel, pluginCall } from '../env
 import { placedSandbox } from '../environment.ts'
 import { sandboxId, sandboxProvider } from '../options.ts'
 import type {
-  TrialImage,
   DockerSandboxDescriptor,
   HarnessDescriptor,
   PlannedEgress,
@@ -36,6 +35,7 @@ import type {
   RunContext,
   SandboxDescriptor,
   TartSandboxDescriptor,
+  TrialImage,
   VmImage,
 } from '../types.ts'
 import { type HarnessBake, harnessBake } from './harness-install.ts'
@@ -43,11 +43,11 @@ import { prepareAll } from './preflight.ts'
 import { imageHarness, pluginBuildSpec, projectPath, usesReevalBase } from './prepare.ts'
 import type { PrepareFailure } from './provider.ts'
 import {
-  trialImage,
   bakedImage,
   classifyTart,
   createProviders,
   dockerKey,
+  trialImage,
   vmImage,
 } from './providers.ts'
 import { harnessRecipe, installSteps } from './recipe.ts'
@@ -474,10 +474,7 @@ export async function imageStatusLines(targets: ImageTarget[], root: string): Pr
 }
 
 export type BuiltImage = ImageTarget &
-  (
-    | { ok: true; image: TrialImage; ms: number }
-    | { ok: false; failure: PrepareFailure; ms: number }
-  )
+  ({ ok: true; image: TrialImage; ms: number } | { ok: false; failure: PrepareFailure; ms: number })
 
 /**
  * `reeval image build`: prepares every target, three at a time, and reports each, failures too.

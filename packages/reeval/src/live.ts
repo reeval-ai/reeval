@@ -10,10 +10,10 @@ import type { EvalResult } from './ui/events.ts'
 import {
   LIVE_FILE,
   LIVE_SCHEMA_VERSION,
-  type LiveTrial,
   type LivePhase,
   type LiveProgress,
   type LiveStatus,
+  type LiveTrial,
   liveCounts,
 } from './view/live.ts'
 

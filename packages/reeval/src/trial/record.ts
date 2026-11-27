@@ -9,7 +9,7 @@ import { isEvalError } from '../eval-error.ts'
 import { expectedBlockedFor } from '../harness/agents.ts'
 import { ProviderStopError } from '../harness/provider-stop.ts'
 import { OBSERVATION_INLINE } from '../history/types.ts'
-import { trialKey, recordFileName, sha256 } from '../ids.ts'
+import { recordFileName, sha256, trialKey } from '../ids.ts'
 import { modelCallEvents } from '../model-calls.ts'
 import { sandboxProvider } from '../options.ts'
 import { redactJson, redactJsonText, redactSecrets, redactSplitSecrets } from '../redact.ts'
@@ -17,12 +17,12 @@ import { InfraError, RunStopped, type Sandbox } from '../sandbox/index.ts'
 import { PrepareError } from '../sandbox/provider.ts'
 import { capMiddle, clip } from '../text.ts'
 import type {
-  TrialFailure,
   ErrorKind,
   EvalMeta,
   EvalRecord,
   JSONValue,
   TrajectoryEvent,
+  TrialFailure,
 } from '../types.ts'
 import { resourcesLine } from '../view/resources.ts'
 import { messageLine } from '../view/suite.ts'
@@ -336,11 +336,7 @@ async function stageObservations(record: EvalRecord, dir: string): Promise<EvalR
 /** Writes the trial's record, redacted, and returns what the runner reports. */
 export async function writeRecord(a: Trial, stagingDir: string, id: string): Promise<EvalMeta> {
   const { record, spec } = a
-  const recordPath = join(
-    stagingDir,
-    'evals',
-    recordFileName(trialKey(id, spec.cell.key, spec.n)),
-  )
+  const recordPath = join(stagingDir, 'evals', recordFileName(trialKey(id, spec.cell.key, spec.n)))
   await mkdir(join(stagingDir, 'evals'), { recursive: true })
   await writeCaptureSidecars(
     stagingDir,

@@ -36,16 +36,16 @@ import { formatUsage } from '../view/model.ts'
 import { type ObservedTally, observedLine } from '../view/observations.ts'
 import type { Remark, RunRemarks } from '../view/remarks.ts'
 import type {
-  TrialQuestionResult,
   CellError,
   CellResult,
   EvalResult,
   QuestionResult,
   SuiteResult,
+  TrialQuestionResult,
 } from '../view/suite.ts'
 import { standing, targetNumber } from '../view/target.ts'
 import { colors } from './colors.ts'
-import { environmentLines, labeler as cellLabeler, checkLabel, upstreamTexts } from './layout.ts'
+import { labeler as cellLabeler, checkLabel, environmentLines, upstreamTexts } from './layout.ts'
 import { shownRemarks } from './remarks.ts'
 import {
   caseRows,
@@ -403,7 +403,8 @@ function remarkLines(remarks: Remark[], notes: string[]): DetailLine[] {
 }
 
 /** A compare's failures are told apart by environment: `the baseline`, or the variant's name. */
-const environmentOf = (c: CellResult) => (c.baseline ? 'the baseline' : (c.variant ?? c.environment))
+const environmentOf = (c: CellResult) =>
+  c.baseline ? 'the baseline' : (c.variant ?? c.environment)
 
 const nameOf = (e: Pick<EvalResult, 'group' | 'name' | 'template'>) =>
   [...e.group, e.template ?? e.name].join(' › ')

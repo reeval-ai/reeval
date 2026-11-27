@@ -164,9 +164,7 @@ describe('a record with checks that never ran', () => {
     assert.ok(e)
     e.cells = e.cells.filter((c) => c.harness === 'fake')
     e.trials = e.trials.filter((a) => e.cells.some((c) => c.key === a.cell))
-    e.trials = e.trials.flatMap((a) =>
-      [1, 2, 3, 4].map((n) => ({ ...a, id: `${a.cell}#${n}`, n })),
-    )
+    e.trials = e.trials.flatMap((a) => [1, 2, 3, 4].map((n) => ({ ...a, id: `${a.cell}#${n}`, n })))
     for (const c of e.cells) {
       const outcome = c.role === 'baseline' ? 'fail' : 'pass'
       Object.assign(c, {

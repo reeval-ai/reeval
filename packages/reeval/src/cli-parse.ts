@@ -182,9 +182,7 @@ function usageError(error: CommanderError, command: string, secretArgs?: true): 
     }
     const shown = arg.replace(/\r/g, '\\r').replace(/\n/g, '\\n')
     const hint = suggestion ?? (flag === 'runs' ? 'Did you mean --trials?' : undefined)
-    return new UsageError(
-      `Unknown option '${shown}'. ${hint ? `${hint} ` : ''}Run reeval --help.`,
-    )
+    return new UsageError(`Unknown option '${shown}'. ${hint ? `${hint} ` : ''}Run reeval --help.`)
   }
   if (error.code === 'commander.optionMissingArgument') {
     const usage = /'([^']+)'/.exec(first)?.[1] ?? ''

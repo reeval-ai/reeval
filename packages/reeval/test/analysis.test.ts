@@ -711,7 +711,7 @@ export default defineEval({
     })
     const first = await runCli(p.dir)
     assert.equal(first.code, 0, first.stdout)
-    // Two tries a side is below the effort table's four, so only the environments print.
+    // Two trials a side is below the effort table's four, so only the environments print.
     assert.match(first.stdout, /^ +skilled +2 of 2 {2}helped\b/m)
     assert.doesNotMatch(first.stdout, /^ {2}effort /m)
     const { read } = readRun(p.dir)
@@ -1344,7 +1344,12 @@ export default defineEval({
       "SELECT pass_verdict, small_sample, variant_counted, baseline_counted FROM factor_effects WHERE tier = 'controlled'",
     )
     assert.deepEqual(
-      controlled.map((r) => [r.pass_verdict, r.small_sample, r.variant_counted, r.baseline_counted]),
+      controlled.map((r) => [
+        r.pass_verdict,
+        r.small_sample,
+        r.variant_counted,
+        r.baseline_counted,
+      ]),
       [['noise', 1, 1, 1]],
     )
   })
@@ -1962,10 +1967,7 @@ describe('a study: several environments, every cell ungated', () => {
       pass.cells.map((c) => c.cell),
       ['no-skill (baseline)', 'current-skill', 'new-skill'],
     )
-    assert.ok(
-      Object.keys(digest.trials).includes('r1/auth/baseline#1'),
-      'trial ids keep the tag',
-    )
+    assert.ok(Object.keys(digest.trials).includes('r1/auth/baseline#1'), 'trial ids keep the tag')
   })
 
   test('the digest frames it as a study, with what each environment read and its effort against the baseline', async () => {

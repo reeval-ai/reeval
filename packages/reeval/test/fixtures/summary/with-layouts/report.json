@@ -445,9 +445,7 @@
         "evalId": "evals/family.eval.ts › adds a button that builds",
         "name": "adds a $name button that builds",
         "anchor": "adds-a-name-button-that-builds",
-        "shapes": [
-          "task"
-        ],
+        "shapes": ["task"],
         "design": "3 prompts, 1 coding harness, 3 trials",
         "primary": "67% passed",
         "medianTokens": {
@@ -459,9 +457,7 @@
         "evalId": "evals/family.eval.ts › greets in the house style",
         "name": "greets %s in the house style",
         "anchor": "greets-s-in-the-house-style",
-        "shapes": [
-          "ab"
-        ],
+        "shapes": ["ab"],
         "design": "4 prompts, 1 coding harness, 2 environments, 8 trials",
         "primary": "with-skill vs plain: +100 pts pass rate (100% vs 0%)",
         "medianTokens": {
@@ -473,9 +469,7 @@
         "evalId": "evals/harnesses.eval.ts › greets in the house style on each agent",
         "name": "greets in the house style on each agent",
         "anchor": "greets-in-the-house-style-on-each-agent",
-        "shapes": [
-          "task"
-        ],
+        "shapes": ["task"],
         "design": "2 coding harnesses, 2 trials",
         "primary": "50% passed",
         "medianTokens": {
@@ -487,9 +481,7 @@
         "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
         "name": "learns the house style from the skill",
         "anchor": "learns-the-house-style-from-the-skill",
-        "shapes": [
-          "ab"
-        ],
+        "shapes": ["ab"],
         "design": "2 coding harnesses, 2 environments, 16 trials",
         "primary": "with-skill vs plain: +50 pts pass rate (50% vs 0%)",
         "medianTokens": {
@@ -501,9 +493,7 @@
         "evalId": "evals/measure.eval.ts › greets in the house style",
         "name": "greets in the house style",
         "anchor": "greets-in-the-house-style",
-        "shapes": [
-          "ab"
-        ],
+        "shapes": ["ab"],
         "design": "1 coding harness, 3 environments, 12 trials",
         "primary": "with-skill vs plain: +100 pts pass rate (100% vs 0%)",
         "medianTokens": {
@@ -515,9 +505,7 @@
         "evalId": "evals/measure.eval.ts › keeps the plain greeting",
         "name": "keeps the plain greeting",
         "anchor": "keeps-the-plain-greeting",
-        "shapes": [
-          "ab"
-        ],
+        "shapes": ["ab"],
         "design": "1 coding harness, 2 environments, 8 trials",
         "primary": "with-skill vs plain: -100 pts pass rate (0% vs 100%)",
         "medianTokens": {
@@ -529,9 +517,7 @@
         "evalId": "evals/measure.eval.ts › greets once",
         "name": "greets once",
         "anchor": "greets-once",
-        "shapes": [
-          "ab"
-        ],
+        "shapes": ["ab"],
         "design": "1 coding harness, 2 environments, 2 trials",
         "primary": "with-skill vs plain: +100 pts pass rate (100% vs 0%)",
         "medianTokens": {
@@ -543,9 +529,7 @@
         "evalId": "evals/results.eval.ts › writes greet.js",
         "name": "writes greet.js",
         "anchor": "writes-greetjs",
-        "shapes": [
-          "task"
-        ],
+        "shapes": ["task"],
         "design": "1 coding harness, 1 trial",
         "primary": "100% passed",
         "medianTokens": {
@@ -557,9 +541,7 @@
         "evalId": "evals/results.eval.ts › greets in French",
         "name": "greets in French",
         "anchor": "greets-in-french",
-        "shapes": [
-          "task"
-        ],
+        "shapes": ["task"],
         "design": "1 coding harness, 1 trial",
         "primary": "0% passed",
         "medianTokens": {
@@ -571,9 +553,7 @@
         "evalId": "evals/results.eval.ts › explains why greet.js fails",
         "name": "explains why greet.js fails",
         "anchor": "explains-why-greetjs-fails",
-        "shapes": [
-          "task"
-        ],
+        "shapes": ["task"],
         "design": "1 coding harness, 2 trials",
         "primary": "50% passed",
         "medianTokens": {
@@ -585,9 +565,7 @@
         "evalId": "evals/results.eval.ts › reads the fixture repo",
         "name": "reads the fixture repo",
         "anchor": "reads-the-fixture-repo",
-        "shapes": [
-          "task"
-        ],
+        "shapes": ["task"],
         "design": "1 coding harness, 1 trial",
         "primary": "mean 0% · 0/1 trial at 100% · regression(1)",
         "medianTokens": {
@@ -599,9 +577,7 @@
         "evalId": "evals/results.eval.ts › starts its sandbox",
         "name": "starts its sandbox",
         "anchor": "starts-its-sandbox",
-        "shapes": [
-          "task"
-        ],
+        "shapes": ["task"],
         "design": "1 coding harness, 1 trial",
         "primary": "infra error · regression(1)",
         "medianTokens": {
@@ -613,9 +589,7 @@
         "evalId": "evals/results.eval.ts › greets in Welsh",
         "name": "greets in Welsh",
         "anchor": "greets-in-welsh",
-        "shapes": [
-          "task"
-        ],
+        "shapes": ["task"],
         "design": "1 coding harness, 0 trials",
         "primary": "skipped",
         "medianTokens": {
@@ -627,9 +601,7 @@
         "evalId": "evals/results.eval.ts › greets in Klingon",
         "name": "greets in Klingon",
         "anchor": "greets-in-klingon",
-        "shapes": [
-          "task"
-        ],
+        "shapes": ["task"],
         "design": "1 coding harness, 0 trials",
         "primary": "todo",
         "medianTokens": {
@@ -688,9 +660,7 @@
       "anchor": "adds-a-name-button-that-builds",
       "name": "adds a $name button that builds",
       "file": "evals/family.eval.ts",
-      "shapes": [
-        "task"
-      ],
+      "shapes": ["task"],
       "design": "3 prompts, 1 coding harness, 3 trials",
       "headline": {
         "task": "adds a $name button that builds",
@@ -718,9 +688,7 @@
       "insights": [],
       "primary": {
         "kind": "task",
-        "columns": [
-          "fake"
-        ],
+        "columns": ["fake"],
         "assertions": [
           {
             "label": "writes greet.js",
@@ -798,14 +766,10 @@
             }
           }
         ],
-        "axes": [
-          "Coding harness"
-        ],
+        "axes": ["Coding harness"],
         "breakdown": [
           {
-            "keys": [
-              "fake"
-            ],
+            "keys": ["fake"],
             "rate": {
               "k": 2,
               "n": 3,
@@ -952,9 +916,7 @@
       "anchor": "greets-s-in-the-house-style",
       "name": "greets %s in the house style",
       "file": "evals/family.eval.ts",
-      "shapes": [
-        "ab"
-      ],
+      "shapes": ["ab"],
       "design": "4 prompts, 1 coding harness, 2 environments, 8 trials",
       "headline": {
         "task": "greets %s in the house style",
@@ -1017,12 +979,7 @@
             "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "role": "baseline",
             "change": null,
-            "prompts": [
-              "p958d3cdc",
-              "pc5434676",
-              "p6870162d",
-              "padc4c17a"
-            ]
+            "prompts": ["p958d3cdc", "pc5434676", "p6870162d", "padc4c17a"]
           },
           {
             "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
@@ -1031,12 +988,7 @@
             "environmentDigest": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
             "role": "variant",
             "change": "with-skill",
-            "prompts": [
-              "p958d3cdc",
-              "pc5434676",
-              "p6870162d",
-              "padc4c17a"
-            ]
+            "prompts": ["p958d3cdc", "pc5434676", "p6870162d", "padc4c17a"]
           }
         ],
         "uniformLead": null,
@@ -1676,9 +1628,7 @@
       "anchor": "greets-in-the-house-style-on-each-agent",
       "name": "greets in the house style on each agent",
       "file": "evals/harnesses.eval.ts",
-      "shapes": [
-        "task"
-      ],
+      "shapes": ["task"],
       "design": "2 coding harnesses, 2 trials",
       "headline": {
         "task": "greets in the house style on each agent",
@@ -1706,10 +1656,7 @@
       "insights": [],
       "primary": {
         "kind": "task",
-        "columns": [
-          "skilled",
-          "terse"
-        ],
+        "columns": ["skilled", "terse"],
         "assertions": [
           {
             "label": "writes greet.js",
@@ -1814,14 +1761,10 @@
             }
           }
         ],
-        "axes": [
-          "Coding harness"
-        ],
+        "axes": ["Coding harness"],
         "breakdown": [
           {
-            "keys": [
-              "skilled"
-            ],
+            "keys": ["skilled"],
             "rate": {
               "k": 1,
               "n": 1,
@@ -1901,9 +1844,7 @@
             }
           },
           {
-            "keys": [
-              "terse"
-            ],
+            "keys": ["terse"],
             "rate": {
               "k": 0,
               "n": 1,
@@ -1984,9 +1925,7 @@
           }
         ],
         "median": {
-          "keys": [
-            "Median"
-          ],
+          "keys": ["Median"],
           "rate": {
             "k": 1,
             "n": 2,
@@ -2131,9 +2070,7 @@
       "anchor": "learns-the-house-style-from-the-skill",
       "name": "learns the house style from the skill",
       "file": "evals/harnesses.eval.ts",
-      "shapes": [
-        "ab"
-      ],
+      "shapes": ["ab"],
       "design": "2 coding harnesses, 2 environments, 16 trials",
       "headline": {
         "task": "learns the house style from the skill",
@@ -2196,9 +2133,7 @@
             "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "role": "baseline",
             "change": null,
-            "prompts": [
-              "pffbe647e"
-            ]
+            "prompts": ["pffbe647e"]
           },
           {
             "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
@@ -2207,9 +2142,7 @@
             "environmentDigest": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
             "role": "variant",
             "change": "with-skill",
-            "prompts": [
-              "pffbe647e"
-            ]
+            "prompts": ["pffbe647e"]
           }
         ],
         "uniformLead": null,
@@ -3171,9 +3104,7 @@
       "anchor": "greets-in-the-house-style",
       "name": "greets in the house style",
       "file": "evals/measure.eval.ts",
-      "shapes": [
-        "ab"
-      ],
+      "shapes": ["ab"],
       "design": "1 coding harness, 3 environments, 12 trials",
       "headline": {
         "task": "greets in the house style",
@@ -3264,9 +3195,7 @@
             "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "role": "baseline",
             "change": null,
-            "prompts": [
-              "pffbe647e"
-            ]
+            "prompts": ["pffbe647e"]
           },
           {
             "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
@@ -3275,9 +3204,7 @@
             "environmentDigest": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
             "role": "variant",
             "change": "with-skill",
-            "prompts": [
-              "pffbe647e"
-            ]
+            "prompts": ["pffbe647e"]
           },
           {
             "id": "sha256:4f15431ec693f3866e401362fea4634044b87652bded6bb599a035a762ecd345",
@@ -3286,9 +3213,7 @@
             "environmentDigest": "sha256:4f15431ec693f3866e401362fea4634044b87652bded6bb599a035a762ecd345",
             "role": "variant",
             "change": "with-doc",
-            "prompts": [
-              "pffbe647e"
-            ]
+            "prompts": ["pffbe647e"]
           }
         ],
         "uniformLead": null,
@@ -4384,9 +4309,7 @@
       "anchor": "keeps-the-plain-greeting",
       "name": "keeps the plain greeting",
       "file": "evals/measure.eval.ts",
-      "shapes": [
-        "ab"
-      ],
+      "shapes": ["ab"],
       "design": "1 coding harness, 2 environments, 8 trials",
       "headline": {
         "task": "keeps the plain greeting",
@@ -4449,9 +4372,7 @@
             "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "role": "baseline",
             "change": null,
-            "prompts": [
-              "p951aa46c"
-            ]
+            "prompts": ["p951aa46c"]
           },
           {
             "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
@@ -4460,9 +4381,7 @@
             "environmentDigest": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
             "role": "variant",
             "change": "with-skill",
-            "prompts": [
-              "p951aa46c"
-            ]
+            "prompts": ["p951aa46c"]
           }
         ],
         "uniformLead": null,
@@ -5102,9 +5021,7 @@
       "anchor": "greets-once",
       "name": "greets once",
       "file": "evals/measure.eval.ts",
-      "shapes": [
-        "ab"
-      ],
+      "shapes": ["ab"],
       "design": "1 coding harness, 2 environments, 2 trials",
       "headline": {
         "task": "greets once",
@@ -5167,9 +5084,7 @@
             "environmentDigest": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "role": "baseline",
             "change": null,
-            "prompts": [
-              "pffbe647e"
-            ]
+            "prompts": ["pffbe647e"]
           },
           {
             "id": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
@@ -5178,9 +5093,7 @@
             "environmentDigest": "sha256:7b5dd0e29b0dce7a2b796abca66e941ba97b932c7ddbf22e4efc09f381b2a5f7",
             "role": "variant",
             "change": "with-skill",
-            "prompts": [
-              "pffbe647e"
-            ]
+            "prompts": ["pffbe647e"]
           }
         ],
         "uniformLead": null,
@@ -5790,9 +5703,7 @@
       "anchor": "writes-greetjs",
       "name": "writes greet.js",
       "file": "evals/results.eval.ts",
-      "shapes": [
-        "task"
-      ],
+      "shapes": ["task"],
       "design": "1 coding harness, 1 trial",
       "headline": {
         "task": "writes greet.js",
@@ -5820,9 +5731,7 @@
       "insights": [],
       "primary": {
         "kind": "task",
-        "columns": [
-          "fake"
-        ],
+        "columns": ["fake"],
         "assertions": [
           {
             "label": "writes greet.js",
@@ -5850,14 +5759,10 @@
             }
           }
         ],
-        "axes": [
-          "Coding harness"
-        ],
+        "axes": ["Coding harness"],
         "breakdown": [
           {
-            "keys": [
-              "fake"
-            ],
+            "keys": ["fake"],
             "rate": {
               "k": 1,
               "n": 1,
@@ -5966,9 +5871,7 @@
       "anchor": "greets-in-french",
       "name": "greets in French",
       "file": "evals/results.eval.ts",
-      "shapes": [
-        "task"
-      ],
+      "shapes": ["task"],
       "design": "1 coding harness, 1 trial",
       "headline": {
         "task": "greets in French",
@@ -5996,9 +5899,7 @@
       "insights": [],
       "primary": {
         "kind": "task",
-        "columns": [
-          "fake"
-        ],
+        "columns": ["fake"],
         "assertions": [
           {
             "label": "writes greet.js",
@@ -6051,14 +5952,10 @@
             }
           }
         ],
-        "axes": [
-          "Coding harness"
-        ],
+        "axes": ["Coding harness"],
         "breakdown": [
           {
-            "keys": [
-              "fake"
-            ],
+            "keys": ["fake"],
             "rate": {
               "k": 0,
               "n": 1,
@@ -6205,9 +6102,7 @@
       "anchor": "explains-why-greetjs-fails",
       "name": "explains why greet.js fails",
       "file": "evals/results.eval.ts",
-      "shapes": [
-        "task"
-      ],
+      "shapes": ["task"],
       "design": "1 coding harness, 2 trials",
       "headline": {
         "task": "explains why greet.js fails",
@@ -6235,9 +6130,7 @@
       "insights": [],
       "primary": {
         "kind": "task",
-        "columns": [
-          "fake"
-        ],
+        "columns": ["fake"],
         "assertions": [
           {
             "label": "writes greet.js",
@@ -6290,14 +6183,10 @@
             }
           }
         ],
-        "axes": [
-          "Coding harness"
-        ],
+        "axes": ["Coding harness"],
         "breakdown": [
           {
-            "keys": [
-              "fake"
-            ],
+            "keys": ["fake"],
             "rate": {
               "k": 1,
               "n": 2,
@@ -6444,9 +6333,7 @@
       "anchor": "reads-the-fixture-repo",
       "name": "reads the fixture repo",
       "file": "evals/results.eval.ts",
-      "shapes": [
-        "task"
-      ],
+      "shapes": ["task"],
       "design": "1 coding harness, 1 trial",
       "headline": {
         "task": "reads the fixture repo",
@@ -6510,9 +6397,7 @@
       "anchor": "starts-its-sandbox",
       "name": "starts its sandbox",
       "file": "evals/results.eval.ts",
-      "shapes": [
-        "task"
-      ],
+      "shapes": ["task"],
       "design": "1 coding harness, 1 trial",
       "headline": {
         "task": "starts its sandbox",
@@ -6576,9 +6461,7 @@
       "anchor": "greets-in-welsh",
       "name": "greets in Welsh",
       "file": "evals/results.eval.ts",
-      "shapes": [
-        "task"
-      ],
+      "shapes": ["task"],
       "design": "1 coding harness, 0 trials",
       "headline": {
         "task": "greets in Welsh",
@@ -6621,9 +6504,7 @@
       "anchor": "greets-in-klingon",
       "name": "greets in Klingon",
       "file": "evals/results.eval.ts",
-      "shapes": [
-        "task"
-      ],
+      "shapes": ["task"],
       "design": "1 coding harness, 0 trials",
       "headline": {
         "task": "greets in Klingon",

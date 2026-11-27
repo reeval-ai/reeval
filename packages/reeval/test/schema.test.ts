@@ -179,7 +179,8 @@ describe('persisted shapes', () => {
     assert.ok(
       changes.some(
         (c) =>
-          c.kind === 'narrowed' && c.path === 'evals[].primary.<kind=comparison>.environments[].change',
+          c.kind === 'narrowed' &&
+          c.path === 'evals[].primary.<kind=comparison>.environments[].change',
       ),
       changes.map((c) => c.path).join('\n'),
     )

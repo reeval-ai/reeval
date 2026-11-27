@@ -3,7 +3,7 @@ import { AgentError } from '@reeval/agents'
 import type { EgressTraffic, NetworkPolicy, Substitution } from '@reeval/sandbox-docker'
 import type { SecretWarning } from '../history/types.ts'
 import type { ModelCall } from '../model-calls.ts'
-import type { TrialImage, ExecResult } from '../types.ts'
+import type { ExecResult, TrialImage } from '../types.ts'
 import type { BuiltPlugin } from './prepare.ts'
 import type { ResourceMeter } from './resources.ts'
 

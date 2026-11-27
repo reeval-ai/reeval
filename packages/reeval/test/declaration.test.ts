@@ -229,9 +229,7 @@ test("an eval's graders as data plan through the tree, and come back out of it",
     declareTree([node], () => async () => {}),
   )
   const planned = (tests: typeof first.tests) =>
-    tests.map(
-      (t) => (t.options as { trial: { plan: { graders?: unknown } } }).trial.plan.graders,
-    )
+    tests.map((t) => (t.options as { trial: { plan: { graders?: unknown } } }).trial.plan.graders)
   assert.deepEqual(planned(first.tests), [
     [
       { name: 'turns', kind: 'builtin', weight: 1, required: false, recordsOnly: true },

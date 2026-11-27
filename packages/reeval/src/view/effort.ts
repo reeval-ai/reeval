@@ -1,7 +1,7 @@
 // Effort next to lift: tool calls, agent time, tokens and cost per cell, and a variant's against
 // its baseline. Pass rate can't tell a skill that makes the agent 4× cheaper from no skill at
 // all when both pass, so effort is reported with its own test and verdict.
-import type { TrialRecord, EvalEntry } from '../history/types.ts'
+import type { EvalEntry, TrialRecord } from '../history/types.ts'
 import { mannWhitney, median, minimumP, quantile } from '../stats.ts'
 import type { TimeSplit } from '../types.ts'
 import { formatTokens, totalTokens } from '../usage.ts'

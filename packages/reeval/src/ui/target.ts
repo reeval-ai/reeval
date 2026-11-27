@@ -87,7 +87,9 @@ function graderText(group: ScoredTrial[], threshold: number | undefined): string
 
 function rowOf(label: string, group: ScoredTrial[], threshold: number | undefined): CaseRow {
   const counted = group.filter(counts)
-  const score = counted.length ? counted.reduce((s, a) => s + (a.score ?? 0), 0) / counted.length : null
+  const score = counted.length
+    ? counted.reduce((s, a) => s + (a.score ?? 0), 0) / counted.length
+    : null
   const thrown = group.filter((a) => a.failure)
   const errored = group.find((a) => a.error)
   const status = score === null && errored?.error ? ERROR_WORD[errored.error.kind] : ''

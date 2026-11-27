@@ -3,8 +3,8 @@
 // held to the def generated from that type (the same properties and required ones), and every
 // schema a hand-written type documents takes its descriptions from that type's TSDoc.
 import type { z } from 'zod'
-import { TRIAL_SCHEMAS, TRIAL_TYPES } from '../../src/contract/trial.ts'
 import { CONTRACT_SCHEMAS } from '../../src/contract/index.ts'
+import { TRIAL_SCHEMAS, TRIAL_TYPES } from '../../src/contract/trial.ts'
 import { generate, type Schema, type ShapeSchema, typeDefs } from './generate.ts'
 import { PROTOCOL_SHAPES } from './shapes.ts'
 import { differences, type TypeDocs, zodDefs } from './zod.ts'
@@ -15,8 +15,7 @@ function reachable(defs: Record<string, Schema>, root: string): Record<string, S
   const visit = (name: string) => {
     if (seen.has(name)) return
     const def = defs[name]
-    if (!def)
-      throw new Error(`the trial protocol refers to ${name}, which isn't in TRIAL_SCHEMAS`)
+    if (!def) throw new Error(`the trial protocol refers to ${name}, which isn't in TRIAL_SCHEMAS`)
     seen.add(name)
     for (const [, ref] of JSON.stringify(def).matchAll(/"\$ref":"#\/\$defs\/([^"]+)"/g)) {
       visit(ref as string)

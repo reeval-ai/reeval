@@ -399,7 +399,10 @@ Run reeval --help to see every command
     usage(['run', '-- x\nSELECT 1'], /^Unknown option '-- x\\nSELECT 1'\. Run reeval --help\.$/)
     usage(['show', "--it's\r\nx"], /^Unknown option '--it's\\r\\nx'\. Run reeval --help\.$/)
     usage(['query', '--jsonn'], /^Unknown option '--jsonn'\. Did you mean --json\? Run reeval/)
-    usage(['run', '--trials'], /^--trials needs a value, e\.g\. --trials <value>\. Run reeval --help\.$/)
+    usage(
+      ['run', '--trials'],
+      /^--trials needs a value, e\.g\. --trials <value>\. Run reeval --help\.$/,
+    )
     usage(['run', '--json=1'], /^--json doesn't take a value: pass --json on its own\.$/)
     usage(['run', '--port', '3'], /^--port isn't an option of reeval run\. Run reeval --help\.$/)
     usage(['show', '-v'], /^--verbose isn't an option of reeval show/)
@@ -461,7 +464,10 @@ Run reeval --help to see every command
         ['run', '--trials'],
         /^reeval: --trials needs a value, e\.g\. --trials <value>\. Run reeval --help\.\n$/,
       ],
-      [['run', '--trials', '0'], /^reeval: --trials must be a whole number of at least 1 \(got 0\)\n$/],
+      [
+        ['run', '--trials', '0'],
+        /^reeval: --trials must be a whole number of at least 1 \(got 0\)\n$/,
+      ],
       [['clean', '--keep', 'x'], /^reeval: --keep must be a whole number \(got x\)\n$/],
       [
         ['run', '--port', '3'],

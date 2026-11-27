@@ -1,4 +1,4 @@
-import { type TrialContext, defineGrader } from 'reeval'
+import { defineGrader, type TrialContext } from 'reeval'
 import { execOf } from 'reeval/graders/match'
 
 /** A labeled command before the turn (the build is not there yet), then one after it with output past the 128 KiB cap. */

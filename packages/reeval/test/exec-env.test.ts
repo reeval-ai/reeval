@@ -3,11 +3,11 @@
 // even when the trial protocol refuses the call that carries it.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { execEnv } from '../src/trial/checks.ts'
-import type { Trial } from '../src/trial/state.ts'
 import type { TrialRequest } from '../src/contract/trial.ts'
 import { replyToTrial } from '../src/language-runner/trial-host.ts'
 import { redactSecrets } from '../src/redact.ts'
+import { execEnv } from '../src/trial/checks.ts'
+import type { Trial } from '../src/trial/state.ts'
 import type { TrialContext } from '../src/types.ts'
 
 const brokering = (...secrets: Array<[value: string, placeholder: string]>) =>

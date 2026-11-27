@@ -40,7 +40,7 @@ import type { SandboxDescriptor, StartRetry } from '../types.ts'
 import { asCheck } from './checks.ts'
 import { useBuiltPlugins } from './environment.ts'
 import { timeMcpServers } from './mcp-startup.ts'
-import { type Trial, setupAllowance, startTimeoutMs } from './state.ts'
+import { setupAllowance, startTimeoutMs, type Trial } from './state.ts'
 
 const tailOf = (text: string) => text.trim().split('\n').slice(-10).join('\n')
 

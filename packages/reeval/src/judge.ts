@@ -40,8 +40,8 @@ export const fakeAnalysis = ({
 export { RECOMMENDED_JUDGE_MODEL } from './judge/index.ts'
 export type {
   AnalysisConfig,
-  BlindTrial,
   BlindPair,
+  BlindTrial,
   ConfigJudgeOptions,
   FakeAnalysisModel,
   FakeAnswer,

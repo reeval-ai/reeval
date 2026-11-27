@@ -19,10 +19,6 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import type { AgentLog } from '@reeval/agents'
 import { shellQuote } from '@reeval/sandbox-docker/process'
-import { createChecks } from '../src/trial/checks.ts'
-import { traceEnvironment } from '../src/trial/debug.ts'
-import { startWithRetry, writeFiles } from '../src/trial/session.ts'
-import type { Trial, TrialSpec } from '../src/trial/state.ts'
 import { regressions } from '../src/commands.ts'
 import {
   CONFIG_FILES,
@@ -97,6 +93,10 @@ import { InfraError, type Sandbox } from '../src/sandbox/types.ts'
 import { fakeSandbox } from '../src/sandbox.ts'
 import { capability, regression } from '../src/target.ts'
 import { clip } from '../src/text.ts'
+import { createChecks } from '../src/trial/checks.ts'
+import { traceEnvironment } from '../src/trial/debug.ts'
+import { startWithRetry, writeFiles } from '../src/trial/session.ts'
+import type { Trial, TrialSpec } from '../src/trial/state.ts'
 import type { EvalOptions, ExecResult, Outcome, ResolvedProfile } from '../src/types.ts'
 import { gatePart } from '../src/view/gate.ts'
 import { runOutcome } from '../src/view/model.ts'
@@ -2374,7 +2374,11 @@ test('expand: per harness, the baseline then each variant; labels name the role'
     [
       { options: { environments: extra }, where: 'profiles.parent.defaults' },
       {
-        options: { compare: { baseline: plain, variants: [skill] }, trials: 1, target: regression() },
+        options: {
+          compare: { baseline: plain, variants: [skill] },
+          trials: 1,
+          target: regression(),
+        },
         where: 'e',
       },
     ],
@@ -2537,8 +2541,16 @@ test('cascade: unset trials default to 4 for a compare with variants, 1 otherwis
   assert.equal(trialsOf({}).resolved.trials, 1, 'no compare runs once')
   assert.equal(trialsOf({ compare: { ...compare, variants: [] } }).resolved.trials, 1)
   assert.equal(trialsOf({ compare, trials: 1 }).resolved.trials, 1, 'an explicit 1 stands')
-  assert.equal(trialsOf({ compare }, { trials: 2 }).resolved.trials, 2, '--trials replaces the default')
-  assert.equal(trialsOf({ compare }, { pooled: true }).resolved.trials, 1, 'a pooled case runs once')
+  assert.equal(
+    trialsOf({ compare }, { trials: 2 }).resolved.trials,
+    2,
+    '--trials replaces the default',
+  )
+  assert.equal(
+    trialsOf({ compare }, { pooled: true }).resolved.trials,
+    1,
+    'a pooled case runs once',
+  )
   const profile = (p: Partial<ResolvedProfile>): ResolvedProfile => ({
     name: 'pr',
     reason: '--profile',

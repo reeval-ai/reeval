@@ -11,7 +11,7 @@ import type { Exit, Spawn, WorkerProcess } from '../src/engine/pool.ts'
 import { type FromWorker, PROTOCOL, type ToWorker, type WireTest } from '../src/engine/protocol.ts'
 import type { CollectedPlan, EngineOptions } from '../src/engine/types.ts'
 import { FAILURE_CAP } from '../src/text.ts'
-import type { TrialMeta, RunContext } from '../src/types.ts'
+import type { RunContext, TrialMeta } from '../src/types.ts'
 import type { ReevalEvent } from '../src/ui/events.ts'
 import { tempDir } from './helpers.ts'
 

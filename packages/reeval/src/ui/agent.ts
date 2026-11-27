@@ -5,7 +5,7 @@
 import { suiteResult } from '../view/suite.ts'
 import { colors } from './colors.ts'
 import type { OutputStream, ReevalEvent, Renderer } from './events.ts'
-import { trialAxes, debugLines, progressLine } from './format.ts'
+import { debugLines, progressLine, trialAxes } from './format.ts'
 import { noticeLines, PrepareLines, planLines, startLine } from './header.ts'
 import { listLines } from './list.ts'
 import type { OutputOptions } from './mode.ts'

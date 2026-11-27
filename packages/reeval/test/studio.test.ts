@@ -27,7 +27,6 @@ import { capability } from '../src/target.ts'
 import {
   activityLabel,
   answerRows,
-  trialAnswerRows,
   buildRunReport,
   cellJudgeRates,
   cellRows,
@@ -62,6 +61,7 @@ import {
   type TrajectoryPage,
   trajectoryItems,
   trajectoryQuery,
+  trialAnswerRows,
   uniqueJudgeLabels,
 } from '../src/view/index.ts'
 import { readableRunReport } from '../src/view/report/index.ts'
@@ -412,7 +412,15 @@ describe('view-models over a real history', () => {
     )
     const rows = cellRows(matrix.evals[0] as RunRecord['evals'][number])
     assert.deepEqual(
-      rows.map((r) => [r.environment, r.role, r.gated, r.pass, r.trialCount, r.lift, r.trials.length]),
+      rows.map((r) => [
+        r.environment,
+        r.role,
+        r.gated,
+        r.pass,
+        r.trialCount,
+        r.lift,
+        r.trials.length,
+      ]),
       [
         ['plain', 'baseline', false, 2, 2, null, 2],
         ['other', 'variant', true, 2, 2, 0, 2],
@@ -677,11 +685,7 @@ describe('view-models over a real history', () => {
       ],
     })
     assert.deepEqual(
-      rows.map((r) => [
-        r.question,
-        r.choices,
-        r.answers.map((a) => [a.trial, a.choice, a.error]),
-      ]),
+      rows.map((r) => [r.question, r.choices, r.answers.map((a) => [a.trial, a.choice, a.error])]),
       [
         [
           'Did it pass?',

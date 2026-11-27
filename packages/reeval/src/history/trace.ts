@@ -6,7 +6,7 @@
 import { clip } from '../text.ts'
 import { commandLine } from '../view/judgments.ts'
 import type { TrajectoryLine } from '../view/model.ts'
-import type { TrialRecord, RunRecord } from './types.ts'
+import type { RunRecord, TrialRecord } from './types.ts'
 
 /** One Trace Event: `X` a slice, `i` an instant, `C` a counter sample, `M` a track's name. */
 export type TraceEvent = {

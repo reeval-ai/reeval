@@ -384,7 +384,10 @@ type EnvironmentUse = {
  * Compare environments whose workspaces are different repositories, refs or paths that resolved to the
  * same tree, one line per environment: such a compare can't see a change to the tree.
  */
-export function sameTreeEnvironments(uses: EnvironmentUse[], outcomes: WorkspaceOutcome[]): string[] {
+export function sameTreeEnvironments(
+  uses: EnvironmentUse[],
+  outcomes: WorkspaceOutcome[],
+): string[] {
   const trees = new Map<string, string>()
   for (const o of outcomes) if (o.ok) trees.set(workspaceKey(o.workspace), o.prepared.tree)
   const baselines = new Map<string, { name: string; workspace: GitWorkspace }>()

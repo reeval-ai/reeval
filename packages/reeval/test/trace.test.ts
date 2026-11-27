@@ -4,7 +4,7 @@ import { hostname } from 'node:os'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { type RunTrace, runTrace } from '../src/history/trace.ts'
-import type { TrialRecord, RunRecord } from '../src/history/types.ts'
+import type { RunRecord, TrialRecord } from '../src/history/types.ts'
 import type { TrajectoryLine } from '../src/view/model.ts'
 import { fakeConfig, project, readRun, runCli, tempDir } from './helpers.ts'
 import { traceProblems } from './support/trace.ts'
@@ -205,8 +205,7 @@ export default defineEval({
     assert.deepEqual(traceProblems(trace), [])
     assert.equal(trace.otherData.trials, 2)
     const names = new Set(trace.traceEvents.map((e) => e.name))
-    for (const name of ['turn 1', 'check cat hello.txt', 'trials'])
-      assert.ok(names.has(name), name)
+    for (const name of ['turn 1', 'check cat hello.txt', 'trials']) assert.ok(names.has(name), name)
     const out = join(tempDir('trace-out'), 'nested', 'run.json')
     assert.equal((await runCli(p.dir, ['show', run.runId, '--trace', '--out', out])).code, 0)
     assert.ok(existsSync(out))

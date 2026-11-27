@@ -19,7 +19,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { killTree, windowsSpawn } from '@reeval/sandbox-docker/process'
-import type { TrialRecord, EvalEntry, RunRecord, Stack } from '../src/history/types.ts'
+import type { EvalEntry, RunRecord, Stack, TrialRecord } from '../src/history/types.ts'
 
 export const pkgRoot = fileURLToPath(new URL('..', import.meta.url))
 const cli = join(pkgRoot, 'dist/cli.js')

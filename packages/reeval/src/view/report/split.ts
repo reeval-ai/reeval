@@ -1,4 +1,4 @@
-import type { TrialIndexRow, EvalSection, RunReport } from './types.ts'
+import type { EvalSection, RunReport, TrialIndexRow } from './types.ts'
 
 /** The newest `reportVersion` this reeval writes and reads. */
 export const REPORT_VERSION = 5 satisfies RunReport['reportVersion']

@@ -3,7 +3,7 @@
 import type { RunRecord, SecretWarning } from '../history/types.ts'
 import type { PrepareTarget } from '../sandbox/preflight.ts'
 import type { PrepareFailure } from '../sandbox/provider.ts'
-import type { TrialMeta, EvalMeta, SandboxWarning, TurnStatus } from '../types.ts'
+import type { EvalMeta, SandboxWarning, TrialMeta, TurnStatus } from '../types.ts'
 import type { DebugLine } from '../view/debug.ts'
 import type { RunRemarks } from '../view/remarks.ts'
 

@@ -1,9 +1,9 @@
 import type {
-  TrialRecord,
   CellRecord,
   HistoryCell,
   HistoryEntry,
   RunRecord,
+  TrialRecord,
 } from '../history/types.ts'
 import { cellEffort } from './effort.ts'
 import { runScope } from './scope.ts'

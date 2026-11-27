@@ -18,14 +18,14 @@ import { UsageError } from '../src/errors.ts'
 import { fileEvalId } from '../src/eval-id.ts'
 import { unfoldCases } from '../src/history/cases.ts'
 import type {
-  TrialRecord,
   CellRecord,
   EvalEntry,
   RunInvocation,
   RunRecord,
+  TrialRecord,
 } from '../src/history/types.ts'
 import { RefError } from '../src/history/views.ts'
-import { trialKey, recordFileName } from '../src/ids.ts'
+import { recordFileName, trialKey } from '../src/ids.ts'
 
 const INCLUDE = ['evals/**/*.eval.ts', 'evals/**/*.eval.py'] as const
 const evalKey = (file: string) => fileEvalId(INCLUDE, file)
@@ -886,10 +886,7 @@ export default defineEval({ async task() {} })
       ['a/one', ['pass']],
       ['b/two', ['pass']],
     ])
-    assert.equal(
-      finished.evals[0]?.trials[0]?.startedAt,
-      filtered.evals[0]?.trials[0]?.startedAt,
-    )
+    assert.equal(finished.evals[0]?.trials[0]?.startedAt, filtered.evals[0]?.trials[0]?.startedAt)
   })
 
   test('a filtered resume counts skipped evals as done, and says an incomplete run is not recorded', async () => {
@@ -1443,11 +1440,7 @@ export default defineEval({ async task(c) { await c.send('hi'); assert.equal(1, 
   const trialsOf = (run: RunRecord) =>
     [...run.evals]
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map((e) => [
-        e.name,
-        e.trials[0]?.outcome,
-        e.trials[0]?.retries?.map((r) => r.error.message),
-      ])
+      .map((e) => [e.name, e.trials[0]?.outcome, e.trials[0]?.retries?.map((r) => r.error.message)])
 
   test('runs the infra errors again into the same run, keeping each error in retries', async () => {
     const p = await project('retry-run', failing)
@@ -1465,10 +1458,7 @@ export default defineEval({ async task(c) { await c.send('hi'); assert.equal(1, 
       ['fails', 'fail', ['agent start refused']],
       ['passes', 'pass', ['agent start refused']],
     ])
-    assert.equal(
-      run.evals[0]?.trials[0]?.retries?.[0]?.at,
-      before.evals[0]?.trials[0]?.startedAt,
-    )
+    assert.equal(run.evals[0]?.trials[0]?.retries?.[0]?.at, before.evals[0]?.trials[0]?.startedAt)
     const shown = await runCli(p.dir, ['query', 'runs', '--json'])
     assert.match(shown.stdout, /"pass": 1/)
     const again = await runCli(p.dir, ['run', '--retry-errors', run.runId])

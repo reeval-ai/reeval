@@ -7,15 +7,14 @@ import type { SandboxWarning } from '../types.ts'
 import { suiteResult } from '../view/suite.ts'
 import { type Colors, colors, stripAnsi } from './colors.ts'
 import type {
-  TrialRef,
   EvalResult,
   OutputStream,
   Progress,
   ReevalEvent,
   Renderer,
+  TrialRef,
 } from './events.ts'
 import {
-  trialAxes,
   debugLines,
   errorCheck,
   failureLines,
@@ -24,6 +23,7 @@ import {
   outcomeOf,
   phaseOf,
   progressLine,
+  trialAxes,
 } from './format.ts'
 import { noticeLines, PrepareLines, planLines, startLine } from './header.ts'
 import { LiveList, listLines, progressText } from './list.ts'

@@ -552,7 +552,7 @@ describe('attach', () => {
     const file = join(tempDir('events'), 'a.ndjson')
     writeFileSync(
       file,
-      `${JSON.stringify({ type: 'header', schemaVersion: 3, runId: 'run-9', reeval: '9.0.0' })}\n`,
+      `${JSON.stringify({ type: 'header', schemaVersion: 4, runId: 'run-9', reeval: '9.0.0' })}\n`,
     )
     await assert.rejects(
       attach({ source: file, out: capture(), output: () => output }),
@@ -1909,7 +1909,7 @@ export default defineEval({
     assert.match(overwrite.stderr, /waits\.eval\.ts isn't a reeval event stream/)
     assert.equal(readFileSync(evalFile, 'utf8'), gated)
     mkdirSync(join(p.dir, 'out'))
-    writeFileSync(join(p.dir, 'out', 'newer.ndjson'), '{"type":"header","schemaVersion":3}\n')
+    writeFileSync(join(p.dir, 'out', 'newer.ndjson'), '{"type":"header","schemaVersion":4}\n')
     const newer = await runCli(p.dir, ['attach', 'out/newer.ndjson'])
     assert.equal(newer.code, 2)
     assert.match(newer.stderr, /Upgrade reeval to read it/)

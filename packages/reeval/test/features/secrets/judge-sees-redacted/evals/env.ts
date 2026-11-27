@@ -1,5 +1,5 @@
 import { writeFileSync } from 'node:fs'
-import { type TrialContext, defineEnvironment } from 'reeval'
+import { defineEnvironment, type TrialContext } from 'reeval'
 import { judge } from 'reeval/graders'
 import { fakeJudge } from 'reeval/judge'
 import { docker, fakeSandbox } from 'reeval/sandbox'

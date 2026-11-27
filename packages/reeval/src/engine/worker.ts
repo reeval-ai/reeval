@@ -92,9 +92,7 @@ export function startWorker(channel: Channel): Worker {
           mode,
           ...(trial
             ? {
-                trial: tracked
-                  ? { ...trial, inputs: [...loaded, ...(trial.inputs ?? [])] }
-                  : trial,
+                trial: tracked ? { ...trial, inputs: [...loaded, ...(trial.inputs ?? [])] } : trial,
               }
             : {}),
         })),

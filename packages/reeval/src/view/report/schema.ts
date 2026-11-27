@@ -4,12 +4,7 @@ import type { TrialFacts } from '../classify.ts'
 import { fillDefaults, MIGRATIONS, NewerSchemaError } from '../record.ts'
 import { REPORT_VERSION } from './split.ts'
 import type {
-  CompareEnvironment,
-  EnvironmentRef,
-  EnvironmentRow,
   AssertionRow,
-  TrialIndexRow,
-  TrialRef,
   BehaviorRow,
   BreakdownRow,
   CaptureGallery,
@@ -17,11 +12,14 @@ import type {
   ChangeRow,
   CheckCell,
   ChoiceBreakdown,
+  CompareEnvironment,
   ContrastRow,
   Count,
   Delta,
   DiscoveryRate,
   EffortPivotRow,
+  EnvironmentRef,
+  EnvironmentRow,
   EvalHeadline,
   EvalSection,
   ExecutiveRollup,
@@ -49,6 +47,8 @@ import type {
   RunTally,
   Spread,
   TaskResults,
+  TrialIndexRow,
+  TrialRef,
   VariantComparison,
 } from './types.ts'
 
@@ -758,7 +758,6 @@ export type _SameAsSchema = [
 ]
 
 export {
-  trialRefSchema,
   countSchema,
   deltaSchema,
   figureSchema,
@@ -766,6 +765,7 @@ export {
   rateSchema,
   reportClaimSchema,
   spreadSchema,
+  trialRefSchema,
 }
 
 /**

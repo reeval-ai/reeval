@@ -117,7 +117,7 @@
                         "leaning": "better",
                         "text": "pass rate +100 pts",
                         "needed": 4,
-                        "unit": "runs",
+                        "unit": "trials",
                         "short": {
                           "now": 1,
                           "at": 4
@@ -136,7 +136,7 @@
                         "leaning": null,
                         "text": "same tool calls",
                         "needed": null,
-                        "unit": "runs",
+                        "unit": "trials",
                         "short": null
                       },
                       {
@@ -152,7 +152,7 @@
                         "leaning": "better",
                         "text": "2× faster",
                         "needed": null,
-                        "unit": "runs",
+                        "unit": "trials",
                         "short": {
                           "now": 1,
                           "at": 4
@@ -320,7 +320,7 @@
                         "leaning": "better",
                         "text": "pass rate +100 pts",
                         "needed": 4,
-                        "unit": "runs",
+                        "unit": "trials",
                         "short": {
                           "now": 1,
                           "at": 4
@@ -339,7 +339,7 @@
                         "leaning": null,
                         "text": "same tool calls",
                         "needed": null,
-                        "unit": "runs",
+                        "unit": "trials",
                         "short": null
                       },
                       {
@@ -355,7 +355,7 @@
                         "leaning": "better",
                         "text": "27% faster",
                         "needed": null,
-                        "unit": "runs",
+                        "unit": "trials",
                         "short": {
                           "now": 1,
                           "at": 4
@@ -1413,7 +1413,7 @@
                     "leaning": "better",
                     "text": "pass rate +100 pts",
                     "needed": 4,
-                    "unit": "runs",
+                    "unit": "trials",
                     "short": {
                       "now": 1,
                       "at": 4
@@ -1432,7 +1432,7 @@
                     "leaning": null,
                     "text": "same tool calls",
                     "needed": null,
-                    "unit": "runs",
+                    "unit": "trials",
                     "short": null
                   },
                   {
@@ -1448,7 +1448,7 @@
                     "leaning": "better",
                     "text": "2.1× faster",
                     "needed": null,
-                    "unit": "runs",
+                    "unit": "trials",
                     "short": {
                       "now": 1,
                       "at": 4
@@ -1667,7 +1667,7 @@
                     "leaning": null,
                     "text": "same pass rate",
                     "needed": null,
-                    "unit": "runs",
+                    "unit": "trials",
                     "short": null
                   },
                   {
@@ -1683,7 +1683,7 @@
                     "leaning": null,
                     "text": "same tool calls",
                     "needed": null,
-                    "unit": "runs",
+                    "unit": "trials",
                     "short": null
                   },
                   {
@@ -1699,7 +1699,7 @@
                     "leaning": "better",
                     "text": "2.2× faster",
                     "needed": null,
-                    "unit": "runs",
+                    "unit": "trials",
                     "short": {
                       "now": 1,
                       "at": 4
@@ -1718,7 +1718,7 @@
                     "leaning": null,
                     "text": "\"Which greeting reads more like our house style?\" picked the variant in 2 of 2 votes (1 of 1 decisive pair)",
                     "needed": null,
-                    "unit": "runs",
+                    "unit": "trials",
                     "short": null
                   }
                 ],

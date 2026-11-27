@@ -22,6 +22,7 @@ import { biome } from '../scripts/schema/check.ts'
 import type { ShapeSchema } from '../scripts/schema/generate.ts'
 import { validate } from '../scripts/schema/validate.ts'
 import { resolveConfig } from '../src/config.ts'
+import { declarationProblem } from '../src/contract/declaration.ts'
 import {
   trialAbortSchema,
   trialDoneProblem,
@@ -29,7 +30,6 @@ import {
   trialRequestProblem,
   trialStartProblem,
 } from '../src/contract/trial.ts'
-import { declarationProblem } from '../src/contract/declaration.ts'
 import type { DeclarationTree, DeclaredNode } from '../src/declaration.ts'
 import { collect, collectingFile, registerGroup, registerTest } from '../src/engine/collector.ts'
 import { useEngine } from '../src/engine/runtime.ts'

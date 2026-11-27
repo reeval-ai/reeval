@@ -1,14 +1,13 @@
 // Out-of-process eval files: declaration tree over the runner session, bodies over trial protocol v2.
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { relative } from 'node:path'
-import { trialForContext } from '../trial/state.ts'
 import type { TrialDone } from '../contract/trial.ts'
 import { UsageError } from '../errors.ts'
 import { declareTree } from '../evaluate.ts'
 import { InfraError } from '../sandbox/types.ts'
+import { trialForContext } from '../trial/state.ts'
 import type { BackgroundHandle, EvalFn } from '../types.ts'
 import { adapterForFile, runnerEnv } from './adapter.ts'
-import { replyToTrial } from './trial-host.ts'
 import type { RunnerTrialRequest, RunnerTrialStart } from './protocol.ts'
 import {
   errorFrom,
@@ -19,6 +18,7 @@ import {
   RunnerLoadError,
   startLanguageRunner,
 } from './transport.ts'
+import { replyToTrial } from './trial-host.ts'
 
 type Live = {
   onRequest(message: RunnerTrialRequest): void
@@ -124,9 +124,7 @@ function remoteBody(
             reject(errorFrom(error))
           }),
         gone: (reason) =>
-          finish(() =>
-            reject(new InfraError(`The language runner stopped mid-trial: ${reason}`)),
-          ),
+          finish(() => reject(new InfraError(`The language runner stopped mid-trial: ${reason}`))),
       })
 
       if (t.signal.aborted) return onAbort()

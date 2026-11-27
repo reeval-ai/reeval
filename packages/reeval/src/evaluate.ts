@@ -1,5 +1,4 @@
 import { dirname } from 'node:path'
-import { type Grading, runTrial } from './trial/index.ts'
 import { bestOfCell } from './best-of.ts'
 import { caseEvalName, caseKeys } from './cases.ts'
 import { declarationProblem } from './contract/declaration.ts'
@@ -39,6 +38,7 @@ import { checkOptions, matchesTags, refuseIllegalCompare, sandboxProvider } from
 import { type PlannedEval, planEval } from './plan-eval.ts'
 import { maskedVariables, redactSecrets } from './redact.ts'
 import { sandboxKind } from './sandbox/kinds.ts'
+import { type Grading, runTrial } from './trial/index.ts'
 import type {
   BuiltinGraderData,
   Case,

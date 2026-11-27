@@ -272,7 +272,7 @@ export default defineEval({
       r.stdout,
       /^└─ ✗ e {2}mean \d+% · 2\/3 cases hit 100% \(pass@2\) {2}capability\(1, \{ blocking: true \}\)$/m,
     )
-    assert.doesNotMatch(r.stdout, /runs at 100% \(pass@6\)/, 'canary: not pooled over the cases')
+    assert.doesNotMatch(r.stdout, /trials at 100% \(pass@6\)/, 'canary: not pooled over the cases')
     assert.match(r.stdout, /^ {5}#c +0% +ok false !== true \(2 of 2 trials\)$/m)
     assert.equal(readRun(p.dir).run.evals[0]?.outcome, 'fail')
     const q = await runCli(p.dir, ['query', 'SELECT outcome, pass_at_k FROM evals', '--json'])

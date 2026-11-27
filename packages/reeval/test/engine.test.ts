@@ -49,7 +49,7 @@ describe('engine', () => {
       assert.doesNotMatch(r.stdout + r.stderr, leak)
     }
     const { run } = readRun(p.dir)
-    assert.equal(run.schemaVersion, 2)
+    assert.equal(run.schemaVersion, 3)
     assert.equal(run.status, 'complete')
     assert.deepEqual(run.summary, {
       evals: 1,
@@ -913,10 +913,7 @@ export default defineEval({
     assert.equal(r.code, 1)
     const all = r.stdout.trimEnd().split('\n')
     assert.match(all[0] ?? '', /^REEVAL v\S+$/, 'the header block a terminal prints')
-    assert.ok(
-      all.includes('  ➜  Scope:     2 eval files · 2 evals · 2 cells · 2 trials'),
-      r.stdout,
-    )
+    assert.ok(all.includes('  ➜  Scope:     2 eval files · 2 evals · 2 cells · 2 trials'), r.stdout)
     const out = all.slice(all.indexOf('  ◆  Running...'))
     assert.deepEqual(
       out.slice(1, -2).map((l) => l.replace(/Snapshot: \S+/, 'Snapshot: <path>')),
@@ -1208,7 +1205,7 @@ export default defineEval({
     assert.equal(plain.code, 1, plain.stdout + plain.stderr)
     assert.match(
       plain.stdout,
-      new RegExp(`^ {5}✗ 1 run ended a turn with an error\n {7}${billing}$`, 'm'),
+      new RegExp(`^ {5}✗ 1 trial ended a turn with an error\n {7}${billing}$`, 'm'),
     )
     const { run, read } = readRun(p.dir)
     assert.equal(run.evals[0]?.trials[0]?.turns[0]?.error, billing)
@@ -1219,7 +1216,7 @@ export default defineEval({
     const agent = await runCli(p.dir, ['run'], { env: { REEVAL_UI: 'agent' } })
     assert.match(
       agent.stdout,
-      new RegExp(`^ {4}✗ 1 run ended a turn with an error\n {6}${billing}$`, 'm'),
+      new RegExp(`^ {4}✗ 1 trial ended a turn with an error\n {6}${billing}$`, 'm'),
     )
   })
 
@@ -1315,7 +1312,7 @@ export default defineEval({
     )
     assert.match(
       r.stdout,
-      /^ {5}environment +pass\n {5}plain +0 of 2\n {7}error {2}score 0\.00 below 1: has-file:ok\.txt scored 0\.00 \(2 runs\)\n {5}skilled +2 of 2 {2}helped$/m,
+      /^ {5}environment +pass\n {5}plain +0 of 2\n {7}error {2}score 0\.00 below 1: has-file:ok\.txt scored 0\.00 \(2 trials\)\n {5}skilled +2 of 2 {2}helped$/m,
     )
     assert.match(
       r.stdout,

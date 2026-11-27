@@ -18,8 +18,8 @@ import {
 import { startLoopbackProxy } from '../capture/loopback.ts'
 import { stubPng } from '../capture/stub.ts'
 import { captureUseSpend, runJourney, type StepShot } from '../capture/use.ts'
-import { debugLog } from '../debug/trial.ts'
 import { untraced } from '../debug/docker.ts'
+import { debugLog } from '../debug/trial.ts'
 import { getRunContext } from '../engine/runtime.ts'
 import { gatewayScope, resolveModelGateway } from '../gateway/models.ts'
 import { openRouterFallbacks } from '../gateway/openrouter-models.ts'
@@ -180,11 +180,7 @@ async function launch(
  * Starts `command` with `PORT` set and returns once it listens: on `PORT` (or `port`), else on
  * the one port that wasn't listening before it started, which it records.
  */
-export async function serveCommand(
-  a: Trial,
-  command: string,
-  port?: number,
-): Promise<ServeHandle> {
+export async function serveCommand(a: Trial, command: string, port?: number): Promise<ServeHandle> {
   const box = await sandboxFor(a, 'c.serve()')
   const source = capabilitiesOf(a.spec.sandbox).listeners
   const onHost = source === 'host'

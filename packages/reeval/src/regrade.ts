@@ -5,7 +5,6 @@
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { routedJudge } from './trial/judge.ts'
 import { CommandError, lines, reachability } from './commands.ts'
 import { matchesEvalId } from './engine/files.ts'
 import { loadEvalFile } from './engine/loader.ts'
@@ -24,13 +23,13 @@ import { gradedOutcome, newRegradeId, writeRegrade } from './history/regrades.ts
 import { findingLines, scanText } from './history/secret-scan.ts'
 import { readStoredTrial } from './history/stored-trial.ts'
 import type {
-  TrialRecord,
   EvalEntry,
   HistoryEntry,
   RegradeAction,
   RegradedTrial,
   RegradeRecord,
   RunRecord,
+  TrialRecord,
 } from './history/types.ts'
 import { unreachable } from './history/views.ts'
 import { sha256 } from './ids.ts'
@@ -41,6 +40,7 @@ import { profileJudge } from './options.ts'
 import { redactSecrets } from './redact.ts'
 import { PACKAGE_VERSION } from './root.ts'
 import { capMiddle } from './text.ts'
+import { routedJudge } from './trial/judge.ts'
 import type {
   BuiltinKind,
   Case,

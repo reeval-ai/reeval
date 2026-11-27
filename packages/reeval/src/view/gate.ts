@@ -1,11 +1,11 @@
 // A cell's gate as compare and the history read it: its label, its fingerprint part, and the
 // outcome its trials give under it. Browser-safe, so the studio re-scores a run as the CLI does.
 import type {
-  TrialRecord,
   CellRecord,
   FingerprintParts,
   HistoryCell,
   ScoreSummary,
+  TrialRecord,
 } from '../history/types.ts'
 import type { CellGate, Outcome } from '../types.ts'
 

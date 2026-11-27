@@ -131,9 +131,7 @@ export function notCloud(
   for (const { id, trial } of planned) {
     if (trial.skip || trial.plan.skip) continue
     const reason =
-      trial.gateway?.name === 'vertex' ||
-      trial.judge?.gateway === 'vertex' ||
-      vertexAsks.has(id)
+      trial.gateway?.name === 'vertex' || trial.judge?.gateway === 'vertex' || vertexAsks.has(id)
         ? "vertex() calls models on this machine's Google Cloud credentials"
         : undefined
     if (reason) why.set(reason, (why.get(reason) ?? new Set()).add(id))

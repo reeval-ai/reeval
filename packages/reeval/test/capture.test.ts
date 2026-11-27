@@ -7,8 +7,6 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { deflateRawSync } from 'node:zlib'
-import { capturePage, msysTreeKill } from '../src/trial/capture.ts'
-import type { Trial } from '../src/trial/state.ts'
 import { fakeInstructions } from '../src/capture/fake-instructions.ts'
 import {
   cacheLabel,
@@ -26,6 +24,8 @@ import {
 } from '../src/capture/index.ts'
 import { unzip } from '../src/capture/zip.ts'
 import { posixShell } from '../src/sandbox/fake.ts'
+import { capturePage, msysTreeKill } from '../src/trial/capture.ts'
+import type { Trial } from '../src/trial/state.ts'
 import { parseStudioPath, studioPaths } from '../src/view/api.ts'
 
 const viewport = { width: 1280, height: 720 }

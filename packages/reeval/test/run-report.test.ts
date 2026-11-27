@@ -7,12 +7,12 @@ import { FORBIDDEN_OUTPUT, runReportMarkdown } from '../src/renderer/markdown.ts
 import type { CompareRow } from '../src/view/compare.ts'
 import { NewerSchemaError, readableRecord } from '../src/view/record.ts'
 import {
-  trialAnchor,
-  trialAnchorId,
   buildRunReport,
   REPORT_VERSION,
   readableRunReport,
   runReportSchema,
+  trialAnchor,
+  trialAnchorId,
 } from '../src/view/report/index.ts'
 
 function loadCorpusRun(name: string): RunRecord {

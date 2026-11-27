@@ -1,12 +1,13 @@
 // One trial's lifecycle, a phase per module: resolve the environment (environment.ts), start
 // the session (session.ts), run turns (turns.ts) and commands (checks.ts), tear down, grade
 // (grade.ts) and write the record (record.ts). They share one `Trial` (state.ts).
-import { TrialDebug, withDebug } from '../debug/trial.ts'
+
 import { trialDebugDir } from '../debug/files.ts'
+import { TrialDebug, withDebug } from '../debug/trial.ts'
 import { getRunContext, type TestHandle } from '../engine/runtime.ts'
 import { TimeoutError } from '../errors.ts'
 import { checkGraderImages } from '../grade/sandbox.ts'
-import { trialId, trialKey, evalId, evalSlug, relativeFile } from '../ids.ts'
+import { evalId, evalSlug, relativeFile, trialId, trialKey } from '../ids.ts'
 import { InfraError } from '../sandbox/types.ts'
 import { formatDuration } from '../text.ts'
 import {
@@ -17,13 +18,13 @@ import {
 } from '../trace/agent-spans.ts'
 import { otelEnv, otlpProtocol } from '../trace/otlp.ts'
 import {
-  trialSpan,
   emitAgentSpans,
   openAgentTrace,
   openSpan,
+  trialSpan,
   withTrialSpan,
 } from '../trace/spans.ts'
-import type { TrialContext, EvalFn, EvalRecord } from '../types.ts'
+import type { EvalFn, EvalRecord, TrialContext } from '../types.ts'
 import { capturePage, serveCommand } from './capture.ts'
 import { createChecks } from './checks.ts'
 import { contextTaker } from './context.ts'
@@ -45,7 +46,7 @@ import {
 } from './record.ts'
 import { startSession } from './session.ts'
 import { snapshotSidecar, takeSnapshot } from './snapshot.ts'
-import { type TrialSpec, bindTrialContext, createTrial, evalTimer } from './state.ts'
+import { bindTrialContext, createTrial, evalTimer, type TrialSpec } from './state.ts'
 import { turnSender } from './turns.ts'
 import { keepWorkspace, workspaceSidecar } from './workspace.ts'
 

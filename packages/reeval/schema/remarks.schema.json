@@ -9,7 +9,7 @@
       "type": "object",
       "properties": {
         "brief": {
-          "description": "The remark as one short line, with its fix and where (`1 run per side; set trials: 4 at evals/a.eval.ts:12 to confirm these differences.`), which `reeval run`'s list prints without `-v`; absent when the kind has none.",
+          "description": "The remark as one short line, with its fix and where (`1 trial per side; set trials: 4 at evals/a.eval.ts:12 to confirm these differences.`), which `reeval run`'s list prints without `-v`; absent when the kind has none.",
           "type": "string"
         },
         "evalId": {

@@ -1,5 +1,5 @@
-import type { TrialRecord, EvalEntry, FileRef } from '../../history/types.ts'
-import { type TrialIdMap, trialAnchor, idOf } from './ids.ts'
+import type { EvalEntry, FileRef, TrialRecord } from '../../history/types.ts'
+import { idOf, type TrialIdMap, trialAnchor } from './ids.ts'
 import type { TrialRef } from './types.ts'
 
 /** Prefix every relative artifact link: `linkBase` as a folder, `./` by default. */

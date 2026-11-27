@@ -5,8 +5,6 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
-import { reclassifyTimeout, recordFailure } from '../src/trial/record.ts'
-import type { Trial } from '../src/trial/state.ts'
 import {
   acrossOf,
   checksHeld,
@@ -29,6 +27,8 @@ import {
   stagedTrial,
 } from '../src/compare/questions.ts'
 import { resolveQuestionState } from '../src/compare/state.ts'
+import { reclassifyTimeout, recordFailure } from '../src/trial/record.ts'
+import type { Trial } from '../src/trial/state.ts'
 
 const TASK_AND_DIFF = resolveQuestionState({ task: true, diff: true })
 
@@ -800,7 +800,12 @@ describe('CI pull request provenance', () => {
 })
 
 describe('compare question pairs', () => {
-  const side = (harness: string, environment: string, run: number, checksPassed = true): PairTrial => ({
+  const side = (
+    harness: string,
+    environment: string,
+    run: number,
+    checksPassed = true,
+  ): PairTrial => ({
     harness,
     environment,
     run,
@@ -830,7 +835,11 @@ describe('compare question pairs', () => {
     for (const n of [1, 3]) {
       const pairs = pairsOf(matrix(['h1', 'h2', 'h3', 'h4'], ['sdk', 'ui'], n))
       assert.equal(pairs.filter((p) => p.cut === 'within').length, 4 * n)
-      assert.equal(pairs.filter((p) => p.cut === 'across').length, 6 * n * 2, 'six per environment per run')
+      assert.equal(
+        pairs.filter((p) => p.cut === 'across').length,
+        6 * n * 2,
+        'six per environment per run',
+      )
       for (const p of pairs) {
         assert.equal(p.a.run, p.b.run, 'a pair is one run')
         if (p.cut === 'within') assert.equal(p.a.harness, p.b.harness)
@@ -928,7 +937,10 @@ describe('compare question pairs', () => {
   })
 
   test('the labels and prompt name no environment or harness', () => {
-    const [pair] = pairsOf([side('secret-harness', 'environment-x', 1), side('secret-harness', 'environment-y', 1)])
+    const [pair] = pairsOf([
+      side('secret-harness', 'environment-x', 1),
+      side('secret-harness', 'environment-y', 1),
+    ])
     assert.ok(pair)
     const blind = blindPair(
       'Which?',
@@ -937,7 +949,14 @@ describe('compare question pairs', () => {
       20_000,
       { state: TASK_AND_DIFF },
     )
-    for (const name of ['secret-harness', 'environment-x', 'environment-y', 'run 1', 'baseline', 'variant']) {
+    for (const name of [
+      'secret-harness',
+      'environment-x',
+      'environment-y',
+      'run 1',
+      'baseline',
+      'variant',
+    ]) {
       assert.ok(!blind.prompt.includes(name), `${name} is not in the prompt`)
     }
     assert.match(blind.prompt, /<trial label="A">\n<diff>\n\+one\n\n<\/diff>\n<\/trial>/)
@@ -1024,7 +1043,12 @@ describe('compare question pairs', () => {
     assert.deepEqual(both.a.artifacts, [
       { label: 'Trial A, screenshot 1 of 1', mediaType: 'image/png', bytes: 5 },
     ])
-    for (const name of ['home-of-environment-x', 'home-of-environment-y', 'environment-x', 'environment-y']) {
+    for (const name of [
+      'home-of-environment-x',
+      'home-of-environment-y',
+      'environment-x',
+      'environment-y',
+    ]) {
       assert.ok(!both.prompt.includes(name), `${name} is not in the prompt`)
     }
     const named = blindPair('Which?', pair, true, 20_000, {
@@ -1113,7 +1137,10 @@ describe('compare question pairs', () => {
     const environments = ['no-skill', 'current-skill', 'new-skill']
     const pairs = pairsOf(
       environments.flatMap((environment) =>
-        [1, 2, 3].map((run) => ({ ...side('cursor', environment, run), baseline: environment === 'no-skill' })),
+        [1, 2, 3].map((run) => ({
+          ...side('cursor', environment, run),
+          baseline: environment === 'no-skill',
+        })),
       ),
     )
     // [unswapped pick, swapped pick] per pair and run, in pairsOf's order.
@@ -1135,7 +1162,10 @@ describe('compare question pairs', () => {
       ],
     }
     const votes = pairs.flatMap((pair) => {
-      const [x, y] = picks[`${pair.a.environment} ${pair.b.environment}`]?.[pair.run - 1] ?? ['A', 'A']
+      const [x, y] = picks[`${pair.a.environment} ${pair.b.environment}`]?.[pair.run - 1] ?? [
+        'A',
+        'A',
+      ]
       return [voteOf('UX', pair, false, x), voteOf('UX', pair, true, y)]
     })
     assert.deepEqual(
@@ -1282,7 +1312,9 @@ describe('compare questions over real-harness runs (real-e2e-pairs)', () => {
       'every e2e trial passed',
     )
     assert.deepEqual(
-      pairs.filter((p) => p.cut === 'within').map((p) => [p.harness, p.a.environment, p.b.environment]),
+      pairs
+        .filter((p) => p.cut === 'within')
+        .map((p) => [p.harness, p.a.environment, p.b.environment]),
       REAL_HARNESSES.map((h) => [h, 'first-run', 'second-run']),
     )
     assert.deepEqual(

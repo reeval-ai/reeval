@@ -15,17 +15,12 @@ import { hostname } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
 import { UsageError } from './errors.ts'
 import { scratchDir } from './history/files.ts'
-import type { TrialRecord, TrialRetry, RunInvocation, RunRecord } from './history/types.ts'
+import type { RunInvocation, RunRecord, TrialRecord, TrialRetry } from './history/types.ts'
 import { RefError } from './history/views.ts'
 import { RUN_ID, recordFileName, relativeFile } from './ids.ts'
 import { type LiveKept, replace } from './live.ts'
 import type { EvalRecord, Outcome } from './types.ts'
-import {
-  LIVE_FILE,
-  type LiveTrial,
-  readableInvocation,
-  readableLiveProgress,
-} from './view/live.ts'
+import { LIVE_FILE, type LiveTrial, readableInvocation, readableLiveProgress } from './view/live.ts'
 
 /** Other-host / studio: a heartbeat older than this is quiet. A live pid on this host is not. */
 const STALE_MS = 15_000
@@ -211,10 +206,7 @@ export function isCompletedTrial(
 }
 
 /** Completed with a result a resume keeps, a pass or a fail; an infra error runs again. */
-export function isKeptTrial(
-  outcome: Outcome,
-  error: { kind: string } | null | undefined,
-): boolean {
+export function isKeptTrial(outcome: Outcome, error: { kind: string } | null | undefined): boolean {
   return outcome !== 'infra_error' && isCompletedTrial(outcome, error)
 }
 
@@ -1020,7 +1012,8 @@ export function resumeSettings(
       ? given.filters
       : saved.filters.map((f) => (existsSync(resolve(root, f)) ? resolve(root, f) : f)),
   }
-  if (given.trials === undefined && saved.trials !== undefined) settings.trials = String(saved.trials)
+  if (given.trials === undefined && saved.trials !== undefined)
+    settings.trials = String(saved.trials)
   if (profile === undefined && saved.profile !== undefined) settings.profile = saved.profile
   if (concurrency === undefined && saved.concurrency !== undefined) {
     settings.concurrency = String(saved.concurrency)
@@ -1034,5 +1027,4 @@ export function resumeSettings(
 export const previousTrial = (
   previous: RunRecord | null | undefined,
   key: string,
-): TrialRecord | undefined =>
-  previous?.evals.flatMap((e) => e.trials).find((a) => a.key === key)
+): TrialRecord | undefined => previous?.evals.flatMap((e) => e.trials).find((a) => a.key === key)
