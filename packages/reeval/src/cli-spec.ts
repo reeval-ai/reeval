@@ -1,5 +1,5 @@
 // reeval's CLI as data: every command, subcommand, flag and help line. `reeval` builds its parser
-// (`cli-parse.ts`) and its `--help` from it, and `reeval analyze` checks each suggested verify
+// (`cli-parse.ts`) and its `--help` from it, and `reeval explain` checks each suggested verify
 // command against it, so a model can't invent a flag.
 
 import { matchesEvalId, namesEvalFile } from './engine/files.ts'
@@ -614,7 +614,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
       { flags: '--profile <name>', help: 'Profile whose history store to use' },
     ],
   },
-  analyze: {
+  explain: {
     flags: [
       'vs',
       'eval',
@@ -632,7 +632,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
     positionals: 1,
     runRef: true,
     group: 'Results',
-    usage: 'analyze [run]',
+    usage: 'explain [run]',
     summary: 'Explain a run with an LLM',
     options: [
       {

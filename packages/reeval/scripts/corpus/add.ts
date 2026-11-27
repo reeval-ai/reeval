@@ -96,7 +96,7 @@ function recordRecipe(): string {
   git(dir, 'commit', '-qm', 'corpus recipe')
   reeval(dir, ['run', '--record', '--events'])
   const [first] = runsIn(dir)
-  reeval(dir, ['analyze', first as string, '--save'])
+  reeval(dir, ['explain', first as string, '--save'])
   return dir
 }
 

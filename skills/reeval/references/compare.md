@@ -46,7 +46,7 @@ does not layer, inherit or extend. Share setup first (the example is in SKILL.md
 - **Lift** is the variant's mean score minus the control's, with a 95% interval. The result block
   prints it as an effect word after the variant's count: `helped`, `made it worse`, or `can't
   tell yet` below four tries a side or when the interval crosses 0; `-v` adds the difference
-  and interval. `reeval query factor_effects` and `reeval analyze` use the same four: below
+  and interval. `reeval query factor_effects` and `reeval explain` use the same four: below
   it the lift is `insufficient` (not measured), never a results line. When the eval's sources changed across the compared runs, that
   difference is `not comparable: the eval changed`, not an effect, and mixed counts such as
   `6/10 vs 8/9` are not a results line.
@@ -145,7 +145,7 @@ export default defineEval({
   splits), not the pooled wins, which count a split as a win for each side. A
   vote may carry a short `reason` (capped); do not gate on its wording.
 - Questions annotate and never gate: pass, fail and the exit code stay the
-  checks'. `reeval analyze` puts each answer in the digest as annotation, not a
+  checks'. `reeval explain` puts each answer in the digest as annotation, not a
   results line. Their model is the entry's `model`, else the cascaded
   `question.model`, else `analysis.model`, else the run's judge (a profile's
   included) when it's a language model (not `typesafe-ai/*`); with none, `reeval run` exits 2 at plan

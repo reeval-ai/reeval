@@ -341,7 +341,7 @@ describe('recording to s3()', () => {
     assert.equal(synced.code, 0, synced.stdout + synced.stderr)
   })
 
-  test('the keys can be in .env.local, and analyze --save is refused', async () => {
+  test('the keys can be in .env.local, and explain --save is refused', async () => {
     writeFileSync(
       join(dir, '.env.local'),
       `AWS_ACCESS_KEY_ID=${s3.accessKey}\nAWS_SECRET_ACCESS_KEY=${s3.secretKey}\n`,
@@ -349,11 +349,11 @@ describe('recording to s3()', () => {
     const sync = await runCli(dir, ['sync', '--profile', 'ci'], { env: { CI: 'false' } })
     rmSync(join(dir, '.env.local'))
     assert.equal(sync.code, 0, sync.stdout + sync.stderr)
-    const save = await runCli(dir, ['analyze', '--profile', 'ci', '--save'], { env: env() })
+    const save = await runCli(dir, ['explain', '--profile', 'ci', '--save'], { env: env() })
     assert.equal(save.code, 2, save.stdout + save.stderr)
     assert.match(
       save.stderr,
-      /reeval analyze --save writes into a local\(\) history, and history\.store in reeval\.config\.ts keeps runs in s3:\/\/reeval-runs\/ci\. Drop --save/,
+      /reeval explain --save writes into a local\(\) history, and history\.store in reeval\.config\.ts keeps runs in s3:\/\/reeval-runs\/ci\. Drop --save/,
     )
   })
 

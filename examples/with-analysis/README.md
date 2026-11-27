@@ -1,6 +1,6 @@
 # with-analysis
 
-**Shows:** `reeval analyze`. With `analysis.model` set, `reeval analyze` reads a run and gives a
+**Shows:** `reeval explain`. With `analysis.model` set, `reeval explain` reads a run and gives a
 TL;DR, results and suggested actions, each citing the run's facts. Here the model is
 `fakeAnalysis`, answering from [`fake-analysis.ts`](./fake-analysis.ts), for an eval that adds
 `multiply(a, b)` to a small package.
@@ -14,7 +14,7 @@ once. A real analysis model needs its provider's key.
 
 ```bash
 pnpm eval
-pnpm reeval analyze
+pnpm reeval explain
 ```
 
 **Real or fake agent:** `pnpm eval` runs a fake agent, with no keys or Docker. It copies the
@@ -28,7 +28,7 @@ A profile can't set `analysis`, so for a real analysis set `analysis.model` in
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** `pnpm reeval analyze` on the run `pnpm eval` wrote:
+**What to look at:** `pnpm reeval explain` on the run `pnpm eval` wrote:
 
 ```text
 analysis 20261126T080940Z_…
@@ -52,9 +52,9 @@ don't hold, before it prints, whether a real model or the fake wrote it.
 | File | What it is |
 |---|---|
 | [`with-analysis.eval.ts`](./with-analysis.eval.ts) | The eval: one prompt, three graders |
-| [`fake-analysis.ts`](./fake-analysis.ts) | The fake analysis model's `reeval analyze` answer |
+| [`fake-analysis.ts`](./fake-analysis.ts) | The fake analysis model's `reeval explain` answer |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, `analysis.model`, and the real agents from `../profiles.ts` |
 
-`reeval analyze` is in the [Analyze a run](../../docs/results/analyze.mdx) page.
+`reeval explain` is in the [Explain a run](../../docs/results/explain.mdx) page.

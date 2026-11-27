@@ -1,4 +1,4 @@
-// The Zod schemas of a `reeval analyze` document, one per type in `./analysis.ts`: the source of
+// The Zod schemas of a `reeval explain` document, one per type in `./analysis.ts`: the source of
 // `schema/analysis.schema.json` (`ANALYSIS_SCHEMAS`), and what a reader checks a saved or uploaded
 // analysis against before it shows or sends it (`parsedAnalysis`). Only `reeval/view/report` and
 // the CLI load this module, so the `reeval/view` root stays free of zod.

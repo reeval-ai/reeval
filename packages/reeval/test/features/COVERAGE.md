@@ -286,7 +286,7 @@
 | Each `model-call` event's role (`main` for the agent's own steps, `side` for its CLI's titles, searches and helper-model calls) and its tokens as each API counts them, replayed from captured calls | ✓ 3 | — | — | — | — | — |
 | Each turn's, attempt's, judge call's, cell's and run's cost: what Claude Code, pi or OpenRouter reported, else an estimate at the served model's list price marked `estimated` with its source, none for an unlisted model (a total counts it `unpriced`), on the `Done in` line, in summary.md, `reeval compare`, `reeval query effort` and the studio | ✓ 2 | — | ● 1 | — | — | — |
 | Each turn's files changed from the workspace diff, a file the shell wrote included, on its turn line, in `debug.log` and beside the edit tool calls in summary.md and the studio | ✓ 2 | — | ● 1 | ● 1 | — | — |
-| Effort separation per metric (`no overlap` at 3 vs 3 or more, directional in `reeval analyze`) | ✓ 1 | ✓ 1 | — | — | — | — |
+| Effort separation per metric (`no overlap` at 3 vs 3 or more, directional in `reeval explain`) | ✓ 1 | ✓ 1 | — | — | — | — |
 | The plan's verdict hints: a compare below 4 runs a cell (1 included) and a compared eval with below 6 cases will show only a direction whatever happens; a profile's `limit.runs` cut is named | — | ✓ 6 | — | — | — | — |
 | Contrasts: every arm side by side (checks, effort) in the run output, `reeval show` and `summary.md`; each pair of arms on one harness in `reeval query contrasts` and the digest | ✓ 1 | — | — | — | — | — |
 | Compare questions: pairs whose two orders disagree are splits, counted on the answer line, each pair head to head with three sides or more, `reeval query question_pairs` and `votes`, and the digest | ✓ 2 | — | — | — | — | — |
@@ -299,10 +299,10 @@
 | Standing per-key judge pass rate on the studio eval page, with lift per key when both sides have enough counted attempts | ✓ 2 | — | — | — | — | — |
 | Studio attempt rows show each judge as fail 0.78/0.80 (or the minimum plus a count) | ✓ 2 | — | — | — | — | — |
 | Token usage on each attempt and a per-cell sum of counted attempts, in the studio | ✓ 2 | — | — | — | — | — |
-| `reeval analyze`: a digest of facts, one structured call on `analysis.model`, citation and CLI-command validation | ✓ 1 | — | — | — | — | — |
-| `reeval analyze` caches in `.reeval/analysis`; `--save` writes create-only under `<run>/analysis/`; the studio Analysis tab shows them | ✓ 1 | — | — | — | — | — |
-| `reeval analyze --save --push`: after saving, uploads the saved analysis as it was saved to `PUT /api/v1/runs/:runId/analysis` with the stored sign-in (or `REEVAL_TOKEN`); a run the cloud lacks exits 2 with how to push it, the analysis kept saved; `--push` without `--save`, or signed out, is refused before any model call | ✓ 2 | — | — | — | — | — |
-| A run's notes in `.reeval/analysis/<run>/notes/`: the studio's Analysis tab shows them with the cached `reeval analyze` document | ✓ 2 | — | — | — | — | — |
+| `reeval explain`: a digest of facts, one structured call on `analysis.model`, citation and CLI-command validation | ✓ 1 | — | — | — | — | — |
+| `reeval explain` caches in `.reeval/analysis`; `--save` writes create-only under `<run>/analysis/`; the studio Analysis tab shows them | ✓ 1 | — | — | — | — | — |
+| `reeval explain --save --push`: after saving, uploads the saved analysis as it was saved to `PUT /api/v1/runs/:runId/analysis` with the stored sign-in (or `REEVAL_TOKEN`); a run the cloud lacks exits 2 with how to push it, the analysis kept saved; `--push` without `--save`, or signed out, is refused before any model call | ✓ 2 | — | — | — | — | — |
+| A run's notes in `.reeval/analysis/<run>/notes/`: the studio's Analysis tab shows them with the cached `reeval explain` document | ✓ 2 | — | — | — | — | — |
 | `c.capture()`, `c.serve` and `c.exec({ background })` | ✓ 4 | ✓ 1 | ● 11 | ● 14 | — | — |
 | `c.serve` waits until the command listens, takes `PORT` or the one port that started listening after it (IPv4 or IPv6 loopback), records it in `serves`, and fails on several new ports (with the URLs it printed), an exit or a timeout with the last output, or on a given port something already listened on | ✓ 1 | — | ● 3 | ● 5 | ● 5 | — |
 | `c.capture()`'s page reaches sandbox ports at `localhost`, `127.0.0.1` and `[::1]`, through tunnels opened on its first request | ✓ 1 | — | — | ● 1 | ● 1 | — |

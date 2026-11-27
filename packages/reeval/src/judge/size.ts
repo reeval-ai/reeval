@@ -1,7 +1,7 @@
 import type { JSONValue } from '../types.ts'
 import { patchPath } from '../view/patch.ts'
 
-/** Roughly four characters a token, as `reeval analyze` counts: an estimate, not the model's. */
+/** Roughly four characters a token, as `reeval explain` counts: an estimate, not the model's. */
 const CHARS_PER_TOKEN = 4
 
 const tokensOf = (chars: number) => Math.ceil(chars / CHARS_PER_TOKEN)

@@ -65,7 +65,7 @@ export function analysisModelName(config: ResolvedConfig): string | FakeAnalysis
   const model = fallbackModel(config)
   if (model !== undefined) return model
   throw new UsageError(
-    `reeval analyze needs a language model. Set analysis: { model: 'google/gemini-3.8-flash' } in ${config.file}${judgeAside(config.judge.model, 'write an analysis')}, or run reeval analyze --context to hand the digest to your own coding agent.`,
+    `reeval explain needs a language model. Set analysis: { model: 'google/gemini-3.8-flash' } in ${config.file}${judgeAside(config.judge.model, 'write an analysis')}, or run reeval explain --context to hand the digest to your own coding agent.`,
   )
 }
 
@@ -130,7 +130,7 @@ export function resolveAnalysisModel(config: ResolvedConfig): ResolvedAnalysisMo
     }
   } catch (error) {
     throw new UsageError(
-      `${(error as Error).message} Or run reeval analyze --context, which needs no key.`,
+      `${(error as Error).message} Or run reeval explain --context, which needs no key.`,
     )
   }
 }

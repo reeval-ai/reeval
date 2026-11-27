@@ -1070,14 +1070,14 @@ const ANALYZE = `analysis: {
     }),
   },`
 
-describe('reeval analyze --save --push', () => {
+describe('reeval explain --save --push', () => {
   let dir = ''
   let runId = ''
   const saved = () =>
     readdirSync(join(dir, HISTORY, runId, 'analysis')).filter((f) => f.endsWith('.json'))
   before(async () => {
     dir = await linkedProject(
-      'analyze-push',
+      'explain-push',
       ANALYZE,
       "import { fakeAnalysis } from 'reeval/judge'\n",
     )
@@ -1095,7 +1095,7 @@ describe('reeval analyze --save --push', () => {
     fresh()
     const p = await platform({ status: 'ready' }, [runId])
     try {
-      const r = await runCli(dir, ['analyze', runId, '--save', '--push', '--no-cache'], {
+      const r = await runCli(dir, ['explain', runId, '--save', '--push', '--no-cache'], {
         env: envFor(p.base),
       })
       assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -1125,7 +1125,7 @@ describe('reeval analyze --save --push', () => {
     fresh()
     const p = await platform({ status: 'ready' })
     try {
-      const r = await runCli(dir, ['analyze', runId, '--save', '--push'], { env: envFor(p.base) })
+      const r = await runCli(dir, ['explain', runId, '--save', '--push'], { env: envFor(p.base) })
       assert.equal(r.code, 2, r.stdout + r.stderr)
       assert.match(
         r.stderr,
@@ -1152,7 +1152,7 @@ describe('reeval analyze --save --push', () => {
     fresh()
     const p = await platform({ status: 'ready' }, [runId], 'no-route')
     try {
-      const r = await runCli(dir, ['analyze', runId, '--save', '--push'], { env: envFor(p.base) })
+      const r = await runCli(dir, ['explain', runId, '--save', '--push'], { env: envFor(p.base) })
       assert.equal(r.code, 3, r.stdout + r.stderr)
       assert.match(
         r.stderr,
@@ -1171,7 +1171,7 @@ describe('reeval analyze --save --push', () => {
     fresh()
     const p = await platform({ status: 'ready' }, [runId], 'redirect')
     try {
-      const r = await runCli(dir, ['analyze', runId, '--save', '--push'], { env: envFor(p.base) })
+      const r = await runCli(dir, ['explain', runId, '--save', '--push'], { env: envFor(p.base) })
       assert.equal(r.code, 3, r.stdout + r.stderr)
       assert.match(
         r.stderr,
@@ -1199,7 +1199,7 @@ describe('reeval analyze --save --push', () => {
       fresh()
       const p = await platform({ status: 'ready' }, [runId], answer)
       try {
-        const r = await runCli(dir, ['analyze', runId, '--save', '--push'], {
+        const r = await runCli(dir, ['explain', runId, '--save', '--push'], {
           env: envFor(p.base),
         })
         assert.equal(r.code, code, r.stdout + r.stderr)
@@ -1216,7 +1216,7 @@ describe('reeval analyze --save --push', () => {
     fresh()
     const p = await platform({ status: 'ready' }, [runId])
     try {
-      const r = await runCli(dir, ['analyze', runId, '--save', '--push', '--no-cache'], {
+      const r = await runCli(dir, ['explain', runId, '--save', '--push', '--no-cache'], {
         env: { ...envFor(p.base), TEST_TLDR_BYTES: String(2 ** 20) },
       })
       assert.equal(r.code, 2, r.stdout + r.stderr)
@@ -1236,7 +1236,7 @@ describe('reeval analyze --save --push', () => {
     fresh()
     const p = await platform({ status: 'ready' }, [runId])
     try {
-      const r = await runCli(dir, ['analyze', runId, '--save', '--push', '--dry-run'], {
+      const r = await runCli(dir, ['explain', runId, '--save', '--push', '--dry-run'], {
         env: envFor(p.base, null),
       })
       assert.equal(r.code, 0, r.stdout + r.stderr)
@@ -1251,19 +1251,19 @@ describe('reeval analyze --save --push', () => {
     fresh()
     const p = await platform({ status: 'ready' }, [runId])
     try {
-      const alone = await runCli(dir, ['analyze', runId, '--push'], { env: envFor(p.base) })
+      const alone = await runCli(dir, ['explain', runId, '--push'], { env: envFor(p.base) })
       assert.equal(alone.code, 2, alone.stdout + alone.stderr)
       assert.match(
         alone.stderr,
-        /reeval analyze --push uploads the analysis --save writes: pass --save --push/,
+        /reeval explain --push uploads the analysis --save writes: pass --save --push/,
       )
-      const out = await runCli(dir, ['analyze', runId, '--save', '--push'], {
+      const out = await runCli(dir, ['explain', runId, '--save', '--push'], {
         env: envFor(p.base, null),
       })
       assert.equal(out.code, 2, out.stdout + out.stderr)
       assert.match(
         out.stderr,
-        /reeval analyze --push needs you signed in: reeval login signs in, or set REEVAL_TOKEN/,
+        /reeval explain --push needs you signed in: reeval login signs in, or set REEVAL_TOKEN/,
       )
       assert.deepEqual(p.seen, [])
       assert.ok(!existsSync(join(dir, HISTORY, runId, 'analysis')), 'nothing is saved')

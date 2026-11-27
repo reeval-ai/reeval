@@ -125,7 +125,8 @@ describe('reeval init', () => {
   })
 
   test("the config names the key of the analysis model's provider", () => {
-    const keyLine = (src: string) => src.match(/reeval analyze explains a run, with (.+)\.$/m)?.[1]
+    const keyLine = (src: string) =>
+      src.match(/reeval explain describes a run with an LLM, using (.+)\.$/m)?.[1]
     assert.equal(keyLine(configSource(pkg, 'cursor')), 'GOOGLE_GENERATIVE_AI_API_KEY')
     const anthropic = configSource(pkg, 'cursor', 'anthropic/claude-sonnet-5')
     assert.equal(keyLine(anthropic), 'ANTHROPIC_API_KEY')

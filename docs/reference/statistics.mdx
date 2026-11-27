@@ -42,7 +42,7 @@ When both sides pass every attempt, or both fail every attempt, on four runs a s
 
 The remark names the `runs`, never fewer than four, at which a difference that size would hold, or at which equal rates would rule out 20 points either way. Two of two against zero of two raises it though its interval excludes zero: when nothing changed, that split comes up about one run in eight. A family's sample is its cases: it is small below six cases, or when its pooled interval spans zero and reaches past 20 points. A family raises the remark when its pooled lift doesn't hold, insufficient or within noise, and its rates differ or its sample is small. Many cases that agree, some passing and some failing on both sides, are insufficient but raise nothing; six or more cases that all pass, or all fail, on both sides raise `cant-tell-apart`.
 
-`reeval query`'s `contrasts` and `factor_effects` add `small_sample` beside `pass_verdict`, and the `reeval analyze` digest adds `smallSample: true` beside a lift's verdict, by the same rule. Beside a cell's lift, the digest adds `tie: 'both always pass'` or `'both always fail'` when the remark would say `cant-tell-apart`, and `looks: 'N runs'` when it would say the variant looks different.
+`reeval query`'s `contrasts` and `factor_effects` add `small_sample` beside `pass_verdict`, and the `reeval explain` digest adds `smallSample: true` beside a lift's verdict, by the same rule. Beside a cell's lift, the digest adds `tie: 'both always pass'` or `'both always fail'` when the remark would say `cant-tell-apart`, and `looks: 'N runs'` when it would say the variant looks different.
 
 ## One comparison over every measure
 
@@ -52,7 +52,7 @@ The remark names the `runs`, never fewer than four, at which a difference that s
      marked           4 of 4  same  5× faster
 ```
 
-reeval compares each variant with its baseline on every measure the run has, each with the test reeval already prints it with. The status list's `vs control` column names the measures whose difference holds; `-v` adds the ones that only lean, each marked `(leans)`, and each variant's interval; a judged assertion shows its judge's score, not also its pass rate. The status list, `reeval compare -v`, the remarks, the `reeval analyze` digest and `reeval query measure_effects` all read this one comparison, so they never disagree.
+reeval compares each variant with its baseline on every measure the run has, each with the test reeval already prints it with. The status list's `vs control` column names the measures whose difference holds; `-v` adds the ones that only lean, each marked `(leans)`, and each variant's interval; a judged assertion shows its judge's score, not also its pass rate. The status list, `reeval compare -v`, the remarks, the `reeval explain` digest and `reeval query measure_effects` all read this one comparison, so they never disagree.
 
 | Measure | Test | Magnitude |
 |---|---|---|

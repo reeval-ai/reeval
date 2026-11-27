@@ -30,7 +30,7 @@ compare a skill, fix a config, read a failure. Read a reference file when the ta
 | [references/capture.md](references/capture.md) | Web UIs: `c.capture()` screenshots, `instructions` journeys, `artifacts` on judges and questions |
 | [references/compare.md](references/compare.md) | `compare` beyond the example below: the control, gates, lift and effort, labeled checks, `questions`, `skill_files` |
 | [references/environments.md](references/environments.md) | Environments: skills, files, rules, MCP servers, `git()` workspaces, `directory()`, Docker sandboxes, secrets, egress |
-| [references/cli.md](references/cli.md) | The CLI beyond `run`: `query` views, `analyze`, `show`, `compare`, `record`, `studio`, `mcp`, filters, exit codes |
+| [references/cli.md](references/cli.md) | The CLI beyond `run`: `query` views, `explain`, `show`, `compare`, `record`, `studio`, `mcp`, filters, exit codes |
 | [references/mistakes.md](references/mistakes.md) | An error message from reeval you need to map to its fix (the full table) |
 | [../eval-rubric/SKILL.md](../eval-rubric/SKILL.md) | A `Worth knowing:` list after a run, or reviewing an eval's name, prompts and judge questions: one section per remark kind, with its fix |
 
@@ -60,7 +60,7 @@ npx reeval run
    Node 22.16 or later; npm, pnpm or Yarn.
 2. `npx reeval init --agent <cursor|claude-code|antigravity|opencode|goose|pi|codex|fx|grok-build>`
    (it only asks in a terminal) writes `reeval.config.ts` (the agent, `analysis.model:
-   'google/gemini-3.8-flash'` for `reeval analyze`, and `pr` and `nightly` profiles), `evals/environments.ts` (one `defineEnvironment`), `evals/greet.eval.ts` (an eval
+   'google/gemini-3.8-flash'` for `reeval explain`, and `pr` and `nightly` profiles), `evals/environments.ts` (one `defineEnvironment`), `evals/greet.eval.ts` (an eval
    in that environment), the `.gitignore` entries (`.reeval/`, `.env*`), an `eval` script and a
    `tsconfig.json` that allows the evals' `.ts` imports, then says whether Docker is running.
    `--bare` writes only the config, `.gitignore` and `package.json`. Where a config exists it
@@ -199,7 +199,7 @@ export default defineEval({
   [references/evals.md](references/evals.md)). The default `target`, `capability()`, never fails the run: the eval
   records what agents do; `regression()` fails the run on any miss. The eval id is the file path under the eval root without `.eval.ts`; moving the
   file restarts its history. Organize paths after the question they answer
-  (`recommendation/genkit`, not `genkit-test-2`), so results and `reeval analyze` read clearly.
+  (`recommendation/genkit`, not `genkit-test-2`), so results and `reeval explain` read clearly.
 - `await c.send(prompt)` runs one agent turn and returns a `Turn` (`text`, `status`, `diff`,
   `trajectory`). Call it again for multi-turn; a judge's `inputs: { turns: 'all' }` shows every
   turn.
@@ -313,7 +313,7 @@ reeval run [filter...]   --dry-run [--json] --runs <n> --tag <t> --trait <k=v> -
 reeval show [run]        reeval history         reeval compare [base] [head]
 reeval query lift        reeval query effort
 reeval query "SELECT … FROM failing_attempts"
-reeval analyze           reeval studio          reeval image build      reeval doctor
+reeval explain           reeval studio          reeval image build      reeval doctor
 ```
 
 | Exit code | Means |
@@ -339,7 +339,7 @@ eval rubric ([../eval-rubric/SKILL.md](../eval-rubric/SKILL.md)) explains each k
 and `reeval show` print the full result blocks, a table per arm and check.
 
 Every command uses the nearest `reeval.config.*` (or `reeval.yaml`) in the current directory or
-above, or `--config <path>`. Runs land in `.reeval/runs/`. All views, `analyze` and the MCP
+above, or `--config <path>`. Runs land in `.reeval/runs/`. All views, `explain` and the MCP
 server: [references/cli.md](references/cli.md).
 
 ## Common mistakes (and the fix)

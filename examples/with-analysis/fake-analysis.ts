@@ -2,7 +2,7 @@
 // model must, so its sentences go through reeval's checks with no key.
 type Digest = { facts: { id: string; kind: string; cells?: { pass: string }[] }[] }
 
-/** `reeval analyze`'s answer: a TL;DR and one result, citing the digest's pass@1 fact. */
+/** `reeval explain`'s answer: a TL;DR and one result, citing the digest's pass@1 fact. */
 export function output(digest: Digest) {
   const pass = digest.facts.find((f) => f.kind === 'pass@1')
   const all = pass?.cells?.every((c) => c.pass.split('/')[0] === c.pass.split('/')[1])

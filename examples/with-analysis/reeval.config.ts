@@ -21,7 +21,7 @@ export default defineConfig({
     text: 'I added multiply(a, b) to src/math.js and a test for it.',
   }),
   sandbox: fakeSandbox(),
-  // A canned analysis model from ./fake-analysis.ts, so `reeval analyze` needs no key. Profiles can't set it: for a real one, use a model such as 'anthropic/claude-sonnet-5'.
+  // A canned analysis model from ./fake-analysis.ts, so `reeval explain` needs no key. Profiles can't set it: for a real one, use a model such as 'anthropic/claude-sonnet-5'.
   analysis: { model: fakeAnalysis({ output }) },
   // The real agents: `--profile claude-code`, or any other in ../profiles.ts. An example's own
   // profiles go beside them.

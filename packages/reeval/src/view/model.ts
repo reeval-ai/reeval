@@ -156,7 +156,7 @@ export function failedJudgeLabels(record: Pick<RunRecord, 'evals'>): string[] {
 
 /**
  * One sentence for the studio run header: counted pass/fail, which judges failed, and infra.
- * Works without `reeval analyze`.
+ * Works without `reeval explain`.
  */
 export function runLead(record: Pick<RunRecord, 'summary' | 'evals'>): string {
   const { pass, fail, infraError } = record.summary

@@ -709,7 +709,7 @@ export type EvalEntry = {
   /**
    * The eval's pairwise questions (those with `across`), answered after its attempts by votes,
    * one per question; unset without any. They annotate: `outcome` and `passRate` never depend on them. Each vote
-   * may include a short `reason` (capped). `reeval analyze` includes each answer in the digest
+   * may include a short `reason` (capped). `reeval explain` includes each answer in the digest
    * (rates by cut, votes, ties, a failed call, and a sample of reasons). Each answer's `input` is
    * the `<eval-slug>/questions/<n>.json` file: every call its model was sent, per pair and order,
    * with secrets masked and screenshots as refs; unset where the evaluation's files weren't kept.

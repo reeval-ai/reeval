@@ -1,4 +1,4 @@
-// `reeval analyze [run] [--vs base] [--eval filter]`: a digest of the run's facts, one structured call,
+// `reeval explain [run] [--vs base] [--eval filter]`: a digest of the run's facts, one structured call,
 // validation, then the cache (always), the run's history folder (with --save) and the cloud's copy
 // of the run (with --save --push).
 import { readFile } from 'node:fs/promises'
@@ -40,7 +40,7 @@ import { renderMarkdown, renderText } from './render.ts'
 import { SYSTEM_PROMPT } from './schema.ts'
 import { validateAnalysis } from './validate.ts'
 
-export type AnalyzeFlags = {
+export type ExplainFlags = {
   json?: boolean
   md?: boolean
   vs?: string
@@ -54,7 +54,7 @@ export type AnalyzeFlags = {
 
 type Ctx = {
   config: ResolvedConfig
-  flags: AnalyzeFlags
+  flags: ExplainFlags
   out: (s: string) => void
   err: (s: string) => void
 }
@@ -150,7 +150,7 @@ export type PreparedAnalysis = {
   key: string
 }
 
-/** The run `reeval analyze` compares `head` with when `--vs` is omitted: its nearest recorded ancestor. */
+/** The run `reeval explain` compares `head` with when `--vs` is omitted: its nearest recorded ancestor. */
 export async function defaultBase(
   config: ResolvedConfig,
   entries: HistoryEntry[],
@@ -236,7 +236,7 @@ const docBase = async (config: ResolvedConfig, p: PreparedAnalysis) => ({
 })
 
 /** One structured call on the prepared digest (and what tools read), validated: the document the cache holds. */
-export async function analyzeDigest(
+export async function explainDigest(
   config: ResolvedConfig,
   p: PreparedAnalysis,
   model: ResolvedAnalysisModel,
@@ -293,25 +293,25 @@ async function signedIn(): Promise<{ base: URL; auth: CloudAuth }> {
   const base = cloudUrl()
   const auth = await cloudAuth(base)
   if (!auth.headers.authorization) {
-    throw new UsageError(`reeval analyze --push needs you signed in: ${auth.refused}`)
+    throw new UsageError(`reeval explain --push needs you signed in: ${auth.refused}`)
   }
   return { base, auth }
 }
 
-export async function analyzeCommand(ctx: Ctx, args: string[]): Promise<number> {
+export async function explainCommand(ctx: Ctx, args: string[]): Promise<number> {
   const { config, flags } = ctx
-  if (flags.json && flags.md) throw new UsageError('reeval analyze takes --json or --md, not both')
+  if (flags.json && flags.md) throw new UsageError('reeval explain takes --json or --md, not both')
   if (flags.context && flags.save) {
-    throw new UsageError('reeval analyze --context makes no analysis to save; drop --save')
+    throw new UsageError('reeval explain --context makes no analysis to save; drop --save')
   }
   if (flags.push && !flags.save) {
     throw new UsageError(
-      'reeval analyze --push uploads the analysis --save writes: pass --save --push',
+      'reeval explain --push uploads the analysis --save writes: pass --save --push',
     )
   }
   if (flags.save && config.history.store.kind !== 'local') {
     throw new UsageError(
-      `reeval analyze --save writes into a local() history, and history.store in ${config.file} keeps runs in ${config.history.store.name}. Drop --save: the analysis is still kept in .reeval/analysis.`,
+      `reeval explain --save writes into a local() history, and history.store in ${config.file} keeps runs in ${config.history.store.name}. Drop --save: the analysis is still kept in .reeval/analysis.`,
     )
   }
   const entries = await allRuns(config)
@@ -338,10 +338,10 @@ export async function analyzeCommand(ctx: Ctx, args: string[]): Promise<number> 
       : flags.vs
         ? resolveRun(entries, flags.vs)
         : await defaultBase(config, entries, head)
-  if (base?.runId === head.runId) throw new UsageError('reeval analyze --vs names the run itself')
+  if (base?.runId === head.runId) throw new UsageError('reeval explain --vs names the run itself')
   if (flags.save && !head.recorded) {
     throw new CommandError(
-      `${head.runId} isn't recorded, so there's no history folder to save into. Run reeval record ${head.runId} first, then reeval analyze ${head.runId} --save.`,
+      `${head.runId} isn't recorded, so there's no history folder to save into. Run reeval record ${head.runId} first, then reeval explain ${head.runId} --save.`,
     )
   }
   const cloud = flags.push && !flags.context && !flags['dry-run'] ? await signedIn() : null
@@ -379,8 +379,8 @@ export async function analyzeCommand(ctx: Ctx, args: string[]): Promise<number> 
     )
   } else {
     const resolved = model ?? resolveAnalysisModel(config)
-    ctx.err(`analyzing ${head.runId}${base ? ` vs ${base.runId}` : ''} with ${resolved.name}…`)
-    doc = await analyzeDigest(config, prepared, resolved)
+    ctx.err(`explaining ${head.runId}${base ? ` vs ${base.runId}` : ''} with ${resolved.name}…`)
+    doc = await explainDigest(config, prepared, resolved)
     await writeCached(config.root, key, doc)
   }
   if (flags.save) {

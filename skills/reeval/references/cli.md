@@ -4,7 +4,7 @@
 
 - Commands
 - From a failure to what the agent did
-- `reeval analyze`
+- `reeval explain`
 - Config discovery, filters and exit codes
 - Recording runs
 
@@ -17,7 +17,7 @@ reeval record            reeval history         reeval show [run]
 reeval compare [base] [head] [--md] [--fail-on-regression] [-v]
 reeval query lift        reeval query effort
 reeval query "SELECT … FROM failing_attempts"
-reeval analyze           one checked LLM reading of a run; --vs none for this
+reeval explain           one checked LLM reading of a run; --vs none for this
                          run only; --context for your own agent
 reeval studio [run]      the runs, served on 127.0.0.1 to the studio page
 reeval image build [--dry-run] [--profile <p>]     reeval clean
@@ -62,16 +62,16 @@ reeval doctor            Docker, keys and images, with fixes (--json, --online)
   logs, the trajectory's tail, and whether the cell failed in earlier runs), far smaller than
   `show` or summary.md; then `trajectory` or `compare`. The rest return the same JSON as `--json`.
 
-## `reeval analyze`
+## `reeval explain`
 
-`reeval analyze` gives a one-sentence TL;DR. Its confidence is capped after the citation and
+`reeval explain` gives a one-sentence TL;DR. Its confidence is capped after the citation and
 command checks: not high if any check failed, low if a claim was dropped or a command rejected.
 Anomalies are number-checked, and a cited judge score that disagrees is dropped.
 
 When no eval's target can fail the run (the default `target: capability()`), it reads the run as a study: how the arms differ, grader by
 grader, so name your graders. `analysis.instructions` is the question it answers.
 
-`analysis.model` is the model `reeval analyze` uses (else the judge's, when it's a language
+`analysis.model` is the model `reeval explain` uses (else the judge's, when it's a language
 model), and the one questions without their own model use. `reeval init` sets it to `google/gemini-3.8-flash` (`GOOGLE_GENERATIVE_AI_API_KEY`;
 `AI_GATEWAY_API_KEY` only with `gateway: [vercel()]`).
 

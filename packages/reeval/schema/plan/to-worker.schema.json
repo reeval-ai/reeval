@@ -2967,7 +2967,7 @@
               "type": "number"
             },
             "model": {
-              "description": "`'provider/model'`, e.g. `'google/gemini-3.8-flash'`. Unset, `reeval analyze` and questions fall back to the judge's when it's a language model.",
+              "description": "`'provider/model'`, e.g. `'google/gemini-3.8-flash'`. Unset, `reeval explain` and questions fall back to the judge's when it's a language model.",
               "anyOf": [
                 {
                   "$ref": "#/$defs/FakeAnalysisModel"
