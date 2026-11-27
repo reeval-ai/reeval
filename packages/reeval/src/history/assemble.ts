@@ -64,10 +64,10 @@ import type {
   QuestionCall,
   QuestionInput,
   QuestionScreenshot,
+  RecordedTarget,
   ResolvedGateway,
   RunContext,
   Snapshot,
-  Target,
   TrajectoryEvent,
   WebEventType,
 } from '../types.ts'
@@ -265,9 +265,11 @@ export const fingerprintOf = (parts: FingerprintParts) => sha256(JSON.stringify(
 /**
  * The score a `regression()` or `capability()` attempt passes at, as a fingerprint part: it decides
  * each attempt's outcome, which no gate re-scores. None at 1, so such a cell keeps its fingerprint;
- * `metric()`'s threshold is its gate's.
+ * an older record's `metric` threshold is its gate's.
  */
-export const thresholdPart = (target: Target | undefined): Pick<FingerprintParts, 'threshold'> => {
+export const thresholdPart = (
+  target: RecordedTarget | undefined,
+): Pick<FingerprintParts, 'threshold'> => {
   if (!target || target.kind === 'metric') return {}
   const threshold = thresholdOf(target)
   return threshold === 1 ? {} : { threshold: String(threshold) }

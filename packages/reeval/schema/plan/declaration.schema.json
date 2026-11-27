@@ -1272,7 +1272,7 @@
               }
             },
             "target": {
-              "description": "Whether the eval passes and can fail the run, over its attempts' scores: `metric()`, `regression()` or `capability()`; default `metric()`, which only reports. On a compare it applies to the variants, and the control only reports.",
+              "description": "Whether the eval passes and can fail the run, over its attempts' scores: `regression()` or `capability()`; default `capability()`, which only reports. On a compare it applies to the variants, and the control only reports.",
               "anyOf": [
                 {
                   "type": "object",
@@ -1290,19 +1290,6 @@
                     }
                   },
                   "required": ["blocking", "kind", "threshold"]
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "kind": {
-                      "const": "metric"
-                    },
-                    "threshold": {
-                      "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
-                      "type": "number"
-                    }
-                  },
-                  "required": ["kind"]
                 },
                 {
                   "type": "object",
@@ -1623,7 +1610,7 @@
               }
             },
             "target": {
-              "description": "Whether the eval passes and can fail the run, over its attempts' scores: `metric()`, `regression()` or `capability()`; default `metric()`, which only reports. On a compare it applies to the variants, and the control only reports.",
+              "description": "Whether the eval passes and can fail the run, over its attempts' scores: `regression()` or `capability()`; default `capability()`, which only reports. On a compare it applies to the variants, and the control only reports.",
               "anyOf": [
                 {
                   "type": "object",
@@ -1641,19 +1628,6 @@
                     }
                   },
                   "required": ["blocking", "kind", "threshold"]
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "kind": {
-                      "const": "metric"
-                    },
-                    "threshold": {
-                      "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
-                      "type": "number"
-                    }
-                  },
-                  "required": ["kind"]
                 },
                 {
                   "type": "object",

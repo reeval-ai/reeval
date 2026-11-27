@@ -30,7 +30,7 @@ one profile you need.
 
 ```text
 with-rules.eval.ts
-  · with-rules  67%  metric()
+  · with-rules  mean 67% · 0/1 run at 100% (pass@1)  capability(1)
     #1  67%  runs-the-tests 0%
 ```
 

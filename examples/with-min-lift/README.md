@@ -3,7 +3,7 @@
 **Shows:** failing a variant that doesn't clearly help. `minLift: 0.2` fails the variant cell
 unless the lower bound of its lift's 95% interval is above +20 points. The agent adds
 `multiply(a, b)`, with and without a `jsdoc` skill, and a grader looks for its JSDoc block.
-`target: metric(0.75)` lets each arm miss one of its four tries.
+`target: regression()` lets the compare fail the run: `minLift` needs a target that can.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
 first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code), Docker,
@@ -29,10 +29,10 @@ one profile you need.
 
 ```text
 with-min-lift.eval.ts
-  ✓ with-min-lift  100% ≥ 75%  metric(0.75)
+  ✓ with-min-lift  mean 100% · 4/4 runs at 100%  regression(1)
     arm              pass
     math             0 of 4
-      error  score 0.00 below 0.75: has-file:src/math.js scored 0.00 (4 runs)
+      error  score 0.00 below 1: has-file:src/math.js scored 0.00 (4 runs)
     jsdoc            4 of 4  helped
 ```
 
@@ -50,10 +50,10 @@ side can't show a lift that sure; more runs narrow the interval:
 
 ```text
 with-min-lift.eval.ts
-  ✗ with-min-lift  100% ≥ 75%  metric(0.75)
+  ✗ with-min-lift  mean 100% · 4/4 runs at 100%  regression(1)
     arm              pass
     math             0 of 4
-      error  score 0.00 below 0.75: has-file:src/math.js scored 0.00 (4 runs)
+      error  score 0.00 below 1: has-file:src/math.js scored 0.00 (4 runs)
     jsdoc            4 of 4  helped, not by minLift 50
     …
 Done in 2s · 1 eval · 1 below

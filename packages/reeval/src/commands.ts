@@ -49,6 +49,7 @@ import {
   unmarkPending,
   uploadPending,
 } from './store/sync.ts'
+import { blocks } from './target.ts'
 import type { ResolvedConfig } from './types.ts'
 import { renderCompare } from './ui/compare-layout.ts'
 import { runCost } from './view/cost.ts'
@@ -599,7 +600,7 @@ export async function compareView(config: ResolvedConfig, refs: string[]) {
 
 export async function compareCommand(ctx: Ctx, refs: string[]): Promise<number> {
   const { base, head, rows, reach, json } = await compareView(ctx.config, refs)
-  const failing = regressions(rows)
+  const failing = regressions(rows, head)
   if (ctx.flags.json) ctx.out(JSON.stringify(json, null, 2))
   else {
     const side = async (e: HistoryEntry) => {
@@ -642,15 +643,17 @@ export async function compareCommand(ctx: Ctx, refs: string[]): Promise<number> 
 /**
  * What `--fail-on-regression` fails on: an eval that regressed (went from pass to fail, or has a
  * case that did outside a pooled gate), and a new or changed (can't compare) one that fails, since
- * nothing earlier vouches for it. A head the run's interrupt canceled didn't fail.
+ * nothing earlier vouches for it. A head the run's interrupt canceled didn't fail, and neither did
+ * an eval whose target on `head` can't fail the run.
  */
-export const regressions = (rows: CompareRow[]) =>
+export const regressions = (rows: CompareRow[], head?: Pick<HistoryEntry, 'evals'>) =>
   rows.filter(
     (r) =>
-      r.status === 'regressed' ||
-      ((r.status === 'added' || r.status === 'drift') &&
-        r.head === 'fail' &&
-        !r.canceled?.includes('head')),
+      (!head || blocks(head.evals.find((e) => e.id === r.id)?.target)) &&
+      (r.status === 'regressed' ||
+        ((r.status === 'added' || r.status === 'drift') &&
+          r.head === 'fail' &&
+          !r.canceled?.includes('head'))),
   )
 
 /** Fetches a commit from `origin` (a run recorded on another machine, or a branch not fetched). */

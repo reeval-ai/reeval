@@ -105,7 +105,10 @@ describe('reeval init', () => {
     await writeFile(join(p.dir, 'fake.config.ts'), fakeConfig)
     const run = await runCli(p.dir, ['run', '--config', 'fake.config.ts'])
     assert.equal(run.code, 0, run.stdout + run.stderr)
-    assert.match(run.stdout, /^evals\/greet\.eval\.ts\n└─ · greet {2}100% {2}metric\(\)$/m)
+    assert.match(
+      run.stdout,
+      /^evals\/greet\.eval\.ts\n└─ · greet {2}mean 100% · 1\/1 run at 100% \(pass@1\) {2}capability\(1\)$/m,
+    )
   })
 
   test('--bare writes only the config and its essentials', async () => {

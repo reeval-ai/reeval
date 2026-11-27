@@ -136,11 +136,11 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/options.test.ts', 'reeval/test/results.test.ts'],
   },
   {
-    id: 'target.metric',
+    id: 'target.default',
     area: 'Config and selection',
-    name: '`target: metric()`, the default: every cell ungated, and a failing attempt fails nothing',
+    name: 'No `target` is `capability()`: pass@k over the attempts, and a miss fails the eval but never the run',
     plan: ['targets/targets'],
-    fixtures: ['run/target-metric', 'output/study'],
+    fixtures: ['run/target-default', 'output/study'],
     unit: ['reeval/test/output.test.ts'],
   },
   {
@@ -182,9 +182,9 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'cases',
     area: 'Config and selection',
-    name: '`cases`: one eval over a list of cases, each an object with its `key`, counted and named once with its cases as rows inside it, pooled into a mean score that `target: metric(threshold)` gates and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history',
+    name: '`cases`: one eval over a list of cases, each an object with its `key`, counted and named once with its cases as rows inside it, pooled into a mean score and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history',
     plan: ['compare/cases', 'compare/cases-filtered', 'selection/tags'],
-    fixtures: ['run/cases', 'run/cases-rate'],
+    fixtures: ['run/cases'],
     unit: [
       'reeval/test/refusals.test.ts',
       'reeval/test/options.test.ts',
@@ -265,9 +265,9 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'target',
     area: 'Config and selection',
-    name: "`target`: `metric(threshold?)` over the mean score, `regression(threshold)` over every attempt (pass^k), `capability(threshold, { blocking })` over any (pass@k); an attempt passes at the threshold, a compare's control only reports, and each eval records its target and its mean score, pass@k and pass^k",
+    name: "`target`: `regression(threshold)` over every attempt (pass^k), `capability(threshold, { blocking })` over any (pass@k); an attempt passes at the threshold, a compare's control only reports, and each eval records its target and prints and records its mean score, pass@k and pass^k",
     plan: ['targets/targets', 'best-of/default'],
-    fixtures: ['run/target-regression', 'run/target-capability', 'run/cases-rate'],
+    fixtures: ['run/target-regression', 'run/target-capability'],
     unit: [
       'reeval/test/results.test.ts',
       'reeval/test/options.test.ts',
@@ -2394,7 +2394,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'summary.study-mark',
     area: 'Records and studio',
-    name: 'An eval whose cells are all ungated is marked ○ and `not gated` in the run summary when its attempts miss, never ✓ beside 0/n, and reads `not gated` (○) in the tally, `reeval compare` and `reeval history`, never `pass`',
+    name: 'An eval whose target only reports reads `report only` in the tally and `reeval compare` when its attempts miss, never ✓ beside 0/n; one whose cells are all ungated, from an older record, reads `not gated` (○) in `reeval history`, never `pass`',
     fixtures: ['output/study'],
     unit: ['reeval/test/engine.test.ts'],
   },

@@ -4,15 +4,7 @@ from reeval_python.environment import _Descriptor  # pyright: ignore[reportPriva
 
 
 class Target(_Descriptor):
-    """An eval's target, made by `metric(…)`, `regression(…)` or `capability(…)`."""
-
-
-def metric(threshold: float | None = None) -> Target:
-    """Passes when the attempts' mean score reaches `threshold`; with none it only reports,
-    never failing the run. The default target."""
-    if threshold is None:
-        return Target({"kind": "metric"})
-    return Target({"kind": "metric", "threshold": threshold})
+    """An eval's target, made by `regression(…)` or `capability(…)`."""
 
 
 def regression(threshold: float = 1) -> Target:
@@ -22,5 +14,5 @@ def regression(threshold: float = 1) -> Target:
 
 def capability(threshold: float = 1, *, blocking: bool = False) -> Target:
     """Passes when one attempt scores at least `threshold` (pass@k). A miss fails the run only
-    with `blocking=True`."""
+    with `blocking=True`. The default target is `capability()`."""
     return Target({"kind": "capability", "threshold": threshold, "blocking": blocking})

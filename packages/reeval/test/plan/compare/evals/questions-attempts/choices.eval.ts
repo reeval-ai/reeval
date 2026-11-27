@@ -1,8 +1,8 @@
-import { defineEval, metric } from 'reeval'
+import { defineEval, regression } from 'reeval'
 
 export default defineEval({
   runs: 2,
-  target: metric(0.5),
+  target: regression(0.5),
   questions: [
     {
       question: 'Did the agent run the tests first?',

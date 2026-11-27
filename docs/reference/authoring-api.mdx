@@ -76,31 +76,13 @@ Results print the evaluation's id as a heading and a row per case key. reeval re
 
 For more information about the `all cases` row, see [`compare`](/reference/options#compare).
 
-## `metric()`
-
-`metric(threshold?)` is the default target. Without a threshold, an evaluation records what its attempts do and gates nothing:
-
-```ts title="evals/database.eval.ts"
-import { defineEval } from '{{ pkg }}'
-
-export default defineEval({
-  runs: 3,
-  task: async (c) => {
-    await c.send('Add persistence to the app.')
-    c.observe('package.json', await c.readFile('package.json'))
-  },
-})
-```
-
-Every cell prints `ran` rather than a pass or a fail, and only run and infra errors fail the run. `metric(0.8)` passes a cell when its attempts' mean score is at least 0.8. reeval refuses, with exit code 2, `compare.minLift` beside a target that can't fail the run. For more information, see [`target`](/reference/options#target).
-
 ## `regression()`
 
 `regression(threshold = 1)` passes a cell when every counted attempt scores at least `threshold` (pass^k); a miss fails the run.
 
 ## `capability()`
 
-`capability(threshold = 1, { blocking?: false })` passes a cell when one attempt scores at least `threshold` (pass@k); a miss fails the run only with `blocking: true`.
+`capability(threshold = 1, { blocking?: false })` is the default target. It passes a cell when one attempt scores at least `threshold` (pass@k); a miss fails the run only with `blocking: true`. reeval refuses, with exit code 2, `compare.minLift` beside a target that can't fail the run. For more information, see [`target`](/reference/options#target).
 
 ## `EvalFn`
 

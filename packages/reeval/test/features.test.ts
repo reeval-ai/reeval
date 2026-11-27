@@ -5478,72 +5478,6 @@ export const features: Feature[] = [
     },
   },
   {
-    dir: 'run/cases-rate',
-    tiers: ['fake'],
-    env: 'rate',
-    canary: zeroBy('passes-its-case', 0.7),
-    evals: Object.fromEntries(
-      (['lands', 'canary'] as const).map((name) => [
-        name,
-        {
-          outcome: name === 'lands' ? ('pass' as const) : ('fail' as const),
-          attempts: ['a', 'b', 'c'].map((key) => `fake/rate/fake#${key}#1`),
-          error: {
-            kind: 'assertion' as const,
-            message: zeroBy('passes-its-case', name === 'lands' ? 0.6 : 0.7),
-          },
-          clean: ['fake/rate/fake#a#1', 'fake/rate/fake#b#1'],
-        },
-      ]),
-    ),
-    record: ({ run, runDir, stdout }) => {
-      const rates = (name: string) =>
-        run.evals
-          .find((e) => e.name === name)
-          ?.cells.map((c) => [c.rate?.rate, c.rate?.passRate, c.rate?.outcome])
-      for (const e of run.evals)
-        assert.deepEqual(
-          e.cases?.map((k) => [k.key, k.outcome, k.verdict]),
-          [
-            ['a', 'pass', 'family'],
-            ['b', 'pass', 'family'],
-            ['c', 'fail', 'family'],
-          ],
-          'each case keeps its own outcome, and the rate over them decides',
-        )
-      assert.match(
-        stdout,
-        /^Done in \S+ · 2 evals · 1 on target · 1 below$/m,
-        'the tally counts each eval with cases once',
-      )
-      assert.match(
-        stdout,
-        /✗ canary {2}67% < 70% {2}metric\(0\.7\)\n +#c {2}0% {2}passes-its-case 0%\n/,
-      )
-      assert.deepEqual(rates('lands'), [[0.667, 0.6, 'pass']], 'the rate over the cases clears 0.6')
-      assert.deepEqual(rates('canary'), [[0.667, 0.7, 'fail']], 'and is below 0.7')
-      const summary = readFileSync(join(runDir, 'summary.md'), 'utf8')
-      assert.match(
-        summary,
-        /^\| \[canary\]\(#canary\) \| .* \| 67% < 70% · metric\(0\.7\) \|/m,
-        "the summary's row headlines the rate against its target",
-      )
-      assert.match(summary, /^## lands\n[\s\S]*?^\*\*67% ≥ 60%\*\* · metric\(0\.6\)$/m)
-      for (const [name, below] of [
-        ['canary', '0\\.7'],
-        ['lands', '0\\.6'],
-      ])
-        assert.match(
-          summary,
-          new RegExp(
-            `^## ${name}\\n[\\s\\S]*?\\| score 0\\.00 below ${below}: passes-its-case scored 0\\.00 \\| n/a \\| 1 of 3 \\|`,
-            'm',
-          ),
-          'the failed case is in its eval',
-        )
-    },
-  },
-  {
     dir: 'run/trait',
     tiers: ['fake'],
     env: 'next-app',
@@ -5639,10 +5573,10 @@ export const features: Feature[] = [
     },
   },
   {
-    dir: 'run/target-metric',
+    dir: 'run/target-default',
     tiers: ['fake'],
     env: 'observe',
-    lands: { outcome: 'pass', error: { kind: 'assertion', message: zeroBy('observed:pick') } },
+    lands: { outcome: 'fail', error: { kind: 'assertion', message: zeroBy('observed:pick') } },
     landsPass: [],
     canary: zeroBy('observed:pick'),
     canarySaw: { pick: 'sqlite' },
@@ -5650,10 +5584,13 @@ export const features: Feature[] = [
       const lands = run.evals.find((e) => e.name === 'lands')
       assert.deepEqual(
         [lands?.target, lands?.cells.map((c) => c.gate)],
-        [{ kind: 'metric' }, ['none']],
-        'target: metric() records its cells ungated',
+        [{ kind: 'capability', threshold: 1, blocking: false }, ['any']],
+        'no target is capability(), which never blocks',
       )
-      assert.match(stdout, /^└─ · lands {2}0% {2}metric\(\)$/m)
+      assert.match(
+        stdout,
+        /^└─ · lands {2}mean 0% · 0\/1 run at 100% \(pass@1\) {2}capability\(1\)$/m,
+      )
       assert.match(stdout, /^Done in \S+ · 2 evals · 1 below · 1 report only$/m)
     },
   },
@@ -5867,11 +5804,11 @@ export const features: Feature[] = [
       }
       assert.match(
         entryOf(stdout, 'canary'),
-        /✗ canary {2}0\/2 runs at 100% \(best of 3\) {2}regression\(1\)$/m,
+        /✗ canary {2}mean 0% · 0\/2 runs at 100% \(best of 3\) {2}regression\(1\)$/m,
       )
       assert.match(
         entryOf(stdout, 'lands'),
-        /✓ lands {2}2\/3 runs at 100% \(best of 3\) {2}regression\(1\)$/m,
+        /✓ lands {2}mean \d+% · 2\/3 runs at 100% \(best of 3\) {2}regression\(1\)$/m,
       )
     },
   },
@@ -5881,11 +5818,14 @@ export const features: Feature[] = [
     env: '-',
     canary: /second try\n\n1 !== 2/,
     record: ({ stdout }) => {
-      assert.equal(entryOf(stdout, 'lands').trim(), '✓ lands  1/1 run at 100%  regression(1)')
+      assert.equal(
+        entryOf(stdout, 'lands').trim(),
+        '✓ lands  mean 100% · 1/1 run at 100%  regression(1)',
+      )
       assert.equal(
         entryOf(stdout, 'canary'),
         [
-          '✗ canary  0/1 run at 100%  regression(1)',
+          '✗ canary  mean 0% · 0/1 run at 100%  regression(1)',
           '  #1  0%  second try 1 !== 2',
           '    before the first turn',
           '    at task (evals/canary.eval.ts:7:21)',
@@ -5925,7 +5865,7 @@ export const features: Feature[] = [
     env: 'marked',
     cells: ['plain', 'marked'],
     lands: {
-      outcome: 'pass',
+      outcome: 'fail',
       error: { kind: 'assertion', message: zeroBy('has-file:marker.txt') },
     },
     landsPass: [],
@@ -5951,7 +5891,11 @@ export const features: Feature[] = [
       const compared = await runCli(project, ['compare'])
       assert.match(compared.stdout, /^2 new evals \(1 below · 1 report only\)$/m)
       const history = await runCli(project, ['history'])
-      assert.match(history.stdout, /^ {2}○ +– {2}lands$/m)
+      assert.match(
+        history.stdout,
+        /^ {2}✗ +0\/1 {2}lands$/m,
+        'a missed capability() reads as missed',
+      )
     },
   },
   {
@@ -5968,7 +5912,7 @@ export const features: Feature[] = [
     record: ({ stdout }) => {
       assert.match(
         entryOf(stdout, 'lands'),
-        /✓ lands {2}1\/1 run at 100% {2}regression\(1\)\n +arm +pass\n +plain +0 of 1\n +error {2}score 0\.00 below 1: has-file:marker\.txt scored 0\.00\n +marked +1 of 1 {2}helped\n/,
+        /✓ lands {2}mean 100% · 1\/1 run at 100% {2}regression\(1\)\n +arm +pass\n +plain +0 of 1\n +error {2}score 0\.00 below 1: has-file:marker\.txt scored 0\.00\n +marked +1 of 1 {2}helped\n/,
       )
       assert.match(
         entryOf(stdout, 'lands'),
@@ -5976,9 +5920,12 @@ export const features: Feature[] = [
       )
       assert.match(entryOf(stdout, 'canary'), /^ +marked +0 of 1 {2}same$/m)
       assert.doesNotMatch(
-        stdout.replaceAll(' at 100%', '').replace(/^ +#\S+ {2}\d+% .*$/gm, ''),
+        stdout
+          .replaceAll(' at 100%', '')
+          .replace(/ {2}mean \d+% · /g, '  ')
+          .replace(/^ +#\S+ {2}\d+% .*$/gm, ''),
         /%|pass@1/,
-        'only an attempt row reads a score',
+        'only the mean and an attempt row read a score',
       )
     },
   },
@@ -5997,10 +5944,13 @@ export const features: Feature[] = [
       },
     },
     record: ({ stdout }) => {
-      assert.equal(entryOf(stdout, 'lands').trim(), '✓ lands  2/2 runs at 100%  regression(1)')
+      assert.equal(
+        entryOf(stdout, 'lands').trim(),
+        '✓ lands  mean 100% · 2/2 runs at 100%  regression(1)',
+      )
       assert.match(
         entryOf(stdout, 'canary'),
-        /✗ canary {2}1\/2 runs at 100%, worst 0% {2}regression\(1\)\n +idler {2}0% {2}has-file:out\.txt 0%$/,
+        /✗ canary {2}mean \d+% · 1\/2 runs at 100%, worst 0% {2}regression\(1\)\n +idler {2}0% {2}has-file:out\.txt 0%$/,
       )
     },
   },
@@ -6036,7 +5986,7 @@ export const features: Feature[] = [
       const lands = entryOf(stdout, 'lands')
       assert.match(
         lands,
-        /✓ lands {2}2\/2 runs at 100% {2}regression\(1\)\n {2}writer\n +arm +pass\n +plain +0 of 1\n +error {2}score 0\.00 below 1: has-file:marker\.txt scored 0\.00\n +marked +1 of 1 {2}helped\n/,
+        /✓ lands {2}mean 100% · 2\/2 runs at 100% {2}regression\(1\)\n {2}writer\n +arm +pass\n +plain +0 of 1\n +error {2}score 0\.00 below 1: has-file:marker\.txt scored 0\.00\n +marked +1 of 1 {2}helped\n/,
       )
       assert.match(
         lands,
@@ -6063,10 +6013,10 @@ export const features: Feature[] = [
       },
     },
     record: ({ stdout }) => {
-      assert.match(stdout, /✓ lands {2}2\/2 runs at 100% {2}regression\(1\)\n\n/)
+      assert.match(stdout, /✓ lands {2}mean 100% · 2\/2 runs at 100% {2}regression\(1\)\n\n/)
       assert.match(
         stdout,
-        /✗ canary {2}1\/2 runs at 100%, worst 0% {2}regression\(1\)\n +#green {2}0% {2}is red 'green' !== 'red'\n +before the first turn\n +at task \(evals\/canary\.eval\.ts:8:21\)/,
+        /✗ canary {2}mean \d+% · 1\/2 runs at 100%, worst 0% {2}regression\(1\)\n +#green {2}0% {2}is red 'green' !== 'red'\n +before the first turn\n +at task \(evals\/canary\.eval\.ts:8:21\)/,
       )
       assert.match(stdout, /\nDone in \S+ · 2 evals · 1 on target · 1 below\n/)
     },

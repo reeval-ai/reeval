@@ -17,7 +17,7 @@ import type {
 } from '../history/types.ts'
 import { COMPARE_RUNS } from '../stats.ts'
 import { blocks, DEFAULT_TARGET } from '../target.ts'
-import type { AttemptFailure, ErrorKind, Outcome, Target } from '../types.ts'
+import type { AttemptFailure, ErrorKind, Outcome, RecordedTarget } from '../types.ts'
 import { cellEffort } from './effort.ts'
 import { caseLabel } from './family.ts'
 import { targetCells } from './gate.ts'
@@ -144,12 +144,12 @@ export type EvalResult = {
   /** Each name its attempts observed with `c.observe`, tallied per cell; with cases, over every case. */
   observations: ObservedTally[]
   /** What decides `outcome`. */
-  target: Target
+  target: RecordedTarget
   /** Whether a miss of its target fails the run. */
   blocking: boolean
   /**
-   * The mean score over its target's cells' counted attempts (with cases, the mean of the cases'),
-   * which a `metric` target is judged on; null when none counted.
+   * The mean score over its target's cells' counted attempts (with cases, the mean of the cases');
+   * null when none counted.
    */
   meanScore: number | null
   /** Its target's cells' attempts (the variants on a compare, else every cell), case by case. */

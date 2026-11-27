@@ -65,7 +65,7 @@ import {
   t975,
   wilson,
 } from '../src/stats.ts'
-import { blocks, capability, metric, regression, targetGate, targetOfGates } from '../src/target.ts'
+import { blocks, capability, regression, targetGate, targetOfGates } from '../src/target.ts'
 import type { BlindPair, EvalRecord, FakeAnalysisModel, Outcome } from '../src/types.ts'
 import { EFFORT_MIN_RUNS, effortVerdict } from '../src/view/effort.ts'
 import { cellOutcome, rescore, scoresOf } from '../src/view/gate.ts'
@@ -549,22 +549,21 @@ describe('targets', () => {
 
   test("a record from before targets reads its target from its cells' gates", () => {
     assert.deepEqual(targetOfGates(['all', 'all']), regression())
-    assert.deepEqual(targetOfGates(['none', { passRate: 0.7 }]), metric(0.7))
+    assert.deepEqual(targetOfGates(['none', { passRate: 0.7 }]), { kind: 'metric', threshold: 0.7 })
     assert.deepEqual(targetOfGates(['any']), capability(1, { blocking: true }))
-    assert.deepEqual(targetOfGates(['none', 'none']), metric())
-    assert.deepEqual(targetOfGates([]), metric())
+    assert.deepEqual(targetOfGates(['none', 'none']), { kind: 'metric' })
+    assert.deepEqual(targetOfGates([]), { kind: 'metric' })
     assert.equal(blocks(targetOfGates(['none'])), false, 'an ungated record only reported')
   })
 
   test("each target's cell gate, and a best-of cell's hit share", () => {
-    assert.equal(targetGate(metric(), false), 'none')
-    assert.equal(targetGate(metric(), true), 'none', 'report-only stays report-only')
-    assert.deepEqual(targetGate(metric(0.8), false), { passRate: 0.8 })
     assert.equal(targetGate(regression(0.7), false), 'all')
     assert.equal(targetGate(capability(), false), 'any')
     assert.deepEqual(targetGate(regression(), true), { passRate: 0.5 })
     assert.equal(blocks(capability()), false)
     assert.equal(blocks(capability(1, { blocking: true })), true)
+    assert.equal(blocks({ kind: 'metric', threshold: 0.8 }), true, "an older record's mean gate")
+    assert.equal(blocks({ kind: 'metric' }), false)
   })
 
   test('scores: the mean, pass@k and pass^k over the counted attempts', () => {
@@ -629,16 +628,15 @@ describe('targets', () => {
     )
   })
 
-  test('the option takes metric(), regression() or capability(), each threshold in [0, 1]', () => {
-    checkTarget(metric(), 'e')
-    checkTarget(metric(0.8), 'e')
+  test('the option takes regression() or capability(), each threshold in [0, 1]', () => {
     checkTarget(regression(), 'e')
     checkTarget(capability(0.5, { blocking: true }), 'e')
     for (const bad of [
       'all',
       'observe',
       { passRate: 0.8 },
-      { kind: 'metric', threshold: 1.2 },
+      { kind: 'metric' },
+      { kind: 'metric', threshold: 0.8 },
       { kind: 'regression', threshold: -0.1 },
       { kind: 'capability', threshold: 1 },
       { kind: 'gate' },
@@ -646,7 +644,7 @@ describe('targets', () => {
     ]) {
       assert.throws(
         () => checkTarget(bad, 'e'),
-        /target in e is metric\(\), regression\(\) or capability\(\) from 'reeval'/,
+        /target in e is regression\(\) or capability\(\) from 'reeval'/,
         JSON.stringify(bad),
       )
     }

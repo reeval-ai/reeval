@@ -28,10 +28,10 @@ one profile you need.
 
 ```text
 with-skill-lift.eval.ts
-  ✓ with-skill-lift  100% ≥ 75%  metric(0.75)
+  · with-skill-lift  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
     arm              pass
     math             0 of 4
-      error  score 0.50 below 0.75: has-file:CHANGELOG.md scored 0.00 (4 runs)
+      error  score 0.50 below 1: has-file:CHANGELOG.md scored 0.00 (4 runs)
     changelog        4 of 4  helped
 ```
 

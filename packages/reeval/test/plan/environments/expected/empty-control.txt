@@ -1,6 +1,6 @@
 no profile · 1 evals · 2 cells · 8 attempts
-empty  fake/bare/docker                      control          ungated  ×4  runs 4 (compare default)
-       fake/skilled/docker:node:24-bookworm  variant skilled  ungated  ×4
+empty  fake/bare/docker                      control          ungated    ×4  runs 4 (compare default)
+       fake/skilled/docker:node:24-bookworm  variant skilled  gated any  ×4
 excluded: —
 image docker · cursor · 1 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

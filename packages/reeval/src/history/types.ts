@@ -26,6 +26,7 @@ import type {
   Observation,
   Outcome,
   PhaseTimings,
+  RecordedTarget,
   ResolvedJudgeStateOptions,
   Revision,
   SandboxBase,
@@ -35,7 +36,6 @@ import type {
   Snapshot,
   StartRetry,
   SubagentUsage,
-  Target,
   TimeSplit,
   TokenUsage,
   TurnStatus,
@@ -691,9 +691,9 @@ export type EvalEntry = {
   todo: boolean
   /**
    * What decides `outcome`; in records from before targets, read from the cells' gates (`all` is
-   * `regression()`, `{ passRate }` is `metric(passRate)`, none is `metric()`).
+   * `regression()`, `{ passRate }` or none is a mean-score `metric`).
    */
-  target?: Target
+  target?: RecordedTarget
   /** Over the target's cells; filled from `pass` and `fail` in records from before it. */
   scores?: ScoreSummary
   /**
@@ -941,7 +941,7 @@ export type FingerprintParts = {
   gate?: string
   /**
    * The score each attempt passes at under a `regression()` or `capability()` target; unset at 1
-   * and under `metric()`, whose threshold is its gate's.
+   * and under an older record's `metric`, whose threshold is its gate's.
    */
   threshold?: string
 }
@@ -1481,7 +1481,7 @@ export type HistoryEntry = {
     revision?: EvalEntry['revision']
     outcome: Outcome
     passRate: number | null
-    target?: Target
+    target?: RecordedTarget
     scores?: ScoreSummary
     cells: HistoryCell[]
     /** An eval with `cases`: each case that ran, with its own cells; unset without cases. */

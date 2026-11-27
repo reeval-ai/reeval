@@ -1,7 +1,7 @@
 no profile · 3 evals · 3 cells · 3 attempts
-child-keeps-parent-sandbox  fake/kept/docker:node:22-bookworm    control  ungated  ×1
-child-replaces-sandbox      fake/child/docker:node:24-bookworm   control  ungated  ×1
-parent-image                fake/parent/docker:node:22-bookworm  control  ungated  ×1
+child-keeps-parent-sandbox  fake/kept/docker:node:22-bookworm    control  gated any  ×1
+child-replaces-sandbox      fake/child/docker:node:24-bookworm   control  gated any  ×1
+parent-image                fake/parent/docker:node:22-bookworm  control  gated any  ×1
 excluded: —
 image docker:node:22-bookworm · cursor · 2 evals
   from node:22-bookworm  reeval-sandbox:cursor-0.1.9-node-22-bookworm-5a0b0fc6  (Node, git and the harness bootstrap on top; reeval image build refreshes a moved tag)

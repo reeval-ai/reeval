@@ -89,7 +89,7 @@ describe('every layout', () => {
       for (const head of heads) {
         assert.match(
           head,
-          / {2}(\d+%|\d+\/\d+ (runs?|cases?)|every run|skipped|todo|not run|infra error|canceled)/,
+          / {2}(mean \d+% · (\d+\/\d+ (runs?|cases?)|every run)|\d+%|skipped|todo|not run|infra error|canceled)/,
           head,
         )
       }
@@ -98,13 +98,13 @@ describe('every layout', () => {
 
   test('✓ and ✗ only for a blocking target; · for one that only reports', () => {
     const text = rendered('suite').join('\n')
-    assert.match(text, /^✓ writes-greet-js +1\/1 run at 100% +regression\(1\)$/m)
+    assert.match(text, /^✓ writes-greet-js +mean 100% · 1\/1 run at 100% +regression\(1\)$/m)
     assert.match(text, /^✓ choose +83% ≥ 80% +metric\(0\.8\)$/m)
     assert.match(text, /^✗ explains-why-greet-js-fails +67% < 80% +metric\(0\.8\)$/m)
     assert.match(text, /^· greets-once +100% +metric\(\)$/m)
     assert.match(
       text,
-      /^· adds-a-button-that-builds +2\/3 cases hit 100% \(pass@1\) +capability\(1\)$/m,
+      /^· adds-a-button-that-builds +mean 67% · 2\/3 cases hit 100% \(pass@1\) +capability\(1\)$/m,
     )
     assert.doesNotMatch(text, /^[✓✗] .*(metric\(\)|capability\(1\))$/m, 'canary: never ✓ or ✗')
   })

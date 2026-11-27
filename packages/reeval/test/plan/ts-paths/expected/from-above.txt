@@ -1,7 +1,7 @@
 no profile · 3 evals · 3 cells · 3 attempts
-a-literal-environment  fake/own/docker:images  control  ungated  ×1
-a-literal-sandbox      fake/-/docker:images    control  ungated  ×1
-from-the-config        fake/-/docker:docker    control  ungated  ×1
+a-literal-environment  fake/own/docker:images  control  gated any  ×1
+a-literal-sandbox      fake/-/docker:images    control  gated any  ×1
+from-the-config        fake/-/docker:docker    control  gated any  ×1
 excluded: —
 image docker:images · cursor · 2 evals
   dockerfile evals/images/Dockerfile  reeval-dockerfile:images-01f297fbbcd7a60e  (docker build (layer cache), tagged by content hash)

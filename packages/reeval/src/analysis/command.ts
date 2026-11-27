@@ -79,7 +79,7 @@ export function contextMarkdown(d: Digest, head: string, base: string | null): s
     '',
     ...(d.frame === 'study'
       ? [
-          "This run is a study: every cell is ungated (gate: 'none'), so it measures how the arms differ. Failing attempts are data, not a failed gate.",
+          "This run is a study: no eval's target can fail the run, so it measures how the arms differ. Failing attempts are data, not a failed gate.",
           '',
         ]
       : []),

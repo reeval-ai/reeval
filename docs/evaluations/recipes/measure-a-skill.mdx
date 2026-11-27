@@ -32,14 +32,13 @@ For more information about other skill sources, see [Give the agent skills](/con
 Grade what the skill teaches, so the control fails without it. The prompt doesn't mention the changelog, so only a harness that follows the skill writes the entry. In the `evals/changelog.eval.ts` file, name the control and the variant in `compare`:
 
 ```ts title="evals/changelog.eval.ts"
-import { defineEval, metric } from '{{ pkg }}'
+import { defineEval } from '{{ pkg }}'
 import { hasFile, succeeded } from '{{ pkg }}/graders'
 import { math, withSkill } from './environments.ts'
 
 export default defineEval({
   compare: { control: math, variants: [withSkill] },
   runs: 4,
-  target: metric(0.75),
   graders: [
     succeeded('node --test'),
     hasFile('CHANGELOG.md', /## Unreleased\s+- feat: /, {
@@ -53,7 +52,7 @@ export default defineEval({
 })
 ```
 
-`runs: 4` gives each cell four attempts, the fewest that can read `helped`. The variant passes when its 4 attempts' mean score is at least 0.75. To also record whether the variant loaded the skill, add `usedSkill('changelog', { weight: 0 })`, which scores nothing, since the control has no skill to load ([Give the agent skills](/configuration/environments/skills#check-the-agent-used-the-skill)).
+`runs: 4` gives each cell four attempts, the fewest that can read `helped`. The variant passes when one of its 4 attempts passes, under the default target, `capability()`. To also record whether the variant loaded the skill, add `usedSkill('changelog', { weight: 0 })`, which scores nothing, since the control has no skill to load ([Give the agent skills](/configuration/environments/skills#check-the-agent-used-the-skill)).
 
 </Step>
 <Step title="Run the comparison">
@@ -70,10 +69,10 @@ npx reeval run changelog
 The run prints a block like this one:
 
 ```text
-└─ ✓ changelog  100% ≥ 75%  metric(0.75)
+└─ · changelog  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
      arm              pass
      math             0 of 4
-       error  score 0.50 below 0.75: changelog-entry scored 0.00 (4 runs)
+       error  score 0.50 below 1: changelog-entry scored 0.00 (4 runs)
      changelog        4 of 4  helped
 ```
 

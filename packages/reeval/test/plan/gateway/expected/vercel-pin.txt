@@ -1,6 +1,6 @@
 profile codex-pin (--profile) · 2 evals · 2 cells · 2 attempts
-greets  codex:gpt-5.4-mini/-/docker  control  ungated  ×1  effort medium · gateway: codex:gpt-5.4-mini → vercel
-pinned  codex:gpt-5.4-mini/-/docker  control  ungated  ×1  effort medium · agents set by profile codex-pin · gateway: codex:gpt-5.4-mini → vercel
+greets  codex:gpt-5.4-mini/-/docker  control  gated any  ×1  effort medium · gateway: codex:gpt-5.4-mini → vercel
+pinned  codex:gpt-5.4-mini/-/docker  control  gated any  ×1  effort medium · agents set by profile codex-pin · gateway: codex:gpt-5.4-mini → vercel
 excluded: —
 image docker · codex · 2 evals
   base  reeval-sandbox:codex-0.1.14  (reeval's image: pulled or built when missing or when its key changed)

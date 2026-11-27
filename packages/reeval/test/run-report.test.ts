@@ -141,7 +141,7 @@ describe('buildRunReport', () => {
     const primary = (name: string) => report.evals.find((e) => e.name === name)?.headline.primary
     assert.deepEqual(primary('adds-a-button-that-builds'), {
       kind: 'target',
-      result: '2/3 cases hit 100% (pass@1)',
+      result: 'mean 67% · 2/3 cases hit 100% (pass@1)',
       target: 'capability(1)',
       standing: 'report',
     })
@@ -155,12 +155,15 @@ describe('buildRunReport', () => {
     const headline = (name: string) => md.split(`\n## ${name}\n`)[1]?.split('\n## ')[0] ?? ''
     assert.match(
       headline('adds-a-button-that-builds'),
-      /^\*\*2\/3 cases hit 100% \(pass@1\)\*\* · capability\(1\)\n\nReport only: the target never fails the run\. 3 counted attempts over 3 cases, 1 coding harness\.$/m,
+      /^\*\*mean 67% · 2\/3 cases hit 100% \(pass@1\)\*\* · capability\(1\)\n\nReport only: the target never fails the run\. 3 counted attempts over 3 cases, 1 coding harness\.$/m,
     )
     assert.match(headline('choose'), /^\*\*83% ≥ 80%\*\* · metric\(0\.8\)$/m)
     assert.match(headline('choose'), /^On target\. 6 counted attempts over 3 cases/m)
     assert.match(headline('explains-why-greet-js-fails'), /^\*\*67% < 80%\*\* · metric\(0\.8\)$/m)
-    assert.match(headline('greets-in-french'), /^\*\*0\/1 run at 100%\*\* · regression\(1\)$/m)
+    assert.match(
+      headline('greets-in-french'),
+      /^\*\*mean 0% · 0\/1 run at 100%\*\* · regression\(1\)$/m,
+    )
     assert.match(headline('starts-its-sandbox'), /^\*\*infra error\*\* · regression\(1\)$/m)
     assert.match(headline('greets-in-welsh'), /^\*\*skipped\*\*$/m)
     assert.doesNotMatch(md, /Median tokens/)

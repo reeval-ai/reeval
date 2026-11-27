@@ -27,7 +27,7 @@ from reeval_python.options import (
     EvalOptions,
     JudgeDefaults,
 )
-from reeval_python.target import Target, capability, metric, regression
+from reeval_python.target import Target, capability, regression
 from reeval_python.types import (
     BackgroundHandle,
     Decision,
@@ -72,7 +72,6 @@ __all__ = [
     "capability",
     "fake_judge",
     "group",
-    "metric",
     "plugin",
     "regression",
     "tart",

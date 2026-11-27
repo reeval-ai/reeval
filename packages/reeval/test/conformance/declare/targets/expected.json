@@ -54,11 +54,11 @@
     },
     {
       "type": "eval",
-      "name": "cases metric [chat]",
+      "name": "cases regression [chat]",
       "mode": "run",
       "options": {
         "target": {
-          "kind": "metric",
+          "kind": "regression",
           "threshold": 0.8
         }
       },
@@ -68,18 +68,18 @@
         "caseJson": "{\"key\":\"chat\"}"
       },
       "family": {
-        "name": "cases metric",
+        "name": "cases regression",
         "case": 0,
         "cases": 2
       }
     },
     {
       "type": "eval",
-      "name": "cases metric [rag]",
+      "name": "cases regression [rag]",
       "mode": "run",
       "options": {
         "target": {
-          "kind": "metric",
+          "kind": "regression",
           "threshold": 0.8
         }
       },
@@ -89,7 +89,7 @@
         "caseJson": "{\"key\":\"rag\"}"
       },
       "family": {
-        "name": "cases metric",
+        "name": "cases regression",
         "case": 1,
         "cases": 2
       }
@@ -196,7 +196,9 @@
           ]
         },
         "target": {
-          "kind": "metric"
+          "kind": "capability",
+          "threshold": 1,
+          "blocking": false
         },
         "runs": 4
       },

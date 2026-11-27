@@ -34,7 +34,7 @@ one profile you need.
 
 ```text
 with-capture-compare.eval.ts
-  · with-capture-compare  100%  metric()
+  · with-capture-compare  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
     arm              pass
     site             4 of 4
     brand            4 of 4  same

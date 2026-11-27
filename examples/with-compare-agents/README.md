@@ -29,8 +29,8 @@ times, the graders score each attempt, and the question pairs Claude Code's atte
 Codex's run by run:
 
 ```text
-eval                 agents  variants  runs  attempts  target    notes
-with-compare-agents  2       1         4     12        metric()  runs 4 (compare default)
+eval                 agents  variants  runs  attempts  target         notes
+with-compare-agents  2       1         4     12        capability(1)  runs 4 (compare default)
   grader 1/2  succeeded:node --test · built-in · weight 1
   grader 2/2  has-file:src/math.js · built-in · weight 1
   question 1/1  Which multiply() is easier to read? · after the run · shows diff · agent · 4 pairs · anthropic/claude-sonnet-5
@@ -38,8 +38,7 @@ with-compare-agents  2       1         4     12        metric()  runs 4 (compare
 
 `pnpm reeval run --dry-run --json` lists the cells: `claude-code:claude-sonnet-5/math/docker`
 (the control), `claude-code:claude-sonnet-5/jsdoc/docker` (the variant) and
-`codex:gpt-5.6-luna/math/docker`. Every cell's gate is `none`: the default target, `metric()`,
-only reports.
+`codex:gpt-5.6-luna/math/docker`. The default target, `capability()`, only reports.
 
 | File | What it is |
 |---|---|

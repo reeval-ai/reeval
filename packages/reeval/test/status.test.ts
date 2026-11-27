@@ -25,10 +25,9 @@ export default defineEval({
 })
 `,
   'evals/two-checks-fail.eval.ts': `import assert from 'node:assert/strict'
-import { defineEval, metric } from 'reeval'
+import { defineEval } from 'reeval'
 export default defineEval({
   runs: 2,
-  target: metric(0.5),
   async task(c) {
     await c.send('go')
     if (c.attempt.n === 1) assert.equal(1, 2, 'first check')
@@ -80,12 +79,12 @@ const listOf = (stdout: string) => {
 }
 
 const PLAIN = `evals/colors.eval.ts
-└─ ✗ colors  1/3 runs at 100%, worst 0%  regression(1)
+└─ ✗ colors  mean 33% · 1/3 runs at 100%, worst 0%  regression(1)
      #red   0%  is-green 0%
      #blue  0%  is-green 0%
 
 evals/compares.eval.ts
-└─ ✓ compares  1/1 run at 100%  regression(1)
+└─ ✓ compares  mean 100% · 1/1 run at 100%  regression(1)
      arm              pass
      plain            0 of 1
        error  score 0.00 below 1: has-file:marker.txt scored 0.00
@@ -93,22 +92,22 @@ evals/compares.eval.ts
      Worth knowing: 1 run per side; set runs: 4 at evals/compares.eval.ts to confirm this difference.
 
 evals/passes.eval.ts
-└─ ✓ passes  1/1 run at 100%  regression(1)
+└─ ✓ passes  mean 100% · 1/1 run at 100%  regression(1)
 
 evals/throws.eval.ts
-└─ ✗ throws  0/1 run at 100%  regression(1)
+└─ ✗ throws  mean 0% · 0/1 run at 100%  regression(1)
      #1  0%  the fixture is missing
        after turn 1
        at task (evals/throws.eval.ts:5:11)
 
 evals/two-checks-fail.eval.ts
-└─ ✗ two-checks-fail  0% < 50%  metric(0.5)
+└─ ✗ two-checks-fail  mean 0% · 0/2 runs at 100%, worst 0%  regression(1)
      #1  0%  first check 1 !== 2
        after turn 1
-       at task (evals/two-checks-fail.eval.ts:8:44)
+       at task (evals/two-checks-fail.eval.ts:7:44)
      #2  0%  second check 'a' !== 'b'
        after turn 1
-       at task (evals/two-checks-fail.eval.ts:9:21)
+       at task (evals/two-checks-fail.eval.ts:8:21)
 
 Done in <time> · 5 evals · 2 on target · 3 below`
 
@@ -369,7 +368,7 @@ export default defineEval({
   )
 })
 
-const AT = (target: string) => `import { capability, defineEval, metric, regression } from 'reeval'
+const AT = (target: string) => `import { capability, defineEval, regression } from 'reeval'
 import { near } from './graders.ts'
 export default defineEval({
   cases: [{ key: 'a' }, { key: 'b' }],
@@ -381,25 +380,20 @@ export default defineEval({
 `
 
 const NEAR_LIST = `evals/capability.eval.ts
-└─ ✗ capability  0/2 cases hit ≥ 80% (pass@2)  capability(0.8, { blocking: true })
+└─ ✗ capability  mean 79% · 0/2 cases hit ≥ 80% (pass@2)  capability(0.8, { blocking: true })
      #a  79%  near 79%
      #b  79%  near 79%
 
 evals/floor.eval.ts
-└─ ✗ floor  0% < 0%  metric(0.001)
+└─ ✗ floor  mean 0% · 0/1 run ≥ 0%  regression(0.001)
      #1  0%  zero 0%
 
-evals/metric.eval.ts
-└─ ✗ metric  79% < 80%  metric(0.8)
-     #a  79%  near 79%
-     #b  79%  near 79%
-
 evals/regression.eval.ts
-└─ ✗ regression  0/4 runs ≥ 80%, worst 79%  regression(0.8)
+└─ ✗ regression  mean 79% · 0/4 runs ≥ 80%, worst 79%  regression(0.8)
      #a  79%  near 79%
      #b  79%  near 79%
 
-Done in <time> · 4 evals · 4 below`
+Done in <time> · 3 evals · 3 below`
 
 test('a score just under its target never reads as reaching it, on a row, a grader or the worst run, nor below 0%', async () => {
   assert.equal(scorePercent(0.799, 0.8), '79%')
@@ -413,11 +407,10 @@ export const zero = defineGrader('zero', { grade: () => 1, score: () => 0 })
 `,
     'evals/regression.eval.ts': AT('regression(0.8)'),
     'evals/capability.eval.ts': AT('capability(0.8, { blocking: true })'),
-    'evals/metric.eval.ts': AT('metric(0.8)'),
-    'evals/floor.eval.ts': `import { defineEval, metric } from 'reeval'
+    'evals/floor.eval.ts': `import { defineEval, regression } from 'reeval'
 import { zero } from './graders.ts'
 export default defineEval({
-  target: metric(0.001),
+  target: regression(0.001),
   graders: [zero],
   task: async (c) => void (await c.send('go')),
 })
@@ -428,9 +421,12 @@ export default defineEval({
   assert.equal(listOf(run.stdout), NEAR_LIST)
   const show = await runCli(p.dir, ['show'])
   assert.doesNotMatch(show.stdout, /^ {4}#.*\b80%|-1%/m, show.stdout)
-  assert.equal(show.stdout.match(/^ {4}#[ab] {2}79% {2}near 79%$/gm)?.length, 6, show.stdout)
-  assert.match(show.stdout, /^✗ regression +0\/4 runs ≥ 80%, worst 79% +regression\(0\.8\)$/m)
+  assert.equal(show.stdout.match(/^ {4}#[ab] {2}79% {2}near 79%$/gm)?.length, 4, show.stdout)
+  assert.match(
+    show.stdout,
+    /^✗ regression +mean 79% · 0\/4 runs ≥ 80%, worst 79% +regression\(0\.8\)$/m,
+  )
   // With no earlier run every eval is new, counted against its target as the run counts it.
   const compare = await runCli(p.dir, ['compare'])
-  assert.match(compare.stdout, /^4 new evals \(4 below\)$/m, compare.stdout)
+  assert.match(compare.stdout, /^3 new evals \(3 below\)$/m, compare.stdout)
 })

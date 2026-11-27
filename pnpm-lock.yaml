@@ -361,12 +361,6 @@ importers:
         specifier: workspace:*
         version: link:../../packages/reeval
 
-  examples/with-pass-rate:
-    dependencies:
-      reeval:
-        specifier: workspace:*
-        version: link:../../packages/reeval
-
   examples/with-plugin:
     dependencies:
       reeval:

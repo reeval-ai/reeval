@@ -30,7 +30,7 @@ one profile you need.
 
 ```text
 with-two-variants.eval.ts
-  · with-two-variants  100%  metric()
+  · with-two-variants  mean 100% · 8/8 runs at 100% (pass@8)  capability(1)
     arm              pass
     math             0 of 4
       error  score 0.00 below 1: throws-range-error scored 0.00 (4 runs)

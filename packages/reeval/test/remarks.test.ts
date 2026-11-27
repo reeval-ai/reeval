@@ -96,10 +96,10 @@ export default defineEval({
 `
 
 /** An eval whose target only reports, whose body throws on every try but the last of 3. */
-const throwingEval = `import { defineEval, metric } from 'reeval'
+const throwingEval = `import { capability, defineEval } from 'reeval'
 export default defineEval({
   runs: 3,
-  target: metric(),
+  target: capability(),
   async task(c) {
     await c.send('go')
     if (c.attempt.n < 3) throw new Error('no pick file')
@@ -721,7 +721,8 @@ describe('remark thresholds', () => {
     )
     const gated = structuredClone(record)
     for (const c of gated.evals[0]?.cells ?? []) c.gate = 'all'
-    assert.deepEqual(kinds(gated, NO_HISTORY), [], 'a gated eval fails on it instead')
+    if (gated.evals[0]) gated.evals[0].target = { kind: 'regression', threshold: 1 }
+    assert.deepEqual(kinds(gated, NO_HISTORY), [], 'a blocking eval fails on it instead')
   })
 
   test('snapshot-too-large: an attempt over the cap took no snapshot, not one taken or off', async () => {

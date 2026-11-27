@@ -38,7 +38,7 @@ export type {
 } from './history/types.ts'
 export type { ShellCommand } from './shell-commands.ts'
 export { shellCommands } from './shell-commands.ts'
-export { capability, metric, regression } from './target.ts'
+export { capability, regression } from './target.ts'
 export type {
   AttemptAnswer,
   AttemptContext,

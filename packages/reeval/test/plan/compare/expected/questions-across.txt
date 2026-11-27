@@ -1,18 +1,18 @@
 no profile · 3 evals · 12 cells · 48 attempts
-questions-across/agent        a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                              a/skilled/docker  variant skilled  ungated  ×4
-                              b/base/docker     control          ungated  ×4
-                              b/skilled/docker  variant skilled  ungated  ×4
+questions-across/agent        a/base/docker     control          ungated    ×4  runs 4 (compare default)
+                              a/skilled/docker  variant skilled  gated any  ×4
+                              b/base/docker     control          ungated    ×4
+                              b/skilled/docker  variant skilled  gated any  ×4
                               question: Which agent is clearer? · shows diff · agent · 8 pairs · no language model
-questions-across/both         a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                              a/skilled/docker  variant skilled  ungated  ×4
-                              b/base/docker     control          ungated  ×4
-                              b/skilled/docker  variant skilled  ungated  ×4
+questions-across/both         a/base/docker     control          ungated    ×4  runs 4 (compare default)
+                              a/skilled/docker  variant skilled  gated any  ×4
+                              b/base/docker     control          ungated    ×4
+                              b/skilled/docker  variant skilled  gated any  ×4
                               question: Which follows the house style more closely? · shows diff · environment, agent · 16 pairs · no language model
-questions-across/environment  a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                              a/skilled/docker  variant skilled  ungated  ×4
-                              b/base/docker     control          ungated  ×4
-                              b/skilled/docker  variant skilled  ungated  ×4
+questions-across/environment  a/base/docker     control          ungated    ×4  runs 4 (compare default)
+                              a/skilled/docker  variant skilled  gated any  ×4
+                              b/base/docker     control          ungated    ×4
+                              b/skilled/docker  variant skilled  gated any  ×4
                               question: Which handles state more cleanly? · shows diff · environment · 8 pairs · no language model
 excluded: —
 image docker · cursor · 3 evals

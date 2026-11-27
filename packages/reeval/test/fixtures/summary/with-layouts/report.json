@@ -567,7 +567,7 @@
         "anchor": "reads-the-fixture-repo",
         "shapes": ["task"],
         "design": "1 coding harness, 1 attempt",
-        "primary": "0/1 run at 100% · regression(1)",
+        "primary": "mean 0% · 0/1 run at 100% · regression(1)",
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -6341,7 +6341,7 @@
         "fairness": "clear",
         "primary": {
           "kind": "target",
-          "result": "0/1 run at 100%",
+          "result": "mean 0% · 0/1 run at 100%",
           "target": "regression(1)",
           "standing": "fail"
         },

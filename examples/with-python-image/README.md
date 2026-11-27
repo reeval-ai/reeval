@@ -37,7 +37,7 @@ named after the sandbox's `id`:
   ◆  Running...
 
 with-python-image.eval.ts
-  · with-python-image  100%  metric()
+  · with-python-image  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
 ```
 
 `pnpm reeval image build --dry-run` then shows the image reeval built on the tag's digest:

@@ -29,7 +29,7 @@ below 1, here with the fake agent's throw removed:
 
 ```text
 with-checks-and-gates.eval.ts
-  · with-checks-and-gates  50%  metric()
+  · with-checks-and-gates  mean 50% · 0/1 run at 100% (pass@1)  capability(1)
     #1  50%  throws-a-range-error 0%, tests-pass 0%
 ```
 
@@ -38,7 +38,7 @@ With a `src/math.js` that doesn't parse, the task fails with the `EvalError`'s r
 
 ```text
 with-checks-and-gates.eval.ts
-  · with-checks-and-gates  0%  metric()
+  · with-checks-and-gates  mean 0% · 0/1 run at 100% (pass@1)  capability(1)
     #1  0%  src/math.js doesn't parse
       stderr: …/src/math.js:2 SyntaxError: Unexpected end of input …
       after turn 1

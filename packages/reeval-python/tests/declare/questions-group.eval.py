@@ -1,4 +1,4 @@
-from reeval_python import define_environment, evaluate, group, metric
+from reeval_python import define_environment, evaluate, group, regression
 
 base = define_environment("base", {"env": {"MODE": "base"}})
 skilled = base.extend("skilled", {"env": {"MODE": "skilled"}})
@@ -9,7 +9,7 @@ def asked_by_the_group():
     @evaluate("inherits the question")
     async def inherits(c): ...
 
-    @evaluate("also inherits it", {"runs": 2, "target": metric(0.5)})
+    @evaluate("also inherits it", {"runs": 2, "target": regression(0.5)})
     async def also_inherits(c): ...
 
     @evaluate("replaces the compare", {"compare": {"control": base, "variants": [terse]}})

@@ -35,7 +35,7 @@ labeled `health`, retries until the server listens. Without the route, `curl -f`
 
 ```text
 with-background-process.eval.ts
-  · with-background-process  0%  metric()
+  · with-background-process  mean 0% · 0/1 run at 100% (pass@1)  capability(1)
     #1  0%  succeeded:health 0%, observed:health 0%
 ```
 

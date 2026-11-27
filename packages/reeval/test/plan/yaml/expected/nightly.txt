@@ -1,11 +1,11 @@
 profile nightly (--profile) · 3 evals · 8 cells · 16 attempts
 hint: 1 compare runs 2 times per cell; below 4 runs a side its lift shows only a direction and its effort can't be tested (runs: 4)
-compared             a/plain/fake    control          ungated  ×2
-                     a/skilled/fake  variant skilled  ungated  ×2
-                     b/plain/fake    control          ungated  ×2
-                     b/skilled/fake  variant skilled  ungated  ×2
-inherits             a/nightly/fake  control          ungated  ×2
-                     b/nightly/fake  control          ungated  ×2
-slow [nightly-only]  a/nightly/fake  control          ungated  ×2
-                     b/nightly/fake  control          ungated  ×2
+compared             a/plain/fake    control          ungated    ×2
+                     a/skilled/fake  variant skilled  gated any  ×2
+                     b/plain/fake    control          ungated    ×2
+                     b/skilled/fake  variant skilled  gated any  ×2
+inherits             a/nightly/fake  control          gated any  ×2
+                     b/nightly/fake  control          gated any  ×2
+slow [nightly-only]  a/nightly/fake  control          gated any  ×2
+                     b/nightly/fake  control          gated any  ×2
 excluded: —

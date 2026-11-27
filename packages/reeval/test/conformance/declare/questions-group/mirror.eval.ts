@@ -1,4 +1,4 @@
-import { metric } from 'reeval'
+import { regression } from 'reeval'
 import { evaluate, group } from 'reeval/legacy'
 import { base, skilled, terse } from '../../../plan/compare/evals/envs.ts'
 
@@ -13,7 +13,7 @@ group(
   },
   () => {
     evaluate('inherits the question', async () => {})
-    evaluate('also inherits it', { runs: 2, target: metric(0.5) }, async () => {})
+    evaluate('also inherits it', { runs: 2, target: regression(0.5) }, async () => {})
     evaluate(
       'replaces the compare',
       { compare: { control: base, variants: [terse] } },

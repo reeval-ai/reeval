@@ -1,4 +1,4 @@
 import { defineEval } from 'reeval'
 
-// metric() by default: every cell ran and none gated.
+// capability() by default: every cell gated any, and a miss only reports.
 export default defineEval({ runs: 3, task: async () => {} })

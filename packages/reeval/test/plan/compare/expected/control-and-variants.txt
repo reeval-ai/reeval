@@ -1,15 +1,15 @@
 no profile · 2 evals · 10 cells · 32 attempts
 hint: 1 compare runs 2 times per cell; below 4 runs a side its lift shows only a direction and its effort can't be tested (runs: 4)
-variants/gated         a/base/docker     control          ungated  ×2  target regression(1)
-                       a/skilled/docker  variant skilled  gated    ×2  minLift 0.2
-                       b/base/docker     control          ungated  ×2
-                       b/skilled/docker  variant skilled  gated    ×2  minLift 0.2
-variants/two-variants  a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                       a/skilled/docker  variant skilled  ungated  ×4
-                       a/terse/docker    variant terse    ungated  ×4
-                       b/base/docker     control          ungated  ×4
-                       b/skilled/docker  variant skilled  ungated  ×4
-                       b/terse/docker    variant terse    ungated  ×4
+variants/gated         a/base/docker     control          ungated    ×2  target regression(1)
+                       a/skilled/docker  variant skilled  gated      ×2  minLift 0.2
+                       b/base/docker     control          ungated    ×2
+                       b/skilled/docker  variant skilled  gated      ×2  minLift 0.2
+variants/two-variants  a/base/docker     control          ungated    ×4  runs 4 (compare default)
+                       a/skilled/docker  variant skilled  gated any  ×4
+                       a/terse/docker    variant terse    gated any  ×4
+                       b/base/docker     control          ungated    ×4
+                       b/skilled/docker  variant skilled  gated any  ×4
+                       b/terse/docker    variant terse    gated any  ×4
 excluded: —
 image docker · cursor · 2 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

@@ -1,18 +1,18 @@
 no profile · 4 evals · 10 cells · 24 attempts
-questions-attempts/across-agents     a/-/docker        control          ungated             ×1
-                                     b/-/docker        control          ungated             ×1
+questions-attempts/across-agents     a/-/docker        control          gated any  ×1
+                                     b/-/docker        control          gated any  ×1
                                      question: Which agent explained its change better? · shows diff · agent · 1 pair · no language model
-questions-attempts/beside-a-compare  a/base/docker     control          ungated             ×4  runs 4 (compare default)
-                                     a/skilled/docker  variant skilled  ungated             ×4
-                                     b/base/docker     control          ungated             ×4
-                                     b/skilled/docker  variant skilled  ungated             ×4
+questions-attempts/beside-a-compare  a/base/docker     control          ungated    ×4  runs 4 (compare default)
+                                     a/skilled/docker  variant skilled  gated any  ×4
+                                     b/base/docker     control          ungated    ×4
+                                     b/skilled/docker  variant skilled  gated any  ×4
                                      question: What did the agent read first? · shows trajectory · each attempt · 16 attempts · no language model
                                      question: Which is cleaner? · shows diff · environment · 8 pairs · no language model
-questions-attempts/choices           a/-/docker        control          gated passRate 0.5  ×2  target metric(0.5)
-                                     b/-/docker        control          gated passRate 0.5  ×2
+questions-attempts/choices           a/-/docker        control          gated      ×2  target regression(0.5)
+                                     b/-/docker        control          gated      ×2
                                      question: Did the agent run the tests first? · shows trajectory · each attempt · 4 attempts · yes / no · no language model
-questions-attempts/each-attempt      a/-/docker        control          ungated             ×1
-                                     b/-/docker        control          ungated             ×1
+questions-attempts/each-attempt      a/-/docker        control          gated any  ×1
+                                     b/-/docker        control          gated any  ×1
                                      question: How did the agent find the failing test? · shows trajectory · each attempt · 2 attempts · no language model
 excluded: —
 image docker · cursor · 4 evals

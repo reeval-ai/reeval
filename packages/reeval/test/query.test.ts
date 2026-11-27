@@ -144,14 +144,14 @@ export default defineEval({
     assert.match(text.stderr, /history\.db: 1 runs/)
   })
 
-  test('an eval with cases is one eval_trend row, its cases in cases with verdict family', async () => {
+  test('an eval with cases is one eval_trend row, its cases in cases', async () => {
     const p = await project('query-trend-verdict', {
       'reeval.config.ts': fakeConfig(),
       'evals/rated.eval.ts': `import assert from 'node:assert/strict'
-import { defineEval, metric } from 'reeval'
+import { capability, defineEval } from 'reeval'
 export default defineEval({
   cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }],
-  target: metric(0.6),
+  target: capability(),
   async task(_c, { key: k }) {
     assert.notEqual(k, 'c', 'not c')
   },
@@ -166,7 +166,7 @@ export default defineEval({ async task() {} })
     const trend = await query(p.dir, 'SELECT eval_key, outcome, cases FROM eval_trend')
     assert.deepEqual(trend.map((t) => [t.eval_key, t.outcome, t.cases]).sort(), [
       ['plain', 'pass', null],
-      ['rated', 'pass', 3],
+      ['rated', 'fail', 3],
     ])
     const cases = await query(
       p.dir,
@@ -175,9 +175,9 @@ export default defineEval({ async task() {} })
     assert.deepEqual(
       cases.map((c) => [c.case_key, c.outcome, c.verdict]),
       [
-        ['a', 'pass', 'family'],
-        ['b', 'pass', 'family'],
-        ['c', 'fail', 'family'],
+        ['a', 'pass', null],
+        ['b', 'pass', null],
+        ['c', 'fail', null],
       ],
     )
     const attempts = await query(
@@ -1133,11 +1133,11 @@ export default defineEval({
       }),
       'evals/helpers.ts': "export const prompt = 'go'\n",
       'evals/unrelated.ts': 'export const x = 1\n',
-      'evals/flaky.eval.ts': `import { defineEval, metric } from 'reeval'
+      'evals/flaky.eval.ts': `import { capability, defineEval } from 'reeval'
 import { prompt } from './helpers.ts'
 export default defineEval({
   runs: 3,
-  target: metric(0.5),
+  target: capability(),
   async task(c) {
     await c.send(prompt)
     if (c.attempt.n === 2) throw new Error('the second attempt fails')

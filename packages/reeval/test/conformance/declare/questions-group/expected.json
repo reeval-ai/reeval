@@ -71,7 +71,7 @@
           "options": {
             "runs": 2,
             "target": {
-              "kind": "metric",
+              "kind": "regression",
               "threshold": 0.5
             }
           },

@@ -36,7 +36,7 @@ the tests, while the version grader passes (`pnpm eval -v`):
 [dependency#1 fake] 08:14:26 check     grade succeeded:npm test score 0 (3ms)
 [dependency#1 fake] 08:14:26 check     grade not-in-diff:test/**,vendor/** score 1 (3ms)
 …
-  · with-dependency-upgrade  67%  metric()
+  · with-dependency-upgrade  mean 67% · 0/1 run at 100% (pass@1)  capability(1)
 ```
 
 | File | What it is |

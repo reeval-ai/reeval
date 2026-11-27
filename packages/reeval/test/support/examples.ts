@@ -94,7 +94,6 @@ export const EXAMPLES: Record<string, Example> = {
     run: { 'fake/math/fake': [...pass(3), 'skipped'] },
     files: ['adds-divide.eval.ts', 'adds-multiply.eval.ts', 'adds-subtract.eval.ts'],
   },
-  'with-pass-rate': { run: { 'fake/math/fake': pass(5) }, flaky: true },
   'with-background-process': { run: { 'fake/server/fake': pass(1) } },
 
   // Judges

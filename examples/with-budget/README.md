@@ -43,10 +43,10 @@ REEVAL v0.31.0
   ⚠  Budget: 2s reached; running attempts finish, queued ones are skipped
 
 with-budget.eval.ts
-  ✓ with-budget  100% ≥ 75%  metric(0.75)
+  · with-budget  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
 
 Budget reached: attempts that hadn’t started were skipped
-Done in 22s · 1 eval · 1 on target
+Done in 22s · 1 eval · 1 report only
 Browse it: reeval studio · summary .reeval/runs/…/summary.md
 ```
 
