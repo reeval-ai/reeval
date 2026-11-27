@@ -94,7 +94,7 @@ export default defineConfig({
   agents: ${h.factory}({ model: '${h.model}' }), // needs ${keyOf(h)}
   timeout: '15m',
   // For c.judge, add a judge, e.g. judge: { model: '${RECOMMENDED_ANALYSIS_MODEL}' }.
-  // reeval explain explains a run, with ${analysisKeyOf(analysisModel)}.
+  // reeval explain describes a run with an LLM, using ${analysisKeyOf(analysisModel)}.
   analysis: { model: '${analysisModel}' },
   defaultProfile: { ci: 'pr' },
   profiles: {
