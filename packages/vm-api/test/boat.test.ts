@@ -115,6 +115,45 @@ describe('boatApi', () => {
     assert.equal(sent[1]?.url.searchParams.get('cursor'), 'p2')
   })
 
+  test("reads a sandbox's network policy, the default environment's and the caller's address", async () => {
+    const policy = { mode: 'deny', inbound: 'boat-only', inboundAllow: ['192.0.43.7'] }
+    const { fetch, sent } = stubFetch(({ url }) => {
+      if (url.pathname.endsWith('/network')) {
+        return {
+          body: {
+            network: {
+              ...policy,
+              allow: [],
+              status: 'enforced',
+              source: 'environment',
+              updatedAt: null,
+            },
+          },
+        }
+      }
+      if (url.pathname.endsWith('/environments')) {
+        return {
+          body: {
+            environments: [
+              { name: 'agents', isDefault: false, network: null, secretFiles: [], versions: [] },
+              { name: 'base', isDefault: true, network: policy, secretFiles: [], versions: [] },
+            ],
+          },
+        }
+      }
+      return { status: 403, body: { code: 'api_key_org_forbidden', message: 'an org key' } }
+    })
+    const api = client({ fetch })
+    const network = { mode: 'deny', allow: [], inbound: 'boat-only', inboundAllow: ['192.0.43.7'] }
+    assert.deepEqual(await api.network('bx_1'), { ...network, source: 'environment' })
+    assert.equal(sent[0]?.url.searchParams.get('include'), 'inboundAllow')
+    assert.deepEqual(await api.defaultEnvironment(), { name: 'base', network })
+    assert.equal(sent[1]?.url.searchParams.get('include'), 'inboundAllow')
+    assert.equal(await api.callerAddress(), null, "an organization's key may not ask")
+    const own = stubFetch(() => ({ body: { address: '192.0.43.7' } }))
+    assert.equal(await client({ fetch: own.fetch }).callerAddress(), '192.0.43.7')
+  })
+
   test('normalizes the limits, preferring the wallet start limits', async () => {
     const { fetch } = stubFetch(() => ({
       body: {

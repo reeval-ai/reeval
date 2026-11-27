@@ -62,7 +62,7 @@ export default defineConfig(({ secret }) => {
 
 ## Verify with reeval doctor
 
-To check the SSH client, the SDK, and the key, run `reeval doctor`. With `--online`, it also asks Boat whether it takes the key and starts the machine size:
+To check the SSH client, the SDK, and the key, run `reeval doctor`. With `--online`, it also asks Boat whether it takes the key and starts the machine size, and names a network policy on your default Boat environment that blocks reeval's SSH or the VMs' outbound traffic:
 
 ```bash
 npx reeval doctor --online

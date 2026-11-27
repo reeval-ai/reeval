@@ -56,7 +56,7 @@ const deps = (over: Partial<DoctorDeps> = {}): DoctorDeps => ({
   cloudHost: async () => null,
   vertexToken: async () => SECRET,
   missingSshTool: async () => null,
-  boatAccount: async () => {},
+  boatAccount: async () => [],
   daytonaAccount: async () => {},
   ...over,
 })
@@ -107,6 +107,9 @@ export default defineConfig({
         env: { BOAT_API_KEY: SECRET, TEAM_BOAT_KEY: SECRET },
         boatAccount: async (sandbox, _root, online) => {
           asked.push([sandbox.apiKey.from, online])
+          return sandbox.apiKey.from === 'TEAM_BOAT_KEY'
+            ? [{ side: 'inbound', status: 'fail', summary: 'inbound boat-only', fix: 'list it' }]
+            : []
         },
       },
       true,
@@ -117,6 +120,7 @@ export default defineConfig({
         'ssh ok an OpenSSH client for boat()',
         'boat ok Boat takes the key in BOAT_API_KEY and starts small machines',
         'boat ok Boat takes the key in TEAM_BOAT_KEY and starts small machines',
+        'boat fail inbound boat-only',
       ],
     )
     assert.deepEqual(asked, [

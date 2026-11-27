@@ -39,7 +39,7 @@
     "test": "node --test --experimental-strip-types --no-warnings test/*.test.ts"
   },
   "peerDependencies": {
-    "@boatdev/sdk": "^1.13.0",
+    "@boatdev/sdk": "^1.13.2",
     "@daytona/sdk": ">=0.231.0 <1"
   },
   "peerDependenciesMeta": {
@@ -51,7 +51,7 @@
     }
   },
   "devDependencies": {
-    "@boatdev/sdk": "1.13.0",
+    "@boatdev/sdk": "1.13.2",
     "@daytona/sdk": "0.231.0"
   }
 }

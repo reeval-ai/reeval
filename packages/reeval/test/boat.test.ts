@@ -12,6 +12,7 @@ import {
   boatCapacity,
   checkBoat,
   firstReachable,
+  networkFindings,
   openBoatPool,
   removeRunSandboxes,
   runPrefix,
@@ -157,6 +158,37 @@ describe("reaching a sandbox's SSH server", () => {
   const at = (port: number, via: 'machine address' | 'public endpoint') =>
     ({ host: '127.0.0.1', port, via }) as const
   const quick = { probeMs: 500, reachMs: 0 }
+
+  test("names the Boat network policy that stops SSH or the VM's own traffic", () => {
+    const open = { mode: 'open', allow: [], inbound: 'open', inboundAllow: [] }
+    const findings = (net: Partial<typeof open>, caller: string | null) =>
+      networkFindings({ ...open, ...net }, 'the default environment, base', caller, 'base').map(
+        (f) => `${f.side} ${f.status}`,
+      )
+    assert.deepEqual(findings({}, null), [])
+    const locked = { inbound: 'boat-only', inboundAllow: ['192.0.43.0/24', '2001:500:88:200::/64'] }
+    assert.deepEqual(findings(locked, '192.0.43.7'), [], 'a listed range lets this host in')
+    assert.deepEqual(findings(locked, '2001:500:88:200::9'), [])
+    assert.deepEqual(
+      findings(locked, '198.51.100.7'),
+      ['inbound warn'],
+      'SSH may come from the listed IPv6 range',
+    )
+    assert.deepEqual(findings({ ...locked, inboundAllow: ['192.0.43.0/24'] }, '198.51.100.7'), [
+      'inbound fail',
+    ])
+    assert.deepEqual(findings(locked, null), ['inbound warn'], "Boat didn't say who this host is")
+    assert.deepEqual(findings({ inbound: 'boat-only' }, null), ['inbound fail'], 'an empty list')
+    assert.deepEqual(findings({ mode: 'deny' }, null), ['outbound warn'])
+    const [allow] = networkFindings(
+      { ...open, mode: 'allow', allow: ['github.com'] },
+      'the default environment, base',
+      null,
+      'base',
+    )
+    assert.match(allow?.summary ?? '', /allows outbound traffic only to github\.com/)
+    assert.match(allow?.fix ?? '', /boat env set base --network allow/)
+  })
 
   test('takes the machine address when both greet', async () => {
     const routes = [
@@ -389,6 +421,8 @@ export default defineEval({
     const saved = snapshotName('reeval', key)
     api.snapshots.set(saved, { name: saved, status: 'ready', sourceSandboxId: 'bx_seed', polls: 0 })
     api.requests.length = 0
+    api.network = { mode: 'open', inbound: 'boat-only', inboundAllow: ['192.0.43.0/24'] }
+    api.callerAddress = '198.51.100.7'
     const r = await runCli(p.dir, ['run'], {
       env: {
         BOAT_BASE_URL: api.url,
@@ -396,8 +430,15 @@ export default defineEval({
         REEVAL_SANDBOX_LABELS: 'sweep-job=job_42, owner=ci',
       },
       timeoutMs: 90_000,
+    }).finally(() => {
+      api.network = null
+      api.callerAddress = null
     })
     assert.equal(r.code, 3, r.stdout + r.stderr)
+    assert.match(
+      r.stdout + r.stderr,
+      /Boat's network policy on sandbox \S+ is inbound boat-only, and its inbound list doesn't have this host's address, 198\.51\.100\.7, so this host can't reach the VMs over SSH: add this host's public IPv4 and IPv6 addresses/,
+    )
     const { evals } = readRun(p.dir)
     assert.equal(evals[0]?.error?.kind, 'infra', JSON.stringify(evals[0]?.error))
     assert.match(

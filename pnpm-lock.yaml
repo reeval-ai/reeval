@@ -160,8 +160,8 @@ importers:
   examples/with-dart:
     dependencies:
       '@boatdev/sdk':
-        specifier: 1.13.0
-        version: 1.13.0
+        specifier: 1.13.2
+        version: 1.13.2
       '@daytona/sdk':
         specifier: 0.231.0
         version: 0.231.0
@@ -636,7 +636,7 @@ importers:
     dependencies:
       '@ai-sdk/harness':
         specifier: 1.0.172
-        version: 1.0.172(ws@8.22.1)(zod@4.6.7)
+        version: 1.0.172(ws@8.22.0)(zod@4.6.7)
       '@ai-sdk/harness-acp':
         specifier: 1.0.112
         version: 1.0.112(zod@4.6.7)
@@ -654,7 +654,7 @@ importers:
     dependencies:
       '@ai-sdk/harness':
         specifier: 1.0.172
-        version: 1.0.172(ws@8.22.0)(zod@4.6.7)
+        version: 1.0.172(ws@8.22.1)(zod@4.6.7)
       '@ai-sdk/harness-acp':
         specifier: 1.0.112
         version: 1.0.112(zod@4.6.7)
@@ -873,8 +873,8 @@ importers:
         specifier: 1.0.176
         version: 1.0.176(patch_hash=3b2ddb94043f336ecbb8a976a7716b27c7711f5e608958c57a3d72877aa43262)(zod@4.6.7)
       '@boatdev/sdk':
-        specifier: 1.13.0
-        version: 1.13.0
+        specifier: 1.13.2
+        version: 1.13.2
       '@daytona/sdk':
         specifier: 0.231.0
         version: 0.231.0
@@ -947,8 +947,8 @@ importers:
   packages/vm-api:
     devDependencies:
       '@boatdev/sdk':
-        specifier: 1.13.0
-        version: 1.13.0
+        specifier: 1.13.2
+        version: 1.13.2
       '@daytona/sdk':
         specifier: 0.231.0
         version: 0.231.0
@@ -1187,8 +1187,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@boatdev/sdk@1.13.0':
-    resolution: {integrity: sha512-wSmCyFLDL0QTCLF5NfQR4JTdTccFIvlqBBtCMDLPk61hLj48ZPEH/0nF91j4aiMLBkr+kvmkedfqkyFuokn5dw==}
+  '@boatdev/sdk@1.13.2':
+    resolution: {integrity: sha512-yJWrjuQ/y45mQOugn2e2wWNL8mtMJ0ZoH6fE7N1pUcXZQEH3Fr8torW6gm1/jN0eqjEQcOt5T8a+wGed5c5DnA==}
 
   '@bradenmacdonald/s3-lite-client@1.0.1':
     resolution: {integrity: sha512-//ZV9jshtp+ZwcI1G80apQLRsnhQOONaMrjkl7ea8R17CsjoawB2odwVYebEm/SUMmPQ/meYx9Y5nf2jI13j+w==}
@@ -3665,7 +3665,7 @@ snapshots:
   '@biomejs/cli-win32-x64@2.6.6':
     optional: true
 
-  '@boatdev/sdk@1.13.0': {}
+  '@boatdev/sdk@1.13.2': {}
 
   '@bradenmacdonald/s3-lite-client@1.0.1': {}
 
