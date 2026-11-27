@@ -169,7 +169,14 @@ describe("reaching a sandbox's SSH server", () => {
     const locked = { inbound: 'boat-only', inboundAllow: ['192.0.43.0/24', '2001:500:88:200::/64'] }
     assert.deepEqual(findings(locked, '192.0.43.7'), [], 'a listed range lets this host in')
     assert.deepEqual(findings(locked, '2001:500:88:200::9'), [])
-    assert.deepEqual(findings(locked, '198.51.100.7'), ['inbound fail'])
+    assert.deepEqual(
+      findings(locked, '198.51.100.7'),
+      ['inbound warn'],
+      'SSH may come from the listed IPv6 range',
+    )
+    assert.deepEqual(findings({ ...locked, inboundAllow: ['192.0.43.0/24'] }, '198.51.100.7'), [
+      'inbound fail',
+    ])
     assert.deepEqual(findings(locked, null), ['inbound warn'], "Boat didn't say who this host is")
     assert.deepEqual(findings({ inbound: 'boat-only' }, null), ['inbound fail'], 'an empty list')
     assert.deepEqual(findings({ mode: 'deny' }, null), ['outbound warn'])

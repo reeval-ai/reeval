@@ -391,7 +391,7 @@ export async function boatImage(
       built: true,
     }
   } catch (error) {
-    throw await withPolicyHint(service, api, vm.id, 'outbound', error)
+    throw await withPolicyHint(service, api, vm.id, 'outbound', error, signal)
   } finally {
     if (
       !(await api.remove(vm.id).then(

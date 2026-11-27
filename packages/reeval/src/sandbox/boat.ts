@@ -331,18 +331,19 @@ export async function firstReachable(
   }
 }
 
+const family = (ip: string) => (isIPv6(ip) ? 'ipv6' : 'ipv4')
+
 /** Whether `address` is one of `list`'s addresses or CIDR ranges. */
 function listed(list: readonly string[], address: string): boolean {
-  const type = (ip: string) => (isIPv6(ip) ? 'ipv6' : 'ipv4')
   const block = new BlockList()
   for (const entry of list) {
     const [ip = '', bits] = entry.split('/')
     try {
-      if (bits) block.addSubnet(ip, Number(bits), type(ip))
-      else block.addAddress(ip, type(ip))
+      if (bits) block.addSubnet(ip, Number(bits), family(ip))
+      else block.addAddress(ip, family(ip))
     } catch {}
   }
-  return block.check(address, type(address))
+  return block.check(address, family(address))
 }
 
 /** What a Boat network policy stops reeval doing, on the side it stops it. */
@@ -372,7 +373,13 @@ export function networkFindings(
         : "may not have this host's address (Boat didn't say what it is)"
     found.push({
       side: 'inbound',
-      status: caller || !net.inboundAllow.length ? 'fail' : 'warn',
+      // Boat judges SSH by its real address when the list has one of the other IP version.
+      status:
+        caller && !net.inboundAllow.some((e) => family(e.split('/')[0] ?? '') !== family(caller))
+          ? 'fail'
+          : net.inboundAllow.length
+            ? 'warn'
+            : 'fail',
       summary: `Boat's network policy on ${where} is inbound boat-only, and its inbound list ${list}, so this host can't reach the VMs over SSH`,
       fix: `add this host's public IPv4 and IPv6 addresses to the inbound list (boat env set ${environment} --allow-from <address>), or set inbound open`,
     })
@@ -398,9 +405,11 @@ export async function withPolicyHint(
   id: string,
   side: PolicyFinding['side'],
   error: unknown,
+  run: AbortSignal,
 ): Promise<unknown> {
-  if (service.kind !== 'boat' || !(error instanceof InfraError)) return error
-  const signal = AbortSignal.timeout(LIMITS_TIMEOUT_MS)
+  if (service.kind !== 'boat' || !(error instanceof InfraError) || run.aborted) return error
+  if (error instanceof PrepareError && error.failure.cause === 'enospc') return error
+  const signal = AbortSignal.any([run, AbortSignal.timeout(LIMITS_TIMEOUT_MS)])
   const found = await Promise.all([
     api.network(id, { signal }),
     side === 'inbound' ? api.callerAddress({ signal }) : null,
@@ -412,7 +421,7 @@ export async function withPolicyHint(
   const message = `${error.message}. ${found.summary}: ${found.fix}`
   return error instanceof PrepareError
     ? new PrepareError({ ...error.failure, message })
-    : new InfraError(message)
+    : new InfraError(message, { transient: error.transient })
 }
 
 /**
@@ -425,12 +434,13 @@ export async function boatNetworkFindings(
 ): Promise<PolicyFinding[]> {
   const api = await boatClient(sandbox, root)
   const signal = AbortSignal.timeout(LIMITS_TIMEOUT_MS)
-  const [env, caller] = await Promise.all([
-    api.defaultEnvironment({ signal }),
-    api.callerAddress({ signal }),
-  ]).catch(() => [null, null] as const)
-  if (!env?.network) return []
-  return networkFindings(env.network, `the default environment, ${env.name}`, caller, env.name)
+  return Promise.all([api.defaultEnvironment({ signal }), api.callerAddress({ signal })])
+    .then(([env, caller]) =>
+      env?.network
+        ? networkFindings(env.network, `the default environment, ${env.name}`, caller, env.name)
+        : [],
+    )
+    .catch(() => [])
 }
 
 /** Boat refused a start for now: 429, with when to try again if it said. */
@@ -680,7 +690,7 @@ export async function startVm(
   } catch (error) {
     let failure = error
     if (id && ready) {
-      failure = await withPolicyHint(service, api, id, 'inbound', error)
+      failure = await withPolicyHint(service, api, id, 'inbound', error, signal)
       await api.remove(id).catch(() => {})
     } else if (id) await deleteUntilGone(api, id, { signal }).catch(() => {})
     await rm(dir, { recursive: true, force: true })
