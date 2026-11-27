@@ -1188,7 +1188,7 @@ for (const file of mdxFiles()) {
 
 const COPIED_BLOCK_LINES = 15
 const COPIED_BLOCK_SHARE = 0.8
-// The Overview shows the evaluation file and its result; Quick start is where the same
+// The Overview shows the evaluation file and its result; Quickstart is where the same
 // evaluation is set up and run, so the two are meant to share it.
 const SHARED_BLOCK_PAGES = ['docs/overview.mdx', 'docs/getting-started/quickstart.mdx']
 /** A fenced `ts` block's code lines with blank lines, comments and indentation dropped. */

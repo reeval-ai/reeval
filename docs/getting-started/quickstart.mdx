@@ -1,13 +1,33 @@
 ---
-title: "Quick start"
+title: "Quickstart"
 description: "reeval shows you whether a change helped a coding agent."
 ---
 
-reeval runs a coding agent in a sandbox and checks the outcome. Here you run the same harness as a control without the skill and a variant with the skill, then see whether the skill helped.
+reeval runs a coding agent in a sandbox and checks the final state. Here you run the same harness as a baseline without the skill and a variant with the skill, then see whether the skill helped.
 
-To have a coding agent follow these steps, use the [setup skill](https://github.com/reeval-ai/reeval/tree/main/skills/setup).
+## Get started
 
-## Before you begin
+Initialize a suite in your repo, run your first trials, and inspect the results in Studio:
+
+```bash
+npx reeval init
+npx reeval run
+npx reeval studio
+```
+
+If you want your coding agent to write the first task for you, paste this into your session:
+
+```text
+Add a reeval evaluation suite to this repository:
+1. Run `npx reeval init` to scaffold the config and eval directory.
+2. Create an environment in `evals/environments.ts` pointing to our starter app or minimal fixture.
+3. Write one task in `evals/` that tests a core user workflow end to end using our SDK/CLI/API, with a deterministic grader (`succeeded(...)`) and a binary `judge(...)` check.
+4. Run `npx reeval run` and summarize the baseline pass rate and any failure patterns.
+```
+
+A coding agent can also follow the [setup skill](https://github.com/reeval-ai/reeval/tree/main/skills/setup).
+
+## Or set up by hand
 
 This example uses Docker for its sandbox. You need these:
 
@@ -36,12 +56,14 @@ Create the project files for the harness:
 npx reeval init --agent claude-code
 ```
 
-The command writes the `reeval.config.ts` file, an example evaluation in `evals/greet.eval.ts`, and the `evals/environments.ts` file, and names the keys it uses. Add them to the `.env.local` file next to the `reeval.config.ts` file. The Google key is for `reeval analyze`. A run without it still runs the evaluation:
+The command writes the `reeval.config.ts` file, an example task in `evals/greet.eval.ts`, and its environment in `evals/environments.ts`. It also adds an `eval` script and the `{{ pkg }}` devDependency to `package.json`, `.env*` and `.reeval/` to `.gitignore`, and a `tsconfig.json`. Add the keys to the `.env.local` file next to the `reeval.config.ts` file. `reeval doctor` names any key that's missing. The Google key is for `reeval analyze`. A run without it still runs the task:
 
 ```bash title=".env.local"
 ANTHROPIC_API_KEY=replace-with-anthropic-key
 GOOGLE_GENERATIVE_AI_API_KEY=replace-with-google-key
 ```
+
+Claude Code also accepts `CLAUDE_CODE_OAUTH_TOKEN` in place of the Anthropic key.
 
 Build the image the harness runs in:
 
@@ -69,9 +91,9 @@ Without the Google key, the output ends with this line instead, and you can cont
 No problems, 1 warning.
 ```
 
-## 2. Write the evaluation
+## 2. Write the task
 
-The control is an unstyled page. Create the `evals/project/index.html` file:
+Without the skill, the page is unstyled. Create the `evals/project/index.html` file:
 
 ```html title="evals/project/index.html"
 <!doctype html>
@@ -87,7 +109,7 @@ The control is an unstyled page. Create the `evals/project/index.html` file:
 </html>
 ```
 
-The variant adds Anthropic's `brand-guidelines` skill. Add the control and the variant to the end of the `evals/environments.ts` file:
+The variant adds Anthropic's `brand-guidelines` skill. Add the baseline and the variant to the end of the `evals/environments.ts` file:
 
 ```ts title="evals/environments.ts"
 export const page = defineEnvironment('page', ({ directory }) => ({
@@ -108,7 +130,7 @@ export const withSkill = page.extendEnvironment(
 )
 ```
 
-Create the evaluation:
+Create the task:
 
 ```ts title="evals/brand.eval.ts"
 import { defineEval } from '{{ pkg }}'
@@ -136,11 +158,11 @@ export default defineEval({
 })
 ```
 
-The prompt doesn't name the brand's color or fonts, so the graders pass only when the harness knows them. The variant passes when one of its 4 attempts passes, under the default target, `capability()`. For more information about why this evaluation uses four attempts, see [Statistics](/reference/statistics#too-few-runs).
+The prompt doesn't name the brand's color or fonts, so the graders pass only when the harness knows them. The variant passes when one of its 4 trials passes, under the default target, `capability()`. For more information about why this task uses four trials, see [Statistics](/reference/statistics#too-few-runs).
 
 ## 3. Run the comparison
 
-Run the eight attempts:
+Run the eight trials:
 
 ```bash
 npx reeval run brand
@@ -149,15 +171,16 @@ npx reeval run brand
 The run prints a block like this one:
 
 ```text
-└─ · brand  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
-     arm               pass
-     page              0 of 4
-       error  score 0.33 below 1: brand-orange scored 0.00; brand-fonts scored 0.00 (4 runs)
-     brand-guidelines  4 of 4  helped
+  arm               pass  vs control
+  page              0 of 4
+  brand-guidelines  4 of 4  helped  "brand-orange" +100 pts
+  check             page    brand-guidelines
+  brand-orange      0 of 4  4 of 4
+  brand-fonts       0 of 4  4 of 4
 ```
 
-The variant passed in 4 of 4 attempts and the control in 0 of 4, where both brand graders scored 0, so the effect reads `helped`. The counts can differ.
+The variant passed in 4 of 4 trials and the baseline in 0 of 4, so the effect reads `helped`. Your counts can differ, and the table lists each check that told the arms apart.
 
 ## Next steps
 
-For more information about adding variants or gates, see [Measure lift against a control](/results/compare/lift).
+For more information about adding variants or gates, see [Measure lift against a baseline](/results/compare/lift).

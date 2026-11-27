@@ -5,7 +5,7 @@ description: "See whether a skill, doc, or MCP server changes what the agent har
 
 A comparison runs one task on a baseline without the change and on a variant with it. Both get the same prompt and assertions. reeval reports whether the variant `helped`, `made it worse`, or did the `same`. The change can be a skill, a doc, or a Model Context Protocol (MCP) server. For where a comparison appears in a run, see [Comparison](/reference/glossary#comparison).
 
-The examples use the baseline `page`, an unstyled HTML page, and the variant `brand-guidelines`, which adds Anthropic's `brand-guidelines` skill. To build them, see [Quick start](/getting-started/quickstart) or [Environments](/configuration/environments).
+The examples use the baseline `page`, an unstyled HTML page, and the variant `brand-guidelines`, which adds Anthropic's `brand-guidelines` skill. To build them, see [Quickstart](/getting-started/quickstart) or [Environments](/configuration/environments).
 
 ## Run the comparison
 
@@ -48,9 +48,9 @@ To print the interval under each variant, pass `-v`:
     difference +100 points, 95% interval +31…+100
 ```
 
-The task's outcome, `pass`, is the variant's, because the target gates only variants. The default target, `capability()`, passes a cell when one of its 4 trials passes, and only reports.
+The task's final state, `pass`, is the variant's, because the target gates only variants. The default target, `capability()`, passes a cell when one of its 4 trials passes, and only reports.
 
-For when each effect word applies, and when a difference holds, see [Variant outcomes](/reference/statistics#variant-outcomes).
+For when each effect word applies, and when a difference holds, see [Variant final states](/reference/statistics#variant-final-states).
 
 If the baseline and the variant pass every trial, the agent harness already does what the skill teaches, and this task can't show the change: the `cant-tell-apart` remark asks for a harder task, not more runs, when every other metric is the same too. When effort, a model grader, a check or a comparative grader is better or worse, the line under the variant says so and no remark prints; when one only leans, the `too-few-tries` remark names the runs that would confirm it. If both fail every trial, it asks you to check the eval. See [One comparison over every metric](/reference/statistics#one-comparison-over-every-metric). A baseline that includes the change, such as a rules file or a doc that repeats the skill, gives both cells the same instructions and measures nothing either.
 
