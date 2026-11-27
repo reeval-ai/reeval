@@ -591,7 +591,7 @@ importers:
     dependencies:
       '@ai-sdk/harness':
         specifier: 1.0.172
-        version: 1.0.172(ws@8.22.1)(zod@4.6.7)
+        version: 1.0.172(ws@8.23.0)(zod@4.6.7)
       '@ai-sdk/provider':
         specifier: 4.0.35
         version: 4.0.35
@@ -606,7 +606,7 @@ importers:
     dependencies:
       '@ai-sdk/harness':
         specifier: 1.0.172
-        version: 1.0.172(ws@8.22.1)(zod@4.6.7)
+        version: 1.0.172(ws@8.23.0)(zod@4.6.7)
       '@ai-sdk/provider':
         specifier: 4.0.35
         version: 4.0.35
@@ -621,7 +621,7 @@ importers:
     dependencies:
       '@ai-sdk/harness':
         specifier: 1.0.172
-        version: 1.0.172(ws@8.22.1)(zod@4.6.7)
+        version: 1.0.172(ws@8.23.0)(zod@4.6.7)
       '@ai-sdk/provider':
         specifier: 4.0.35
         version: 4.0.35
@@ -633,24 +633,6 @@ importers:
         version: 4.6.7
 
   packages/harness-fx:
-    dependencies:
-      '@ai-sdk/harness':
-        specifier: 1.0.172
-        version: 1.0.172(ws@8.22.1)(zod@4.6.7)
-      '@ai-sdk/harness-acp':
-        specifier: 1.0.112
-        version: 1.0.112(zod@4.6.7)
-      '@ai-sdk/provider':
-        specifier: 4.0.35
-        version: 4.0.35
-      '@ai-sdk/provider-utils':
-        specifier: 5.0.73
-        version: 5.0.73(zod@4.6.7)
-      zod:
-        specifier: 4.6.7
-        version: 4.6.7
-
-  packages/harness-goose:
     dependencies:
       '@ai-sdk/harness':
         specifier: 1.0.172
@@ -668,11 +650,29 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
 
+  packages/harness-goose:
+    dependencies:
+      '@ai-sdk/harness':
+        specifier: 1.0.172
+        version: 1.0.172(ws@8.23.0)(zod@4.6.7)
+      '@ai-sdk/harness-acp':
+        specifier: 1.0.112
+        version: 1.0.112(zod@4.6.7)
+      '@ai-sdk/provider':
+        specifier: 4.0.35
+        version: 4.0.35
+      '@ai-sdk/provider-utils':
+        specifier: 5.0.73
+        version: 5.0.73(zod@4.6.7)
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+
   packages/harness-grok-build:
     dependencies:
       '@ai-sdk/harness':
         specifier: 1.0.172
-        version: 1.0.172(ws@8.22.1)(zod@4.6.7)
+        version: 1.0.172(ws@8.23.0)(zod@4.6.7)
       '@ai-sdk/harness-acp':
         specifier: 1.0.112
         version: 1.0.112(zod@4.6.7)
@@ -690,7 +690,7 @@ importers:
     dependencies:
       '@ai-sdk/harness':
         specifier: 1.0.172
-        version: 1.0.172(ws@8.22.1)(zod@4.6.7)
+        version: 1.0.172(ws@8.23.0)(zod@4.6.7)
       '@ai-sdk/harness-acp':
         specifier: 1.0.112
         version: 1.0.112(zod@4.6.7)
@@ -708,7 +708,7 @@ importers:
     dependencies:
       '@ai-sdk/harness':
         specifier: 1.0.172
-        version: 1.0.172(ws@8.22.1)(zod@4.6.7)
+        version: 1.0.172(ws@8.23.0)(zod@4.6.7)
       '@ai-sdk/provider':
         specifier: 4.0.35
         version: 4.0.35
@@ -735,7 +735,7 @@ importers:
         version: 5.0.130(zod@4.6.7)
       '@ai-sdk/harness':
         specifier: 1.0.172
-        version: 1.0.172(ws@8.22.1)(zod@4.6.7)
+        version: 1.0.172(ws@8.23.0)(zod@4.6.7)
       '@ai-sdk/harness-acp':
         specifier: 1.0.112
         version: 1.0.112(zod@4.6.7)
@@ -860,8 +860,8 @@ importers:
         specifier: 0.2.17
         version: 0.2.17
       ws:
-        specifier: 8.22.1
-        version: 8.22.1
+        specifier: 8.23.0
+        version: 8.23.0
       yaml:
         specifier: 2.9.1
         version: 2.9.1
@@ -933,13 +933,13 @@ importers:
     dependencies:
       '@ai-sdk/harness':
         specifier: 1.0.172
-        version: 1.0.172(ws@8.22.1)(zod@4.6.7)
+        version: 1.0.172(ws@8.23.0)(zod@4.6.7)
       '@balena/dockerignore':
         specifier: 1.0.2
         version: 1.0.2
       ws:
-        specifier: 8.22.1
-        version: 8.22.1
+        specifier: 8.23.0
+        version: 8.23.0
       zod:
         specifier: 4.6.7
         version: 4.6.7
@@ -3283,6 +3283,18 @@ packages:
       utf-8-validate:
         optional: true
 
+  ws@8.23.0:
+    resolution: {integrity: sha512-wCkmX8QMOrKjgO8HW2WyDbTSGeqkocxgDzS9iR79rEAexty6/2qzilx3Ag8Tqf9ykop3irLKle0MtVn5qjVnoQ==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   xmlhttprequest-ssl@2.1.2:
     resolution: {integrity: sha512-TEU+nJVUUnA4CYJFLvK5X9AOeH4KvDvhIfm0vV1GaQRtchnG0hgK5p8hw/xjv8cunWYCsiPCSDzObPyhEwq3KQ==}
     engines: {node: '>=0.4.0'}
@@ -3406,6 +3418,15 @@ snapshots:
       zod: 4.6.7
     optionalDependencies:
       ws: 8.22.1
+
+  '@ai-sdk/harness@1.0.172(ws@8.23.0)(zod@4.6.7)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.35
+      '@ai-sdk/provider-utils': 5.0.73(zod@4.6.7)
+      ai: 7.0.161(zod@4.6.7)
+      zod: 4.6.7
+    optionalDependencies:
+      ws: 8.23.0
 
   '@ai-sdk/openai-compatible@3.0.83(zod@4.6.7)':
     dependencies:
@@ -5586,6 +5607,8 @@ snapshots:
   ws@8.22.0: {}
 
   ws@8.22.1: {}
+
+  ws@8.23.0: {}
 
   xmlhttprequest-ssl@2.1.2: {}
 
