@@ -185,7 +185,10 @@ export const MIGRATIONS: Partial<Record<ShapeName, Record<number, (value: never)
     }),
   },
   'bundle-manifest': {
-    1: (manifest: object) => ({ ...renamed(manifest, ['args.runs'], trialKey), schemaVersion: 2 }),
+    1: (manifest: object) => ({
+      ...renamed(manifest, ['args.runs', 'plan.totals.attempts'], trialKey),
+      schemaVersion: 2,
+    }),
   },
 }
 
