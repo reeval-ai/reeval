@@ -1033,6 +1033,79 @@ describe('redacting fragments of a secret', () => {
     assert.equal(redactSecrets('ord-2026-res', env2), '[REDACTED]')
   })
 
+  describe("a secret's word-like prefix", () => {
+    const token = 'reeval-fixture-token-7c1d9a0b52e4'
+    const env3 = { REEVAL_FIXTURE_TOKEN: token }
+
+    test('twin: fewer than 12 characters of it are left as they are', () => {
+      for (const text of ['cat /tmp/reeval-fx-probe.txt', 'a fixture-tok b', 'a reeval-fixt b']) {
+        assert.equal(redactSecrets(text, env3), text)
+        assert.equal(countSecrets(text, env3), 0)
+      }
+    })
+
+    test('12 or more characters of it are masked', () => {
+      assert.equal(redactSecrets('cat /tmp/reeval-fixture.txt', env3), 'cat /tmp/[REDACTED].txt')
+      assert.equal(redactSecrets('a fixture-token b', env3), 'a [REDACTED] b')
+    })
+
+    test('the key, its tail and any stretch reaching its random part are masked', () => {
+      for (const part of [token, token.slice(-12), token.slice(-8), token.slice(15, 26)]) {
+        assert.equal(redactSecrets(`a ${part} b`, env3), 'a [REDACTED] b', part)
+      }
+      assert.equal(redactSecrets(`a ${token.slice(0, 26)}… b`, env3), 'a [REDACTED]… b')
+    })
+
+    test('a key split in two is masked on both sides of the cut', () => {
+      for (const [k, e] of [
+        [token, env3],
+        [key, env],
+      ] as const) {
+        for (const at of [12, 21, k.length - 8]) {
+          const text = `${k.slice(0, at)}\n${k.slice(at)}`
+          assert.equal(redactSecrets(text, e), '[REDACTED]\n[REDACTED]', text)
+        }
+      }
+    })
+
+    test('a word inside the prefix joins the stretch around it', () => {
+      const env4 = { MY_TOKEN: 'my-incomprehensible-passphrase-7c1d' }
+      assert.equal(redactSecrets('x y-incomprehensible-p y', env4), 'x [REDACTED] y')
+    })
+  })
+
+  test('a secret that is all words or numbers is masked in short pieces', () => {
+    for (const [secret, text, want] of [
+      [
+        'correct-horse-battery-staple',
+        'correct-ho\nrse-batter\ny-staple',
+        '[REDACTED]\n[REDACTED]\n[REDACTED]',
+      ],
+      ['correct-horse-battery-staple', 'tail=tery-staple', 'tail=[REDACTED]'],
+      ['PROD_DB_MASTER_PASSWORD', 'PROD_DB_MAS\nTER_PASSWORD', '[REDACTED]\n[REDACTED]'],
+      ['4111-2222-3333-4444', 'a=4111-2222-\nb=3333-4444', 'a=[REDACTED]\nb=[REDACTED]'],
+      [
+        'correct-horse-battery-staple-2026',
+        'correct-hor\nse-battery-\nstaple-2026',
+        '[REDACTED]\n[REDACTED]\n[REDACTED]',
+      ],
+      ['PROD_DB_MASTER_PASSWORD_9', 'PROD_DB_MAS\nTER_PASSWOR\nD_9', '[REDACTED]\n[REDACTED]\nD_9'],
+    ]) {
+      assert.equal(redactJsonText(text as string, {}, [secret as string]), want, text)
+    }
+  })
+
+  test("twin: a word or number of a secret isn't masked alone, however long", () => {
+    for (const [secret, text] of [
+      ['my-incomprehensible-pass', 'that is incomprehensible to me'],
+      ['xK9-configuration-Q7z', '{"configurationPath":"/a","note":"configuration"}'],
+      ['tok-1764230000000-ab', 'ts=1764230000000 {"t":1764230000000}'],
+    ]) {
+      assert.equal(redactJsonText(text as string, {}, [secret as string]), text)
+      assert.equal(redactSecrets(text as string, { MY_TOKEN: secret as string }), text)
+    }
+  })
+
   test("never breaks a record's JSON: a JSON-valued variable and quoted windows aren't masked alone", () => {
     const targets = JSON.stringify([{ form: 'raw', len: 36, sha256: 'ab12cd34ef56ab12' }])
     const record = JSON.stringify({ context: [{ path: 'AGENTS.md', sha256: 'ab12cd34ef56ab12' }] })

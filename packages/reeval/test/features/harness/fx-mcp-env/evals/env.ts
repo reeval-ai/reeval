@@ -25,8 +25,6 @@ export const probed = probeEnv('probed')
 /** The server sets a PROBE_WORD of its own, which wins over the eval's. */
 export const own = probeEnv('own', { PROBE_WORD: 'OWN-9' })
 
-// Not under a `reeval-f…` name: the fixture's secret is `reeval-fixture-token-…`, and any eight
-// characters of a declared secret are masked in what reeval records, the command included.
 export const LOG = '/tmp/fx-mcp-probe.txt'
 
 export const prompt =
