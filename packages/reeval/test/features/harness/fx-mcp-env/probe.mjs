@@ -4,7 +4,7 @@
 import { writeFileSync } from 'node:fs'
 import { createInterface } from 'node:readline'
 
-const LOG = '/tmp/reeval-fx-probe.txt'
+const LOG = '/tmp/fx-mcp-probe.txt'
 const send = (m) => process.stdout.write(`${JSON.stringify(m)}\n`)
 
 async function probe() {
