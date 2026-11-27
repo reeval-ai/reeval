@@ -35,12 +35,12 @@ import type {
   PlannedEgress,
   PlannedGrader,
   PlannedQuestion,
-  RecordedTarget,
   ResolvedGateway,
   ResolvedProfile,
   Revision,
   SandboxDescriptor,
   SandboxWarning,
+  Target,
 } from './types.ts'
 import type { RunHeader } from './ui/events.ts'
 import { EFFORT_MIN_RUNS } from './view/effort.ts'
@@ -738,7 +738,7 @@ export type PlanEval = {
   /** Why the eval doesn't run at all, else null. */
   skip: string | null
   /** What passes it, and whether a miss fails the run. */
-  target: RecordedTarget
+  target: Target
   notes: string[]
   cells: PlanCell[]
   /** Its questions: pairwise ones answered after the run, the rest after each attempt; unset without any. */
@@ -899,6 +899,9 @@ export function planDocument(
         plan.questionModel,
         attempt.plan.skip,
       )
+      const target = attempt.plan.target ?? DEFAULT_TARGET
+      // `metric` is only ever an older record's target; a run never plans it.
+      if (target.kind === 'metric') throw new Error(`${id} planned a metric target`)
       e = {
         id,
         file,
@@ -907,7 +910,7 @@ export function planDocument(
         tags: attempt.tags,
         ...(attempt.revision !== undefined ? { revision: attempt.revision } : {}),
         skip: attempt.plan.skip ?? null,
-        target: attempt.plan.target ?? DEFAULT_TARGET,
+        target,
         notes: attempt.plan.notes,
         cells: [],
         ...(questions.length ? { questions } : {}),

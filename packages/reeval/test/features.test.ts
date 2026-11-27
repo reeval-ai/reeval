@@ -5893,8 +5893,8 @@ export const features: Feature[] = [
       const history = await runCli(project, ['history'])
       assert.match(
         history.stdout,
-        /^ {2}✗ +0\/1 {2}lands$/m,
-        'a missed capability() reads as missed',
+        /^ {2}○ +– {2}lands$/m,
+        'a missed capability() reads as ran, as report only, uncounted',
       )
     },
   },

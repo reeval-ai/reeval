@@ -2285,9 +2285,10 @@ export type RecordedTarget =
 
 /**
  * A cell's gate: `'all'` when every counted attempt must pass, `'any'` when one must,
- * `{ passRate }` when its mean score must reach that share (its pass share in a
- * `runs: { bestOf }` cell), or `'none'` when its failures don't fail the run (a compare's
- * control, or an eval whose target doesn't block).
+ * `{ passRate }` when its pass share must reach that (a `runs: { bestOf }` cell; in an
+ * older record, its mean score), or `'none'` when its failures don't decide the eval (a compare's
+ * control, or in an older record a cell whose target couldn't block). Whether a failed cell
+ * fails the run is its target's.
  */
 export type CellGate = 'all' | 'any' | 'none' | { passRate: number }
 
