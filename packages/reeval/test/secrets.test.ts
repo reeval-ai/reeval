@@ -1033,6 +1033,42 @@ describe('redacting fragments of a secret', () => {
     assert.equal(redactSecrets('ord-2026-res', env2), '[REDACTED]')
   })
 
+  describe("a secret's word-like prefix", () => {
+    const token = 'reeval-fixture-token-7c1d9a0b52e4'
+    const env3 = { REEVAL_FIXTURE_TOKEN: token }
+
+    test('twin: fewer than 12 characters of it are left as they are', () => {
+      for (const text of ['cat /tmp/reeval-fx-probe.txt', 'a fixture-tok b', 'a reeval-fixt b']) {
+        assert.equal(redactSecrets(text, env3), text)
+        assert.equal(countSecrets(text, env3), 0)
+      }
+    })
+
+    test('12 or more characters of it are masked', () => {
+      assert.equal(redactSecrets('cat /tmp/reeval-fixture.txt', env3), 'cat /tmp/[REDACTED].txt')
+      assert.equal(redactSecrets('a fixture-token b', env3), 'a [REDACTED] b')
+    })
+
+    test('the key, its tail and any stretch reaching its random part are masked', () => {
+      for (const part of [token, token.slice(-12), token.slice(-8), token.slice(15, 26)]) {
+        assert.equal(redactSecrets(`a ${part} b`, env3), 'a [REDACTED] b', part)
+      }
+      assert.equal(redactSecrets(`a ${token.slice(0, 26)}… b`, env3), 'a [REDACTED]… b')
+    })
+
+    test('a key split in two is masked on both sides of the cut', () => {
+      for (const [k, e] of [
+        [token, env3],
+        [key, env],
+      ] as const) {
+        for (const at of [12, 21, k.length - 8]) {
+          const text = `${k.slice(0, at)}\n${k.slice(at)}`
+          assert.equal(redactSecrets(text, e), '[REDACTED]\n[REDACTED]', text)
+        }
+      }
+    })
+  })
+
   test("never breaks a record's JSON: a JSON-valued variable and quoted windows aren't masked alone", () => {
     const targets = JSON.stringify([{ form: 'raw', len: 36, sha256: 'ab12cd34ef56ab12' }])
     const record = JSON.stringify({ context: [{ path: 'AGENTS.md', sha256: 'ab12cd34ef56ab12' }] })
