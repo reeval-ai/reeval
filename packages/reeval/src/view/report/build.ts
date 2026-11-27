@@ -1288,7 +1288,7 @@ function buildRegression(prior: NonNullable<Ctx['prior']>): RegressionChanges {
       status: row.status,
       gate: Boolean(row.gate),
     }
-    if (row.status === 'same') unchanged.push(change)
+    if (row.status === 'same' && row.base === row.head) unchanged.push(change)
     else rows.push(change)
   }
   const whatChanged = [

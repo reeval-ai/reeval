@@ -600,18 +600,22 @@ function casesRow(
   if (graderChanged && from !== out.head) return { ...out, status: 'drift' }
   const caseRegressed = caseRows.some((r) => r.status === 'regressed' && r.verdict !== 'family')
   if ((from === 'pass' && out.head === 'fail') || caseRegressed) {
-    return { ...out, status: flipOf(h, 'regressed') }
+    return { ...out, status: flipOf(b, h, 'regressed') }
   }
-  if (from === 'fail' && out.head === 'pass') return { ...out, status: flipOf(h, 'fixed') }
+  if (from === 'fail' && out.head === 'pass') return { ...out, status: flipOf(b, h, 'fixed') }
   return { ...out, status: out.base === out.head ? 'same' : 'gate' }
 }
 
 /**
- * A flip between pass and fail, which head's target decides: `same` under a target that can't
- * fail the run, as `reeval run` counts it report only either way.
+ * A flip between pass and fail: `same` when neither run's target can fail the run, as `reeval run`
+ * counts it report only either way. A target that stopped blocking still shows its flip.
  */
-const flipOf = (h: ComparableEval, status: 'regressed' | 'fixed'): CompareStatus =>
-  h.target && !blocks(h.target) ? 'same' : status
+const flipOf = (
+  b: ComparableEval,
+  h: ComparableEval,
+  status: 'regressed' | 'fixed',
+): CompareStatus =>
+  b.target && h.target && !blocks(b.target) && !blocks(h.target) ? 'same' : status
 
 function evalRows(
   baseEvals: readonly ComparableEval[],
@@ -660,8 +664,8 @@ function evalRows(
     const from = gate?.rescored ?? row.base
     if (row.canceled) return { ...row, status: 'drift' }
     if ((graderChanged || graders) && from !== row.head) return { ...row, status: 'drift' }
-    if (from === 'pass' && row.head === 'fail') return { ...row, status: flipOf(h, 'regressed') }
-    if (from === 'fail' && row.head === 'pass') return { ...row, status: flipOf(h, 'fixed') }
+    if (from === 'pass' && row.head === 'fail') return { ...row, status: flipOf(b, h, 'regressed') }
+    if (from === 'fail' && row.head === 'pass') return { ...row, status: flipOf(b, h, 'fixed') }
     return { ...row, status: row.base === row.head ? 'same' : 'gate' }
   })
 }

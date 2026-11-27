@@ -378,7 +378,7 @@ function regressionMarkdown(primary: RegressionChanges, blockLevel: number): str
           r.prior,
           r.current,
           r.delta?.text ?? 'n/a',
-          COMPARE_STATUS_LABEL[r.status],
+          r.status === 'same' ? 'Report only' : COMPARE_STATUS_LABEL[r.status],
           r.gate ? 'gate' : 'ungated',
         ]),
       ),
