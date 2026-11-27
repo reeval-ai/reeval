@@ -1,13 +1,13 @@
 ---
-title: "Attempt context reference"
-description: "c is the attempt context: it sends prompts on the harness session and returns each finished turn."
+title: "Trial context reference"
+description: "c is the trial context: it sends prompts on the agent harness session and returns each finished turn."
 ---
 
-`c` is the attempt context the evaluation body receives, for one cell and one run. The sandbox and the harness session start on the first call that needs them.
+`c` is the trial context the task body receives, for one cell and one run. The sandbox and the agent harness session start on the first call that needs them.
 
 ## `c.send()`
 
-`c.send(prompt)` sends the next prompt on the attempt's harness session and returns the finished `Turn`.
+`c.send(prompt)` sends the next prompt on the trial's agent harness session and returns the finished `Turn`.
 
 ```ts
 const turn = await c.send('Add a Vitest test for getUserId.')
@@ -50,7 +50,7 @@ const verify = await c.exec('node verify.mjs', { env: { EXPECTED: '42' } })
 </Property>
 
 <Property name="options.label" type="string" optional>
-  A name kept with the command's result in the attempt's `execs.jsonl`. Not with `background: true`.
+  A name kept with the command's result in the trial's `execs.jsonl`. Not with `background: true`.
 </Property>
 
 The `ExecResult` has these fields:
@@ -70,7 +70,7 @@ The `ExecResult` has these fields:
 The `BackgroundHandle` has this method:
 
 <Property name="kill" type="() => Promise<void>" required>
-  Stops the process and its children, as the end of the attempt does.
+  Stops the process and its children, as the end of the trial does.
 </Property>
 
 For more information about asserting on a command, see [Assertions](/evaluations/grading/assertions).
@@ -112,7 +112,7 @@ const shot = await c.capture(app, { path: '/login', wait: 'idle' })
 </Property>
 
 <Property name="options.name" type="string" optional>
-  The capture name, matching `[a-z0-9_-]+` and unique in the attempt (default: a lowercase slug of the path before its query or fragment, or `root` when that slug is empty).
+  The capture name, matching `[a-z0-9_-]+` and unique in the trial (default: a lowercase slug of the path before its query or fragment, or `root` when that slug is empty).
 </Property>
 
 <Property name="options.path" type="string" optional>
@@ -142,7 +142,7 @@ const shot = await c.capture(app, { path: '/login', wait: 'idle' })
 The `Capture` echoes the resolved `name`, `port`, `path`, and `viewport`, and has these fields:
 
 <Property name="file" type="{ path: string; sha256: string; bytes: number }" required>
-  The PNG's `artifacts/<name>.png` path under the attempt directory, digest, and size.
+  The PNG's `artifacts/<name>.png` path under the trial directory, digest, and size.
 </Property>
 
 <Property name="status" type="number" optional>
@@ -203,7 +203,7 @@ A workspace file this call wrote stays out of `diff` until something changes it.
 
 ## `c.observe()`
 
-`c.observe(name, value)` records a value about the attempt that never affects its outcome. An attempt observes at most 50 names, and a call that breaks a limit throws, failing the attempt like any other error in its body.
+`c.observe(name, value)` records a value about the trial that never affects its final state. A trial observes at most 50 names, and a call that breaks a limit throws, failing the trial like any other error in its body.
 
 ```ts
 c.observe('deps', Object.keys(JSON.parse(pkg).dependencies))
@@ -231,7 +231,7 @@ const first = c.turns[0]
 
 ## `c.signal`
 
-`c.signal` aborts when the evaluation times out or the run is canceled.
+`c.signal` aborts when the task times out or the run is canceled.
 
 ```ts
 const response = await fetch(url, { signal: c.signal })
@@ -243,7 +243,7 @@ const response = await fetch(url, { signal: c.signal })
 
 ## `c.attempt`
 
-`c.attempt` names this attempt's cell and run number.
+`c.attempt` names this trial's cell and run number.
 
 ```ts
 const { role, variant } = c.attempt.cell
@@ -264,15 +264,15 @@ const { role, variant } = c.attempt.cell
 The `Cell` has these fields:
 
 <Property name="key" type="string" required>
-  The harness id, the environment name, and the sandbox id, joined with `/`.
+  The agent harness id, the environment name, and the sandbox id, joined with `/`.
 </Property>
 
 <Property name="harness" type="string" required>
-  The harness id, `<kind>:<model>` by default, with `[effort=<value>]` appended whenever `effort` is set, then a tag for each shared option set (`[tools=<names>]`, `[commands=<hash>]`, …).
+  The agent harness id, `<kind>:<model>` by default, with `[effort=<value>]` appended whenever `effort` is set, then a tag for each shared option set (`[tools=<names>]`, `[commands=<hash>]`, …).
 </Property>
 
 <Property name="environment" type="string" required>
-  The environment's own name, also on a variant cell, or `-` when the attempt has none.
+  The environment's own name, also on a variant cell, or `-` when the trial has none.
 </Property>
 
 <Property name="sandbox" type="string" required>
@@ -280,7 +280,7 @@ The `Cell` has these fields:
 </Property>
 
 <Property name="role" type="'control' | 'variant'" required>
-  `control` for the control or any cell outside a comparison, or `variant`.
+  `control` for the baseline or any cell outside a comparison, or `variant`.
 </Property>
 
 <Property name="variant" type="string" optional>
@@ -302,7 +302,7 @@ const changed = turn.diff.files.map((file) => file.path)
 </Property>
 
 <Property name="text" type="string" required>
-  The harness's final message for the turn.
+  The agent harness's final message for the turn.
 </Property>
 
 <Property name="status" type="'completed' | 'aborted' | 'error'" required>
@@ -322,11 +322,11 @@ const changed = turn.diff.files.map((file) => file.path)
 </Property>
 
 <Property name="usage" type="TokenUsage | null" required>
-  `input`, `output`, `cacheRead`, `cacheWrite`, and `reasoning` (`null` when the harness reports none for reasoning), or `null` when the harness reports no usage.
+  `input`, `output`, `cacheRead`, `cacheWrite`, and `reasoning` (`null` when the agent harness reports none for reasoning), or `null` when the agent harness reports no usage.
 </Property>
 
 <Property name="model" type="string | null" required>
-  The model the harness says served the turn, or `null` when it reports none.
+  The model the agent harness says served the turn, or `null` when it reports none.
 </Property>
 
 <Property name="unreported" type="Array<'web-search' | 'web-fetch'>" required>
@@ -334,7 +334,7 @@ const changed = turn.diff.files.map((file) => file.path)
 </Property>
 
 <Property name="diff" type="{ patch: string; files: FileChange[] }" required>
-  Workspace changes from the start of the evaluation, each file with a `path` and a `status` of `added`, `modified`, or `deleted`.
+  Workspace changes from the start of the task, each file with a `path` and a `status` of `added`, `modified`, or `deleted`.
 </Property>
 
 <Property name="exec" type="(command: string, options?: ExecRetry & { env?: ExecEnv }) => Promise<ExecResult>" required>
@@ -349,18 +349,18 @@ const changed = turn.diff.files.map((file) => file.path)
 
 A `TrajectoryEvent` is one entry in `turn.trajectory`. Every event has `ts`, the wall-clock time as an ISO 8601 string, and `atMs`, milliseconds from the start of the turn. Its `type` is one of the values below, and each subsection lists the fields that type adds.
 
-A tool call whose result the harness never reported, because the turn ended or was cut short first, has `ok: null`. It isn't a failed call: `ok === false` and the `tool_calls` table's failures leave it out.
+A tool call whose result the agent harness never reported, because the turn ended or was cut short first, has `ok: null`. It isn't a failed call: `ok === false` and the `tool_calls` table's failures leave it out.
 
 ### `text`
 
-A message the harness sent.
+A message the agent harness sent.
 
 <Property name="text" type="string" required>
   The message's text.
 </Property>
 
 <Property name="durationMs" type="number | null" required>
-  Wall time until the harness reported the end, or `null` when it reported none.
+  Wall time until the agent harness reported the end, or `null` when it reported none.
 </Property>
 
 ### `reasoning`
@@ -370,7 +370,7 @@ A message the harness sent.
 </Property>
 
 <Property name="durationMs" type="number | null" required>
-  Wall time until the harness reported the end, or `null` when it reported none.
+  Wall time until the agent harness reported the end, or `null` when it reported none.
 </Property>
 
 ### `file-edit`
@@ -384,11 +384,11 @@ A message the harness sent.
 </Property>
 
 <Property name="added" type="number | null" required>
-  Lines added, or `null` when the harness did not send the content.
+  Lines added, or `null` when the agent harness did not send the content.
 </Property>
 
 <Property name="removed" type="number | null" required>
-  Lines removed, or `null` when the harness did not send the content.
+  Lines removed, or `null` when the agent harness did not send the content.
 </Property>
 
 <Property name="toolCallId" type="string" required>
@@ -396,7 +396,7 @@ A message the harness sent.
 </Property>
 
 <Property name="durationMs" type="number | null" required>
-  Wall time until the result, or `null` when the harness did not report the end.
+  Wall time until the result, or `null` when the agent harness did not report the end.
 </Property>
 
 <Property name="stalled" type="boolean" optional>
@@ -410,11 +410,11 @@ A message the harness sent.
 </Property>
 
 <Property name="references" type="number | null" required>
-  How many sources the harness reports, or `null` when it reports none.
+  How many sources the agent harness reports, or `null` when it reports none.
 </Property>
 
 <Property name="ok" type="boolean | null" optional>
-  Whether the search succeeded. Absent means it did, and `null` means the harness never reported its result.
+  Whether the search succeeded. Absent means it did, and `null` means the agent harness never reported its result.
 </Property>
 
 <Property name="toolCallId" type="string" required>
@@ -422,7 +422,7 @@ A message the harness sent.
 </Property>
 
 <Property name="durationMs" type="number | null" required>
-  Wall time until the result, or `null` when the harness did not report the end.
+  Wall time until the result, or `null` when the agent harness did not report the end.
 </Property>
 
 <Property name="stalled" type="boolean" optional>
@@ -436,7 +436,7 @@ A message the harness sent.
 </Property>
 
 <Property name="ok" type="boolean | null" required>
-  Whether the fetch succeeded, or `null` when the harness never reported its result.
+  Whether the fetch succeeded, or `null` when the agent harness never reported its result.
 </Property>
 
 <Property name="toolCallId" type="string" required>
@@ -444,7 +444,7 @@ A message the harness sent.
 </Property>
 
 <Property name="durationMs" type="number | null" required>
-  Wall time until the result, or `null` when the harness did not report the end.
+  Wall time until the result, or `null` when the agent harness did not report the end.
 </Property>
 
 <Property name="stalled" type="boolean" optional>
@@ -458,15 +458,15 @@ A message the harness sent.
 </Property>
 
 <Property name="input" type="unknown" required>
-  The input the harness reported.
+  The input the agent harness reported.
 </Property>
 
 <Property name="output" type="unknown" required>
-  The output the harness reported or saved to a file.
+  The output the agent harness reported or saved to a file.
 </Property>
 
 <Property name="ok" type="boolean | null" required>
-  Whether the call succeeded, or `null` when the harness never reported its result. Its `output` is then `null`.
+  Whether the call succeeded, or `null` when the agent harness never reported its result. Its `output` is then `null`.
 </Property>
 
 <Property name="toolCallId" type="string" required>
@@ -474,7 +474,7 @@ A message the harness sent.
 </Property>
 
 <Property name="durationMs" type="number | null" required>
-  Wall time until the result, or `null` when the harness did not report the end.
+  Wall time until the result, or `null` when the agent harness did not report the end.
 </Property>
 
 <Property name="stalled" type="boolean" optional>
@@ -490,7 +490,7 @@ A message the harness sent.
 ### `retry`
 
 <Property name="message" type="string" required>
-  A step that failed while the turn went on, such as a model call the harness retried. This event has no `durationMs`.
+  A step that failed while the turn went on, such as a model call the agent harness retried. This event has no `durationMs`.
 </Property>
 
 For more information about trajectories, see [Debugging](/results/inspection/debugging#read-a-trajectory).

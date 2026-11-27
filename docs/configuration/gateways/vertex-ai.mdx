@@ -13,7 +13,7 @@ The egress gateway swaps a key in a header, and Vertex AI takes a service accoun
 GOOGLE_GENERATIVE_AI_API_KEY=replace-with-your-key
 ```
 
-For the key each other harness reads, such as `GEMINI_API_KEY` for Antigravity or `ANTHROPIC_API_KEY` for Claude Code, see [Choose an agent](/configuration/agents).
+For the key each other agent harness reads, such as `GEMINI_API_KEY` for Antigravity or `ANTHROPIC_API_KEY` for Claude Code, see [Choose an agent](/configuration/agents).
 
 ## Helper
 
@@ -46,4 +46,4 @@ Plan the run to check that `direct()` serves the model:
 npx reeval run --dry-run
 ```
 
-On `vercel()`, OpenCode runs any `<provider>/<model>` id that Vercel serves, and the call goes to the Vercel AI Gateway, not to a Google Cloud project. For more information about OpenCode's providers, see [OpenCode harness](/configuration/agents/opencode).
+On `vercel()`, OpenCode runs any `<provider>/<model>` id that Vercel serves, and the call goes to the Vercel AI Gateway, not to a Google Cloud project. For more information about OpenCode's providers, see [OpenCode agent harness](/configuration/agents/opencode).

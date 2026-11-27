@@ -11,10 +11,10 @@ description: "How reeval differs from Harbor."
 |---|---|---|
 | What it is | A TypeScript [evaluation harness](/reference/glossary#evaluation-harness) in the product repository (`defineEval()`, `reeval run`) | A Python evaluation harness for benchmarks. Its tasks are directories, and its runs are jobs. |
 | What you test | A [baseline](/reference/glossary#baseline) and a [variant](/reference/glossary#variant) of the product. The same task can also run on each agent. | The agent or the model, on a fixed task |
-| How a trial is graded | [Graders](/reference/glossary#grader): built-ins from `reeval/graders` such as `hasFile` and `succeeded`, `expect` assertions, `c.exec` checks, and a model grader. A `defineGrader` with `env: docker()` runs in a sandbox of its own. | A verifier script that writes a reward, in a verifier sandbox of its own |
+| How a trial is graded | [Graders](/reference/glossary#grader): built-ins from `reeval/graders` such as `hasFile` and `succeeded`, `c.exec` checks, and a model grader. A `defineGrader` with `env: docker()` runs in a sandbox of its own. | A verifier script that writes a reward, in a verifier sandbox of its own |
 | Grading again | [`reeval regrade`](/reference/cli#reeval-regrade) grades recorded trials with today's graders | Regrades existing trials |
 | Metrics | Pass rate, and `target` as [pass^k](/reference/authoring-api#regression) with `regression()` or [pass@k](/reference/authoring-api#capability) with `capability()`; tokens, tool calls, cost, and time | Mean reward and custom metric scripts |
-| Trajectories | `transcript.jsonl`, and an ATIF trajectory per trial with `exports: ['atif']` or [`reeval export --format atif`](/reference/cli#reeval-export) | ATIF |
+| Trajectories | `trajectory.jsonl`, and an ATIF trajectory per trial with `exports: ['atif']` or [`reeval export --format atif`](/reference/cli#reeval-export) | ATIF |
 | Sandboxes | Docker, Podman, and Tart, and `boat()` or `daytona()` as a provider | Docker, Podman, Daytona, Modal, and E2B |
 | Solvability check | No built-in solver. A profile whose fake agent solves the task stands in. | An oracle that runs the solution in the sandbox |
 | Over time | [`reeval compare --fail-on-regression`](/recipes/gate-pull-requests) against earlier runs | The job's exit code |

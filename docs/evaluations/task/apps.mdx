@@ -9,7 +9,7 @@ Three calls check the app the agent built:
 
 1. Start the app in the sandbox with `c.serve`.
 2. Capture a page with `c.capture`.
-3. Send the capture to the judge.
+3. Send the capture to the model grader.
 
 ## Start a server
 
@@ -55,9 +55,9 @@ await c.exec(`curl -fsS --retry 10 --retry-connrefused ${url}`, {
 
 ## Capture a page
 
-`c.capture` takes a `ServeHandle` or a port and opens a path on it in a headless browser on the host through a tunnel to the sandbox. It waits until the server answers, then saves the image at the `artifacts/<name>.png` path in the attempt record. The sandbox image needs no browser, because reeval downloads one into its cache on the first capture.
+`c.capture` takes a `ServeHandle` or a port and opens a path on it in a headless browser on the host through a tunnel to the sandbox. It waits until the server answers, then saves the image at the `artifacts/<name>.png` path in the trial record. The sandbox image needs no browser, because reeval downloads one into its cache on the first capture.
 
-`path` defaults to `/`. `name` defaults to the path, so `/login` saves `login.png`, and a name can't repeat in one attempt. `wait` defaults to `'load'`; use `'idle'` to wait until at most two requests are in flight for 500 ms, or `{ ms: 500 }` to wait a fixed time.
+`path` defaults to `/`. `name` defaults to the path, so `/login` saves `login.png`, and a name can't repeat in one trial. `wait` defaults to `'load'`; use `'idle'` to wait until at most two requests are in flight for 500 ms, or `{ ms: 500 }` to wait a fixed time.
 
 In the `evals/sign-in.eval.ts` file, name a second capture:
 
@@ -72,7 +72,7 @@ To interact with the page before the capture, pass `instructions` as goal string
 
 ## Judge a capture
 
-The `artifacts` input on a `judge()` grader sends captures to the judge as images: their names, or `true` for every capture. An evaluation model such as `typesafe-ai/jev-1.14.0` takes PNG captures, and a provider that can't take files fails the call. Ask what the picture shows, such as a field or a label, not whether it looks good.
+The `artifacts` input on a `judge()` grader sends captures to the model grader as images: their names, or `true` for every capture. An evaluation model such as `typesafe-ai/jev-1.14.0` takes PNG captures, and a provider that can't take files fails the call. Ask what the picture shows, such as a field or a label, not whether it looks good.
 
 In the `evals/sign-in.eval.ts` file, add a grader that sends both captures:
 
@@ -85,7 +85,7 @@ judge('Does the error page keep both fields and show one error message?', {
 
 For more information about the judge and its model, see [Judgments](/evaluations/grading/judgments).
 
-In a comparison, a question shows each side's own capture when its `artifacts` names the captures, or is `true`, so the model sees the control's page beside the variant's. For more information about pairwise questions, see [Ask questions across attempts](/evaluations/grading/questions).
+In a comparison, a comparative grader shows each side's own capture when its `artifacts` names the captures, or is `true`, so the model sees the baseline's page beside the variant's. For more information about comparative graders, see [Grade across trials](/evaluations/grading/questions).
 
 ## Set the viewport and browser
 

@@ -1,5 +1,5 @@
 ---
-title: "Compare harnesses"
+title: "Compare agent harnesses"
 description: "Run one task on each agent and compare pass rate, tokens, tool calls, and time."
 ---
 
@@ -10,9 +10,9 @@ To measure a change on each agent instead, add `compare` ([the `compare.agents` 
 ## Run one task on each agent
 
 <Steps>
-<Step title="Write the evaluation">
+<Step title="Write the task">
 
-In the `evals/stream.eval.ts` file, list the agents in `agents` and give each agent four attempts with `runs`:
+In the `evals/stream.eval.ts` file, list the agents in `agents` and give each agent four trials with `runs`:
 
 ```ts title="evals/stream.eval.ts"
 import { defineEval, regression } from '{{ pkg }}'
@@ -41,12 +41,12 @@ export default defineEval({
 })
 ```
 
-Each agent runs the same prompt and graders as its own cell. For more information about the harness factories, see [Pick a harness](/configuration/agents#pick-a-harness). For more information about each harness's key, see [Harness behavior](/reference/options#harness-behavior). To plan the cells without starting one, see [Preview the plan](/evaluations/runs/running#preview-the-plan).
+Each agent runs the same prompt and graders as its own cell. For more information about the agent harness factories, see [Pick an agent harness](/configuration/agents#pick-an-agent-harness). For more information about each agent harness's key, see [Agent harness behavior](/reference/options#harness-behavior). To plan the cells without starting one, see [Preview the plan](/evaluations/runs/running#preview-the-plan).
 
 </Step>
-<Step title="Run the evaluation">
+<Step title="Run the task">
 
-Run the evaluation on every agent it lists:
+Run the task on every agent it lists:
 
 ```bash
 npx reeval run stream
@@ -68,7 +68,7 @@ fail             streams with Vercel AI SDK
     +1 more passed
 ```
 
-Here `codex:gpt-5.6-luna` failed `adds-the-ai-package` in one attempt, and `target: regression()` needs every attempt to pass, so it fails the evaluation. For more information about the rows and gating, see [Read the result](/results/compare/lift#read-the-result).
+Here `codex:gpt-5.6-luna` failed `adds-the-ai-package` in one trial, and `target: regression()` needs every trial to pass, so it fails the task. For more information about the rows and gating, see [Read the result](/results/compare/lift#read-the-result).
 
 </Step>
 <Step title="Read the effort per agent">
@@ -82,7 +82,7 @@ npx reeval query "SELECT harness, tools_median, agent_s_median,
 
 The query returns one row per agent: `harness`, `tools_median`, `agent_s_median`, and `tokens_median`. `tokens_median` is empty for an agent that reports no usage.
 
-The medians describe each agent's attempts. reeval calls a difference `fewer` or `more` only when a Mann-Whitney test gives p below 0.05 between a variant and its control. These cells have no control, so the `verdict` columns are empty. For more information about the test, see [Statistics](/reference/statistics). For more information about the `reeval query` command, see [Query past runs](/results/inspection/queries).
+The medians describe each agent's trials. reeval calls a difference `fewer` or `more` only when a Mann-Whitney test gives p below 0.05 between a variant and its baseline. These cells have no baseline, so the `verdict` columns are empty. For more information about the test, see [Statistics](/reference/statistics). For more information about the `reeval query` command, see [Query past runs](/results/inspection/queries).
 
 </Step>
 </Steps>

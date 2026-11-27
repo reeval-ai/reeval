@@ -1,6 +1,6 @@
 ---
-title: "pi harness"
-description: "The pi harness runs pi in the sandbox on its model's provider's API key and records its events."
+title: "pi agent harness"
+description: "The pi agent harness runs pi in the sandbox on its model's provider's API key and records its events."
 ---
 
 `pi()` runs pi in the sandbox as one `pi --mode json` process per turn that resumes the session's conversation. For more information about the sandbox, see [Choose a sandbox](/configuration/sandboxes).
@@ -11,7 +11,7 @@ description: "The pi harness runs pi in the sandbox on its model's provider's AP
 
 In the sandbox, pi sees a placeholder under the variable it reads (`GEMINI_API_KEY` for the Google key), and reeval swaps the real key into the provider's header on pi's model calls to the provider's host, such as `x-goog-api-key` on `POST /v1beta/models/<model>:streamGenerateContent` at `generativelanguage.googleapis.com`. reeval refuses the key anywhere else. A restricted egress policy allows that provider's host.
 
-When the API rejects the key, the attempt is an infra error whose message begins with `The API rejected <KEY>: set a valid key in the environment or .env.local`.
+When the API rejects the key, the trial is an infra error whose message begins with `The API rejected <KEY>: set a valid key in the environment or .env.local`.
 
 For more information about keeping API keys on the host, see [Keep API keys on the host](/configuration/environments/secrets#keep-api-keys-on-the-host).
 
@@ -35,13 +35,13 @@ export default defineConfig({
 })
 ```
 
-`model` is required. For what each field takes, see [Harness factory options](/reference/options#harness-factory-options).
+`model` is required. For what each field takes, see [Agent harness factory options](/reference/options#harness-factory-options).
 
 
 
 In the sandbox, pi runs in print mode with the project trusted, its startup network operations off, and no extensions loaded besides its built-in `mcp` one for the environment's MCP servers.
 
-For more information about model ids and effort values, see [Set the agent's model](/configuration/agents/model). For rules, skills, MCP servers, usage, served models, and web events, see [Harness behavior](/reference/options#harness-behavior).
+For more information about model ids and effort values, see [Set the agent's model](/configuration/agents/model). For rules, skills, MCP servers, usage, served models, and web events, see [Agent harness behavior](/reference/options#harness-behavior).
 
 ## `plugins`
 

@@ -5,27 +5,27 @@ description: "Understand when reeval can tell whether a change helped."
 
 These statistical thresholds are fixed; you can't configure them.
 
-For more information about the run model, see [Run](/reference/glossary#run). For more information about configuring a comparison, see [Measure lift against a control](/results/compare/lift).
+For more information about the run model, see [Run](/reference/glossary#run). For more information about configuring a comparison, see [Measure statistical lift against a baseline](/results/compare/lift).
 
 ## Pass rates and the Wilson interval
 
-`pass@1` is passes divided by counted attempts, which include only passes and failures. A 95% Wilson score interval stays between 0 and 1, including with all passes, all failures, or no counted attempts.
+`pass@1` is passes divided by counted trials, which include only passes and failures. A 95% Wilson score interval stays between 0 and 1, including with all passes, all failures, or no counted trials.
 
-## Lift and Newcombe's interval
+## Statistical lift and Newcombe's interval
 
-Lift is the variant's pass rate minus the control's, between -1 and 1. Newcombe's hybrid score interval at 95% combines the two Wilson intervals and treats the sides as independent. Zero on or between the ends does not separate the rates.
+Statistical lift is the variant's pass rate minus the baseline's, between -1 and 1. Newcombe's hybrid score interval at 95% combines the two Wilson intervals and treats the sides as independent. Zero on or between the ends does not separate the rates.
 
-## Variant outcomes
+## Variant final states
 
-`helped` means the variant's pass rate is above the baseline's, `made it worse` below it, and `same` equal to it, at any number of counted attempts. The interval says whether the difference holds: zero inside it, or a small sample, raises the `too-few-tries` remark. An assertion uses the same rule.
+`helped` means the variant's pass rate is above the baseline's, `made it worse` below it, and `same` equal to it, at any number of counted trials. The interval says whether the difference holds: zero inside it, or a small sample, raises the `too-few-tries` remark. An assertion uses the same rule.
 
-For more information about the printed effect words, see [Read the result](/results/compare/lift#read-the-result). For more information about the printed outcomes, see [Read a run's output](/results/output).
+For more information about the printed effect words, see [Read the result](/results/compare/lift#read-the-result). For more information about the printed final states, see [Read a run's output](/results/output).
 
 ## Too few runs
 
-A small sample is a side with fewer than four counted attempts, or an interval that spans zero and still reaches past 20 points either way. The effect word always prints. On a small sample, whatever the direction, the `too-few-tries` remark prints beside it, and so does a difference whose interval spans zero.
+A small sample is a side with fewer than four counted trials, or an interval that spans zero and still reaches past 20 points either way. The effect word always prints. On a small sample, whatever the direction, the `too-few-tries` remark prints beside it, and so does a difference whose interval spans zero.
 
-When both sides pass every attempt, or both fail every attempt, on four runs a side or more, more runs can't split their pass rates. The remark then reads the rest of [the comparison](#one-comparison-over-every-measure). Below four, `too-few-tries` prints, since a few passes don't show that a side always passes.
+When both sides pass every trial, or both fail every trial, on four runs a side or more, more runs can't split their pass rates. The remark then reads the rest of [the comparison](#one-comparison-over-every-metric). Below four, `too-few-tries` prints, since a few passes don't show that a side always passes.
 
 | Result | Remark |
 |---|---|
@@ -34,17 +34,17 @@ When both sides pass every attempt, or both fail every attempt, on four runs a s
 | 1 of 1 against 1 of 1 | the same, but 1 run a side can't rule out a difference of up to 79 points |
 | 2 of 4 against 2 of 4 | the same, but 4 runs a side can't rule out a difference of up to 49 points |
 | 3 of 3 against 3 of 3, 12× faster | the same, but 3 runs a side can't rule out…; it looks 12× faster, but 3 runs a side can't confirm it; 4 is the least that can |
-| 4 of 4 against 4 of 4, some measure better or worse | none: the comparison is the result |
-| 4 of 4 against 4 of 4, some measure leans | `too-few-tries`: the variant looks different, and about N runs a side would confirm it |
-| 4 of 4 against 4 of 4, every measure the same | `cant-tell-apart`: both always pass, so make the task harder |
+| 4 of 4 against 4 of 4, some metric better or worse | none: the comparison is the result |
+| 4 of 4 against 4 of 4, some metric leans | `too-few-tries`: the variant looks different, and about N runs a side would confirm it |
+| 4 of 4 against 4 of 4, every metric the same | `cant-tell-apart`: both always pass, so make the task harder |
 | 0 of 4 against 0 of 4 | `cant-tell-apart`: the task may be too hard, or the eval broken, whatever else differs |
 | 4 of 4 against 0 of 4 | none: the difference holds |
 
 The remark names the `runs`, never fewer than four, at which a difference that size would hold, or at which equal rates would rule out 20 points either way. Two of two against zero of two raises it though its interval excludes zero: when nothing changed, that split comes up about one run in eight. A family's sample is its cases: it is small below six cases, or when its pooled interval spans zero and reaches past 20 points. A family raises the remark when its pooled lift doesn't hold, insufficient or within noise, and its rates differ or its sample is small. Many cases that agree, some passing and some failing on both sides, are insufficient but raise nothing; six or more cases that all pass, or all fail, on both sides raise `cant-tell-apart`.
 
-`reeval query`'s `contrasts` and `factor_effects` add `small_sample` beside `pass_verdict`, and the `reeval analyze` digest adds `smallSample: true` beside a lift's verdict, by the same rule. Beside a cell's lift, the digest adds `tie: 'both always pass'` or `'both always fail'` when the remark would say `cant-tell-apart`, and `looks: 'N runs'` when it would say the variant looks different.
+`reeval query`'s `contrasts` and `factor_effects` add `small_sample` beside `pass_verdict`, and the `reeval analyze` digest adds `smallSample: true` beside a statistical lift's verdict, by the same rule. Beside a cell's statistical lift, the digest adds `tie: 'both always pass'` or `'both always fail'` when the remark would say `cant-tell-apart`, and `looks: 'N runs'` when it would say the variant looks different.
 
-## One comparison over every measure
+## One comparison over every metric
 
 ```text
      arm              pass          vs control
@@ -52,39 +52,39 @@ The remark names the `runs`, never fewer than four, at which a difference that s
      marked           4 of 4  same  5× faster
 ```
 
-reeval compares each variant with its baseline on every measure the run has, each with the test reeval already prints it with. The status list's `vs control` column names the measures whose difference holds; `-v` adds the ones that only lean, each marked `(leans)`, and each variant's interval; a judged assertion shows its judge's score, not also its pass rate. The status list, `reeval compare -v`, the remarks, the `reeval analyze` digest and `reeval query measure_effects` all read this one comparison, so they never disagree.
+reeval compares each variant with its baseline on every metric the run has, each with the test reeval already prints it with. The status list's `vs control` column names the metrics whose difference holds; `-v` adds the ones that only lean, each marked `(leans)`, and each variant's interval; a judged assertion shows its model grader's score, not also its pass rate. The status list, `reeval compare -v`, the remarks, the `reeval analyze` digest and `reeval query measure_effects` all read this one comparison, so they never disagree.
 
-| Measure | Test | Magnitude |
+| Metric | Test | Magnitude |
 |---|---|---|
-| Pass rate, and each check's own pass rate | Newcombe's interval, as lift: holds when it excludes zero with four counted attempts a side | `+25 pts` |
-| Each judge's scores | Mann-Whitney at p below 0.05 | the mean score's difference, `judge "tidy" +0.12` |
-| Each compare question's votes | exact sign test on the decisive pairs, at p below 0.05 | `picked the variant in 12 of 12 votes (6 of 6 decisive pairs)`: votes count both orders of each pair, as the question's standings do |
+| Pass rate, and each check's own pass rate | Newcombe's interval, as statistical lift: holds when it excludes zero with four counted trials a side | `+25 pts` |
+| Each model grader's scores | Mann-Whitney at p below 0.05 | the mean score's difference, `judge "tidy" +0.12` |
+| Each comparative grader's votes | exact sign test on the decisive pairs, at p below 0.05 | `picked the variant in 12 of 12 votes (6 of 6 decisive pairs)`: votes count both orders of each pair, as the question's standings do |
 | Tool calls, agent time, tokens | the effort verdict above (paired by case in a family) | the medians' ratio, `5× faster`, `10× fewer tokens` |
 
-Each measure is `better` or `worse` when its test holds, at any size. A difference the test doesn't hold `leans` only when it reaches the measure's minimum effect and its test's p is below 0.1, or 0.2 for a compare question; anything weaker is `same`, so run-to-run noise doesn't read as a difference. A lean names the runs a side (or the cases) at which a difference that size would hold, at most 200.
+Each metric is `better` or `worse` when its test holds, at any size. A difference the test doesn't hold `leans` only when it reaches the metric's minimum effect and its test's p is below 0.1, or 0.2 for a comparative grader; anything weaker is `same`, so run-to-run noise doesn't read as a difference. A lean names the runs a side (or the cases) at which a difference that size would hold, at most 200.
 
-| Measure | Minimum effect to lean | p below |
+| Metric | Minimum effect to lean | p below |
 |---|---|---|
 | Pass rate, and each check's pass rate | 10 points | 0.1, from a two-proportion z test |
-| A judge's score (0–1) | 0.05 between the mean scores | 0.1 |
-| A compare question | 4 decisive pairs, 60% of them for one side | 0.2 |
+| A model grader's score (0–1) | 0.05 between the mean scores | 0.1 |
+| A comparative grader | 4 decisive pairs, 60% of them for one side | 0.2 |
 | Tool calls, agent time, tokens | 10% between the medians; agent times that both print `<0.1s` are the same | 0.1 |
 
-A compare question is asked deliberately, so a run has few pairs: its looser p lets a unanimous 4 of 4 (p 0.125) lean, while 3 of 3 or a single pair doesn't.
+A comparative grader is asked deliberately, so a run has few pairs: its looser p lets a unanimous 4 of 4 (p 0.125) lean, while 3 of 3 or a single pair doesn't.
 
-A sample too small for its test to reach that p at all never reads `same`: at three runs a side a rank test's smallest p is 0.1, so a 12× speedup leans, and reads "12× faster, but 3 runs a side can't confirm it; 4 is the least that can". A pass rate or check that the screen leaves `same` keeps its points in its text (`pass rate +100 pts`), as lift prints them. With identical arms and no compare question, about 1 run in 10 still shows some measure leaning.
+A sample too small for its test to reach that p at all never reads `same`: at three runs a side a rank test's smallest p is 0.1, so a 12× speedup leans, and reads "12× faster, but 3 runs a side can't confirm it; 4 is the least that can". A pass rate or check that the screen leaves `same` keeps its points in its text (`pass rate +100 pts`), as statistical lift prints them. With identical arms and no comparative grader, about 1 run in 10 still shows some metric leaning.
 
-Each measure's test stands alone at p below 0.05, with no correction across measures, so a 10× speedup on four runs a side still reads `better`. The cost is chance results.
+Each metric's test stands alone at p below 0.05, with no correction across metrics, so a 10× speedup on four runs a side still reads `better`. The cost is chance results.
 
-<Warning>With identical arms and three effort measures, about 1 run in 14 at four runs a side shows some measure as better or worse by chance, and about 1 in 7 at eight runs a side or more. Each check, judge and question measured adds to that. More runs don't lower it, since each test keeps its 0.05; a difference that shows again on a second run is far less likely to be chance.</Warning>
+<Warning>With identical arms and three effort metrics, about 1 run in 14 at four runs a side shows some metric as better or worse by chance, and about 1 in 7 at eight runs a side or more. Each check, model grader and question measured adds to that. More runs don't lower it, since each test keeps its 0.05; a difference that shows again on a second run is far less likely to be chance.</Warning>
 
 ## Cases as pairs
 
-reeval pools every case from one evaluation into a family of pairs on each run. Attempts inside a case are not independent.
+reeval pools every case from one task into a family of pairs on each run. Trials inside a case are not independent.
 
 For more information about declaring cases, see [Cases](/evaluations/task/cases).
 
-One attempt per side uses Newcombe's paired interval and needs six discordant pairs, where only one side passed. Several attempts per case use a t interval over the pass-rate differences and need six paired cases. Six is the first count whose exact test can reach a p below 0.05.
+One trial per side uses Newcombe's paired interval and needs six discordant pairs, where only one side passed. Several trials per case use a t interval over the pass-rate differences and need six paired cases. Six is the first count whose exact test can reach a p below 0.05.
 
 The pooled pass rates give `helped`, `made it worse`, or `same`, the 95% interval says whether it holds, and below six the result is insufficient. The reported McNemar or Wilcoxon p decides nothing.
 
@@ -96,16 +96,16 @@ Counts that cannot reach a p below 0.05 are `insufficient`, and counts that can,
 
 ## Flaky cells
 
-A cell is flaky when comparable runs, pooled, include a pass and a fail over at least six counted attempts. Comparable runs share sources, harness, environment, and image. Changes to an agent CLI's runtime files do not make runs incomparable. Six is a threshold, not a test, and a shorter pool is not flaky.
+A cell is flaky when comparable runs, pooled, include a pass and a fail over at least six counted trials. Comparable runs share sources, agent harness, environment, and image. Changes to an agent CLI's runtime files do not make runs incomparable. Six is a threshold, not a test, and a shorter pool is not flaky.
 
 For more information about the `flaky_cells` view, see [Query views](/reference/query-views).
 
-## Comparison questions as pairwise judging
+## Comparative graders as pairwise judging
 
-A pairwise question is blinded judging of which unlabeled attempt did better, in both orders.
+A comparative grader judges which unlabeled trial did better, blinded and in both orders.
 
-For more information about adding a pairwise question, see [Ask which side did better](/evaluations/grading/questions#ask-which-side-did-better).
+For more information about adding a comparative grader, see [Ask which side did better](/evaluations/grading/questions#ask-which-side-did-better).
 
 The same side in both orders, or a tie and a named side, is a win. No named side is a tie. Opposite sides are a split.
 
-A pairwise question never changes the outcome or the exit code. For more information about the `question_pairs` view, see [Query views](/reference/query-views).
+A comparative grader never changes the final state or the exit code. For more information about the `question_pairs` view, see [Query views](/reference/query-views).

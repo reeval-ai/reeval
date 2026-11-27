@@ -63,17 +63,17 @@ For more information about `pin`, see [Options reference](/reference/options#pin
 ### `compare`
 
 <Property name="compare" type="false | { maxVariants: number }" optional>
-  `false` drops the variants and runs the control. `{ maxVariants: n }` keeps the first `n` variants. `n` is a whole number of at least 0.
+  `false` drops the variants and runs the baseline. `{ maxVariants: n }` keeps the first `n` variants. `n` is a whole number of at least 0.
 </Property>
 
-`limit.compare` applies when the resolved evaluation has `compare`, whether a group, a profile's `defaults`, the config or the evaluation set it. After `false` or `{ maxVariants: 0 }`, the control gates like an evaluation without `compare`. The plan notes `compare off (profile nightly)` or `variants 4 → 1 (profile nightly)`.
+`limit.compare` applies when the resolved task has `compare`, whether a suite, a profile's `defaults`, the config or the task set it. After `false` or `{ maxVariants: 0 }`, the control gates like an evaluation without `compare`. The plan notes `compare off (profile nightly)` or `variants 4 → 1 (profile nightly)`.
 
-A pairwise question needs two attempts that differ in a factor it varies. When the limit leaves none of its factors varying, the plan notes `1 pairwise question off (profile nightly)`, or `2 pairwise questions off (profile nightly)` for two. When it leaves some, the question keeps those and the plan notes `1 pairwise question narrowed (profile nightly)`, or `2 pairwise questions narrowed (profile nightly)` for two.
+A comparative grader needs two trials that differ in a factor it varies. When the limit leaves none of its factors varying, the plan notes `1 pairwise question off (profile nightly)`, or `2 pairwise questions off (profile nightly)` for two. When it leaves some, the question keeps those and the plan notes `1 pairwise question narrowed (profile nightly)`, or `2 pairwise questions narrowed (profile nightly)` for two.
 
 ### `agents`
 
 <Property name="agents" type="string[]" optional>
-  Harness ids to keep. A default id includes `[effort=<value>]` whenever `effort` is set, and a tag for each shared option set. reeval skips an evaluation left with none.
+  Agent agent harness ids to keep. A default id includes `[effort=<value>]` whenever `effort` is set, and a tag for each shared option set. reeval skips a task left with none.
 </Property>
 
 The plan notes `agents 2 → 1 (profile nightly)`. A miss notes `skipped: no agent left: profile nightly allows none`, with the allowed ids in place of `none`.
@@ -89,12 +89,12 @@ profiles: {
 ```
 
 <Property name="traits" type="Record<string, string | string[]>" optional>
-  The cells to keep, by their environment's traits. A cell matches a key when its trait is the value, or one of a list's, or a list trait contains it. Every key must match. With `compare`, a cell goes by its control's traits, so every variant runs with its control or not at all.
+  The cells to keep, by their environment's traits. A cell matches a key when its trait is the value, or one of a list's, or a list trait contains it. Every key must match. With `compare`, a cell goes by its baseline's traits, so every variant runs with its baseline or not at all.
 </Property>
 
-`limit.traits` applies after `where`, together with [`--trait`](/reference/cli#filtering-cells-by-trait), and `pin` doesn't protect from it. The plan notes `profiles.next.limit.traits.stack leaves out vite-app`. An evaluation, or a case, left with no cell is skipped: `no cell left: profiles.next.limit.traits.stack matches none of vite-app`.
+`limit.traits` applies after `where`, together with [`--trait`](/reference/cli#filtering-cells-by-trait), and `pin` doesn't protect from it. The plan notes `profiles.next.limit.traits.stack leaves out vite-app`. A task, or a case, left with no cell is skipped: `no cell left: profiles.next.limit.traits.stack matches none of vite-app`.
 
-reeval exits with code 2 for a value that isn't a string or a non-empty list of strings, and for a key that no control environment of the selected evaluations defines, with the closest key it does define.
+reeval exits with code 2 for a value that isn't a string or a non-empty list of strings, and for a key that no baseline environment of the selected tasks defines, with the closest key it does define.
 
 ## `judge`
 
@@ -128,7 +128,7 @@ For more information about judge fields, see [Options reference](/reference/opti
 
 The header's `Scope:` line appends the duration, as in `(budget: 5 ✗, 2h)`.
 
-The timer starts when the first attempt starts. At the cap, running attempts finish and queued attempts are skipped. The record status is `budget`, and the run fails.
+The timer starts when the first trial starts. At the cap, running trials finish and queued trials are skipped. The record status is `budget`, and the run fails.
 
 ## `record`
 
@@ -154,15 +154,15 @@ For more information about copying a run later, see [reeval record](/reference/c
 
 ## `tags`
 
-`tags` selects evaluations. Every profile filter must hold, and every `--tag` flag must hold.
+`tags` selects tasks. Every profile filter must hold, and every `--tag` flag must hold.
 
 <Property name="tags" type="string[]" optional>
-  Tag filters for this profile, same shape as [`tags`](/reference/options#tags) / `--tag`. reeval omits an evaluation that fails a filter.
+  Tag filters for this profile, same shape as [`tags`](/reference/options#tags) / `--tag`. reeval omits a task that fails a filter.
 </Property>
 
 reeval exits with code 2 when `tags` is not a list of strings.
 
-For more information about tags on a group or evaluation, see [Options reference](/reference/options#tags).
+For more information about tags on a suite or task, see [Options reference](/reference/options#tags).
 
 ## `gateway`
 

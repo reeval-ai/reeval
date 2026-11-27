@@ -3,7 +3,7 @@ title: "Size runs with profiles"
 description: "Size a run for pull requests, nightly runs, and local work."
 ---
 
-Size a [run](/reference/glossary#run) with a named preset in the `reeval.config.ts` file: what evaluations get by default, caps over every evaluation, a budget, and which tags run. For the definition, see [Profile](/reference/glossary#profile). One set of evaluation files then serves a cheap pull-request run and a thorough nightly one. For more information about wiring a profile into a workflow, see [CI](/evaluations/runs/ci).
+Size a [run](/reference/glossary#run) with a named preset in the `reeval.config.ts` file: what tasks get by default, caps over every task, a budget, and which tags run. For the definition, see [Profile](/reference/glossary#profile). One set of task files then serves a cheap pull-request run and a thorough nightly one. For more information about wiring a profile into a workflow, see [CI](/evaluations/runs/ci).
 
 ## Define a profile
 
@@ -25,9 +25,9 @@ export default defineConfig({
 })
 ```
 
-For a runnable project, see [`with-profiles`](https://github.com/reeval-ai/reeval/tree/main/examples/with-profiles). For one profile per harness, each in Docker with its own judge, see the examples' shared [`profiles.ts`](https://github.com/reeval-ai/reeval/blob/main/examples/profiles.ts).
+For a runnable project, see [`with-profiles`](https://github.com/reeval-ai/reeval/tree/main/examples/with-profiles). For one profile per agent harness, each in Docker with its own model grader, see the examples' shared [`profiles.ts`](https://github.com/reeval-ai/reeval/blob/main/examples/profiles.ts).
 
-An evaluation that sets its own `runs` keeps it over the profile's `defaults`. For more information about the order, see [The cascade](/reference/options#the-cascade).
+A task that sets its own `runs` keeps it over the profile's `defaults`. For more information about the order, see [The cascade](/reference/options#the-cascade).
 
 To pick a profile, pass `--profile`:
 
@@ -59,7 +59,7 @@ reeval picks `defaultProfile.cloud` for a run going to the cloud, then `defaultP
 
 ## Limit a profile
 
-A profile's `limit` narrows what evaluations ask for. In the `reeval.config.ts` file, restrict the `pr` profile to one harness:
+A profile's `limit` narrows what tasks ask for. In the `reeval.config.ts` file, restrict the `pr` profile to one agent harness:
 
 ```ts title="reeval.config.ts"
     pr: {
@@ -82,15 +82,15 @@ skipped: no agent left: profile pr allows claude-code:claude-sonnet-5
 
 For more information about each `limit` key, see [`limit`](/reference/profiles#limit).
 
-## Pin an evaluation
+## Pin a task
 
-An evaluation or group's `pin` option names the keys a profile's `limit` may not narrow: `'runs'`, `'compare'`, or `'harness'`. For a regression that must keep its variant on every run, pin `compare` and `runs` in the `evals/brand.eval.ts` file:
+A task or suite's `pin` option names the keys a profile's `limit` may not narrow: `'runs'`, `'compare'`, or `'harness'`. For a regression that must keep its variant on every run, pin `compare` and `runs` in the `evals/brand.eval.ts` file:
 
 ```ts title="evals/brand.eval.ts"
 pin: ['compare', 'runs'],
 ```
 
-Under the `pr` profile, the plan lists both cells and notes `pinned: compare, runs`. A group's `pin` covers every evaluation in it.
+Under the `pr` profile, the plan lists both cells and notes `pinned: compare, runs`. A suite's `pin` covers every task in it.
 
 ## Set a budget
 

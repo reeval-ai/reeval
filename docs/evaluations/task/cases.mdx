@@ -1,20 +1,20 @@
 ---
 title: "Evaluate many cases"
-description: "Run the same evaluation over a list of cases and read one result."
+description: "Run the same task over a list of cases and read one result."
 ---
 
-The `cases` option runs one evaluation over a list of inputs. Every case shares the options and the body, which takes the case as its second argument. An evaluation with cases is one evaluation, its cases inside it: under `target: regression()` a failing case fails it. For how cases multiply cells and attempts, see [Cell](/reference/glossary#cell).
+The `cases` option runs one task over a list of inputs. Every case shares the options and the body, which takes the case as its second argument. A task with cases is one task, its cases inside it: under `target: regression()` a failing case fails it. For how cases multiply cells and trials, see [Cell](/reference/glossary#cell).
 
 <Info>
-For evaluations that pass or fail on their own, give each one its own `*.eval.ts` file instead of `cases`.
+For tasks that pass or fail on their own, give each one its own `*.eval.ts` file instead of `cases`.
 </Info>
 
-The evaluation below asks an agent to choose between Genkit and three other AI frameworks, and a judge reads each answer.
+The task below asks an agent to choose between Genkit and three other AI frameworks, and a model grader reads each answer.
 
-## Run one evaluation over many cases
+## Run one task over many cases
 
 <Steps>
-<Step title="Declare the evaluation">
+<Step title="Declare the task">
 
 In the `evals/recommendation.eval.ts` file, pass the rivals as `cases`:
 
@@ -62,18 +62,18 @@ export default defineEval({
     // ...
 ```
 
-Renaming the evaluation or a key starts that case's history again. For a runnable project, see [`with-cases`](https://github.com/reeval-ai/reeval/tree/main/examples/with-cases).
+Renaming the task or a key starts that case's history again. For a runnable project, see [`with-cases`](https://github.com/reeval-ai/reeval/tree/main/examples/with-cases).
 
 </Step>
 <Step title="Verify the run plan">
 
-With the `reeval run --dry-run` command, plan the run without starting a sandbox or a harness:
+With the `reeval run --dry-run` command, plan the run without starting a sandbox or an agent harness:
 
 ```bash
 npx reeval run --dry-run
 ```
 
-The evaluation lists its case count in the `notes` column:
+The task lists its case count in the `notes` column:
 
 ```text
 eval                                                 agents     variants  runs  attempts  notes
@@ -81,9 +81,9 @@ with-cases.eval.ts › adds a function to src/math.js  1          —         1 
 ```
 
 </Step>
-<Step title="Run the evaluation">
+<Step title="Run the task">
 
-Run the evaluation. It prints one row; a miss, or `-v` as here, adds a row per case with its score:
+Run the task. It prints one row; a miss, or `-v` as here, adds a row per case with its score:
 
 ```text
 with-cases.eval.ts
@@ -93,14 +93,14 @@ with-cases.eval.ts
      #power     100%
 ```
 
-The rows list only the cases that cost points, at most eight; `-v` lists every case. While the run goes, each attempt names its case: `fake · power #1 agent turn 1`.
+The rows list only the cases that cost points, at most eight; `-v` lists every case. While the run goes, each trial names its case: `fake · power #1 agent turn 1`.
 
 </Step>
 </Steps>
 
 ## Report the mean over the cases
 
-Under the default target, `capability()`, a failing case fails the evaluation but never the run, and the result prints the mean over the cases:
+Under the default target, `capability()`, a failing case fails the task but never the run, and the result prints the mean over the cases:
 
 ```ts title="evals/rate.eval.ts"
 import { defineEval, defineGrader } from '{{ pkg }}'
@@ -126,9 +126,9 @@ evals/rate.eval.ts
      #c  0%    not-c 0%
 ```
 
-Under `target: regression()`, a failing case fails the run too. A case whose every attempt hit an infra error makes the evaluation an infra error, unless another case fails.
+Under `target: regression()`, a failing case fails the run too. A case whose every trial hit an infra error makes the task an infra error, unless another case fails.
 
-In the record, the cases are rows in the evaluation's `cases`. Case `c` keeps its `fail`, which fails the evaluation. Under a target that blocks, `reeval compare` names a case that regressed inside the evaluation's row, and `--fail-on-regression` reads the evaluation's outcome.
+In the record, the cases are rows in the task's `cases`. Case `c` keeps its `fail`, which fails the task. Under a target that blocks, `reeval compare` names a case that regressed inside the task's row, and `--fail-on-regression` reads the task's final state.
 
 ## Run a case on some environments
 
@@ -147,13 +147,13 @@ export default defineEval({
     // ...
 ```
 
-The `reeval run --dry-run` notes list each pair left out, such as `where excludes 2 pairs · excluded on vite-app: q002, q004`, the run's case table shows `–` for them, and each case in the record's `cases` keeps its own in `excluded` (`whereExcluded` in `--dry-run --json`). The evaluation's own `excluded` lists every pair, including a case `where` leaves out everywhere, which runs nothing. With `compare`, the control's answer holds for every variant. Reading `harness` decides each harness on its own. `where` is TypeScript only.
+The `reeval run --dry-run` notes list each pair left out, such as `where excludes 2 pairs · excluded on vite-app: q002, q004`, the run's case table shows `–` for them, and each case in the record's `cases` keeps its own in `excluded` (`whereExcluded` in `--dry-run --json`). The task's own `excluded` lists every pair, including a case `where` leaves out everywhere, which runs nothing. With `compare`, the baseline's answer holds for every variant. Reading `harness` decides each agent harness on its own. `where` is TypeScript only.
 
 `where` gives the same answer every run. To run only some environments now, filter the cells with [`reeval run --trait stack=next`](/reference/cli#filtering-cells-by-trait) or a profile's [`limit.traits`](/reference/profiles#traits) instead.
 
 ## Compare over cases
 
-Cases with `compare` report one effect per variant, paired by case, with the control first:
+Cases with `compare` report one effect per variant, paired by case, with the baseline first:
 
 ```text
 with-case-lift.eval.ts
@@ -162,7 +162,7 @@ with-case-lift.eval.ts
      math             0 of 6
      jsdoc            6 of 6  helped  "JSDoc block" +100 pts
 ```
- For more information, see [Lift](/results/compare/lift) and [`compare`](/reference/options#compare). For a runnable project, see [`with-case-lift`](https://github.com/reeval-ai/reeval/tree/main/examples/with-case-lift).
+ For more information, see [Statistical lift](/results/compare/lift) and [`compare`](/reference/options#compare). For a runnable project, see [`with-case-lift`](https://github.com/reeval-ai/reeval/tree/main/examples/with-case-lift).
 
 ## Reference
 

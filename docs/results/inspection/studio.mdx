@@ -1,13 +1,13 @@
 ---
-title: "Browse studio runs"
-description: "Browse run history in the studio page, paired with your local runs."
+title: "Browse runs in the results viewer"
+description: "Browse run history in the results viewer, paired with your local runs."
 ---
 
-The studio is a web page over the same run history the `reeval history` command lists, which it reads from your machine. It shows every recorded run, each run's evaluations, cells, and attempts, and each attempt's trajectory. For more information about recording runs, see [Recording](/evaluations/runs/recording).
+Browse recorded runs in the [results viewer](/reference/glossary#results-viewer), which reads them from your machine. It shows every recorded run, each run's tasks, cells, and trials, and each trial's trajectory. For more information about recording runs, see [Recording](/evaluations/runs/recording).
 
-## Open the studio
+## Open the results viewer
 
-The `reeval studio` command serves the history directory from the `reeval.config.ts` file, plus the unrecorded runs in the `.reeval/runs` directory, on `127.0.0.1`, and opens the studio page in the browser:
+The `reeval studio` command serves the history directory from the `reeval.config.ts` file, plus the unrecorded runs in the `.reeval/runs` directory, on `127.0.0.1`, and opens it in the browser:
 
 ```bash
 npx reeval studio

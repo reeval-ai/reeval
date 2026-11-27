@@ -1,18 +1,18 @@
 ---
 title: "Judge a running app"
-description: "See whether the app the harness built renders what the prompt asked for."
+description: "See whether the app the agent harness built renders what the prompt asked for."
 ---
 
-A file grader shows the harness wrote a page. It can't show the page renders. The evaluation starts the app the harness built, captures one page, and asks the judge what the picture shows. For a runnable project that captures a page after a model drives it, see [`with-capture-journey`](https://github.com/reeval-ai/reeval/tree/main/examples/with-capture-journey).
+A file grader shows the agent harness wrote a page. It can't show the page renders. The task starts the app the agent harness built, captures one page, and asks the model grader what the picture shows. For a runnable project that captures a page after a model drives it, see [`with-capture-journey`](https://github.com/reeval-ai/reeval/tree/main/examples/with-capture-journey).
 
 The example uses the `nextApp` environment, whose workspace holds a Next.js app on the Vercel AI SDK with `build` and `start` scripts. For more information about putting an app in the workspace, see [Workspaces](/configuration/environments/repositories).
 
 ## Start, capture, and judge the app
 
 <Steps>
-<Step title="Write the evaluation">
+<Step title="Write the task">
 
-Ask the harness for the page, then check the app builds. In the `evals/chat.eval.ts` file, declare the evaluation:
+Ask the agent harness for the page, then check the app builds. In the `evals/chat.eval.ts` file, declare the task:
 
 ```ts title="evals/chat.eval.ts"
 import { defineEval, EvalError } from '{{ pkg }}'
@@ -33,12 +33,12 @@ export default defineEval({
 })
 ```
 
-The build check runs before the app starts, so a build error fails the attempt with the compiler's output instead of a blank capture.
+The build check runs before the app starts, so a build error fails the trial with the compiler's output instead of a blank capture.
 
 </Step>
 <Step title="Judge the rendered page">
 
-Start the built app, capture the chat page, and ask the judge what the picture shows. In the `evals/chat.eval.ts` file, add a judge grader, and these lines after the build check:
+Start the built app, capture the chat page, and ask the model grader what the picture shows. In the `evals/chat.eval.ts` file, add a model grader, and these lines after the build check:
 
 ```diff title="evals/chat.eval.ts"
  import { defineEval, EvalError } from '{{ pkg }}'
@@ -62,12 +62,12 @@ Start the built app, capture the chat page, and ask the judge what the picture s
  })
 ```
 
-`next start` reads `PORT`, so the app listens where `c.serve` expects it. The question names two elements the page must show, so the judge answers from the picture. For more information about the three calls, see [Start a server](/evaluations/task/apps#start-a-server), [Capture a page](/evaluations/task/apps#capture-a-page), and [Judge a capture](/evaluations/task/apps#judge-a-capture).
+`next start` reads `PORT`, so the app listens where `c.serve` expects it. The question names two elements the page must show, so the model grader answers from the picture. For more information about the three calls, see [Start a server](/evaluations/task/apps#start-a-server), [Capture a page](/evaluations/task/apps#capture-a-page), and [Judge a capture](/evaluations/task/apps#judge-a-capture).
 
 </Step>
-<Step title="Read the outcome">
+<Step title="Read the final state">
 
-Run the evaluation in the `evals/chat.eval.ts` file:
+Run the task in the `evals/chat.eval.ts` file:
 
 ```bash
 npx reeval run chat
@@ -79,13 +79,13 @@ With `-v`, reeval prints each grade and its score during the run. The score can 
 [chat#1 fake]  +0:00 grade renders  score 1.00 2ms
 ```
 
-At the end, the block for the evaluation reads its mean score:
+At the end, the block for the task reads its mean score:
 
 ```text
 └─ · chat  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
 ```
 
-A score below 1 from the `renders` grader lowers the attempt's score, and the block prints it. To see what the judge saw, open the `artifacts/chat.png` file under the run's directory in the `.reeval/runs/` directory. For more information about the outcomes and the tally, see [Read a run's output](/results/output).
+A score below 1 from the `renders` grader lowers the trial's score, and the block prints it. To see what the judge saw, open the `artifacts/chat.png` file under the run's directory in the `.reeval/runs/` directory. For more information about the final states and the tally, see [Read a run's output](/results/output).
 
 </Step>
 </Steps>

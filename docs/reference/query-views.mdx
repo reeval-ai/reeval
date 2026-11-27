@@ -66,7 +66,7 @@ Each built-in view returns one kind of row.
 
 ## `lift`
 
-`lift` lists one row per variant cell in a run, beside its control.
+`lift` lists one row per variant cell in a run, beside its baseline.
 
 ```bash title="Query"
 reeval query "SELECT eval_key, points, lo, hi FROM lift WHERE within_noise = 0"
@@ -76,7 +76,7 @@ reeval query "SELECT eval_key, points, lo, hi FROM lift WHERE within_noise = 0"
 
 ## `case_lift`
 
-`case_lift` lists one row per variant of an evaluation with `cases` in one run: its lift over the cases, paired by case. The evaluation is one row in `evals`, with how many cases it declares in `cases`; each case is a row in the `cases` table, and its passes per cell are in `case_rates`. An attempt's case is its `case_key`.
+`case_lift` lists one row per variant of a task with `cases` in one run: its statistical lift over the cases, paired by case. The task is one row in `evals`, with how many cases it declares in `cases`; each case is a row in the `cases` table, and its passes per cell are in `case_rates`. A trial's case is its `case_key`.
 
 ```bash title="Query"
 reeval query "SELECT eval_key, variant, points FROM case_lift"
@@ -84,7 +84,7 @@ reeval query "SELECT eval_key, variant, points FROM case_lift"
 
 ## `effort`
 
-`effort` lists one row per cell, with a variant's ratios against its control.
+`effort` lists one row per cell, with a variant's ratios against its baseline.
 
 ```bash title="Query"
 reeval query "SELECT eval_key, variant, tools_ratio FROM effort"
@@ -92,7 +92,7 @@ reeval query "SELECT eval_key, variant, tools_ratio FROM effort"
 
 ## `contrasts`
 
-`contrasts` lists one row per pair of arms on one harness and sandbox when an evaluation has two or more variants.
+`contrasts` lists one row per pair of arms on one agent harness and sandbox when a task has two or more variants.
 
 ```bash title="Query"
 reeval query "SELECT eval_key, a_key, b_key, points FROM contrasts"
@@ -102,7 +102,7 @@ reeval query "SELECT eval_key, a_key, b_key, points FROM contrasts"
 
 ## `question_pairs`
 
-`question_pairs` lists one row per pair of sides on a pairwise question.
+`question_pairs` lists one row per pair of sides on a comparative grader.
 
 ```bash title="Query"
 reeval query "SELECT question, a, b, a_wins, b_wins FROM question_pairs"
@@ -110,7 +110,7 @@ reeval query "SELECT question, a, b, a_wins, b_wins FROM question_pairs"
 
 ## `attempt_answers`
 
-`attempt_answers` lists one row per answer to a question asked of each attempt on its own, with the attempt's outcome and cell.
+`attempt_answers` lists one row per answer to a question asked of each trial on its own, with the trial's final state and cell.
 
 ```bash title="Query"
 reeval query "SELECT question, choice, outcome FROM attempt_answers"
@@ -118,39 +118,39 @@ reeval query "SELECT question, choice, outcome FROM attempt_answers"
 
 ## `factor_effects`
 
-`factor_effects` lists one row per factor level against a control.
+`factor_effects` lists one row per factor level against a baseline.
 
 ```bash title="Query"
 reeval query "SELECT factor, level, tier, points FROM factor_effects"
 ```
 
-`tier` is `controlled`, `pooled`, `paired`, `observed`, or `not_measured`. `run_id` is null for `not_measured` and for a `pooled` row over several runs; a `pooled` row across one run's evaluations has that run's id.
+`tier` is `controlled`, `pooled`, `paired`, `observed`, or `not_measured`. `run_id` is null for `not_measured` and for a `pooled` row over several runs; a `pooled` row across one run's tasks has that run's id.
 
 `pass_verdict` is `effect`, `noise`, `insufficient` (a family below six pairs or cases), or `not_comparable` (the eval changed). `small_sample` is 1 when the row rests on a small sample, and null when the eval changed. A `paired` row's sample is its cases, so it is small below six of them.
 
 ## `measure_effects`
 
-`measure_effects` lists one row per measure of each variant's comparison with its control in a run: a variant cell's or, on an evaluation with several cases, its variant's pooled over them (`pooled` 1).
+`measure_effects` lists one row per metric of each variant's comparison with its baseline in a run: a variant cell's or, on a task with several cases, its variant's pooled over them (`pooled` 1).
 
 ```bash title="Query"
 reeval query "SELECT variant, measure, label, verdict, text, needed FROM measure_effects"
 ```
 
-`measure` is `pass`, `check`, `judge`, `question`, `tools`, `agentMs` or `tokens`, and `label` names the check, judge or question. `verdict` is `better`, `worse`, `same` or `leans`, by the measure's own test; `leaning` says which way a lean goes, and `needed` the runs a side (or cases, by `unit`) at which it would hold. For the tests, see [One comparison over every measure](/reference/statistics#one-comparison-over-every-measure).
+`measure` is `pass`, `check`, `judge`, `question`, `tools`, `agentMs` or `tokens`, and `label` names the check, judge or question. `verdict` is `better`, `worse`, `same` or `leans`, by the metric's own test; `leaning` says which way a lean goes, and `needed` the runs a side (or cases, by `unit`) at which it would hold. For the tests, see [One comparison over every metric](/reference/statistics#one-comparison-over-every-metric).
 
 ## `skill_reads`
 
-`skill_reads` lists one row per attempt and skill, placed or not.
+`skill_reads` lists one row per trial and skill, placed or not.
 
 ```bash title="Query"
 reeval query "SELECT skill, reads, read_line FROM skill_reads"
 ```
 
-A read is a tool call the `usedSkill` grader counts: a target under `skills/<name>`, or a `skill`, `Skill`, or `load_skill` call that names the skill. The `skill_uses` table has each one by its trajectory line. An attempt with tool calls but no kept trajectory, such as a passing attempt recorded with `history.artifacts: 'failures'`, has no row in `skill_reads`, `skill_files`, or `context_use`.
+A read is a tool call the `usedSkill` grader counts: a target under `skills/<name>`, or a `skill`, `Skill`, or `load_skill` call that names the skill. The `skill_uses` table has each one by its trajectory line. A trial with tool calls but no kept trajectory, such as a passing trial recorded with `history.artifacts: 'failures'`, has no row in `skill_reads`, `skill_files`, or `context_use`.
 
 ## `context_use`
 
-`context_use` lists one row per attempt and tool-call class.
+`context_use` lists one row per trial and tool-call class.
 
 ```bash title="Query"
 reeval query "SELECT class, calls, example FROM context_use"
@@ -160,7 +160,7 @@ reeval query "SELECT class, calls, example FROM context_use"
 
 ## `skill_files`
 
-`skill_files` lists one row per file the environment declared, on one attempt.
+`skill_files` lists one row per file the environment declared, on one trial.
 
 ```bash title="Query"
 reeval query "SELECT path, reads, first_line FROM skill_files"
@@ -188,7 +188,7 @@ reeval query "SELECT eval_key, changed, noise FROM drift"
 
 ## `failing_attempts`
 
-`failing_attempts` lists each attempt whose `outcome` is `fail` or `infra_error`, one row per placed skill.
+`failing_attempts` lists each trial whose `outcome` is `fail` or `infra_error`, one row per placed skill.
 
 ```bash title="Query"
 reeval query "SELECT eval_key, harness, outcome FROM failing_attempts"
@@ -198,7 +198,7 @@ With no placed skill, `skill` is null.
 
 ## `eval_trend`
 
-`eval_trend` lists one row per evaluation per run. An evaluation with `cases` is one row, with its case count in `cases`; each case's own outcome is in the `cases` table.
+`eval_trend` lists one row per task per run. A task with `cases` is one row, with its case count in `cases`; each case's own final state is in the `cases` table.
 
 ```bash title="Query"
 reeval query "SELECT eval_key, outcome, pass_at_1 FROM eval_trend"
@@ -206,7 +206,7 @@ reeval query "SELECT eval_key, outcome, pass_at_1 FROM eval_trend"
 
 ## `verdict_flips`
 
-`verdict_flips` lists one row where a judgment's `pass_rate` on a cell differs from `prev_pass_rate`.
+`verdict_flips` lists one row where a natural-language assertion's `pass_rate` on a cell differs from `prev_pass_rate`.
 
 ```bash title="Query"
 reeval query "SELECT question, prev_pass_rate, pass_rate FROM verdict_flips"
@@ -214,7 +214,7 @@ reeval query "SELECT question, prev_pass_rate, pass_rate FROM verdict_flips"
 
 ## `check_discrimination`
 
-`check_discrimination` lists one row per assertion on a variant cell, beside its control.
+`check_discrimination` lists one row per assertion on a variant cell, beside its baseline.
 
 ```bash title="Query"
 reeval query "SELECT label, verdict FROM check_discrimination"
@@ -240,13 +240,13 @@ reeval query "SELECT label, pass, fail, rate FROM check_rates"
 reeval query "SELECT label, streak_runs, ended_by FROM check_streaks"
 ```
 
-On a variant, the streak counts a run only when the variant and the control both pass.
+On a variant, the streak counts a run only when the variant and the baseline both pass.
 
 ## Tables
 
 These tables store the projected rows. `reeval query --schema` lists these columns. That listing omits `meta`, `files`, `case_lift_m`, and the derived `*_m` fact tables; it keeps `question_pairs_m` and `attempt_answers_m`.
 
-In `tool_calls`, `ok` is 1 or 0, or null for a call whose result the harness never reported. Count failures with `ok = 0`.
+In `tool_calls`, `ok` is 1 or 0, or null for a call whose result the agent harness never reported. Count failures with `ok = 0`.
 
 In `evals`, `declared` is `todo` for an `evaluate.todo`, `skip` for an eval declared skipped (`.skip`, or left out by an `.only`), and null otherwise. In a run whose `status` isn't `complete`, a `skipped` eval with a null `declared` hasn't run yet.
 

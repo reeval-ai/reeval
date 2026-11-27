@@ -1,15 +1,15 @@
 ---
 title: "Assertions"
-description: "Fail the attempt when the agent's work misses an assertion."
+description: "Fail the trial when the agent's work misses an assertion."
 ---
 
-You list graders in the evaluation's `graders`. A grader that scores below 1 lowers the attempt's score. For more information about how an assertion becomes an outcome, see [Assertion](/reference/glossary#assertion). For more information about scoring the reply with a model, see [Judgments](/evaluations/grading/judgments).
+You list graders in the task's `graders`. A grader that scores below 1 lowers the trial's score. For more information about how an assertion becomes a final state, see [Assertion](/reference/glossary#assertion). For more information about scoring the reply with a model, see [Judgments](/evaluations/grading/judgments).
 
 ## Check a file the agent wrote
 
 `hasFile` reads a file in the workspace after the task returns. Its `name` option is the label in the result. The `camelcase` environment is the one from [Evaluate](/evaluations/evaluate).
 
-In the `evals/camelcase.eval.ts` file, send the task and check that the readme documents the option:
+In the `evals/camelcase.eval.ts` file, send the instruction and check that the readme documents the option:
 
 ```ts title="evals/camelcase.eval.ts"
 export default defineEval({
@@ -71,7 +71,7 @@ A string or regular expression matches anywhere in the command line, so `/genkit
 
 ## Use required graders
 
-Every grader reports on each attempt. A grader with `required: true` that scores below 1 makes the attempt's score 0. In the `evals/camelcase.eval.ts` file, both file graders report on each attempt:
+Every grader reports on each trial. A grader with `required: true` that scores below 1 makes the trial's score 0. In the `evals/camelcase.eval.ts` file, both file graders report on each trial:
 
 ```ts title="evals/camelcase.eval.ts"
   graders: [
@@ -80,11 +80,11 @@ Every grader reports on each attempt. A grader with `required: true` that scores
   ],
 ```
 
-To stop the task, throw from it: an `EvalError` or a failed `assert` fails the attempt, and no grader runs.
+To stop the task, throw from it: an `EvalError` or a failed `assert` fails the trial, and no grader runs.
 
 ## Troubleshooting
 
-Match the attempt error to a fix:
+Match the trial error to a fix:
 
 | Symptom | Check | Next action |
 |---|---|---|

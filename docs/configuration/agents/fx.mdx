@@ -1,6 +1,6 @@
 ---
-title: "fx harness"
-description: "The fx harness runs Vercel's fx agent in the sandbox on Vercel AI Gateway or an OpenAI API key and records its events."
+title: "fx agent harness"
+description: "The fx agent harness runs Vercel's fx agent in the sandbox on Vercel AI Gateway or an OpenAI API key and records its events."
 ---
 
 `fx()` runs Vercel's fx agent (`fx acp`) in the sandbox, on Vercel AI Gateway or on OpenAI's Chat Completions API, picked by the model id. The turn runs in fx's `full-access` mode, so no reviewer model checks each action. For more information about the sandbox, see [Choose a sandbox](/configuration/sandboxes).
@@ -20,7 +20,7 @@ On OpenAI, reeval brokers the key on `POST https://api.openai.com/v1/chat/comple
 
 fx ignores `HTTPS_PROXY`, so it sends its model calls to a relay on `127.0.0.1:24823` in the sandbox, which sends them on through the egress gateway.
 
-When the API rejects the key, the attempt is an infra error whose message begins with `The API rejected <KEY>: set a valid key in the environment or .env.local`.
+When the API rejects the key, the trial is an infra error whose message begins with `The API rejected <KEY>: set a valid key in the environment or .env.local`.
 
 For more information about keeping API keys on the host, see [Keep API keys on the host](/configuration/environments/secrets#keep-api-keys-on-the-host).
 
@@ -41,13 +41,13 @@ export default defineConfig({
 })
 ```
 
-`model` is required, `fx()` takes no `effort`, and an unknown option fails at plan time with exit code 2. For what `model` takes, see [Harness factory options](/reference/options#harness-factory-options).
+`model` is required, `fx()` takes no `effort`, and an unknown option fails at plan time with exit code 2. For what `model` takes, see [Agent harness factory options](/reference/options#harness-factory-options).
 
 
 
 In the sandbox, fx runs with a private home, whose `settings.json` file turns session titles off, so the run's model is the only one called. Auto-upgrade and sound are off.
 
-For more information about model ids, see [Set the agent's model](/configuration/agents/model). For rules, skills, MCP servers, usage, served models, and web events, see [Harness behavior](/reference/options#harness-behavior).
+For more information about model ids, see [Set the agent's model](/configuration/agents/model). For rules, skills, MCP servers, usage, served models, and web events, see [Agent harness behavior](/reference/options#harness-behavior).
 
 ## `plugins`
 

@@ -1,13 +1,13 @@
 ---
-title: "Group evaluations"
-description: "Apply the same options to several evaluations."
+title: "Group tasks into a suite"
+description: "Apply the same options to every task in a suite."
 ---
 
-When several evaluations share an environment, tags, or the `judge` option, put the shared fields in a helper module and spread them into each `defineEval` call. The two evaluations below ask for Vitest tests in a `plain` environment, defined in the `evals/environments.ts` file.
+When several tasks share an environment, tags, or the `judge` option, put the shared fields in a helper module and spread them into each `defineEval` call. The two tasks below ask for Vitest tests in a `plain` environment, defined in the `evals/environments.ts` file.
 
-## Group evaluations
+## Group tasks
 
-Export shared options from one module. In the `evals/shared.ts` file, give both evaluations the `plain` environment and the `smoke` tag:
+Export shared options from one module. In the `evals/shared.ts` file, give both tasks the `plain` environment and the `smoke` tag:
 
 ```ts title="evals/shared.ts"
 import { plain } from './environments.ts'
@@ -45,7 +45,7 @@ export default defineEval({
 })
 ```
 
-## Nest groups
+## Nest suites
 
 A helper can spread another helper and add its own fields. In the `evals/billing-shared.ts` file, add the `billing` tag on top of `shared`:
 
@@ -55,11 +55,11 @@ import { shared } from './shared.ts'
 export const billing = { ...shared, tags: [...shared.tags, 'billing'] }
 ```
 
-The billing evaluation spreads `billing` and keeps `shared`'s `plain` environment and `smoke` tag.
+The billing task spreads `billing` and keeps `shared`'s `plain` environment and `smoke` tag.
 
-## Override an option in one evaluation
+## Override an option in one task
 
-An `environment`, `timeout`, `runs`, `target`, or `sandbox` on one `defineEval` call replaces the spread value for that evaluation. The other evaluations keep the shared value. In the `evals/shoehorn/build-only-fields.eval.ts` file, give one evaluation a longer timeout:
+An `environment`, `timeout`, `runs`, `target`, or `sandbox` on one `defineEval` call replaces the spread value for that task. The other tasks keep the shared value. In the `evals/shoehorn/build-only-fields.eval.ts` file, give one task a longer timeout:
 
 ```ts title="evals/shoehorn/build-only-fields.eval.ts"
 export default defineEval({
@@ -73,13 +73,13 @@ export default defineEval({
 
 ## Verify with the `reeval run --dry-run` command
 
-The `reeval run --dry-run` command plans the run without starting a sandbox or a harness, so it needs no API key. Plan the run:
+The `reeval run --dry-run` command plans the run without starting a sandbox or an agent harness, so it needs no API key. Plan the run:
 
 ```bash
 npx reeval run --dry-run
 ```
 
-The header counts the evaluations, cells, and attempts, and estimates the time. Each row names an evaluation by its file id. If an evaluation is missing, check that its file ends in `.eval.ts` or `.eval.py` and sits under the `evals/` folder.
+The header counts the tasks, cells, and trials, and estimates the time. Each row names a task by its file id. If a task is missing, check that its file ends in `.eval.ts` or `.eval.py` and sits under the `evals/` folder.
 
 ## Skip or plan an eval
 
@@ -87,7 +87,7 @@ The header counts the evaluations, cells, and attempts, and estimates the time. 
 
 ## See how options cascade
 
-Options cascade from the config and profile `defaults` to each eval. For the full order, see [The cascade](/reference/options#the-cascade). Tags on the eval add up with profile tags, so `npx reeval run --tag smoke` runs both evaluations above. For more information about filtering by tag, see [Filter evaluations](/evaluations/runs/running#filter-evaluations).
+Options cascade from the config and profile `defaults` to each eval. For the full order, see [The cascade](/reference/options#the-cascade). Tags on the eval add up with profile tags, so `npx reeval run --tag smoke` runs both tasks above. For more information about filtering by tag, see [Filter tasks](/evaluations/runs/running#filter-tasks).
 
 ## Reference
 

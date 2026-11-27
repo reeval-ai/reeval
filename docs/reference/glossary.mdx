@@ -1,13 +1,27 @@
 ---
 title: "Glossary of terms"
-description: "The words name the parts of a run and what a result reports."
+description: "The names reeval uses for the parts of a run and what a result reports, and what each means."
 ---
 
 ## Agent
 
-An agent is a harness plus its model, named in the `agents` option, such as `claude-code:claude-sonnet-5`.
+An agent is an agent harness plus its model, named in the `agents` option, such as `claude-code:claude-sonnet-5`.
 
-**Agent mode** is `--ui agent`, output for an agent that is itself running reeval. `to: 'agent'` on a secret puts the value in the container's environment. For more information about an agent, see [Harness](/reference/glossary#harness).
+**Agent mode** is `--ui agent`, output for an agent that is itself running reeval. `to: 'agent'` on a secret puts the value in the container's environment. For more information about an agent, see [Agent harness](/reference/glossary#agent-harness).
+
+## Agent funnel
+
+The agent funnel is the stages an agent passes through when it adopts a product: discovery, selection, access and task success. reeval measures the last stage, through a task's pass rate.
+
+## Agent harness
+
+An agent harness is the coding agent's program, such as Claude Code or Codex, and with a model it makes an agent. For more information about an agent harness, see [Choose an agent harness](/configuration/agents).
+
+**The harness id** is `id` on an agent harness.
+
+## Agentic testing pyramid
+
+The agentic testing pyramid orders tests by LLM calls, speed and cost, from unit tests to full agent loops. A [deterministic test](#deterministic-test) makes no LLM call, a [one-turn eval](#one-turn-eval) tests one model decision, and an [end-to-end eval](#end-to-end-e2e-eval) runs the whole loop, which is what a reeval task does.
 
 ## Analysis
 
@@ -15,111 +29,227 @@ An analysis is what a language model writes about a run. `reeval analyze` writes
 
 ## Answers
 
-Answers are what an evaluation's questions found, such as `won 3 of 4` for each side of a pairwise question. For more information about answers, see [Analysis](/reference/glossary#analysis).
+Answers are what a task's questions found, such as `won 3 of 4` for each side of a pairwise question. For more information about answers, see [Analysis](/reference/glossary#analysis).
 
-## Artifacts
+## Artifact
 
-Artifacts are what an attempt leaves behind: the files the agent wrote and the diff, from the workspace, and the screenshots `c.capture()` saves in the attempt's `artifacts/` directory, outside it.
+Artifacts are what a trial leaves behind: the files the agent wrote and the diff, from the workspace, and the screenshots `c.capture()` saves in the trial's `artifacts/` directory, outside it.
 
 **Judge artifacts** are `artifacts` on a `judge` grader's `inputs` and on a question. **Stored artifacts** are `history.artifacts` and `reeval record --artifacts`. For more information about artifacts, see [Workspace](/reference/glossary#workspace).
 
 ## Assertion
 
-An assertion is a named, deterministic pass or fail on what an attempt produced, written as a grader.
+An assertion is a named, deterministic pass or fail on what a trial produced, written as a built-in grader such as `hasFile`. An assertion is one kind of deterministic grader. For the other kind, see [Command](/reference/glossary#command).
 
-A [judgment](#judgment) is not an assertion, and neither are the **doctor checks** `reeval doctor` verifies. The **assertion table** is the terminal table of assertions by cell, headed `check`. For more information about assertions, see [Assertions](/evaluations/grading/assertions).
+A [natural-language assertion](#natural-language-assertion) is not an assertion, and neither are the **doctor checks** `reeval doctor` verifies. The **assertion table** is the terminal table of assertions by cell, headed `check`. For more information about assertions, see [Assertions](/evaluations/grading/assertions).
 
-## Attempt
+## Baseline
 
-An attempt is one execution of a cell in a fresh sandbox, and its outcome is pass, fail, infra error, or skipped. For more information about an attempt, see [Cell](/reference/glossary#cell).
+The baseline is a comparison's environment without the change, named in `compare.control`, and each variant is measured against it. For more information about a baseline, see [Compare setups](/results/compare/lift).
+
+## Canary string
+
+A canary string is a unique marker in a task's files, so model trainers can filter them from pretraining data and check for leakage. reeval doesn't add one yet.
+
+## Capability metric
+
+The capability metric asks whether the agent *can* succeed. It is pass@k, and `capability()` passes a cell on it.
+
+## Capability suite
+
+A capability suite holds tasks the agent does not reliably solve yet, and it measures frontier progress. Its targets are `capability()`. For more information about suites, see [Suite](#suite).
 
 ## Case
 
-A case is one item of an evaluation's `cases` option. Every case runs the same body, and the cases pool into one pass rate. For more information about a case, see [Evaluate many cases](/evaluations/task/cases).
+A case is one item of a task's `cases` option. Every case runs the same body, and the cases pool into one pass rate. For more information about a case, see [Evaluate many cases](/evaluations/task/cases).
 
 ## Cell
 
-A cell is one agent, one environment, and one `sandbox` option of an evaluation, and each of its attempts gets a fresh sandbox. In a comparison, the control and each variant are separate cells. For more information about a cell, see [Attempt](/reference/glossary#attempt).
+A cell is one agent, one environment, and one `sandbox` option of a task, and each of its trials gets a fresh sandbox. In a comparison, the baseline and each variant are separate cells. For more information about a cell, see [Trial](/reference/glossary#trial).
 
-## compare
+## Command
 
-**Compare** is the `compare` option. The **run diff** is `reeval compare`, and the Run history `compare` tool, which diffs two runs.
+A command is a deterministic check that runs in the sandbox, written with `c.exec()`. It passes when the command exits 0. A command is the other kind of deterministic grader, next to an [assertion](#assertion). For more information about commands, see [Assertions](/evaluations/grading/assertions#run-the-projects-tests).
+
+## Comparative grader
+
+A comparative grader reads across trials after they end, such as a pairwise question with `across`, and never changes a trial's result. For more information about a comparative grader, see [Ask which side did better](/evaluations/grading/questions#ask-which-side-did-better).
 
 ## Comparison
 
-A comparison runs its control and each variant as separate cells. It measures a variant against the control only when the cells share an agent and `sandbox` option, and reports `helped`, `made it worse`, or `same`. For more information about a comparison, see [Compare setups](/results/compare/lift).
+**Compare** is the `compare` option. The **run diff** is `reeval compare`, and the Run history `compare` tool, which diffs two runs.
 
-## Control
+A comparison runs its baseline and each variant as separate cells. It measures a variant against the baseline only when the cells share an agent and `sandbox` option, and reports `helped`, `made it worse`, or `same`. For more information about a comparison, see [Compare setups](/results/compare/lift).
 
-The control is a comparison's environment without the change, named in `compare.control`, and each variant is measured against it. For more information about a control, see [Compare setups](/results/compare/lift).
+## Constraint
+
+A constraint is one requirement a task grades, scored on its own, so a failure names the requirement that broke. Each grader is a constraint: a grader that scores below 1 lowers the trial's score.
+
+## Contamination
+
+Contamination is leakage of tasks or their solutions into model training data, which inflates scores through memorization. reeval doesn't detect it. Keep solutions out of public code, and add a [canary string](#canary-string).
+
+## Correlated failure
+
+A correlated failure is a distorted trial result caused by state that leaks between trials, such as leftover files or cached data. Each trial runs in a fresh [sandbox](#sandbox), which is how reeval avoids it.
+
+## Cost
+
+Cost is the dollar spend on model tokens and compute for one trial. reeval records the agent's and the judge's costs on each trial when the harness reports them.
+
+## Cost per success
+
+Cost per success is the total dollar spend across all trials, failed ones included, divided by the number of passing trials. reeval doesn't report it yet.
+
+## Deterministic grader
+
+A deterministic grader is objective, code-based verification of a trial's final state, with no LLM call. Its two kinds are an [assertion](#assertion), such as `hasFile`, and a [command](#command), written with `c.exec()`. For more information about deterministic graders, see [Assertions](/evaluations/grading/assertions).
+
+## Deterministic test
+
+A deterministic test is a unit test with no LLM call, which checks that the software works before you test an agent on it. Keep these in your own test suite. reeval runs the tasks that test agents.
 
 ## digest
 
 The **digest** is what `reeval analyze` hands the model. The **environment digest** is one part of a cell fingerprint.
 
+## Duration
+
+Duration is the wall-clock time of a trial, measured on passing trials. reeval records each trial's duration and reports it as time in the [metrics](#metric).
+
 ## effect
 
-See [Comparison](#comparison) for `helped` / `made it worse` / `same`. `EffortVerdict` is `fewer`, `more`, `noise`, or `insufficient` (printed as “within noise” and “too few attempts to test”). A **family verdict** is `FamilyVerdict` on the paired lift over an evaluation's cases.
+See [Comparison](#comparison) for `helped` / `made it worse` / `same`. `EffortVerdict` is `fewer`, `more`, `noise`, or `insufficient` (printed as “within noise” and “too few attempts to test”). A **family verdict** is `FamilyVerdict` on the paired lift over a task's cases.
+
+## Efficiency metric
+
+The efficiency metric rolls up what trials use: steps, duration, cost and cost per success. reeval reports tokens, tool calls, turns, cost and time for each cell.
 
 ## effort
 
-**Reasoning effort** is the harness `effort` option, an input, recorded as `reasoning_effort`. The `effort` table prints tool calls, agent time, and tokens, an output.
+**Reasoning effort** is the agent harness `effort` option, an input, recorded as `reasoning_effort`. The `effort` table prints tool calls, agent time, and tokens, an output.
+
+## End-to-end (E2E) eval
+
+An end-to-end eval runs the agent loop on its own, from the first prompt to the [final state](#final-state), inside an [environment](#environment). Every task reeval runs is one, in a sandbox.
 
 ## Environment
 
-An environment is what the agent receives in an attempt, such as skills, MCP servers, rules, files, setup steps, variables, and secrets.
+An environment is what the agent receives in a trial, such as skills, MCP servers, rules, files, setup steps, variables, and secrets.
 
 In code, an **environment** is the value `defineEnvironment()` returns. **Variables** are the sandbox `env`. **Host variables** are variables in the shell that runs reeval. For more information about an environment, see [Define an environment](/configuration/environments).
 
-## Evaluation
+## Evaluation harness
 
-An evaluation is one task for the agent and the assertions and judgments on its result, declared with `defineEval()` in a `*.eval.ts` file, optionally over a list of `cases`. The evaluation fails when a cell that counts toward it fails.
+The evaluation harness is reeval itself: the CLI, the `reeval.config.ts` file and the [results viewer](/reference/glossary#results-viewer) that run each task in a sandbox, grade it and report the run. It is not an [agent harness](/reference/glossary#agent-harness), which is the program under test.
 
-The **evaluation model** is a `typesafe-ai/*` judge model, which only scores yes or no, as the error strings name it. A **language model** writes text. For more information about an evaluation, see [Evaluate](/evaluations/evaluate).
+## Evaluation-driven development
 
-## gate
+Evaluation-driven development writes the target capabilities as failing tasks first, then iterates until the system passes them.
 
-**Gate** is a cell's `gate`, which the evaluation's `target` sets.
+## Final state
 
-## Harness
+A final state is the workspace a trial leaves when the agent finishes: the files the agent wrote, the diff and the [artifacts](/reference/glossary#artifact) that graders read. The `outcome` column of `attempts` is a different thing: it holds a trial's result.
 
-A harness is the coding agent's program, such as Claude Code or Codex, and with a model it makes an agent. For more information about a harness, see [Choose a harness](/configuration/agents).
+## Gate
+
+A gate is a policy that decides a run's exit code. A cell's gate is set by the task's `target`: `regression()` (pass^k) or `capability()` (pass@k). `reeval compare --fail-on-regression` gates a run against a past run.
+
+## Goal
+
+A goal is the user-facing outcome or product hypothesis a suite is meant to validate. reeval doesn't store goals. A suite's name and its tasks' requests say what it checks.
+
+## Grade
+
+A grade is a score or pass-or-fail verdict a grader emits for one trial. A **judge verdict** is `Verdict`, the grade a `judge` grader records. A **family verdict** is `FamilyVerdict`. A verdict on tool calls, time, or tokens is `EffortVerdict`. An **assertion verdict** is `CheckVerdict`. A trial's result (`pass`, `fail`, infra error, or `skipped`) is never called a grade.
+
+## Grader
+
+A grader scores a trial's final state or trajectory. The two kinds are a [deterministic grader](#deterministic-grader), with no LLM call, and a [model grader](#model-grader), which asks a model a question about the work. A grader's `name` names its row in the result.
+
+## Graduation
+
+Graduation moves a saturated capability suite into a regression suite, so its gains don't drift. reeval has no command for it yet.
 
 ## history
 
 The **history folder** is `.history`. `reeval history` is the pass/fail list over recent runs. **Run history** is the `reeval mcp` server. The `history` tool lists recorded runs; the code still titles that tool "Run history". `.reeval/history.db` is the database those commands read.
 
+## Human grader
+
+A human grader is a domain expert's review, used as the gold standard for scoring. reeval doesn't store human labels yet. Read a trial in the [results viewer](#results-viewer) and grade it by hand.
+
 ## id
 
-The **harness id** is `id` on a harness, and the **sandbox id** is `id` on a sandbox. The **attempt id** is `<cell key>#<n>`. The **run id** names one run.
+The **sandbox id** is `id` on a sandbox. The **trial id** is `<cell key>#<n>`. The **run id** names one run.
 
-## Judgment
+## Inter-annotator agreement
 
-A judgment is an LLM score from a `judge` grader on a yes or no question about the agent's work; the record stores it in the attempt's `grades`. For more information about a judgment, see [Score agent work](/evaluations/grading/judgments).
+Inter-annotator agreement is how often independent experts agree when they grade the same task. reeval doesn't compute it yet.
 
-## Lift
+## Judge calibration
 
-Lift is a variant against the control: the difference in pass rate on the same agent and `sandbox` option. For more information about lift, see [How reeval decides a change helped](/reference/statistics).
+Judge calibration measures how often a [model grader](#model-grader) agrees with human verdicts, and where it errs. reeval doesn't compute it yet.
 
 ## maxConcurrent
 
-Harness `maxConcurrent`, sandbox `maxConcurrent`, and `judge.maxConcurrent` are separate caps. `concurrency` is how many attempts run at once.
+Agent harness `maxConcurrent`, sandbox `maxConcurrent`, and `judge.maxConcurrent` are separate caps. `concurrency` is how many trials run at once.
 
 ## MCP server
 
-An **MCP server** is one the harness receives, under `mcp`. **Run history** is reeval's read-only MCP server, `reeval mcp`.
+An **MCP server** is one the agent harness receives, under `mcp`. **Run history** is reeval's read-only MCP server, `reeval mcp`.
 
-## Measures
+## Metric
 
-The measures are pass rate, tokens, tool calls, turns, cost, and time. For more information about each measure, see [Run](/reference/glossary#run).
+A metric rolls up a cell's trials into one number. The metrics are pass rate, pass@k (`capability()`), pass^k (`regression()`), tokens, tool calls, turns, cost, and time. For more information about each metric, see [Run](/reference/glossary#run).
 
-## model
+## Model
 
-The **harness model** is `model`. Separate from it are `judge.model`, `capture.model`, `question.model`, `analysis.model`, and the served model `turn.model`. For the evaluation model and the language model, see [Evaluation](#evaluation).
+The **agent model** is `model`. Separate from it are `judge.model`, `capture.model`, `question.model`, `analysis.model`, and the served model `turn.model`. For the evaluation model and the language model, see [Task](#task).
+
+## Model grader
+
+A model grader is an LLM score from a `judge` grader on a question about the agent's work. Its yes-or-no form is a [natural-language assertion](#natural-language-assertion). For more information about a model grader, see [Grade with a model grader](/evaluations/grading/judgments).
+
+## Multi-judge consensus
+
+Multi-judge consensus combines independent votes from a panel of model graders, to reduce grading noise. A `judge` grader asks one model. A panel isn't built yet.
+
+## Natural-language assertion
+
+A natural-language assertion is a single binary yes-or-no check on the agent's work, evaluated by a model grader. It passes when its score is at least the threshold; the record stores it in the trial's `grades`. For more information about a natural-language assertion, see [Grade with a model grader](/evaluations/grading/judgments).
+
+## Negative case
+
+A negative case tests restraint: the agent should not act, call a tool or trigger when it shouldn't. Write it as a task whose graders check that nothing happened.
+
+## One-turn eval
+
+A one-turn eval tests one model decision or tool call without a full sandbox loop. reeval runs every task end to end, so it has no one-turn mode yet.
 
 ## only
 
-`evaluate.only` and `group.only` mark which evaluations run. A **harness edit** is `{ add }`, `{ only }`, or a function of the inherited list. Skill `only` and `exclude` choose which files a skill directory keeps.
+`evaluate.only` and `group.only` mark which tasks run. A **harness edit** is `{ add }`, `{ only }`, or a function of the inherited list. Skill `only` and `exclude` choose which files a skill directory keeps.
+
+## Oracle
+
+An oracle is a deterministic reference solver that runs in place of an agent, to show a task is solvable and its graders work. reeval doesn't have one yet.
+
+## Partial credit
+
+Partial credit scores a trial as a fraction across its requirements, rather than all or nothing. A grader that scores between 0 and 1 gives partial credit, unless it is `required`: a required grader below 1 makes the trial's score 0.
+
+## Pass rate
+
+The pass rate is the mean proportion of successful trials across k trials. In a run record it is `passRate`.
+
+## pass@k
+
+pass@k is the [capability metric](#capability-metric): the probability that at least one of k trials succeeds. `capability()` passes a cell on it, and only reports.
+
+## pass^k
+
+pass^k is the [reliability metric](#reliability-metric): the probability that all k trials succeed. `regression()` gates a cell on it.
 
 ## Past runs
 
@@ -127,17 +257,11 @@ Past runs are earlier recorded runs, and `reeval compare` diffs this run against
 
 ## placement
 
-`placement` on a skill is `'harness'` or `'workspace'`. Those values are not the harness and not the workspace.
+`placement` on a skill is `'harness'` or `'workspace'`. Those values are not the agent harness and not the workspace.
 
 ## Profile
 
 A profile is a named preset that sizes a run, and the run's record stores the profile that sized it. For more information about a profile, see [Profiles](/evaluations/runs/profiles).
-
-## Question
-
-A question in `questions` reads across attempts after they end, and never changes an outcome.
-
-A **judge question** is the first argument to `judge()`. One with `across` is a **pairwise question**. For more information about a question, see [Ask which side did better](/evaluations/grading/questions#ask-which-side-did-better).
 
 ## Record
 
@@ -145,15 +269,63 @@ A record is the saved JSON of a run. reeval writes a scratch copy in the `.reeva
 
 **Recording** is `reeval record`, the `record` key, and `--record`. For more information about a record, see [Recording](/evaluations/runs/recording).
 
+## Reference-based evaluation
+
+A reference-based evaluation grades the agent's output against a canonical answer. Write the answer into a [model grader](#model-grader)'s question.
+
+## Regression gate
+
+A regression gate is a CI policy that fails the build when a run's tasks fail or regress against a baseline. For more information about gates, see [Gate](#gate).
+
+## Regression suite
+
+A regression suite holds the tasks the agent already solves. It is expected to keep a pass rate near 100% and catch backsliding. Its targets are `regression()`.
+
+## Reliability metric
+
+The reliability metric asks whether the agent succeeds every time. It is pass^k, which `regression()` gates on.
+
+## Results viewer
+
+The results viewer is the page for browsing runs and reading each trial's trajectory, grades and workspace diff. It is the studio, which `reeval studio` serves on this machine from the run history. For more information about the results viewer, see [Studio](/results/inspection/studio).
+
+## Reward hacking
+
+Reward hacking is passing a grader by exploiting a leak in the environment or a loophole in a test, rather than solving the task.
+
+## Rubric
+
+A rubric is a structured guide that scores specific quality dimensions in a model grader. A `judge` grader asks one yes-or-no question, so rubrics aren't built yet.
+
 ## Run
 
-A run is one `reeval run` command and every attempt that command starts, and reeval saves them as one record.
+A run is one `reeval run` command and every trial that command starts, and reeval saves them as one record.
 
-`runs` is attempts per cell. A setup step's `run` is its command. The `runs` table is a query storage table. For more information about a run, see [Running](/evaluations/runs/running).
+`runs` is trials per cell. A setup step's `run` is its command. The `runs` table is a query storage table. For more information about a run, see [Running](/evaluations/runs/running).
 
 ## Sandbox
 
-A sandbox is the container an attempt runs in. Restricted egress sends leaving requests through that attempt's egress gateway; under `allow-all`, traffic can leave around it. For more information about a sandbox, see [Choose a sandbox](/configuration/sandboxes).
+A sandbox is the container a trial runs in. Restricted egress sends leaving requests through that trial's egress gateway; under `allow-all`, traffic can leave around it. For more information about a sandbox, see [Choose a sandbox](/configuration/sandboxes).
+
+## Saturation
+
+A suite is saturated when its pass rate approaches 100%, and it stops showing progress. reeval doesn't flag saturation yet.
+
+## Static analysis
+
+Static analysis is a [deterministic grader](#deterministic-grader) that runs linters, type checkers or security scanners over the code the agent wrote. Run one with `c.exec()`.
+
+## Statistical lift
+
+Statistical lift is a variant against the baseline: the difference in pass rate on the same agent and `sandbox` option. For more information about lift, see [How reeval decides a change helped](/reference/statistics).
+
+## Steps
+
+Steps count the agent's turns or actions on passing trials. reeval records each trial's turns and tool calls. Steps as a metric isn't built yet.
+
+## Suite
+
+A suite is a collection of tasks that run together under shared defaults, such as the `*.eval.ts` files under `evals/` that spread options from one module, or the tasks a profile's `tags` select. A **capability suite** holds tasks the agent does not reliably solve yet, and its targets are `capability()`. A **regression suite** holds tasks it already solves, and its targets are `regression()`. For more information about sharing options, see [Groups](/evaluations/task/groups).
 
 ## summary
 
@@ -161,29 +333,39 @@ A sandbox is the container an attempt runs in. Restricted egress sends leaving r
 
 ## Task
 
-The task is what the agent is asked to do, sent with `c.send()`. For more information about a task, see [Evaluate](/evaluations/evaluate).
+A task is the unit reeval runs: the starting workspace, the user request and the success criteria. It is declared with `defineEval()` in a `*.eval.ts` file, optionally over a list of `cases`. The task fails when a cell that counts toward it fails.
+
+The **evaluation model** is a `typesafe-ai/*` judge model, which only scores yes or no, as the error strings name it. A **language model** writes text. For more information about a task, see [Evaluate](/evaluations/evaluate).
 
 ## timeout
 
-`timeout` defaults to `'15m'`. A setup step's `timeout` defaults to `'5m'`. `capture.timeout` defaults to `'60s'`. `startTimeout` limits how long a harness may take to start.
+`timeout` defaults to `'15m'`. A setup step's `timeout` defaults to `'5m'`. `capture.timeout` defaults to `'60s'`. `startTimeout` limits how long an agent harness may take to start.
+
+## Tool-call verification
+
+Tool-call verification is a deterministic grader that checks which tools, commands or arguments the agent called, from its [trajectory](#trajectory). The `calledTool`, `calledMcp` and `usedSkill` graders do it.
 
 ## Trajectory
 
-A trajectory records every message and tool call of an attempt as one JSON object per line in the `trajectory.jsonl` file.
+A trajectory records every message and tool call of a trial as one JSON object per line in the `trajectory.jsonl` file.
 
 `turn.trajectory` is that turn's events. The Run history `trajectory` tool is titled "Attempt trajectory". `REEVAL_RAW_TRAJECTORY` is the host variable. For more information about a trajectory, see [Read a trajectory](/results/inspection/debugging#read-a-trajectory).
 
+## Trial
+
+A trial is one execution of a cell in a fresh sandbox, and its result is pass, fail, infra error, or skipped. For more information about a trial, see [Cell](/reference/glossary#cell).
+
 ## Turn
 
-A turn is the agent's reply to one `c.send()` call. The turn holds the final message, trajectory events, token usage, the served model, and the workspace diff. For more information about a turn, see [Turns](/evaluations/task/turns).
+A turn is the agent's reply to one `c.send()` call, and the instruction that call sends. The turn holds the final message, trajectory events, token usage, the served model, and the workspace diff. For more information about a turn, see [Turns](/evaluations/task/turns).
+
+## User simulator
+
+A user simulator is a second model that plays a human user in a multi-turn task. reeval doesn't have one yet. Its turns send the messages the task writes.
 
 ## Variant
 
-A variant is an environment in `compare.variants`: the control's setup with the change under test. It runs as its own cell and is measured against the control. For more information about a variant, see [Compare setups](/results/compare/lift).
-
-## verdict
-
-A **judge verdict** is `Verdict`, on an older record. A **family verdict** is `FamilyVerdict`. A verdict on tool calls, time, or tokens is `EffortVerdict`. An **assertion verdict** is `CheckVerdict`. An **outcome** (`pass`, `fail`, infra error, or `skipped`) is never called a verdict.
+A variant is an environment in `compare.variants`: the baseline's setup with the change under test. It runs as its own cell and is measured against the baseline. For more information about a variant, see [Compare setups](/results/compare/lift).
 
 ## Workspace
 

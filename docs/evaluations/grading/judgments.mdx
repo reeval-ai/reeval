@@ -1,13 +1,13 @@
 ---
-title: "Judge agent work"
-description: "Score the harness's work with a yes or no question."
+title: "Grade with a model grader"
+description: "Ask a model grader a yes or no question about the agent harness's work."
 ---
 
-You ask a `judge` grader a yes or no question about the harness's work. Its score is the judge's. For more information about how that judgment becomes an outcome, see [Judgment](/reference/glossary#judgment).
+You ask a `judge` grader a yes or no question about the harness's work. Its score is the judge's. For more information about how that judgment becomes a final state, see [Judgment](/reference/glossary#model-grader).
 
-The example evaluation asks an agent which AI framework to use, and needs no environment. For more information about assertions on a file or a command, see [Assertions](/evaluations/grading/assertions).
+The example task asks an agent which AI framework to use, and needs no environment. For more information about assertions on a file or a command, see [Assertions](/evaluations/grading/assertions).
 
-## Ask the judge a question
+## Ask the model grader a question
 
 Ask a yes or no question about the result. In the `evals/recommendation.eval.ts` file, ask an open question and judge the answer:
 
@@ -64,19 +64,19 @@ A `model` key on the grader overrides the config's. In the `evals/recommendation
 
 With no `judge.model`, reeval refuses the grader with an error that names the `reeval.config.ts` file.
 
-## Verify the judgment
+## Verify the natural-language assertion
 
-Run the evaluation:
+Run the task:
 
 ```bash
 npx reeval run recommendation
 ```
 
-The grader's score counts toward the attempt's score like any other grader's.
+The grader's score counts toward the trial's score like any other grader's.
 
-When the provider still fails the model call after its retries, or the judge times out, the attempt ends in an infra error, which `--retry-errors` runs again. When the model refuses or answers malformed, the grader records an `error` and scores 0. The other graders still run.
+When the provider still fails the model call after its retries, or the judge times out, the trial ends in an infra error, which `--retry-errors` runs again. When the model refuses or answers malformed, the grader records an `error` and scores 0. The other graders still run.
 
-## Choose what the judge sees
+## Choose what the model grader sees
 
 A `judge` grader sends the question and only the inputs its `inputs` turn on, and reeval refuses one that turns on none. The diff leaves out dependencies, build output, lockfiles, and minified files.
 

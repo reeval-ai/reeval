@@ -1,13 +1,13 @@
 ---
 title: "Choose a sandbox"
-description: "Run each attempt in a fresh container on the host."
+description: "Run each trial in a fresh container on the host."
 ---
 
-Choose the container each attempt runs in. For the definition, see [Sandbox](/reference/glossary#sandbox). reeval starts one container per attempt, runs the harness, the setup commands, and the assertions in it, and removes it when the attempt ends. Without a `sandbox` option, every attempt runs in `docker()`.
+Choose the container each trial runs in. For the definition, see [Sandbox](/reference/glossary#sandbox). reeval starts one container per trial, runs the agent harness, the setup commands, and the assertions in it, and removes it when the trial ends. Without a `sandbox` option, every trial runs in `docker()`.
 
 ## Choose Docker, Podman, Tart, or Boat
 
-reeval uses `docker()` by default. For more information about using `podman()`, see [Podman sandbox](/configuration/sandboxes/podman). To run in a macOS VM on an Apple Silicon Mac, see [Tart sandbox](/configuration/sandboxes/tart). To run each attempt's container in a boat.dev VM instead of on this machine, see [Run on Boat](/configuration/sandboxes/boat).
+reeval uses `docker()` by default. For more information about using `podman()`, see [Podman sandbox](/configuration/sandboxes/podman). To run in a macOS VM on an Apple Silicon Mac, see [Tart sandbox](/configuration/sandboxes/tart). To run each trial's container in a boat.dev VM instead of on this machine, see [Run on Boat](/configuration/sandboxes/boat).
 
 ## Set the sandbox
 
@@ -34,7 +34,7 @@ For more information about where the option is accepted, see [the `sandbox` opti
 
 ## Set resource limits
 
-Pass the limits to the factory, in the `reeval.config.ts` file or on an evaluation:
+Pass the limits to the factory, in the `reeval.config.ts` file or on a task:
 
 ```ts title="with-resource-limits.eval.ts"
   sandbox: docker({ memory: '1g', swap: 0, cpus: 1, pids: 256 }),

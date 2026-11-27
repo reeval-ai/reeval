@@ -1,18 +1,18 @@
 ---
 title: "Evaluate"
-description: "Declare an evaluation that gives an agent one task and checks the outcome."
+description: "Declare a task that gives an agent one instruction and checks the final state."
 ---
 
-Declare each evaluation in its own `*.eval.ts` file with `defineEval()`: a task for the agent and the graders that check the outcome. For the definition, see [Evaluation](/reference/glossary#evaluation).
+Declare each task in its own `*.eval.ts` file with `defineEval()`: an instruction for the agent and the graders that check the final state. For the definition, see [Task](/reference/glossary#task).
 
-reeval loads every `*.eval.ts` and `*.eval.py` file under the `evals/` folder. The example evaluation adds a feature to `sindresorhus/camelcase`, a real npm package, checked out at a release tag.
+reeval loads every `*.eval.ts` and `*.eval.py` file under the `evals/` folder. The example task adds a feature to `sindresorhus/camelcase`, a real npm package, checked out at a release tag.
 
-## Write the evaluation
+## Write the task
 
 <Steps>
 <Step title="Name the question">
 
-The eval's id is its file path under the eval root without `.eval.ts`, such as `camelcase/separators`. Results lead with the id, so you know what a pass means before reading any grader. In the `evals/camelcase/separators.eval.ts` file, declare the evaluation:
+The eval's id is its file path under the eval root without `.eval.ts`, such as `camelcase/separators`. Results lead with the id, so you know what a pass means before reading any grader. In the `evals/camelcase/separators.eval.ts` file, declare the task:
 
 ```ts title="evals/camelcase/separators.eval.ts"
 import { defineEnvironment, defineEval, defineGrader } from '{{ pkg }}'
@@ -62,16 +62,16 @@ A path such as `camelcase/test-2` says nothing about what passed. Moving an eval
 </Step>
 <Step title="Write one prompt">
 
-Ask for the outcome you want in `c.send()`. The graders then decide whether the harness reached it.
+Ask for the final state you want in `c.send()`. The graders then decide whether the agent harness reached it.
 
-Name the files the task is about, such as `test.js` and `readme.md`. Leave out the hidden test: the `separators-work` grader runs `separators.test.js` in a sandbox of its own after the harness finishes, so a pass shows the option works on cases the harness never saw.
+Name the files the instruction is about, such as `test.js` and `readme.md`. Leave out the hidden test: the `separators-work` grader runs `separators.test.js` in a sandbox of its own after the agent harness finishes, so a pass shows the option works on cases the agent harness never saw.
 
 </Step>
-<Step title="Check the outcome">
+<Step title="Check the final state">
 
 Each entry in `graders` is a grader. Its name, such as `separators-work`, names its row in the result. For more information about every kind of assertion, see [Assertions](/evaluations/grading/assertions).
 
-To measure a change, such as a skill, replace `environment` with `compare`. For more information about the control, the variant, and the effect, see [Measure lift against a control](/results/compare/lift).
+To measure a change, such as a skill, replace `environment` with `compare`. For more information about the baseline, the variant, and the effect, see [Measure statistical lift against a baseline](/results/compare/lift).
 
 </Step>
 <Step title="Verify with the `reeval run --dry-run` command">
@@ -82,7 +82,7 @@ Plan the run with the `reeval run --dry-run` command:
 npx reeval run --dry-run
 ```
 
-The `reeval run --dry-run` command plans the run without starting a sandbox or a harness, so it needs no API key. The header counts the evaluations, cells, and attempts, and estimates the time:
+The `reeval run --dry-run` command plans the run without starting a sandbox or an agent harness, so it needs no API key. The header counts the tasks, cells, and trials, and estimates the time:
 
 ```text
 REEVAL v0.16.1  dry run
@@ -94,26 +94,26 @@ REEVAL v0.16.1  dry run
   ➜  Est. Time: ~3m 00s (serial)
 ```
 
-A table below the header lists each evaluation by its file id. If the evaluation is missing, check that its file ends in `.eval.ts` or `.eval.py` and is in the `evals/` folder.
+A table below the header lists each task by its file id. If the task is missing, check that its file ends in `.eval.ts` or `.eval.py` and is in the `evals/` folder.
 
 </Step>
 </Steps>
 
-To start the attempts, run the same command without `--dry-run`. For the runnable project, see [`with-existing-codebase`](https://github.com/reeval-ai/reeval/tree/main/examples/with-existing-codebase).
+To start the trials, run the same command without `--dry-run`. For the runnable project, see [`with-existing-codebase`](https://github.com/reeval-ai/reeval/tree/main/examples/with-existing-codebase).
 
-## Send the task
+## Send the instruction
 
-The prompt in `c.send()` is what each attempt sends to the agent, in a fresh sandbox, after the environment is in place. For the definition, see [Task](/reference/glossary#task).
+The prompt in `c.send()` is what each trial sends to the agent, in a fresh sandbox, after the environment is in place. For the definition, see [Turn](/reference/glossary#turn).
 
 ```ts title="evals/camelcase/separators.eval.ts"
 await c.send('Add a separators option to camelCase: …')
 ```
 
-For more information about a task over several prompts, see [Turns](/evaluations/task/turns).
+For more information about several turns in one trial, see [Turns](/evaluations/task/turns).
 
 ## Set a timeout
 
-The `timeout` option limits each attempt, and it defaults to `'15m'`. The clock starts after the setup commands finish. An attempt that reaches the timeout fails. In the `evals/camelcase/separators.eval.ts` file, add `timeout` to the spec:
+The `timeout` option limits each trial, and it defaults to `'15m'`. The clock starts after the setup commands finish. A trial that reaches the timeout fails. In the `evals/camelcase/separators.eval.ts` file, add `timeout` to the spec:
 
 ```ts title="evals/camelcase/separators.eval.ts"
 export default defineEval({
@@ -127,11 +127,11 @@ export default defineEval({
 
 For more information about the accepted durations, see [the `timeout` option](/reference/options#timeout).
 
-## Skip an evaluation
+## Skip a task
 
 `skip: true` or `skip: 'reason'` on `defineEval` keeps the eval in the project without running it; a string reason is listed in the plan. TypeScript eval files have no `.only` or `.todo`. For a runnable project with `skip`, see [`with-skip`](https://github.com/reeval-ai/reeval/tree/main/examples/with-skip).
 
-For more information about sharing options across several evaluations, see [Groups](/evaluations/task/groups).
+For more information about sharing options across several tasks, see [Suites](/evaluations/task/groups).
 
 ## Reference
 

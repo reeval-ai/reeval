@@ -1,9 +1,9 @@
 ---
 title: "Compare with past runs"
-description: "Prevent regressions by comparing the outcomes of two recorded runs."
+description: "Prevent regressions by comparing the final states of two recorded runs."
 ---
 
-`reeval compare` diffs two runs one evaluation at a time and names each one that regressed, was fixed, or can't be compared. It reads the runs you recorded to the history folder ([History](/evaluations/runs/recording)). For the control and variants inside one run, see [Measure lift against a control](/results/compare/lift).
+`reeval compare` diffs two runs one task at a time and names each one that regressed, was fixed, or can't be compared. It reads the runs you recorded to the history folder ([History](/evaluations/runs/recording)). For more information about the baseline and variants inside one run, see [Measure statistical lift against a baseline](/results/compare/lift).
 
 ## Compare two runs
 
@@ -21,11 +21,11 @@ npx reeval compare latest~1 latest
 
 A run is `latest`, `latest~N`, a run id or a unique prefix of one, or a Git SHA prefix. `reeval history` lists them.
 
-When no earlier recorded run exists, `reeval compare` says so and lists every evaluation as `new`.
+When no earlier recorded run exists, `reeval compare` says so and lists every task as `new`.
 
 ## Read the diff
 
-`reeval compare` prints one block per evaluation that changed, in file order, and collapses each run of unchanged evaluations to `+N same`. A regressed block lists the assertions whose outcomes changed, and a block that can't be compared names what changed:
+`reeval compare` prints one block per task that changed and collapses each run of unchanged tasks to `+N same`. A regressed block lists the assertions whose final states changed, and a block that can't be compared names what changed:
 
 ```text
 can't compare    adds a tested multiply function
@@ -53,20 +53,20 @@ Each block and the tally use these words:
 
 | Word | Meaning |
 | :--- | :--- |
-| `regressed` | The evaluation passed in the base and fails in the head. |
-| `fixed` | The evaluation failed in the base and passes in the head. |
-| `same` | The outcome is the same in both runs, or the target only reports. |
-| `can't compare` | The evaluation's source files, environment, harness config, image, agent CLI, judge, agent context, or gateway changed between the runs, so a changed outcome has another explanation. The block names what changed. |
-| `infra error` | One side ended in an infrastructure error, so it has no outcome to compare. |
-| `new` | Only the head has the evaluation. |
-| `removed` | Only the base has the evaluation. |
-| `now fails`, `now passes` | In a record from an older reeval, a case of an evaluation whose mean-score target gated its rate over the cases flipped. The evaluation's own row is the verdict. |
+| `regressed` | The task passed in the base and fails in the head. |
+| `fixed` | The task failed in the base and passes in the head. |
+| `same` | The final state is the same in both runs, or the target only reports. |
+| `can't compare` | The task's source files, environment, agent harness config, image, agent CLI, model grader, agent context, or gateway changed between the runs, so a changed final state has another explanation. The block names what changed. |
+| `infra error` | One side ended in an infrastructure error, so it has no final state. |
+| `new` | Only the head has the task. |
+| `removed` | Only the base has the task. |
+| `now fails`, `now passes` | In an older record, a case flipped under a mean-score target that gated its rate over the cases. The task's own row is the verdict. |
 
-When two runs differ only in which cells ran, `reeval compare` compares the cells both have and names the cells only one has. When the runs share no cell, or a shared cell changed, the evaluation reads `can't compare`. It also prints `can't compare` for an outcome change when one side's only failures are attempts an interrupt canceled, or when the served judge model changed. Add `-v` to print every evaluation with each cell's lift, effort and stack changes.
+When two runs differ only in which cells ran, `reeval compare` compares the cells both have and names the cells only one has. When the runs share no cell, or a shared cell changed, the task reads `can't compare`. It prints `can't compare` for a final state change when one side's only failures are trials an interrupt canceled, or when the served judge model changed. Add `-v` to print every task with each cell's lift, effort and stack changes.
 
 ## Compare runs of different cases
 
-When two runs ran different [`cases`](/evaluations/task/cases) of an evaluation, `reeval compare` compares the cases both ran and lists the rest as `new` and `removed`:
+When two runs ran different [`cases`](/evaluations/task/cases) of a task, `reeval compare` compares the cases both ran and lists the rest as `new` and `removed`:
 
 ```text
 can't compare    answers a stack question
@@ -84,7 +84,7 @@ can't compare    answers a stack question
   +2 same
 ```
 
-`--json` lists them in the row's `caseScope`. A failing case only the head ran makes the evaluation `can't compare`, as above. Under a `minLift`, runs of different cases always read `can't compare`.
+`--json` lists them in the row's `caseScope`. A failing case only the head ran makes the task `can't compare`, as above. Under a `minLift`, runs of different cases always read `can't compare`.
 
 ## Fail on a regression
 
@@ -94,7 +94,7 @@ To make the diff a gate, add `--fail-on-regression`:
 npx reeval compare --fail-on-regression
 ```
 
-`reeval compare` exits with code 1 when an evaluation `regressed`, or when a `new` or `can't compare` evaluation fails, since no earlier run vouches for it, for evaluations whose target blocks. Otherwise it exits 0. Add `--md` to write the diff into a [CI](/evaluations/runs/ci) job summary.
+`reeval compare` exits with code 1 when a task `regressed`, or when a `new` or `can't compare` task fails, since no earlier run passed it, for tasks whose target blocks. Otherwise it exits 0. Add `--md` to write the diff into a [CI](/evaluations/runs/ci) job summary.
 
 ## Reference
 

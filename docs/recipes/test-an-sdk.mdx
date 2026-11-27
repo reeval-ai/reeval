@@ -3,14 +3,14 @@ title: "Test an SDK"
 description: "See whether an agent can use an SDK correctly."
 ---
 
-An SDK test seeds the SDK into the workspace, asks the harness to build with it, and checks the result with a script the harness never sees. The sample tests the small Acme weather SDK. For a runnable project, see [`with-sdk-usage`](https://github.com/reeval-ai/reeval/tree/main/examples/with-sdk-usage).
+An SDK test seeds the SDK into the workspace, asks the agent harness to build with it, and checks the result with a script the agent harness never sees. The sample tests the small Acme weather SDK. For a runnable project, see [`with-sdk-usage`](https://github.com/reeval-ai/reeval/tree/main/examples/with-sdk-usage).
 
 ## Test the SDK in a package
 
 <Steps>
-<Step title="Write the evaluation">
+<Step title="Write the task">
 
-Create the `evals/sdk.eval.ts` file with the environment, the task, a grader that runs the check script and a judge.
+Create the `evals/sdk.eval.ts` file with the environment, the instruction, a grader that runs the check script and a model grader.
 
 ```ts title="evals/sdk.eval.ts"
 import {
@@ -65,10 +65,10 @@ export default defineEval({
 
 `directory('./acme-sdk', { into: 'vendor/acme' })` copies the SDK and its `README.md` into the workspace. For more information about seeding files, see [Place files](/configuration/environments/files).
 
-The `check-client` grader runs `check-client.mjs` in a sandbox of its own after the harness finishes, so the harness never sees it. The script runs `forecast()` against a stand-in API that answers `503` once. The judge asks the one question a command can't answer. For more information about judgments, see [Judge agent work](/evaluations/grading/judgments).
+The `check-client` grader runs `check-client.mjs` in a sandbox of its own after the agent harness finishes, so the agent harness never sees it. The script runs `forecast()` against a stand-in API that answers `503` once. The model grader asks the one question a command can't answer. For more information about natural-language assertions, see [Grade with a model grader](/evaluations/grading/judgments).
 
 </Step>
-<Step title="Run the evaluation">
+<Step title="Run the task">
 
 From the directory that contains the `reeval.config.ts` file, run the `evals/sdk.eval.ts` file. The `sdk` filter matches the file path.
 
@@ -76,10 +76,10 @@ From the directory that contains the `reeval.config.ts` file, run the `evals/sdk
 npx reeval run sdk
 ```
 
-The run needs an API key for the harness and for the judge. For more information about each harness's key, see [Choose an agent](/configuration/agents). For more information about the judge's key, see [Judge agent work](/evaluations/grading/judgments).
+The run needs an API key for the agent harness and for the model grader. For more information about each agent harness's key, see [Choose an agent](/configuration/agents). For more information about the model grader's key, see [Grade with a model grader](/evaluations/grading/judgments).
 
 </Step>
-<Step title="Read the outcome">
+<Step title="Read the final state">
 
 When both graders pass, the block for `sdk` is one line. A `forecast()` that calls the SDK without retrying fails the check script.
 
@@ -98,7 +98,7 @@ AcmeError: Acme API answered 503
 …
 ```
 
-For more information about outcome words, see [Read the outcomes](/results/output#read-the-outcomes).
+For more information about final state words, see [Read the final states](/results/output#read-the-final-states).
 
 </Step>
 </Steps>

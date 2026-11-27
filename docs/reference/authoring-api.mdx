@@ -1,11 +1,11 @@
 ---
 title: "Authoring API reference"
-description: "defineEval, defineEnvironment, and defineConfig declare evaluations and environments, with the types they take."
+description: "defineEval, defineEnvironment, and defineConfig declare tasks and environments, with the types they take."
 ---
 
 ## `defineEval()`
 
-`defineEval(spec)` declares one evaluation. Each `*.eval.ts` file holds exactly one eval and exports it as the default:
+`defineEval(spec)` declares one task. Each `*.eval.ts` file holds exactly one eval and exports it as the default:
 
 ```ts title="evals/shoehorn/build-only-fields.eval.ts"
 import { defineEval } from '{{ pkg }}'
@@ -24,7 +24,7 @@ export default defineEval({
 The eval's id is its file path under the eval root without `.eval.ts`, such as `shoehorn/build-only-fields`. Results and history list that id first.
 
 <Property name="spec" type="EvalOptions & { task: EvalFn | CaseFn<T>; graders?: Grader[] }" required>
-  A plain object of eval options plus `task`, the body called once per attempt. With `cases`, `task` is `(c, item) => Promise<void>`. `environments` is not accepted; use `environment`, one environment or a list.
+  A plain object of eval options plus `task`, the body called once per trial. With `cases`, `task` is `(c, item) => Promise<void>`. `environments` is not accepted; use `environment`, one environment or a list.
 </Property>
 
 `skip: true` or `skip: 'reason'` declares without running; the plan lists a string reason. TypeScript eval files have no `.only` or `.todo`.
@@ -35,7 +35,7 @@ For more information about `EvalOptions` and the type of each key, see [Options 
 
 ## Cases
 
-`cases` runs one evaluation over a list of inputs, and `task` receives each as its second argument:
+`cases` runs one task over a list of inputs, and `task` receives each as its second argument:
 
 ```ts title="evals/shoehorn/handlers.eval.ts"
 import { defineEval } from '{{ pkg }}'
@@ -57,7 +57,7 @@ export default defineEval({
 ```
 
 <Property name="cases" type="readonly Case<T>[]" required>
-  The inputs, each a JSON object with a `key`; `Case<T>` is `{ key: string } & T`. The cases pool into one pass rate and, under `compare`, one lift paired by case and gated by `compare.minLift`. Each case's data is part of its fingerprint, recorded as a sha256 of its JSON with secrets in its strings masked, so a rotated secret leaves the case the same evaluation. A secret held as a number, or a value under 8 characters in a secret-named variable that no `secret()` reads, is hashed as written: anyone who reads the history could confirm a guess at it.
+  The inputs, each a JSON object with a `key`; `Case<T>` is `{ key: string } & T`. The cases pool into one pass rate and, under `compare`, one statistical lift paired by case and gated by `compare.minLift`. Each case's data is part of its fingerprint, recorded as a sha256 of its JSON with secrets in its strings masked, so a rotated secret leaves the case the same task. A secret held as a number, or a value under 8 characters in a secret-named variable that no `secret()` reads, is hashed as written: anyone who reads the history could confirm a guess at it.
 </Property>
 
 <Property name="cases[].key" type="string" required>
@@ -69,30 +69,30 @@ export default defineEval({
 </Property>
 
 <Property name="task" type="CaseFn<T>" required>
-  The body, `(c: AttemptContext, item: Case<T>) => Promise<void>`, called once per attempt with its case.
+  The body, `(c: AttemptContext, item: Case<T>) => Promise<void>`, called once per trial with its case.
 </Property>
 
-Results print the evaluation's id as a heading and a row per case key. reeval refuses, with exit code 2, a `cases` value that is not a non-empty list, a case that is not an object with a valid `key`, two cases with one key, including two whose keys differ only in a masked secret, `where` without `cases`, and `runs: { bestOf }` beside `cases`. `cases` and `where` are options of `defineEval()` only, not of the config.
+Results print the task's id as a heading and a row per case key. reeval refuses, with exit code 2, a `cases` value that is not a non-empty list, a case that is not an object with a valid `key`, two cases with one key, including two whose keys differ only in a masked secret, `where` without `cases`, and `runs: { bestOf }` beside `cases`. `cases` and `where` are options of `defineEval()` only, not of the config.
 
 For more information about the `all cases` row, see [`compare`](/reference/options#compare).
 
 ## `regression()`
 
-`regression(threshold = 1)` passes a cell when every counted attempt scores at least `threshold` (pass^k); a miss fails the run.
+`regression(threshold = 1)` passes a cell when every counted trial scores at least `threshold` (pass^k); a miss fails the run.
 
 ## `capability()`
 
-`capability(threshold = 1, { blocking?: false })` is the default target. It passes a cell when one attempt scores at least `threshold` (pass@k); a miss fails the run only with `blocking: true`. reeval refuses, with exit code 2, `compare.minLift` beside a target that can't fail the run. For more information, see [`target`](/reference/options#target).
+`capability(threshold = 1, { blocking?: false })` is the default target. It passes a cell when one trial scores at least `threshold` (pass@k); a miss fails the run only with `blocking: true`. reeval refuses, with exit code 2, `compare.minLift` beside a target that can't fail the run. For more information, see [`target`](/reference/options#target).
 
 ## `EvalFn`
 
-`EvalFn` is the type of `task` without `cases`: `(c: AttemptContext) => Promise<void>`. The attempt fails when it throws or rejects.
+`EvalFn` is the type of `task` without `cases`: `(c: AttemptContext) => Promise<void>`. The trial fails when it throws or rejects.
 
-For more information about `AttemptContext` and the types the methods of `c` take and return, see [Attempt context reference](/reference/attempt-context).
+For more information about `AttemptContext` and the types the methods of `c` take and return, see [Trial context reference](/reference/attempt-context).
 
 ## `defineEnvironment()`
 
-`defineEnvironment(name, spec)` defines what an evaluation runs in. The following declaration extends a control into a variant:
+`defineEnvironment(name, spec)` defines what a task runs in. The following declaration extends a baseline into a variant:
 
 ```ts title="evals/environments.ts"
 export const plain = defineEnvironment('plain', {
@@ -140,11 +140,11 @@ For more information about `EnvironmentSpec`, `EnvironmentHelpers`, each field's
 
 ## `defineGrader()`
 
-`defineGrader(name, spec)` defines a grader for an eval's `graders`: its `grade` function, or the question its `judge` asks, reads the attempt once the task returns, and its grade scores the attempt.
+`defineGrader(name, spec)` defines a grader for an eval's `graders`: its `grade` function, or the question its `judge` asks, reads the trial once the task returns, and its grade scores the trial.
 
 ## `defineGraders()`
 
-`defineGraders(names, spec)` defines graders that share one `grade` call per attempt, each scoring its grade with its own `score` function.
+`defineGraders(names, spec)` defines graders that share one `grade` call per trial, each scoring its grade with its own `score` function.
 
 ## `defineConfig()`
 
@@ -176,7 +176,7 @@ Each command line gives one entry per segment, read the way the `ran` grader rea
 </Property>
 
 <Property name="ok" type="boolean | null" required>
-  Whether the shell call succeeded, or `null` when the harness never reported its result. It's the whole call's result, not the program's, so every segment of one line has the same `ok`: in `cd missing && genkit start`, `genkit` has `ok: false` though it never ran.
+  Whether the shell call succeeded, or `null` when the agent harness never reported its result. It's the whole call's result, not the program's, so every segment of one line has the same `ok`: in `cd missing && genkit start`, `genkit` has `ok: false` though it never ran.
 </Property>
 
 <Property name="turn" type="number" required>
@@ -199,7 +199,7 @@ For more information about egress policies, see [`egress`](/reference/options#eg
 
 ## `EvalError`
 
-`new EvalError(reason)` or `new EvalError({ reason, meta, cause })`, thrown by a task, fails the attempt and records its [`failure`](/reference/run-record): the reason, `meta` (a JSON object) and the turn it threw after.
+`new EvalError(reason)` or `new EvalError({ reason, meta, cause })`, thrown by a task, fails the trial and records its [`failure`](/reference/run-record): the reason, `meta` (a JSON object) and the turn it threw after.
 
 ## `HarnessCapabilityError`
 

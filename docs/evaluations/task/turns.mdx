@@ -1,13 +1,13 @@
 ---
 title: "Read each turn"
-description: "Read each turn the harness returns in one session."
+description: "Read each turn the agent harness returns in one session."
 ---
 
-Each `c.send()` runs one prompt on the harness and returns that turn. The first `c.send()` is in [Evaluate](/evaluations/evaluate#send-the-task). Read the `Turn` it returns before you send the next prompt.
+Each `c.send()` runs one prompt on the agent harness and returns that turn. The first `c.send()` is in [Evaluate](/evaluations/evaluate#send-the-instruction). Read the `Turn` it returns before you send the next prompt.
 
 ## Read the turn
 
-A turn's fields stay fixed after `c.send()` returns. Read the harness's final message from `turn.text`. The `turn.status` field reports `completed`, `aborted`, or `error`. The `turn.diff` field compares the workspace at the end of the turn with its state before the harness runs. Token counts for the turn are in `turn.usage`, or `null` when the harness reports none. Messages and tool calls are in `turn.trajectory`.
+A turn's fields stay fixed after `c.send()` returns. Read the agent harness's final message from `turn.text`. The `turn.status` field reports `completed`, `aborted`, or `error`. The `turn.diff` field compares the workspace at the end of the turn with its state before the agent harness runs. Token counts for the turn are in `turn.usage`, or `null` when the agent harness reports none. Messages and tool calls are in `turn.trajectory`.
 
 In the `evals/user.eval.ts` file, keep the turn the first `c.send()` returns, then read the message, the changed paths, the generated tokens, the test file, and a command:
 
@@ -22,13 +22,13 @@ const test = await turn.readFile('src/user.test.ts')
 const result = await turn.exec('npx vitest run src/user.test.ts')
 ```
 
-`turn.diff.files` lists each path with a status of `added`, `modified`, or `deleted`, and `turn.diff.patch` is the patch for those files. Read the generated token count from `turn.usage.output` when the harness reports usage. `turn.readFile()` reads a workspace-relative path and returns `null` when that file is missing. Both `turn.exec()` and `turn.readFile()` run in the sandbox at the time you call them. A call to `turn.exec()` returns `exitCode`, `stdout`, and `stderr`.
+`turn.diff.files` lists each path with a status of `added`, `modified`, or `deleted`, and `turn.diff.patch` is the patch for those files. Read the generated token count from `turn.usage.output` when the agent harness reports usage. `turn.readFile()` reads a workspace-relative path and returns `null` when that file is missing. Both `turn.exec()` and `turn.readFile()` run in the sandbox at the time you call them. A call to `turn.exec()` returns `exitCode`, `stdout`, and `stderr`.
 
 For more information about grading a turn, see [Assertions](/evaluations/grading/assertions).
 
 ## Continue over several turns
 
-Each later `c.send()` stays in the same attempt. The later prompt continues the same harness session, so the harness still has the earlier prompts and the replies it sent. `c.turns` lists every turn so far, oldest first.
+Each later `c.send()` stays in the same trial. The later prompt continues the same agent harness session, so the agent harness still has the earlier prompts and the replies it sent. `c.turns` lists every turn so far, oldest first.
 
 In the `evals/user.eval.ts` file, replace the callback body with two prompts and read the first turn from `c.turns`:
 
@@ -41,7 +41,7 @@ const second = await c.send('Make src/user.ts satisfy that test.')
 const earlier = c.turns[0]
 ```
 
-`second.text` is only the second reply. `second.diff` includes files from the first turn because each diff compares the current workspace with its state before the harness runs. `earlier` is the same turn as `first`. `first.text` stays the first reply. For a runnable project that checks each turn, see [`with-multi-turn`](https://github.com/reeval-ai/reeval/tree/main/examples/with-multi-turn).
+`second.text` is only the second reply. `second.diff` includes files from the first turn because each diff compares the current workspace with its state before the agent harness runs. `earlier` is the same turn as `first`. `first.text` stays the first reply. For a runnable project that checks each turn, see [`with-multi-turn`](https://github.com/reeval-ai/reeval/tree/main/examples/with-multi-turn).
 
 ## Reference
 

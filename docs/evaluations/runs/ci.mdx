@@ -1,16 +1,16 @@
 ---
-title: "Run evaluations in CI"
+title: "Run tasks in CI"
 description: "Fail a CI job when a recorded run regresses."
 ---
 
-Run evaluations on each pull request opened from this repository so the job keeps a recorded run and fails when an evaluation regresses. Create a profile named `pr` before adding the workflow. For more information about profiles, see [Profiles](/evaluations/runs/profiles).
+Run tasks on each pull request opened from this repository so the job keeps a recorded run and fails when a task regresses. Create a profile named `pr` before adding the workflow. For more information about profiles, see [Profiles](/evaluations/runs/profiles).
 
 ## Add the workflow
 
 <Steps>
-<Step title="Run evaluations">
+<Step title="Run tasks">
 
-Add the `.github/workflows/reeval.yml` file. It runs the evaluations on each pull request opened from this repository.
+Add the `.github/workflows/reeval.yml` file. It runs the tasks on each pull request opened from this repository.
 
 ```yaml title=".github/workflows/reeval.yml"
 name: Evaluations
@@ -47,16 +47,16 @@ The `ubuntu-latest` runner includes the container runtime the sandbox uses. `fet
 
 The run step's id is `reeval`. At the start of the run, the `reeval run` command writes `run-id=<id>` to `GITHUB_OUTPUT` and appends `run <id>` to `GITHUB_STEP_SUMMARY`.
 
-When the run finishes, the `reeval run` command appends the run's `summary.md` file to the job summary. A failed run receives that file too. With `GITHUB_ACTIONS` set, a failing attempt stays expanded in the log and adds an error annotation on its evaluation file.
+When the run finishes, the `reeval run` command appends the run's `summary.md` file to the job summary. A failed run receives that file too. With `GITHUB_ACTIONS` set, a failing trial stays expanded in the log and adds an error annotation on its task file.
 
-The `reeval run` command exits 1 when an evaluation fails. The step lets that code through so the later `reeval compare` step decides, because an evaluation that already failed on the base commit is not a regression. Any other non-zero code, such as 2 for a usage error or 3 for an infrastructure error, fails the job here.
+The `reeval run` command exits 1 when a task fails. The step lets that code through so the later `reeval compare` step decides, because a task that already failed on the base commit is not a regression. Any other non-zero code, such as 2 for a usage error or 3 for an infrastructure error, fails the job here.
 
-A control, or a cell under a target that only reports, such as the default `capability()`, can fail on a run that exits 0. A `budget.duration` stop counts as a failed run. For more information about exit codes, see [Exit codes](/reference/cli#exit-codes).
+A baseline, or a cell under a target that only reports, such as the default `capability()`, can fail on a run that exits 0. A `budget.duration` stop counts as a failed run. For more information about exit codes, see [Exit codes](/reference/cli#exit-codes).
 
 </Step>
 <Step title="Add the API key">
 
-Add the harness's API key to the repository secret used by the run step.
+Add the agent harness's API key to the repository secret used by the run step.
 
 </Step>
 <Step title="Record results">
@@ -74,7 +74,7 @@ In the `.github/workflows/reeval.yml` file, add this step to commit the history 
           git push
 ```
 
-With the default `record: 'ci'`, reeval copies each finished run into `evals/.history` when the `CI` variable is set ([the `record` option](/reference/options#record)). The copy includes a run whose evaluations fail. reeval leaves an interrupted run in the `.reeval/runs` directory. A run that `budget.duration` stops is recorded with status `budget`, and a later `reeval compare` skips a run with that status when it picks a base.
+With the default `record: 'ci'`, reeval copies each finished run into `evals/.history` when the `CI` variable is set ([the `record` option](/reference/options#record)). The copy includes a run whose tasks fail. reeval leaves an interrupted run in the `.reeval/runs` directory. A run that `budget.duration` stops is recorded with status `budget`, and a later `reeval compare` skips a run with that status when it picks a base.
 
 The commit step runs when `reeval run` passes or fails. `if: ${{ !cancelled() }}` skips it when the job is canceled.
 
@@ -92,9 +92,9 @@ In the `.github/workflows/reeval.yml` file, add these two steps. `reeval compare
         run: npx reeval compare --fail-on-regression
 ```
 
-The gate fails when an evaluation `regressed`, or when a `new` or `can't compare` evaluation fails, so the first run with no earlier record fails only on a failing evaluation. For more information about those words, see [Compare with past runs](/results/compare/past-runs#fail-on-a-regression).
+The gate fails when a task `regressed`, or when a `new` or `can't compare` task fails, so the first run with no earlier record fails only on a failing task. For more information about those words, see [Compare with past runs](/results/compare/past-runs#fail-on-a-regression).
 
 </Step>
 </Steps>
 
-For a runnable project whose workflow runs the evaluations and gates on `reeval compare` without pushing a record, see [`with-github-pr-gate`](https://github.com/reeval-ai/reeval/tree/main/examples/with-github-pr-gate). For more information about CI variables, see [Environment variables](/reference/environment-variables).
+For a runnable project whose workflow runs the tasks and gates on `reeval compare` without pushing a record, see [`with-github-pr-gate`](https://github.com/reeval-ai/reeval/tree/main/examples/with-github-pr-gate). For more information about CI variables, see [Environment variables](/reference/environment-variables).

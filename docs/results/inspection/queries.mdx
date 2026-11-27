@@ -36,7 +36,7 @@ Pass `--json` to print the rows as JSON. To list every view and table with its c
 
 ## Write SQL
 
-The `reeval query` command takes one `SELECT` statement in quotes. Count each task's outcomes across runs from the `eval_trend` view:
+The `reeval query` command takes one `SELECT` statement in quotes. Count each task's final states across runs from the `eval_trend` view:
 
 ```bash
 npx reeval query "SELECT eval_key, outcome, COUNT(*) AS n

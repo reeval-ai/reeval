@@ -1,16 +1,16 @@
 ---
 title: "Test recommendations"
-description: "See whether harnesses recommend a library."
+description: "See whether agent harnesses recommend a library."
 ---
 
-You ask the questions a developer asks when choosing a library. Each harness answers on its own. A judge scores every answer. The sample asks about Genkit; put the library's name in its place. For a runnable project, see [`with-recommendation`](https://github.com/reeval-ai/reeval/tree/main/examples/with-recommendation).
+You ask the questions a developer asks when choosing a library. Each agent harness answers on its own. A model grader scores every answer. The sample asks about Genkit; put the library's name in its place. For a runnable project, see [`with-recommendation`](https://github.com/reeval-ai/reeval/tree/main/examples/with-recommendation).
 
-## Ask each harness and judge the answers
+## Ask each agent harness and judge the answers
 
 <Steps>
-<Step title="Configure each harness and the judge">
+<Step title="Configure each agent harness and the model grader">
 
-In the `reeval.config.ts` file, set `agents` to a list and set `judge.model`. Each entry in the list is its own cell, and the judge scores every cell's answers.
+In the `reeval.config.ts` file, set `agents` to a list and set `judge.model`. Each entry in the list is its own cell, and the model grader scores every cell's answers.
 
 ```ts title="reeval.config.ts"
 -import { claudeCode } from '{{ pkg }}/agent'
@@ -28,7 +28,7 @@ Add each harness key and `TYPESAFE_AI_API_KEY` to the `.env.local` file. For mor
 </Step>
 <Step title="Write the questions">
 
-Declare one open question and one question per rival in the `evals/choose/recommends-genkit.eval.ts` file. Its judge grader reads each answer.
+Declare one open question and one question per rival in the `evals/choose/recommends-genkit.eval.ts` file. Its model grader reads each answer.
 
 ```ts title="evals/choose/recommends-genkit.eval.ts"
 import { defineEval } from '{{ pkg }}'
@@ -64,12 +64,12 @@ export default defineEval({
 })
 ```
 
-The open question names no library, so a pass means the harness reached for yours. `cases` runs the evaluation once per rival and pools them into one mean score. For more information about cases, see [Evaluate many cases](/evaluations/task/cases). For more information about the judge question and the model, see [Judge agent work](/evaluations/grading/judgments).
+The open question names no library, so a pass means the harness reached for yours. `cases` runs the task once per rival and pools them into one mean score. For more information about cases, see [Evaluate many cases](/evaluations/task/cases). For more information about the judge question and the model, see [Judge agent work](/evaluations/grading/judgments).
 
 </Step>
-<Step title="Run the evaluations">
+<Step title="Run the tasks">
 
-Run the evaluation in the `evals/choose/recommends-genkit.eval.ts` file:
+Run the task in the `evals/choose/recommends-genkit.eval.ts` file:
 
 ```bash
 npx reeval run choose
@@ -78,7 +78,7 @@ npx reeval run choose
 </Step>
 <Step title="Read the results">
 
-Read the block `reeval run -v` prints. The block for the evaluation with `cases` has one row per case. Each row is the case's mean score. This capture is from one harness; with a list, each row splits by harness.
+Read the block `reeval run -v` prints. The block for the task with `cases` has one row per case. Each row is the case's mean score. This capture is from one agent harness; with a list, each row splits by agent harness.
 
 ```text
 └─ · choose/recommends-genkit  mean 100% · 4/4 cases hit 100% (pass@1)  capability(1)
@@ -98,11 +98,11 @@ open               1      Use Genkit: its flows give you typed multi-step workfl
 the Vercel AI SDK  1      Use Genkit: its flows give you typed multi-step workflows,…
 ```
 
-A real harness's answer is the finding: it may recommend something else. When it does, its case's row reads below 100%.
+A real agent harness's answer is the finding: it may recommend something else. When it does, its case's row reads below 100%.
 
 </Step>
 </Steps>
 
 ## Next
 
-For more information about the outcomes and the tally, see [Read a run's output](/results/output).
+For more information about the final states and the tally, see [Read a run's output](/results/output).

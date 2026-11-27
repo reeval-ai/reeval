@@ -3,7 +3,7 @@ title: "Run setup commands"
 description: "Install dependencies or seed data in the sandbox before the agent starts."
 ---
 
-The `setup` field lists shell commands that run in the sandbox before the agent's first turn, such as installing dependencies or seeding a database. For a tool that every attempt needs and that never changes, install it in the image instead. For more information about installing tools in an image, see [Toolchains](/configuration/environments/toolchains).
+The `setup` field lists shell commands that run in the sandbox before the agent's first turn, such as installing dependencies or seeding a database. For a tool that every trial needs and that never changes, install it in the image instead. For more information about installing tools in an image, see [Toolchains](/configuration/environments/toolchains).
 
 ## Run a setup command
 
@@ -20,7 +20,7 @@ export const chatbot = defineEnvironment('chatbot', ({ git }) => ({
 
 A child made with `chatbot.extendEnvironment(...)` runs its own commands after its parent's. A command sees the environment's `env` variables, and a secret with `to: 'checks'` reaches `setup` and `c.exec()` but never the agent. For more information about secret visibility, see [Secrets](/configuration/environments/secrets).
 
-reeval snapshots the workspace after the last command, so the files `setup` writes never count as the agent's change. The time `setup` takes doesn't count against the evaluation's `timeout`.
+reeval snapshots the workspace after the last command, so the files `setup` writes never count as the agent's change. The time `setup` takes doesn't count against the task's `timeout`.
 
 To see each command run, print the phase trace with the `-v` flag:
 
@@ -49,13 +49,13 @@ The `cwd` path is relative to the workspace, or absolute. For a runnable project
 
 ## Troubleshooting
 
-A command that exits non-zero or times out ends the attempt with an infrastructure error, not a failed assertion. The message names the command and ends with the last lines of its output.
+A command that exits non-zero or times out ends the trial with an infrastructure error, not a failed assertion. The message names the command and ends with the last lines of its output.
 
 Use the symptom to choose what to check and what to do next:
 
 | Symptom | Check | Next action |
 | :--- | :--- | :--- |
-| `setup step 1/1 "pnpm install --frozen-lockfile" in environment chatbot exited 1 after 38s (see setup.log)` | Open the attempt's `setup.log` file in the recorded run, or the attempt's trace in the `.reeval/debug` directory | Fix the command for the pinned ref it runs against. For more information about attempt traces, see [Debugging](/results/inspection/debugging). |
+| `setup step 1/1 "pnpm install --frozen-lockfile" in environment chatbot exited 1 after 38s (see setup.log)` | Open the trial's `setup.log` file in the recorded run, or the trial's trace in the `.reeval/debug` directory | Fix the command for the pinned ref it runs against. For more information about trial traces, see [Debugging](/results/inspection/debugging). |
 | `command not found` in the message's last lines | The sandbox image lacks the tool | Add an install layer or a Dockerfile. For more information about installing tools, see [Toolchains](/configuration/environments/toolchains). |
 | `… timed out after 5m (see setup.log)` | The command needs longer than its timeout | Raise `timeout` on that command, or move the slow install into the image |
 

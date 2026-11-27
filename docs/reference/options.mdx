@@ -1,6 +1,6 @@
 ---
 title: "Options reference"
-description: "Options set how evaluations run. Each key is accepted in set places, and its value cascades down to each evaluation."
+description: "Options set how tasks run. Each key is accepted in set places, and its value cascades down to each task."
 ---
 
 ## Where each option is accepted
@@ -48,13 +48,13 @@ description: "Options set how evaluations run. Each key is accepted in set place
 
 reeval applies the `reeval.config.ts` file, then the selected profile's `defaults`, then each eval file's `defineEval()` call. A profile `limit` then narrows `runs`, `compare`, and `agents`, except the keys in `pin`.
 
-A later level replaces most keys, `compare` whole. `env` merges by name, `judge` and `question` field by field, `capture` shallowly, and `tags` and `pin` keep every value. `--runs` then replaces `runs`. `--tag` filters which evaluations run, and `--concurrency` caps the attempts running at once; neither changes an evaluation's options.
+A later level replaces most keys, `compare` whole. `env` merges by name, `judge` and `question` field by field, `capture` shallowly, and `tags` and `pin` keep every value. `--runs` then replaces `runs`. `--tag` filters which tasks run, and `--concurrency` caps the trials running at once; neither changes a task's options.
 
-For more information about overriding an option, see [Group evaluations](/evaluations/task/groups#see-how-options-cascade).
+For more information about overriding an option, see [Group tasks](/evaluations/task/groups#see-how-options-cascade).
 
 ## `include`
 
-`include` lists the glob patterns for evaluation files, relative to the `reeval.config.ts` file's directory.
+`include` lists the glob patterns for task files, relative to the `reeval.config.ts` file's directory.
 
 <Property name="include" type="string[]" optional>
   The default is `evals/**/*.eval.ts` and `evals/**/*.eval.py`.
@@ -63,7 +63,7 @@ For more information about overriding an option, see [Group evaluations](/evalua
 ## `graders`
 
 <Property name="graders" type="BuiltinGraderData[]" optional>
-  Built-in graders from `reeval/graders`, or the same as data, that every evaluation runs before its own `graders`. A grader with an evaluation's grader's name gives way to it.
+  Built-in graders from `reeval/graders`, or the same as data, that every task runs before its own `graders`. A grader with a task's grader's name gives way to it.
 </Property>
 
 ## `gateway`
@@ -71,29 +71,29 @@ For more information about overriding an option, see [Group evaluations](/evalua
 `gateway` lists the gateways that serve model calls, in order of preference.
 
 <Property name="gateway" type="GatewayDescriptor[]" optional>
-  Helpers from `{{ pkg }}/gateway`: `direct()` is each provider's own key, `vercel()` is Vercel AI Gateway, and `openrouter()` is OpenRouter. The default is `[direct()]`. Each harness and judge model takes the first gateway that can serve it. reeval refuses a gateway listed twice, and a plan where no listed gateway can serve a model.
+  Helpers from `{{ pkg }}/gateway`: `direct()` is each provider's own key, `vercel()` is Vercel AI Gateway, and `openrouter()` is OpenRouter. The default is `[direct()]`. Each agent harness and model grader takes the first gateway that can serve it. reeval refuses a gateway listed twice, and a plan where no listed gateway can serve a model.
 </Property>
 
 A selected profile's [`gateway`](/reference/profiles#gateway) replaces this list.
 
-A harness or a judge that names its own `gateway` skips the list's fallback. For more information about pinning a gateway, see [Route models through a gateway](/configuration/gateways#pin-one-gateway).
+An agent harness or a model grader that names its own `gateway` skips the list's fallback. For more information about pinning a gateway, see [Route models through a gateway](/configuration/gateways#pin-one-gateway).
 
 ### `openrouter()` options
 
 `openrouter()` takes one option. `direct()` and `vercel()` take none.
 
 <Property name="fallbacks" type="boolean" optional>
-  Lets OpenRouter fail over to another upstream provider when the one it picked can't serve a call. The default is `false`, so reeval's own calls, the judge, analysis, questions, and captures, send `allow_fallbacks: false`. The harnesses' calls take OpenRouter's own routing either way. The plan notes where it is on.
+  Lets OpenRouter fail over to another upstream provider when the one it picked can't serve a call. The default is `false`, so reeval's own calls, the model grader, analysis, questions, and captures, send `allow_fallbacks: false`. The agent harnesses' calls take OpenRouter's own routing either way. The plan notes where it is on.
 </Property>
 
 For more information about OpenRouter, see [Route through OpenRouter](/configuration/gateways/openrouter).
 
 ## `agents`
 
-`agents` names the agents that run an evaluation, one cell each.
+`agents` names the agents that run a task, one cell each.
 
 <Property name="agents" type="HarnessOption | string[]" optional>
-  The config and profile defaults accept a descriptor or list, which replaces inherited agents. Groups and evaluations also accept `{ add }`, `{ only }`, or, in TypeScript, a function of the inherited list. A profile `limit` lists allowed ids. reeval refuses `add` beside `only`, an empty resolved list, an unknown `only` id, and repeated ids among the resolved descriptors.
+  The config and profile defaults accept a descriptor or list, which replaces inherited agents. Suites and tasks also accept `{ add }`, `{ only }`, or, in TypeScript, a function of the inherited list. A profile `limit` lists allowed ids. reeval refuses `add` beside `only`, an empty resolved list, an unknown `only` id, and repeated ids among the resolved descriptors.
 </Property>
 
 The default is:
@@ -102,18 +102,18 @@ The default is:
 agents: cursor({ model: 'composer-2.5' })
 ```
 
-For more information about harness forms, see [Choose an agent](/configuration/agents).
+For more information about agent harness forms, see [Choose an agent](/configuration/agents).
 
 ### Harness factory options
 
-Each factory in this table runs an agent and requires `model`. All but `fx()` take an optional `effort`. reeval refuses a missing `model`, an `effort` the harness doesn't take, or an unknown option at plan time with exit code 2. For `id`, `maxConcurrent`, `startTimeout`, and `gateway`, see [Set the harness options](/configuration/agents#set-the-harness-options).
+Each factory in this table runs an agent and requires `model`. All but `fx()` take an optional `effort`. reeval refuses a missing `model`, an `effort` the agent harness doesn't take, or an unknown option at plan time with exit code 2. For `id`, `maxConcurrent`, `startTimeout`, and `gateway`, see [Set the agent harness options](/configuration/agents#set-the-harness-options).
 
 `fakeAgent()` runs no agent, so it is not in the table. It is for tests and dry runs, takes no `model`, and records an optional `effort` on the cell without sending it anywhere.
 
 | Factory | `model` | `effort` |
 |---|---|---|
 | `cursor()` | A model id `Cursor.models.list()` returns for the key. | Mapped onto the catalog parameter the model names, `reasoning`, `reasoning_effort` or `effort`. A model with no such parameter refuses it at plan time. |
-| `claudeCode()` | A model id or alias the `claude` CLI accepts. | `low`, `medium`, `high`, `xhigh`, or `max`, for the Agent SDK `/effort` control. The Claude Code UI labels `xhigh` as Extra. reeval refuses any other value, and any value on a model Claude Code sends none to, such as `claude-haiku-4-5`. On Vertex AI, Claude Code sends an effort only to the models its own catalog lists, so reeval refuses one there on a model it doesn't list, such as `claude-haiku-5-5`, and runs that model with none. reeval refuses the `sonnet` and `opusplan` aliases on Vertex AI: Claude Code resolves them there to Sonnet 4.5 (`opusplan` outside plan mode), which Anthropic retires on 2026-11-30, so name the model, such as `claude-sonnet-5-5`. |
+| `claudeCode()` | A model id or alias the `claude` CLI accepts. | `low`, `medium`, `high`, `xhigh`, or `max`, for the Agent SDK `/effort` baseline. The Claude Code UI labels `xhigh` as Extra. reeval refuses any other value, and any value on a model Claude Code sends none to, such as `claude-haiku-4-5`. On Vertex AI, Claude Code sends an effort only to the models its own catalog lists, so reeval refuses one there on a model it doesn't list, such as `claude-haiku-5-5`, and runs that model with none. reeval refuses the `sonnet` and `opusplan` aliases on Vertex AI: Claude Code resolves them there to Sonnet 4.5 (`opusplan` outside plan mode), which Anthropic retires on 2026-11-30, so name the model, such as `claude-sonnet-5-5`. |
 | `antigravity()` | A slug `agy models` lists for the key, such as `<model>-medium`. A `-low`, `-medium`, or `-high` suffix sets effort in the slug, and reeval refuses `effort` beside one. | Passed as `agy --effort`, such as `low`, `medium`, `high`, or `max`. The cell's `effort` field copies it. |
 | `codex()` | An OpenAI model id with no provider prefix, passed as `--model`. | Written as `model_reasoning_effort` in `~/.codex/config.toml`: `low`, `medium`, `high`, `xhigh`, `max`, or `ultra`. |
 | `goose()` | `<provider>/<model>`, using letters, digits, `_`, `.`, and `-`. The provider is Goose's `google`, `anthropic`, `openai`, or `xai` on its own key, or any the gateway serves on `vercel()` or `openrouter()`. | Passed as `GOOSE_THINKING_EFFORT`: `off`, `low`, `medium`, `high`, or `max`. |
@@ -131,15 +131,15 @@ Each factory in this table runs an agent and requires `model`. All but `fx()` ta
 Every factory takes these options beside `model`, except `systemPrompt`, `tools`, and `commands`, which only the factories each names take.
 
 <Property name="id" type="string" optional>
-  Cell id. Defaults to the harness name followed by the model, such as `claude-code:<model>`, with `[effort=<value>]` added when `effort` is set, then `[tools=<names>]`, `[commands=<hash>]`, `[instructions=<hash>]`, and `[systemPrompt=<hash>]` for the options set. An id with a `/`, such as the `<provider>/<model>` id of `opencode`, keeps only the part after its last `/`, so `google/gemini-3.8-flash` gives `opencode:gemini-3.8-flash`. The id uses letters, digits, and `._:@+-=[]`.
+  Cell id. Defaults to the agent harness name followed by the model, such as `claude-code:<model>`, with `[effort=<value>]` added when `effort` is set, then `[tools=<names>]`, `[commands=<hash>]`, `[instructions=<hash>]`, and `[systemPrompt=<hash>]` for the options set. An id with a `/`, such as the `<provider>/<model>` id of `opencode`, keeps only the part after its last `/`, so `google/gemini-3.8-flash` gives `opencode:gemini-3.8-flash`. The id uses letters, digits, and `._:@+-=[]`.
 </Property>
 
 <Property name="instructions" type="string" optional>
-  Added to the harness's own system prompt, or, on a harness that has no way to add to it, to its global rules or to each prompt.
+  Added to the agent harness's own system prompt, or, on an agent harness that has no way to add to it, to its global rules or to each prompt.
 </Property>
 
 <Property name="systemPrompt" type="string" optional>
-  `claudeCode()`, `opencode()`, `pi()`, and `codex()`. Replaces the harness's own system prompt. The environment's rules and skills are still added, and OpenCode still adds its sections on the model and its tools.
+  `claudeCode()`, `opencode()`, `pi()`, and `codex()`. Replaces the agent harness's own system prompt. The environment's rules and skills are still added, and OpenCode still adds its sections on the model and its tools.
 </Property>
 
 <Property name="tools" type="ToolName[]" optional>
@@ -147,26 +147,26 @@ Every factory takes these options beside `model`, except `systemPrompt`, `tools`
 </Property>
 
 <Property name="commands" type="string[]" optional>
-  `claudeCode()`, `opencode()`, and `pi()`. The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the harness refuses every other. A prefix has no shell operators. `claudeCode()` and `pi()` refuse any command with one, and `opencode()` runs a chained command only when each part is allowed. An allowed command still runs what it runs, such as a script the agent wrote. reeval refuses it beside a `tools` without `bash`.
+  `claudeCode()`, `opencode()`, and `pi()`. The shell commands the agent may run, as prefixes: a command runs when it is one of them or starts with one and a space, and the agent harness refuses every other. A prefix has no shell operators. `claudeCode()` and `pi()` refuse any command with one, and `opencode()` runs a chained command only when each part is allowed. An allowed command still runs what it runs, such as a script the agent wrote. reeval refuses it beside a `tools` without `bash`.
 </Property>
 
 <Property name="maxConcurrent" type="number" optional>
-  The most attempts of this harness that run at the same time, across the run. A whole number of at least 1.
+  The most trials of this agent harness that run at the same time, across the run. A whole number of at least 1.
 </Property>
 
 <Property name="startTimeout" type="Duration" optional>
-  How long the session may take to become ready before the attempt is an infra error, after one retry. A duration, such as `3m`. Defaults to `90s`.
+  How long the session may take to become ready before the trial is an infra error, after one retry. A duration, such as `3m`. Defaults to `90s`.
 </Property>
 
 <Property name="gateway" type="GatewayName | GatewayDescriptor" optional>
-  The gateway this harness's model calls go through: `'direct'`, `'vercel'`, or `'openrouter'`, or the descriptor that `direct()`, `vercel()`, or `openrouter()` from `{{ pkg }}/gateway` returns. It skips the config's `gateway` fallback, and the plan refuses a gateway that isn't listed or can't serve the harness. For more information about routing, see [Route models through a gateway](/configuration/gateways).
+  The gateway this agent harness's model calls go through: `'direct'`, `'vercel'`, or `'openrouter'`, or the descriptor that `direct()`, `vercel()`, or `openrouter()` from `{{ pkg }}/gateway` returns. It skips the config's `gateway` fallback, and the plan refuses a gateway that isn't listed or can't serve the agent harness. For more information about routing, see [Route models through a gateway](/configuration/gateways).
 </Property>
 
 ### Gateway support by harness
 
-✅ means the gateway routes the harness and its `effort`. ⚠️ means it routes the harness, but a harness with `effort` set takes the next gateway in the list, and a pinned one stops the plan.
+✅ means the gateway routes the agent harness and its `effort`. ⚠️ means it routes the agent harness, but an agent harness with `effort` set takes the next gateway in the list, and a pinned one stops the plan.
 
-| Harness | `vercel()` | `openrouter()` |
+| Agent harness | `vercel()` | `openrouter()` |
 | --- | --- | --- |
 | Cursor | ❌ | ❌ |
 | Claude Code | ✅ | ⚠️ |
@@ -182,7 +182,7 @@ Cursor's agent calls only Cursor's API, and Antigravity's CLI calls only Google'
 
 ### Harness behavior
 
-Each value of `agents` reads the environment's `rules`, `skills`, and `mcp` servers from its own places and records its own events. Each row is one harness. The harness pages hold each one's key and plugins.
+Each value of `agents` reads the environment's `rules`, `skills`, and `mcp` servers from its own places and records its own events. Each row is one agent harness. The agent harness pages hold each one's key and plugins.
 
 #### Support by harness
 
@@ -222,7 +222,7 @@ Each value of `agents` reads the environment's `rules`, `skills`, and `mcp` serv
 
 - Codex reads the `~/.codex/AGENTS.md` file before the workspace rules file. It reads workspace skills from the working directory up to the repo root.
 - Goose and Grok Build also read the `.agents/skills` and `.claude/skills` directories in the workspace. OpenCode reads them in the workspace and in the home directory.
-- Grok Build ignores an untrusted folder's rules and skills, so reeval marks the workspace trusted. pi loads workspace skills because the harness trusts the project.
+- Grok Build ignores an untrusted folder's rules and skills, so reeval marks the workspace trusted. pi loads workspace skills because the agent harness trusts the project.
 
 For more information about writing rules and placing skills, see [Add project rules](/configuration/environments/rules) and [Give the agent skills](/configuration/environments/skills).
 
@@ -242,7 +242,7 @@ For more information about placing MCP servers, see [Connect MCP servers](/confi
 
 #### Token usage
 
-Each turn's `usage` is null when the harness reports no tokens.
+Each turn's `usage` is null when the agent harness reports no tokens.
 
 - **Cursor:** `input` excludes cache reads and writes, so the prompt total is `input` plus `cacheRead` plus `cacheWrite`. `reasoning` is part of `output`.
 - **Claude Code:** tokens on each turn.
@@ -258,7 +258,7 @@ For more information about the token fields, see [`TokenUsage`](/reference/run-r
 
 #### Served models
 
-- **Cursor:** each turn's `model` is the served model with its parameters, in the form `model[param=value]`. The attempt's `servedModels` is null, because the API requests name no model.
+- **Cursor:** each turn's `model` is the served model with its parameters, in the form `model[param=value]`. The trial's `servedModels` is null, because the API requests name no model.
 - **Claude Code:** each turn's `model` is the model id Claude Code reports. `servedModels` is null, because the API requests name no model.
 - **Antigravity:** each turn's `model` is the model the CLI reports at the start of the turn, or else the last brokered request's model. `servedModels` lists the model id in each brokered path `/v1beta/models/<model>:streamGenerateContent`, which can include a model the CLI calls for a title or a checkpoint.
 - **Codex:** the egress gateway reads the served model and effort from the response body. The turn's `model` and `servedModels` hold `<model>` or `<model>[effort=<value>]`. `servedEffort` is the reasoning effort in that label, and `effort` is the factory value, or `medium` when unset.
@@ -268,7 +268,7 @@ For more information about the token fields, see [`TokenUsage`](/reference/run-r
 - **fx:** fx names only its configured model over ACP, so the egress gateway reads the served model from each response, such as the dated snapshot OpenAI answers `gpt-5.5` with. On Vercel AI Gateway, a stream that names no model, such as Gemini's, leaves `servedModels` null and records the model each call asked for in `askedModels`.
 - **Grok Build:** the stream names only the configured model, so each turn's `model` and `servedModels` come from the model xAI's responses name.
 
-For more information about the attempt fields, see [`AttemptRecord`](/reference/run-record#attemptrecord).
+For more information about the trial fields, see [`AttemptRecord`](/reference/run-record#attemptrecord).
 
 #### Web search and fetch events
 
@@ -278,7 +278,7 @@ A turn's `unreported` list names the events a harness can't report, and the `sea
 - **Claude Code:** records both. A `webSearch` call records `query` and `references`, and a `webFetch` or `WebFetch` call records `url`. `ok` is false when a call fails.
 - **Antigravity:** records both, with `unreported` empty.
 - **Codex:** records both, with `unreported` empty. A search stores its text on `query`, and an `open_page` or `find_in_page` action with a URL is a fetch. A web action the turn ends without completing is a search with `ok` false. Codex sends each to `POST api.openai.com/v1/alpha/search` on the brokered key, so the trajectory keeps each event under a restricted egress policy.
-- **OpenCode:** records both, with `unreported` empty. A search runs on a hosted MCP server at `mcp.exa.ai`, which needs no key and is one of the harness's automatic egress hosts.
+- **OpenCode:** records both, with `unreported` empty. A search runs on a hosted MCP server at `mcp.exa.ai`, which needs no key and is one of the agent harness's automatic egress hosts.
 - **Goose:** records neither, and `unreported` is empty.
 - **pi:** records neither. Its built-in tools are `bash`, `read`, `write`, and `edit`, so the `searched` and `fetched` graders fail on a pi turn.
 - **fx:** records both, from fx's `web_search` and `web_fetch` tools. A search stores its text on `query`.
@@ -288,7 +288,7 @@ For more information about the automatic hosts, see [Block non-automatic hosts](
 
 #### OpenCode providers
 
-`opencode()` runs on any provider whose key OpenCode sends in a header on known hosts. The part of the model id before the first `/` picks the provider. reeval reads the provider's variable from the `Key` column, swaps it into the `Header` on each request to the `Hosts`, and refuses it anywhere else. A host with a `{NAME}` placeholder takes that variable from the host too, or the provider's default. For more information about the harness, see [OpenCode harness](/configuration/agents/opencode).
+`opencode()` runs on any provider whose key OpenCode sends in a header on known hosts. The part of the model id before the first `/` picks the provider. reeval reads the provider's variable from the `Key` column, swaps it into the `Header` on each request to the `Hosts`, and refuses it anywhere else. A host with a `{NAME}` placeholder takes that variable from the host too, or the provider's default. For more information about the agent harness, see [OpenCode agent harness](/configuration/agents/opencode).
 
 [//]: # (generated:opencode-providers)
 
@@ -508,7 +508,7 @@ For more information about the automatic hosts, see [Block non-automatic hosts](
 
 ## `sandbox`
 
-`sandbox` is where an attempt runs when its environment names none.
+`sandbox` is where a trial runs when its environment names none.
 
 <Property name="sandbox" type="SandboxDescriptor" optional>
   A descriptor from a sandbox factory, with `maxConcurrent` a whole number of at least 1. The default is `docker()`. 
@@ -519,7 +519,7 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 ## `provider`
 
 <Property name="provider" type="BoatProviderDescriptor | DaytonaProviderDescriptor" optional>
-  `boat()` or `daytona()`. Each attempt's `docker()` sandbox runs on the provider's machines, a container of its image or, without an image recipe, of reeval's image for the harness.
+  `boat()` or `daytona()`. Each trial's `docker()` sandbox runs on the provider's machines, a container of its image or, without an image recipe, of reeval's image for the agent harness.
 </Property>
 
 ## `docker()`
@@ -531,7 +531,7 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 </Property>
 
 <Property name="docker.maxConcurrent" type="number" optional>
-  The most containers reeval runs at once across the run, whatever their image. A whole number of at least 1. The run's `concurrency` option still caps attempts overall.
+  The most containers reeval runs at once across the run, whatever their image. A whole number of at least 1. The run's `concurrency` option still caps trials overall.
 </Property>
 
 <Property name="docker.root" type="boolean" optional>
@@ -547,15 +547,15 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 </Property>
 
 <Property name="docker.image" type="string" optional>
-  An image that already has the harness baked in. reeval uses it as is. At most one of `image`, `from`, and `dockerfile`; without one, the container runs reeval's own image for the harness, on Node 26.
+  An image that already has the agent harness baked in. reeval uses it as is. At most one of `image`, `from`, and `dockerfile`; without one, the container runs reeval's own image for the agent harness, on Node 26.
 </Property>
 
 <Property name="docker.from" type="string" optional>
-  A Debian or Ubuntu based toolchain image, such as `python:3.12-slim`. reeval bakes Node 26, Git, and the harness on top on first use and caches the result. The image needs `apt-get` and glibc.
+  A Debian or Ubuntu based toolchain image, such as `python:3.12-slim`. reeval bakes Node 26, Git, and the agent harness on top on first use and caches the result. The image needs `apt-get` and glibc.
 </Property>
 
 <Property name="docker.dockerfile" type="string | URL" optional>
-  A Dockerfile, relative to the file that calls `docker()`, absolute, or a `file:` URL. reeval builds it from its directory with `REEVAL_BASE` set to its sandbox image and caches the result by content hash. To layer on that image, start the Dockerfile with `ARG REEVAL_BASE` and `FROM ${REEVAL_BASE}`. A Dockerfile that starts from another Debian or Ubuntu image gets the harness baked on, as for `from`.
+  A Dockerfile, relative to the file that calls `docker()`, absolute, or a `file:` URL. reeval builds it from its directory with `REEVAL_BASE` set to its sandbox image and caches the result by content hash. To layer on that image, start the Dockerfile with `ARG REEVAL_BASE` and `FROM ${REEVAL_BASE}`. A Dockerfile that starts from another Debian or Ubuntu image gets the agent harness baked on, as for `from`.
 </Property>
 
 <Property name="docker.install" type="(string | { run: string; timeout?: Duration })[]" optional>
@@ -580,7 +580,7 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 
 ## `tart()`
 
-`tart()` takes these options. Each attempt clones `image` into a new macOS VM, so each limit applies to one VM. For more information, see [Tart sandbox](/configuration/sandboxes/tart).
+`tart()` takes these options. Each trial clones `image` into a new macOS VM, so each limit applies to one VM. For more information, see [Tart sandbox](/configuration/sandboxes/tart).
 
 <Property name="tart.image" type="string">
   The VM to clone: an OCI image such as `ghcr.io/cirruslabs/macos-sequoia-base:latest`, or the name of a local Tart VM. One word, required. Tart must have it before the run: `reeval image build` or `tart pull` pulls it, and `reeval run` exits 2 for one `tart list` doesn't show. `:latest` or no tag prints a warning; pin a digest (`…@sha256:…`), since Cirrus Labs publishes only `latest`, or a version tag your registry publishes.
@@ -591,7 +591,7 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 </Property>
 
 <Property name="tart.maxConcurrent" type="number" optional>
-  The most VMs reeval runs at once across the run: `1` or `2`, and `2` by default, since macOS runs at most two macOS VMs at a time. With `hosts`, at most every host's `vms` added up, and that sum by default. The run's `concurrency` option still caps attempts overall.
+  The most VMs reeval runs at once across the run: `1` or `2`, and `2` by default, since macOS runs at most two macOS VMs at a time. With `hosts`, at most every host's `vms` added up, and that sum by default. The run's `concurrency` option still caps trials overall.
 </Property>
 
 <Property name="tart.cpus" type="number" optional>
@@ -607,7 +607,7 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 </Property>
 
 <Property name="tart.hosts" type="(string | { host: string; user?: string; port?: number; identityFile?: string; vms?: number })[]" optional>
-  Run the VMs on these Macs over SSH instead of this one: `'mac-studio'` (an `~/.ssh/config` alias), `'elliot@mac-mini.local'`, `'ssh://ci@10.0.0.5:2222'`, or an object. Each needs `tart` and must answer plain `ssh` with no prompt (an alias, the SSH agent or `identityFile`; no passwords). `vms` is how many of the run's VMs it runs at once, `1` or `2`, and `2` by default. The egress gateway and the keys stay on this machine. Each host must have `image` (`reeval image build` pulls it on every host); preflight bakes harness images on each host, refuses one that doesn't answer or a tag that's a different image on two hosts, and skips one short of disk or memory or whose pull or bake fails. The run starts as many VMs at once as the hosts it kept have room for.
+  Run the VMs on these Macs over SSH instead of this one: `'mac-studio'` (an `~/.ssh/config` alias), `'elliot@mac-mini.local'`, `'ssh://ci@10.0.0.5:2222'`, or an object. Each needs `tart` and must answer plain `ssh` with no prompt (an alias, the SSH agent or `identityFile`; no passwords). `vms` is how many of the run's VMs it runs at once, `1` or `2`, and `2` by default. The egress gateway and the keys stay on this machine. Each host must have `image` (`reeval image build` pulls it on every host); preflight bakes agent harness images on each host, refuses one that doesn't answer or a tag that's a different image on two hosts, and skips one short of disk or memory or whose pull or bake fails. The run starts as many VMs at once as the hosts it kept have room for.
 </Property>
 
 ## `boat()`
@@ -619,15 +619,15 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 </Property>
 
 <Property name="boat.maxConcurrent" type="number" optional>
-  The most attempts reeval runs on Boat at once across the run: its VMs times `attemptsPerMachine`. A whole number of at least 1. The run's `concurrency` option still caps attempts overall, and defaults to what Boat's account can run.
+  The most trials reeval runs on Boat at once across the run: its VMs times `attemptsPerMachine`. A whole number of at least 1. The run's `concurrency` option still caps trials overall, and defaults to what Boat's account can run.
 </Property>
 
 <Property name="boat.reuse" type="boolean" optional>
-  Whether a VM whose attempt finished runs the next attempt, in a new container. Defaults to `false`, a new VM per attempt.
+  Whether a VM whose trial finished runs the next trial, in a new container. Defaults to `false`, a new VM per trial.
 </Property>
 
 <Property name="boat.attemptsPerMachine" type="number" optional>
-  How many attempts run at once on one VM, each in its own container with its own workspace, home, network and egress gateway. A whole number from 1 to 8; defaults to 1.
+  How many trials run at once on one VM, each in its own container with its own workspace, home, network and egress gateway. A whole number from 1 to 8; defaults to 1.
 </Property>
 
 <Property name="createBoat.apiKey" type="SecretRef" optional>
@@ -643,15 +643,15 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 </Property>
 
 <Property name="daytona.maxConcurrent" type="number" optional>
-  The most attempts reeval runs on Daytona at once across the run: its sandboxes times `attemptsPerMachine`. Without it, the run's `concurrency` option is the only cap.
+  The most trials reeval runs on Daytona at once across the run: its sandboxes times `attemptsPerMachine`. Without it, the run's `concurrency` option is the only cap.
 </Property>
 
 <Property name="daytona.reuse" type="boolean" optional>
-  Whether a sandbox whose attempt finished runs the next attempt, after reeval resets its sandbox user: its processes, crontab, files in `/tmp`, `/var/tmp` and `/dev/shm`, workspace and home. Defaults to `false`, a new sandbox per attempt.
+  Whether a sandbox whose trial finished runs the next trial, after reeval resets its sandbox user: its processes, crontab, files in `/tmp`, `/var/tmp` and `/dev/shm`, workspace and home. Defaults to `false`, a new sandbox per trial.
 </Property>
 
 <Property name="daytona.attemptsPerMachine" type="number" optional>
-  How many attempts run at once on one sandbox, each as its own user with its own workspace, home and egress gateway. A whole number from 1 to 8; defaults to 1. A harness whose bridge listens on a fixed port (Claude Code, OpenCode, Goose, fx and Grok Build) is refused above 1.
+  How many trials run at once on one sandbox, each as its own user with its own workspace, home and egress gateway. A whole number from 1 to 8; defaults to 1. An agent harness whose bridge listens on a fixed port (Claude Code, OpenCode, Goose, fx and Grok Build) is refused above 1.
 </Property>
 
 <Property name="createDaytona.apiKey" type="SecretRef" optional>
@@ -664,30 +664,30 @@ For more information about sandbox factories, see [Choose a sandbox](/configurat
 
 ## `environments`
 
-`environments` names what an evaluation runs in, one cell each.
+`environments` names what a task runs in, one cell each.
 
 <Property name="environments" type="EnvironmentsOption" optional>
-  One environment from `defineEnvironment()` or a list, which replaces inherited environments. Groups and evaluations also accept `{ add }`, `{ only }`, or, in TypeScript, a function of the inherited list. reeval refuses an empty list, `add` beside `only`, two environments with one name, `environments` beside `compare` on the same evaluation, and `environments` under a group's `compare`: the control goes in `compare.control`.
+  One environment from `defineEnvironment()` or a list, which replaces inherited environments. Suites and tasks also accept `{ add }`, `{ only }`, or, in TypeScript, a function of the inherited list. reeval refuses an empty list, `add` beside `only`, two environments with one name, `environments` beside `compare` on the same task, and `environments` under a suite's `compare`: the baseline goes in `compare.control`.
 </Property>
 
 For more information about environments, see [Define an environment](/configuration/environments).
 
 ## `runs`
 
-`runs` is the number of attempts in each cell.
+`runs` is the number of trials in each cell.
 
 <Property name="runs" type="number | { bestOf: number }" optional>
-  A whole number of at least 1, or `{ bestOf: n }` with `n` odd and at least 3, which stops each cell once attempts that reach the target's threshold, or those that don't, have a majority of `n` and gates on that majority. `bestOf` is refused on an evaluation with `compare`. `--runs` replaces it after a profile `limit`, pinned or not.
+  A whole number of at least 1, or `{ bestOf: n }` with `n` odd and at least 3, which stops each cell once trials that reach the target's threshold, or those that don't, have a majority of `n` and gates on that majority. `bestOf` is refused on a task with `compare`. `--runs` replaces it after a profile `limit`, pinned or not.
 
-  Unset at every level, an evaluation with `compare` variants runs 4 a cell, the fewest a side a lift verdict needs, and the plan notes `runs 4 (compare default)`. Anything else runs once. That includes an evaluation with two or more `cases` and a `compare`, whose lift pairs cases rather than runs, so more cases add power; the plan notes `runs 1 a case (compare with cases: the lift pairs cases)`.
+  Unset at every level, a task with `compare` variants runs 4 a cell, the fewest a side a statistical lift verdict needs, and the plan notes `runs 4 (compare default)`. Anything else runs once. That includes a task with two or more `cases` and a `compare`, whose statistical lift pairs cases rather than runs, so more cases add power; the plan notes `runs 1 a case (compare with cases: the lift pairs cases)`.
 </Property>
 
 ## `target`
 
-`target` is what passes an evaluation, and whether a miss fails the run.
+`target` is what passes a task, and whether a miss fails the run.
 
 <Property name="target" type="Target" optional>
-  `capability()` (the default) passes a cell when one attempt scores at least its threshold, 1 (pass@k), and only reports: a miss fails the evaluation, never the run. `capability(threshold = 1, { blocking: true })` fails the run on a miss, and so does `regression(threshold = 1)`, which passes when every counted attempt scores at least `threshold` (pass^k). An attempt passes when its score reaches the threshold, 1 without one; thresholds are from 0 to 1. The result prints the mean score under every target, and no target gates on it. When no outcome counts, the cell takes its worst attempt outcome. Under `compare`, the target gates the variant cells only. With `cases`, a case that misses the target fails the evaluation. The record writes each cell's gate as `all`, `any`, `{ passRate }`, or `none`.
+  `capability()` (the default) passes a cell when one trial scores at least its threshold, 1 (pass@k), and only reports: a miss fails the task, never the run. `capability(threshold = 1, { blocking: true })` fails the run on a miss, and so does `regression(threshold = 1)`, which passes when every counted trial scores at least `threshold` (pass^k). A trial passes when its score reaches the threshold, 1 without one; thresholds are from 0 to 1. The result prints the mean score under every target, and no target gates on it. When no final state counts, the cell takes its worst trial final state. Under `compare`, the target gates the variant cells only. With `cases`, a case that misses the target fails the task. The record writes each cell's gate as `all`, `any`, `{ passRate }`, or `none`.
 </Property>
 
 ## `env`
@@ -695,7 +695,7 @@ For more information about environments, see [Define an environment](/configurat
 `env` is the variables and secrets the sandbox gets.
 
 <Property name="env" type="Record<string, string | Secret>" optional>
-  Names use letters, digits, and `_`, not starting with a digit. A value is a string or a secret; reeval refuses a literal string under a secret-looking name. `env` merges by name: the config, a profile, a group, and an evaluation merge in first, and an environment's own value takes precedence.
+  Names use letters, digits, and `_`, not starting with a digit. A value is a string or a secret; reeval refuses a literal string under a secret-looking name. `env` merges by name: the config, a profile, a suite, and a task merge in first, and an environment's own value takes precedence.
 </Property>
 
 ## `egress`
@@ -703,10 +703,10 @@ For more information about environments, see [Define an environment](/configurat
 `egress` is where the sandbox may connect. An environment accepts it too.
 
 <Property name="egress" type="'proxy' | 'allow-all' | 'deny-all' | { allow: string[] } | { setup?: EgressPolicy; agent?: EgressPolicy }" optional>
-  `'proxy'` (the default) allows any host over HTTP and HTTPS through the egress gateway, `'allow-all'` also allows raw TCP and UDP around the gateway, `'deny-all'` blocks all but the automatic hosts, and `{ allow }` adds hosts to them. `{ setup, agent }` sets one of those policies per phase: `setup` for the files and setup steps, `agent` for the harness's start, its turns and the checks. A group or an evaluation overrides the environment, which overrides the inherited policy, one phase at a time; a plain policy sets both. Only `docker()` and `podman()`, here or on `boat()`, switch policies during an attempt, so `tart()` and `docker()` on `daytona()` refuse two different ones.
+  `'proxy'` (the default) allows any host over HTTP and HTTPS through the egress gateway, `'allow-all'` also allows raw TCP and UDP around the gateway, `'deny-all'` blocks all but the automatic hosts, and `{ allow }` adds hosts to them. `{ setup, agent }` sets one of those policies per phase: `setup` for the files and setup steps, `agent` for the agent harness's start, its turns and the checks. A group or a task overrides the environment, which overrides the inherited policy, one phase at a time; a plain policy sets both. Only `docker()` and `podman()`, here or on `boat()`, switch policies during a trial, so `tart()` and `docker()` on `daytona()` refuse two different ones.
 </Property>
 
-A plain `allow` entry matches that host only. A `*.` entry matches every subdomain, not the apex domain itself, and never an IP address. The gateway carries HTTP and HTTPS only, so SSH and database clients get no network under every policy but `'allow-all'`. Under `'allow-all'`, raw traffic leaves the sandbox directly, unfiltered and unrecorded, and the record marks the attempt's egress `partial`.
+A plain `allow` entry matches that host only. A `*.` entry matches every subdomain, not the apex domain itself, and never an IP address. The gateway carries HTTP and HTTPS only, so SSH and database clients get no network under every policy but `'allow-all'`. Under `'allow-all'`, raw traffic leaves the sandbox directly, unfiltered and unrecorded, and the record marks the trial's egress `partial`.
 
 Spread [`DEFAULT_EGRESS_ALLOW`](/reference/authoring-api#defaultegressallow) into an `allow` list that still installs packages.
 
@@ -729,14 +729,14 @@ For more information about the automatic hosts, see [Egress](/configuration/envi
 </Property>
 
 <Property name="judge.maxConcurrent" type="number" optional>
-  The maximum judge calls to this model's provider at once across the run, a whole number of at least 1.
+  The maximum model grader calls to this model's provider at once across the run, a whole number of at least 1.
 </Property>
 
 <Property name="judge.gateway" type="GatewayName | GatewayDescriptor" optional>
-  The gateway the judge's calls go through: `'direct'`, `'vercel'`, `'openrouter'`, or the helper from `{{ pkg }}/gateway`. It skips the config's `gateway` fallback. reeval refuses a gateway that is not in the `gateway` list or cannot serve the judge model.
+  The gateway the model grader's calls go through: `'direct'`, `'vercel'`, `'openrouter'`, or the helper from `{{ pkg }}/gateway`. It skips the config's `gateway` fallback. reeval refuses a gateway that is not in the `gateway` list or cannot serve the model grader's model.
 </Property>
 
-For more information about judging, see [Judge agent work](/evaluations/grading/judgments).
+For more information about the model grader, see [Grade with a model grader](/evaluations/grading/judgments).
 
 ## `capture`
 
@@ -761,7 +761,7 @@ For more information about judging, see [Judge agent work](/evaluations/grading/
 </Property>
 
 <Property name="capture.model" type="string" optional>
-  The `'provider/model'` string behind `instructions`, or `analysis.model`, then a judge language model. reeval refuses an evaluation model.
+  The `'provider/model'` string behind `instructions`, or `analysis.model`, then the model grader's language model. reeval refuses an evaluation model.
 </Property>
 
 For more information about screenshots, see [Check an app](/evaluations/task/apps#set-the-viewport-and-browser).
@@ -775,7 +775,7 @@ For more information about screenshots, see [Check an app](/evaluations/task/app
 </Property>
 
 <Property name="question.model" type="string" optional>
-  A `'provider/model'` string, below a question's own `model` and above `analysis.model`, then a judge language model. reeval refuses an evaluation model.
+  A `'provider/model'` string, below a question's own `model` and above `analysis.model`, then the model grader's language model. reeval refuses an evaluation model.
 </Property>
 
 ## `decide`
@@ -794,7 +794,7 @@ For more information about screenshots, see [Check an app](/evaluations/task/app
 
 ## `timeout`
 
-`timeout` is the limit on one attempt.
+`timeout` is the limit on one trial.
 
 <Property name="timeout" type="Duration" optional>
   Milliseconds, or a number with `ms`, `s`, `m`, or `h`, above zero. The default is `'15m'`.
@@ -803,15 +803,15 @@ For more information about screenshots, see [Check an app](/evaluations/task/app
 ## `snapshot`
 
 <Property name="snapshot" type="boolean | 'turns' | { when?: boolean | 'turns'; compress?: boolean }" optional>
-  When each attempt's workspace is copied into its directory in `.reeval/runs`: `true` after the checks, `'turns'` after each `c.send` too, `false` never. `compress: true` writes each as a `.tar.gz` instead of a directory. The default is `true`.
+  When each trial's workspace is copied into its directory in `.reeval/runs`: `true` after the checks, `'turns'` after each `c.send` too, `false` never. `compress: true` writes each as a `.tar.gz` instead of a directory. The default is `true`.
 </Property>
 
 ## `concurrency`
 
-`concurrency` is the most attempts that run in parallel.
+`concurrency` is the most trials that run in parallel.
 
 <Property name="concurrency" type="number" optional>
-  A whole number of at least 1, below `--concurrency` and `REEVAL_CONCURRENCY`. The default is at least 1 and otherwise the smallest of 8, the CPU count, and the whole gigabytes of memory; on `boat()`, the attempts its VMs can run at once. A cloud run ignores it, and the cloud decides how many of its attempts run at once.
+  A whole number of at least 1, below `--concurrency` and `REEVAL_CONCURRENCY`. The default is at least 1 and otherwise the smallest of 8, the CPU count, and the whole gigabytes of memory; on `boat()`, the trials its VMs can run at once. A cloud run ignores it, and the cloud decides how many of its trials run at once.
 </Property>
 
 ## `record`
@@ -836,10 +836,10 @@ For more information about screenshots, see [Check an app](/evaluations/task/app
 
 ## `history`
 
-`history` is where recorded runs are kept and which evaluations keep artifacts there.
+`history` is where recorded runs are kept and which tasks keep artifacts there.
 
 <Property name="history" type="{ store?: LocalStoreDescriptor | S3StoreDescriptor, artifacts?: 'all' | 'evidence' | 'failures' | 'none', debug?: 'none' | 'requests' | 'all', archive?: boolean, debugArchive?: boolean }" optional>
-  `store` defaults to `local()`, whose `dir` defaults to the `.history` directory under the directory the `include` patterns share. `artifacts` is `'all'`, `'evidence'` (the default), `'failures'`, or `'none'`; `'evidence'` keeps every attempt's diff, captures, `execs.jsonl` (each `c.exec`'s output, capped), kept workspace, large observed values and questions' `input` files, and its trajectory, setup logs, whole `checks/<n>.log` `c.exec` logs and judge input only when its outcome is `fail` or `infra_error`; `'failures'` keeps the artifacts of each attempt whose outcome is `fail` or `infra_error`, including its setup and `c.exec` logs, and only the `diff.patch` of a passing attempt in a cell with a failed attempt. A cell that failed with no failed attempt, such as on `minLift`, keeps every attempt's artifacts. Any other passing attempt keeps no trajectory, so `skill_reads` and `skill_files` leave it out.
+  `store` defaults to `local()`, whose `dir` defaults to the `.history` directory under the directory the `include` patterns share. `artifacts` is `'all'`, `'evidence'` (the default), `'failures'`, or `'none'`; `'evidence'` keeps every trial's diff, captures, `execs.jsonl` (each `c.exec`'s output, capped), kept workspace, large observed values and questions' `input` files, and its trajectory, setup logs, whole `checks/<n>.log` `c.exec` logs and judge input only when its final state is `fail` or `infra_error`; `'failures'` keeps the artifacts of each trial whose final state is `fail` or `infra_error`, including its setup and `c.exec` logs, and only the `diff.patch` of a passing trial in a cell with a failed trial. A cell that failed with no failed trial, such as on `minLift`, keeps every trial's artifacts. Any other passing trial keeps no trajectory, so `skill_reads` and `skill_files` leave it out.
 </Property>
 
 ## `budget`
@@ -847,7 +847,7 @@ For more information about screenshots, see [Check an app](/evaluations/task/app
 `budget` caps a run.
 
 <Property name="budget" type="{ attempts?: number, duration?: Duration }" optional>
-  `attempts` refuses a plan over the cap, unless `--force` is set, and must be a whole number of at least 1. From the first attempt's start, `duration` stops queued attempts from starting but lets running attempts finish. A profile's [`budget`](/reference/profiles#budget) merges over the config value. reeval refuses `usd` and `tokens`.
+  `attempts` refuses a plan over the cap, unless `--force` is set, and must be a whole number of at least 1. From the first trial's start, `duration` stops queued trials from starting but lets running trials finish. A profile's [`budget`](/reference/profiles#budget) merges over the config value. reeval refuses `usd` and `tokens`.
 </Property>
 
 ## `profiles`
@@ -873,7 +873,7 @@ For more information about each profile key, see [Profiles reference](/reference
 `secrets` is what reeval does with a secret that has no `hosts`.
 
 <Property name="secrets" type="{ unbrokered?: 'warn' | 'error' }" optional>
-  `'warn'` (the default) warns when an attempt would receive the real value, including a plain `env` string or MCP header that looks like a credential. `'error'` fails the plan.
+  `'warn'` (the default) warns when a trial would receive the real value, including a plain `env` string or MCP header that looks like a credential. `'error'` fails the plan.
 </Property>
 
 For more information about brokering a secret, see [Secrets](/configuration/environments/secrets#broker-a-secret-to-a-host).
@@ -883,7 +883,7 @@ For more information about brokering a secret, see [Secrets](/configuration/envi
 `debug` is the local debug data in the `.reeval/debug` directory.
 
 <Property name="debug" type="{ keep?: number, traceBufferMb?: number }" optional>
-  `keep` is how many runs to keep, a whole number of at least 1 and 20 by default. `traceBufferMb` is the megabytes of raw trace each attempt buffers, above 0 and 8 by default.
+  `keep` is how many runs to keep, a whole number of at least 1 and 20 by default. `traceBufferMb` is the megabytes of raw trace each trial buffers, above 0 and 8 by default.
 </Property>
 
 ## `analysis`
@@ -895,7 +895,7 @@ For more information about brokering a secret, see [Secrets](/configuration/envi
 </Property>
 
 <Property name="analysis.model" type="string" optional>
-  A `'provider/model'` string; reeval refuses an evaluation model. `reeval analyze` and questions fall back to a judge language model.
+  A `'provider/model'` string; reeval refuses an evaluation model. `reeval analyze` and questions fall back to the model grader's language model.
 </Property>
 
 <Property name="analysis.instructions" type="string" optional>
@@ -914,10 +914,10 @@ For more information about analysis, see [Analyze a run](/results/analyze#set-an
 
 ## `compare`
 
-`compare` runs the control and each variant with the same prompt and assertions.
+`compare` runs the baseline and each variant with the same prompt and assertions.
 
 <Property name="compare" type="CompareOptions | false | { maxVariants: number }" optional>
-  A group or an evaluation refuses `false`. On a profile `limit`, `false` drops the variants and `{ maxVariants }` keeps the first that many, where `maxVariants` is a whole number of at least 0.
+  A suite or a task refuses `false`. On a profile `limit`, `false` drops the variants and `{ maxVariants }` keeps the first that many, where `maxVariants` is a whole number of at least 0.
 </Property>
 
 <Property name="compare.control" type="Environment" required>
@@ -925,24 +925,24 @@ For more information about analysis, see [Analyze a run](/results/analyze#set-an
 </Property>
 
 <Property name="compare.variants" type="Environment[]" required>
-  A non-empty list. reeval refuses two variants with one name, or one named like the control.
+  A non-empty list. reeval refuses two variants with one name, or one named like the baseline.
 </Property>
 
 <Property name="compare.minLift" type="number" optional>
-  Lift from -1 to 1. A variant cell fails when its lift interval's lower end is below it. reeval refuses it beside a target that can't fail the run. An evaluation with `cases` is gated on its pooled lift instead, and fails when the pooled interval's lower end is below it.
+  Statistical lift from -1 to 1. A variant cell fails when its statistical lift interval's lower end is below it. reeval refuses it beside a target that can't fail the run. A task with `cases` is gated on its pooled lift instead, and fails when the pooled interval's lower end is below it.
 </Property>
 
 <Property name="compare.agents" type="Array<string | HarnessDescriptor>" optional>
-  The agents to compare on; the others run the control only. reeval refuses an id the evaluation does not run.
+  The agents to compare on; the others run the baseline only. reeval refuses an id the task does not run.
 </Property>
 
-An evaluation with `cases` reports one `all cases` row that sums each cell's counts, with a lift paired by case. A paired outcome is `insufficient` below six discordant pairs or cases, so six cases with one attempt a side can read `helped` only when all six are discordant. Under `regression()`, a case fails on its own assertions, and a failed case fails the evaluation. The [`case_lift`](/reference/query-views#caselift) view lists each evaluation's pooled lift.
+A task with `cases` reports one `all cases` row that sums each cell's counts, with a statistical lift paired by case. A paired final state is `insufficient` below six discordant pairs or cases, so six cases with one trial a side can read `helped` only when all six are discordant. Under `regression()`, a case fails on its own assertions, and a failed case fails the task. The [`case_lift`](/reference/query-views#caselift) view lists each task's pooled lift.
 
-For more information about comparisons, see [Measure lift against a control](/results/compare/lift).
+For more information about comparisons, see [Measure statistical lift against a baseline](/results/compare/lift).
 
 ## `cases`
 
-`cases` runs one evaluation over a list of inputs. It is accepted on `defineEval()` only.
+`cases` runs one task over a list of inputs. It is accepted on `defineEval()` only.
 
 ```ts
 export default defineEval({
@@ -956,7 +956,7 @@ export default defineEval({
 ```
 
 <Property name="cases" type="Case<T>[]" optional>
-  The inputs, each a JSON object with a `key`. `task` takes one as its second argument. The cases pool into one pass rate and, with `compare`, one lift paired by case. reeval refuses `runs: { bestOf }` beside it.
+  The inputs, each a JSON object with a `key`. `task` takes one as its second argument. The cases pool into one pass rate and, with `compare`, one statistical lift paired by case. reeval refuses `runs: { bestOf }` beside it.
 </Property>
 
 <Property name="cases[].key" type="string" required>
@@ -964,33 +964,33 @@ export default defineEval({
 </Property>
 
 <Property name="where" type="(pair: { case, environment, harness }) => boolean" optional>
-  TypeScript only. Which case and environment pairs run, decided at plan time. `environment` has its `name` and `traits`, and reeval refuses reading a trait no listed environment defines. With `compare`, it sees the control, whose answer holds for every variant. Reading `harness` decides each harness on its own. The pairs it leaves out are listed in `--dry-run`, and each case's own are in its `excluded` in the eval's `cases` in the record and its `whereExcluded` in `--dry-run --json`. The eval's own `excluded` lists every pair, including those of a case left out everywhere. reeval refuses `where` without `cases`. `where` never sees the profile or the flags: to run only some environments today, use [`--trait`](/reference/cli#filtering-cells-by-trait) or a profile's [`limit.traits`](/reference/profiles#traits), which narrow after it.
+  TypeScript only. Which case and environment pairs run, decided at plan time. `environment` has its `name` and `traits`, and reeval refuses reading a trait no listed environment defines. With `compare`, it sees the baseline, whose answer holds for every variant. Reading `harness` decides each agent harness on its own. The pairs it leaves out are listed in `--dry-run`, and each case's own are in its `excluded` in the eval's `cases` in the record and its `whereExcluded` in `--dry-run --json`. The eval's own `excluded` lists every pair, including those of a case left out everywhere. reeval refuses `where` without `cases`. `where` never sees the profile or the flags: to run only some environments today, use [`--trait`](/reference/cli#filtering-cells-by-trait) or a profile's [`limit.traits`](/reference/profiles#traits), which narrow after it.
 </Property>
 
 For more information, see [Evaluate many cases](/evaluations/task/cases).
 
 ## `questions`
 
-`questions` lists what a language model is asked about the attempts after they end.
+`questions` lists what a language model is asked about the trials after they end.
 
 <Property name="questions" type="Question[]" optional>
   Objects with `question`, `model`, `across`, `choices`, `turns`, and at least one input: `task`, `output`, `files`, `diff`, `trajectory`, `checks`, `observations`, or `artifacts`. reeval refuses an entry with no input. A list replaces the inherited one, so `[]` asks none. Questions never change pass, fail, or the exit code.
 </Property>
 
 <Property name="questions[].across" type="'environment' | 'agent' | Array<'environment' | 'agent'>" optional>
-  The factor a pairwise question varies: `'environment'` holds the harness, and `'harness'` holds the environment. reeval asks it about each pair of attempts that passed their assertions, in both orders. Without `across`, reeval asks the question of each attempt on its own.
+  The factor a comparative grader varies: `'environment'` holds the agent harness, and `'harness'` holds the environment. reeval asks it about each pair of trials that passed their assertions, in both orders. Without `across`, reeval asks the question of each trial on its own.
 </Property>
 
 <Property name="questions[].choices" type="string[]" optional>
-  The answers a question asked of each attempt picks from, with a short reason.
+  The answers a question asked of each trial picks from, with a short reason.
 </Property>
 
 <Property name="questions[].turns" type="'last' | 'all'" optional>
-  `'all'` shows every turn's task, output, and trajectory, and `'last'` the last turn's. The default is `'all'`.
+  `'all'` shows every turn's instruction, output, and trajectory, and `'last'` the last turn's. The default is `'all'`.
 </Property>
 
 <Property name="questions[].task" type="boolean" optional>
-  The prompts the attempt was sent, once for both sides when they match.
+  The prompts the trial was sent, once for both sides when they match.
 </Property>
 
 <Property name="questions[].output" type="boolean" optional>
@@ -1002,11 +1002,11 @@ For more information, see [Evaluate many cases](/evaluations/task/cases).
 </Property>
 
 <Property name="questions[].diff" type="boolean | string[]" optional>
-  The diff from the start of the evaluation. A list is gitignore-style patterns over workspace paths. The last matching pattern wins, and `!` excludes.
+  The diff from the start of the task. A list is gitignore-style patterns over workspace paths. The last matching pattern wins, and `!` excludes.
 </Property>
 
 <Property name="questions[].trajectory" type="boolean | 'tools' | 'full' | { detail?, agent?, subagents? }" optional>
-  The trajectory as text lines. `true` is messages and tool calls with tool output clipped, `'tools'` is tool calls only, and `'full'` adds reasoning and whole tool output, each subagent's events under its spawn call. The object form takes one of those modes as `detail` and leaves out the agent's own events (`agent: false`) or its subagents' (`subagents: false`). It names each harness's tools, so a pair of two harnesses is not blind.
+  The trajectory as text lines. `true` is messages and tool calls with tool output clipped, `'tools'` is tool calls only, and `'full'` adds reasoning and whole tool output, each subagent's events under its spawn call. The object form takes one of those modes as `detail` and leaves out the agent's own events (`agent: false`) or its subagents' (`subagents: false`). It names each agent harness's tools, so a pair of two agent harnesses is not blind.
 </Property>
 
 <Property name="questions[].checks" type="boolean | string[]" optional>
@@ -1017,14 +1017,14 @@ For more information, see [Evaluate many cases](/evaluations/task/cases).
   Each side's captures as `true` or a non-empty list of non-empty capture names.
 </Property>
 
-For more information about questions, see [Ask questions across attempts](/evaluations/grading/questions).
+For more information about questions, see [Grade across trials](/evaluations/grading/questions).
 
 ## `tags`
 
-`tags` labels an evaluation for `--tag` and a profile's `tags`.
+`tags` labels a task for `--tag` and a profile's `tags`.
 
 <Property name="tags" type="string[]" optional>
-  Labels from each group and the evaluation, without duplicates. A filter is a label, or `!` and a label to exclude; every filter has to match.
+  Labels from each suite and the task, without duplicates. A filter is a label, or `!` and a label to exclude; every filter has to match.
 </Property>
 
 ## `pin`

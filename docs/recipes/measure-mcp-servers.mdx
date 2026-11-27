@@ -1,16 +1,16 @@
 ---
 title: "Measure MCP servers"
-description: "See whether an MCP server helped a harness."
+description: "See whether an MCP server helped an agent harness."
 ---
 
-You measure an MCP server by running one task on a control with no server and a variant with the server. The effect reads `helped`, `made it worse`, or `same`. The example server is `releases`, a stdio server that knows the latest `acme-cli` release. For a runnable project with the server, see [`with-mcp`](https://github.com/reeval-ai/reeval/tree/main/examples/with-mcp).
+You measure an MCP server by running one task on a baseline with no server and a variant with the server. The effect reads `helped`, `made it worse`, or `same`. The example server is `releases`, a stdio server that knows the latest `acme-cli` release. For a runnable project with the server, see [`with-mcp`](https://github.com/reeval-ai/reeval/tree/main/examples/with-mcp).
 
 ## Run one task with and without the server
 
 <Steps>
-<Step title="Define the control and variant">
+<Step title="Define the baseline and variant">
 
-In the `evals/environments.ts` file, define the control `app`, which holds the project, and the variant `withReleases`, which adds the server's script and starts the server in the sandbox:
+In the `evals/environments.ts` file, define the baseline `app`, which holds the project, and the variant `withReleases`, which adds the server's script and starts the server in the sandbox:
 
 ```ts title="evals/environments.ts"
 import { defineEnvironment } from '{{ pkg }}'
@@ -31,9 +31,9 @@ export const withReleases = app.extendEnvironment(
 The server is the only change between the cells. For more information about `mcp.stdio` and servers by URL, see [Connect MCP servers](/configuration/environments/mcp-servers).
 
 </Step>
-<Step title="Write the evaluation">
+<Step title="Write the task">
 
-In the `evals/releases.eval.ts` file, declare the evaluation and name the variant in `compare.variants`:
+In the `evals/releases.eval.ts` file, declare the task and name the variant in `compare.variants`:
 
 ```ts title="evals/releases.eval.ts"
 import { defineEval } from '{{ pkg }}'
@@ -54,12 +54,12 @@ export default defineEval({
 })
 ```
 
-The prompt doesn't name the server, so the file grader passes on the control only when the harness finds the version another way. The control has no server to call, so `weight: 0` records the call without scoring it. `runs: 4` gives each cell four attempts. Below four counted attempts a side, the `too-few-tries` remark often says the effect doesn't hold yet.
+The prompt doesn't name the server, so the file grader passes on the baseline only when the agent harness finds the version another way. The baseline has no server to call, so `weight: 0` records the call without scoring it. `runs: 4` gives each cell four trials. Below four counted trials a side, the `too-few-tries` remark often says the effect doesn't hold yet.
 
 </Step>
 <Step title="Run the comparison">
 
-Run the evaluation with the harness named in the `reeval.config.ts` file:
+Run the task with the agent harness named in the `reeval.config.ts` file:
 
 ```bash
 npx reeval run releases
@@ -68,13 +68,13 @@ npx reeval run releases
 </Step>
 <Step title="Read whether the server helped">
 
-Read the block the run prints for the evaluation. The `releases` row carries the effect, and the file grader's row shows each cell's count. For more information about the rows, see [Read the result](/results/compare/lift#read-the-result).
+Read the block the run prints for the task. The `releases` row carries the effect, and the file grader's row shows each cell's count. For more information about the rows, see [Read the result](/results/compare/lift#read-the-result).
 
-When the file grader passes on both sides, the harness finds the version without the server, and this task can't show what the server changed. When the variant's call grader reads 0, read the attempt's `trajectory.jsonl` file under `.reeval/runs/<run>/`: `calledMcp` matches a tool call named `mcp__releases__latest_version`.
+When the file grader passes on both sides, the agent harness finds the version without the server, and this task can't show what the server changed. When the variant's call grader reads 0, read the trial's `trajectory.jsonl` file under `.reeval/runs/<run>/`: `calledMcp` matches a tool call named `mcp__releases__latest_version`.
 
 </Step>
 </Steps>
 
 ## Next
 
-For more information about gates and extra variants, see [Measure lift against a control](/results/compare/lift).
+For more information about gates and extra variants, see [Measure statistical lift against a baseline](/results/compare/lift).

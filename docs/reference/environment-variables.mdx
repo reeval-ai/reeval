@@ -7,9 +7,9 @@ Where a flag and a variable set the same thing, the flag takes precedence. `REEV
 
 `reeval run` reads `REEVAL_UI`, `REEVAL_LOG_ORDER`, `REEVAL_LOG_PREFIX`, `REEVAL_OUTPUT_LOGS`, and `REEVAL_HEARTBEAT` before the `.env.local` file and the `.env` file load. For each of those four, `auto` or no value uses the default, and a value outside its own list stops the command: `plain` or `agent` for `REEVAL_UI`; `stream` or `grouped` for `REEVAL_LOG_ORDER`; `task` or `none` for `REEVAL_LOG_PREFIX`; `full`, `errors-only`, or `none` for `REEVAL_OUTPUT_LOGS`.
 
-Whitespace or a control character in a harness, judge, or `question` credential stops the run. A missing credential for a harness, a judge, or a `question` stops the run. A missing `analysis.model` credential stops `reeval analyze`, and a run only when a question falls back to `analysis.model`.
+Whitespace or a control character in an agent harness, model grader, or `question` credential stops the run. A missing credential for an agent harness, a model grader, or a `question` stops the run. A missing `analysis.model` credential stops `reeval analyze`, and a run only when a question falls back to `analysis.model`.
 
-For more information about config keys, see [Options](/reference/options). For more information about harnesses, see [Agents](/configuration/agents).
+For more information about config keys, see [Options](/reference/options). For more information about agent harnesses, see [Agents](/configuration/agents).
 
 ## `REEVAL_PROFILE`
 
@@ -17,7 +17,7 @@ For more information about config keys, see [Options](/reference/options). For m
 
 ## `REEVAL_CONCURRENCY`
 
-`REEVAL_CONCURRENCY` is how many attempts run together (`--concurrency`, then the `concurrency` key). Unset, the cap is 8, one per CPU and per GB of memory where the sandboxes run, and at least 1. A cloud run ignores it. A value that is not a whole number of at least 1 stops the command.
+`REEVAL_CONCURRENCY` is how many trials run together (`--concurrency`, then the `concurrency` key). Unset, the cap is 8, one per CPU and per GB of memory where the sandboxes run, and at least 1. A cloud run ignores it. A value that is not a whole number of at least 1 stops the command.
 
 ## `REEVAL_PRICES`
 
@@ -25,7 +25,7 @@ For more information about config keys, see [Options](/reference/options). For m
 
 ## `REEVAL_CLOUD_URL`
 
-`REEVAL_CLOUD_URL` is the cloud platform's http or https URL, which a run with [`cloud`](/reference/options#cloud) or `--cloud`, `reeval attach` with a cloud run's id or `--download`, `reeval login`, `reeval logout`, `reeval whoami`, `reeval cloud` and `reeval studio`, whose studio page is its `/studio`, use. Unset, it is `https://cloud.reeval.ai`. A value that is not an http or https URL, or a URL with a user name or password, stops the command.
+`REEVAL_CLOUD_URL` is the cloud platform's http or https URL, which a run with [`cloud`](/reference/options#cloud) or `--cloud`, `reeval attach` with a cloud run's id or `--download`, `reeval login`, `reeval logout`, `reeval whoami`, `reeval cloud` and `reeval studio`, whose results viewer page is its `/studio`, use. Unset, it is `https://cloud.reeval.ai`. A value that is not an http or https URL, or a URL with a user name or password, stops the command.
 
 ## `REEVAL_TOKEN`
 
@@ -61,7 +61,7 @@ For more information about config keys, see [Options](/reference/options). For m
 
 ## `REEVAL_OUTPUT_LOGS`
 
-`REEVAL_OUTPUT_LOGS` is `full`, `errors-only`, or `none` (`--output-logs`). With no value, `--verbose` selects `full`, and otherwise the level is `none`: the status list says how each evaluation went.
+`REEVAL_OUTPUT_LOGS` is `full`, `errors-only`, or `none` (`--output-logs`). With no value, `--verbose` selects `full`, and otherwise the level is `none`: the status list says how each task went.
 
 ## `REEVAL_HEARTBEAT`
 
@@ -69,7 +69,7 @@ For more information about config keys, see [Options](/reference/options). For m
 
 ## `REEVAL_EVENTS_HEARTBEAT`
 
-`REEVAL_EVENTS_HEARTBEAT` is how often a run's event stream gets a `heartbeat` line naming the attempts in progress. With no value, it is 30 seconds. `0` turns it off. A bare number is seconds, and `ms`, `s`, or `m` names the unit, from 1 second to 10 minutes. Another value stops the command.
+`REEVAL_EVENTS_HEARTBEAT` is how often a run's event stream gets a `heartbeat` line naming the trials in progress. With no value, it is 30 seconds. `0` turns it off. A bare number is seconds, and `ms`, `s`, or `m` names the unit, from 1 second to 10 minutes. Another value stops the command.
 
 ## `REEVAL_DEBUG`
 
@@ -77,7 +77,7 @@ A non-empty `REEVAL_DEBUG` prints worker output, image-prepare lines, egress-gat
 
 ## `REEVAL_RAW_TRAJECTORY`
 
-A non-empty `REEVAL_RAW_TRAJECTORY` stores each turn's unnormalized stream parts. With no value, the attempt omits them.
+A non-empty `REEVAL_RAW_TRAJECTORY` stores each turn's unnormalized stream parts. With no value, the trial omits them.
 
 ## `REEVAL_NO_REPORT_HINT`
 
@@ -85,11 +85,11 @@ A non-empty `REEVAL_NO_REPORT_HINT` hides the `reeval report` hint after a crash
 
 ## `REEVAL_DEFAULT_REGISTRY`
 
-`REEVAL_DEFAULT_REGISTRY=none` stops reeval pulling its own image for each harness from `ghcr.io/reeval-ai/sandbox` when `--registry` names no registry, so it builds the image instead. Other values are ignored.
+`REEVAL_DEFAULT_REGISTRY=none` stops reeval pulling its own image for each agent harness from `ghcr.io/reeval-ai/sandbox` when `--registry` names no registry, so it builds the image instead. Other values are ignored.
 
 ## `REEVAL_BASE`
 
-`REEVAL_BASE` is the build argument for a `dockerfile` sandbox, passed as the harness sandbox image. The `Dockerfile` file reads `ARG REEVAL_BASE`. A shell value is unused.
+`REEVAL_BASE` is the build argument for a `dockerfile` sandbox, passed as the agent harness sandbox image. The `Dockerfile` file reads `ARG REEVAL_BASE`. A shell value is unused.
 
 ## `REEVAL_PYTHON`
 
@@ -113,7 +113,7 @@ A non-empty `REEVAL_NO_REPORT_HINT` hides the `reeval report` hint after a crash
 
 ## `OTEL_EXPORTER_OTLP_ENDPOINT`
 
-`OTEL_EXPORTER_OTLP_ENDPOINT`, or a signal's own `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` or `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, makes `reeval run` send each attempt's agent trace (the agent, its turns, model calls and tool calls, with their tokens, and its checks and judgments as evaluation events) to that OpenTelemetry collector, each turn and its tool calls as the turn ends and the rest when the attempt ends, over OTLP/HTTP protobuf, or JSON with `OTEL_EXPORTER_OTLP_PROTOCOL` of `http/json`. `OTEL_EXPORTER_OTLP_HEADERS`, `OTEL_EXPORTER_OTLP_COMPRESSION` (`gzip`), `OTEL_EXPORTER_OTLP_TIMEOUT`, `OTEL_EXPORTER_OTLP_CERTIFICATE`, `OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE` and `OTEL_EXPORTER_OTLP_CLIENT_KEY`, and each signal's `_TRACES_`, `_LOGS_` or `_METRICS_` form, set its requests; `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` describe the service. `OTEL_TRACES_EXPORTER`, `OTEL_LOGS_EXPORTER` or `OTEL_METRICS_EXPORTER` of `none` turns that signal off, and `OTEL_SDK_DISABLED` of `true` all of them. `OTEL_BSP_SCHEDULE_DELAY`, `OTEL_BSP_MAX_EXPORT_BATCH_SIZE`, `OTEL_BSP_MAX_QUEUE_SIZE` and `OTEL_BSP_EXPORT_TIMEOUT` (and `OTEL_BLRP_*` for logs) batch the spans, and `OTEL_METRIC_EXPORT_INTERVAL` and `OTEL_METRIC_EXPORT_TIMEOUT` set how often the metrics go. An export times out after 5 seconds unless its `_EXPORT_TIMEOUT` says otherwise, so an `OTEL_EXPORTER_OTLP_TIMEOUT` above 5 seconds needs a longer `_EXPORT_TIMEOUT` too, and the run waits at most 5 seconds for what's left when it ends. A `grpc` protocol, or a failed export, warns. See [Export to OpenTelemetry](/results/inspection/opentelemetry).
+`OTEL_EXPORTER_OTLP_ENDPOINT`, or a signal's own `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` or `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, makes `reeval run` send each trial's agent trace (the agent, its turns, model calls and tool calls, with their tokens, and its checks and natural-language assertions as evaluation events) to that OpenTelemetry collector, each turn and its tool calls as the turn ends and the rest when the trial ends, over OTLP/HTTP protobuf, or JSON with `OTEL_EXPORTER_OTLP_PROTOCOL` of `http/json`. `OTEL_EXPORTER_OTLP_HEADERS`, `OTEL_EXPORTER_OTLP_COMPRESSION` (`gzip`), `OTEL_EXPORTER_OTLP_TIMEOUT`, `OTEL_EXPORTER_OTLP_CERTIFICATE`, `OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE` and `OTEL_EXPORTER_OTLP_CLIENT_KEY`, and each signal's `_TRACES_`, `_LOGS_` or `_METRICS_` form, set its requests; `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` describe the service. `OTEL_TRACES_EXPORTER`, `OTEL_LOGS_EXPORTER` or `OTEL_METRICS_EXPORTER` of `none` turns that signal off, and `OTEL_SDK_DISABLED` of `true` all of them. `OTEL_BSP_SCHEDULE_DELAY`, `OTEL_BSP_MAX_EXPORT_BATCH_SIZE`, `OTEL_BSP_MAX_QUEUE_SIZE` and `OTEL_BSP_EXPORT_TIMEOUT` (and `OTEL_BLRP_*` for logs) batch the spans, and `OTEL_METRIC_EXPORT_INTERVAL` and `OTEL_METRIC_EXPORT_TIMEOUT` set how often the metrics go. An export times out after 5 seconds unless its `_EXPORT_TIMEOUT` says otherwise, so an `OTEL_EXPORTER_OTLP_TIMEOUT` above 5 seconds needs a longer `_EXPORT_TIMEOUT` too, and the run waits at most 5 seconds for what's left when it ends. A `grpc` protocol, or a failed export, warns. See [Export to OpenTelemetry](/results/inspection/opentelemetry).
 
 ## `REEVAL_OTEL_*`
 
@@ -121,11 +121,11 @@ Each `OTEL_*` variable above with a `REEVAL_` prefix, such as `REEVAL_OTEL_EXPOR
 
 ## `AI_GATEWAY_API_KEY`
 
-`AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` calls Vercel AI Gateway, or the `https://` gateway with its API at `AI_GATEWAY_BASE_URL`, for `judge.model` and `analysis.model`, and for harness models when `vercel()` is in the `gateway` list. The `provider/model` prefix selects the credential, and every prefix without a direct key set uses the gateway.
+`AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` calls Vercel AI Gateway, or the `https://` gateway with its API at `AI_GATEWAY_BASE_URL`, for `judge.model` and `analysis.model`, and for agent harness models when `vercel()` is in the `gateway` list. The `provider/model` prefix selects the credential, and every prefix without a direct key set uses the gateway.
 
 ## `OPENROUTER_API_KEY`
 
-`OPENROUTER_API_KEY` is the key for `openrouter()` in the `gateway` list, for harness, judge, and analysis models it serves.
+`OPENROUTER_API_KEY` is the key for `openrouter()` in the `gateway` list, for agent harness, model grader, and analysis models it serves.
 
 ## `VERCEL_OIDC_TOKEN`
 
@@ -133,35 +133,35 @@ Each `OTEL_*` variable above with a `REEVAL_` prefix, such as `REEVAL_OTEL_EXPOR
 
 ## `GOOGLE_GENERATIVE_AI_API_KEY`
 
-`GOOGLE_GENERATIVE_AI_API_KEY` is the credential for the `goose` and `pi` harnesses, and for `opencode` on a `google/` model. A `google/` `judge.model` or `analysis.model` uses it directly when it is set, ahead of `AI_GATEWAY_API_KEY`.
+`GOOGLE_GENERATIVE_AI_API_KEY` is the credential for the `goose` and `pi` agent harnesses, and for `opencode` on a `google/` model. A `google/` `judge.model` or `analysis.model` uses it directly when it is set, ahead of `AI_GATEWAY_API_KEY`.
 
 ## `TYPESAFE_AI_API_KEY`
 
-A `typesafe-ai/` `judge.model` uses `TYPESAFE_AI_API_KEY` directly when it is set, ahead of `AI_GATEWAY_API_KEY`. A `typesafe-ai` id scores a judge only, and `analysis.model` rejects one.
+A `typesafe-ai/` `judge.model` uses `TYPESAFE_AI_API_KEY` directly when it is set, ahead of `AI_GATEWAY_API_KEY`. A `typesafe-ai` id scores a model grader only, and `analysis.model` rejects one.
 
 ## `CURSOR_API_KEY`
 
-`CURSOR_API_KEY` is the credential for the `cursor` harness.
+`CURSOR_API_KEY` is the credential for the `cursor` agent harness.
 
 ## `ANTHROPIC_API_KEY`
 
-`ANTHROPIC_API_KEY` is the credential for the `claudeCode` harness, and for `opencode` on an `anthropic/` model.
+`ANTHROPIC_API_KEY` is the credential for the `claudeCode` agent harness, and for `opencode` on an `anthropic/` model.
 
 ## `CLAUDE_CODE_OAUTH_TOKEN`
 
-`CLAUDE_CODE_OAUTH_TOKEN` is a Claude subscription token from `claude setup-token`. The `claudeCode` harness uses it when `ANTHROPIC_API_KEY` is unset. A gateway's route, such as `openrouter()`, never uses it.
+`CLAUDE_CODE_OAUTH_TOKEN` is a Claude subscription token from `claude setup-token`. The `claudeCode` agent harness uses it when `ANTHROPIC_API_KEY` is unset. A gateway's route, such as `openrouter()`, never uses it.
 
 ## `GEMINI_API_KEY`
 
-`GEMINI_API_KEY` is the credential for the `antigravity` harness.
+`GEMINI_API_KEY` is the credential for the `antigravity` agent harness.
 
 ## `OPENAI_API_KEY`
 
-`OPENAI_API_KEY` is the credential for the `codex` harness, for `fx` on a bare OpenAI model id, and for `opencode` on an `openai/` model.
+`OPENAI_API_KEY` is the credential for the `codex` agent harness, for `fx` on a bare OpenAI model id, and for `opencode` on an `openai/` model.
 
 ## `XAI_API_KEY`
 
-`XAI_API_KEY` is the credential for the `grokBuild` harness.
+`XAI_API_KEY` is the credential for the `grokBuild` agent harness.
 
 ## `BOAT_API_KEY`
 

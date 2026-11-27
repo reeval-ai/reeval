@@ -1,16 +1,16 @@
 ---
 title: "Measure a skill"
-description: "See whether a skill helped a harness."
+description: "See whether a skill helped an agent harness."
 ---
 
-You measure a skill by running one task on a control with no skill and a variant with the skill. The effect reads `helped`, `made it worse`, or `same`. For a runnable project, see [`with-skill-lift`](https://github.com/reeval-ai/reeval/tree/main/examples/with-skill-lift).
+You measure a skill by running one task on a baseline with no skill and a variant with the skill. The effect reads `helped`, `made it worse`, or `same`. For a runnable project, see [`with-skill-lift`](https://github.com/reeval-ai/reeval/tree/main/examples/with-skill-lift).
 
 ## Run one task with and without the skill
 
 <Steps>
-<Step title="Define the control and variant">
+<Step title="Define the baseline and variant">
 
-The control `math` holds a small package with `src/math.js` and its tests. The variant `changelog` extends it and adds a local skill that says every change adds a line under `## Unreleased` in the `CHANGELOG.md` file. In the `evals/environments.ts` file, define both:
+The baseline `math` holds a small package with `src/math.js` and its tests. The variant `changelog` extends it and adds a local skill that says every change adds a line under `## Unreleased` in the `CHANGELOG.md` file. In the `evals/environments.ts` file, define both:
 
 ```ts title="evals/environments.ts"
 import { defineEnvironment } from '{{ pkg }}'
@@ -27,9 +27,9 @@ export const withSkill = math.extendEnvironment('changelog', ({ skill }) => ({
 For more information about other skill sources, see [Give the agent skills](/configuration/environments/skills).
 
 </Step>
-<Step title="Write the evaluation">
+<Step title="Write the task">
 
-Grade what the skill teaches, so the control fails without it. The prompt doesn't mention the changelog, so only a harness that follows the skill writes the entry. In the `evals/changelog.eval.ts` file, name the control and the variant in `compare`:
+Grade what the skill teaches, so the baseline fails without it. The prompt doesn't mention the changelog, so only an agent harness that follows the skill writes the entry. In the `evals/changelog.eval.ts` file, name the baseline and the variant in `compare`:
 
 ```ts title="evals/changelog.eval.ts"
 import { defineEval } from '{{ pkg }}'
@@ -52,12 +52,12 @@ export default defineEval({
 })
 ```
 
-`runs: 4` gives each cell four attempts, the fewest that can read `helped`. The variant passes when one of its 4 attempts passes, under the default target, `capability()`. To also record whether the variant loaded the skill, add `usedSkill('changelog', { weight: 0 })`, which scores nothing, since the control has no skill to load ([Give the agent skills](/configuration/environments/skills#check-the-agent-used-the-skill)).
+`runs: 4` gives each cell four trials, the fewest that can read `helped`. The variant passes when one of its 4 trials passes, under the default target, `capability()`. To also record whether the variant loaded the skill, add `usedSkill('changelog', { weight: 0 })`, which scores nothing, since the baseline has no skill to load ([Give the agent skills](/configuration/environments/skills#check-the-agent-used-the-skill)).
 
 </Step>
 <Step title="Run the comparison">
 
-Run the evaluation with the harness named in the `reeval.config.ts` file:
+Run the task with the agent harness named in the `reeval.config.ts` file:
 
 ```bash
 npx reeval run changelog
@@ -76,7 +76,7 @@ The run prints a block like this one:
      changelog        4 of 4  helped
 ```
 
-The `changelog-entry` grader scored 0 on the control and passed on the variant, so the skill changed what the harness did. When it passes on both sides, the harness already writes the entry, and this task can't show the skill. For more information about the block, see [Read the result](/results/compare/lift#read-the-result). To fail the variant when its lift may be below a floor, see [Gate on lift](/results/compare/lift#gate-on-lift).
+The `changelog-entry` grader scored 0 on the baseline and passed on the variant, so the skill changed what the agent harness did. When it passes on both sides, the agent harness already writes the entry, and this task can't show the skill. For more information about the block, see [Read the result](/results/compare/lift#read-the-result). To fail the variant when its statistical lift may be below a floor, see [Gate on statistical lift](/results/compare/lift#gate-on-statistical-lift).
 
 </Step>
 </Steps>

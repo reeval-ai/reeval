@@ -3,7 +3,7 @@ title: "Start from a repository"
 description: "Start the agent in a copy of a repository at a pinned ref."
 ---
 
-The `git()` helper gives the agent existing code to work on. reeval fetches the repository on the host before any attempt starts, copies its tree into the workspace, writes `files` there, then runs `setup`. For more information about the other fields of an environment, see [Environments](/configuration/environments).
+The `git()` helper gives the agent existing code to work on. reeval fetches the repository on the host before any trial starts, copies its tree into the workspace, writes `files` there, then runs `setup`. For more information about the other fields of an environment, see [Environments](/configuration/environments).
 
 ## Start from a repository
 
@@ -22,7 +22,7 @@ export const camelcase = defineEnvironment('camelcase', ({ git }) => ({
 
 By default the workspace holds the tree with no `.git` directory, so the agent's diff starts after `setup`, and the repository never counts as the agent's change. `init: true` gives the workspace a `.git` directory with one commit of the tree and no remote, for an agent that expects a repository.
 
-Pass `camelcase` as an evaluation's `environment`, as [Environments](/configuration/environments#define-and-use-an-environment) shows.
+Pass `camelcase` as a task's `environment`, as [Environments](/configuration/environments#define-and-use-an-environment) shows.
 
 For a runnable project, see [`with-existing-codebase`](https://github.com/reeval-ai/reeval/tree/main/examples/with-existing-codebase).
 
@@ -43,7 +43,7 @@ const math = defineEnvironment('reeval-math', ({ git }) => ({
 }))
 ```
 
-A GitHub `/tree/<ref>/<path>` URL sets both at once. Whatever you pin, the record keeps the commit the ref resolved to and the hash of the tree copied in. A ref, path, or URL that doesn't exist fails the attempts that use it with an infrastructure error. For a runnable project, see [`with-git-workspace`](https://github.com/reeval-ai/reeval/tree/main/examples/with-git-workspace).
+A GitHub `/tree/<ref>/<path>` URL sets both at once. Whatever you pin, the record keeps the commit the ref resolved to and the hash of the tree copied in. A ref, path, or URL that doesn't exist fails the trials that use it with an infrastructure error. For a runnable project, see [`with-git-workspace`](https://github.com/reeval-ai/reeval/tree/main/examples/with-git-workspace).
 
 ## Use a private repository
 

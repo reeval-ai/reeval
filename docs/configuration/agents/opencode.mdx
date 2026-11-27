@@ -1,6 +1,6 @@
 ---
-title: "OpenCode harness"
-description: "The OpenCode harness runs OpenCode in the sandbox on the key of the provider its model id names and records its events."
+title: "OpenCode agent harness"
+description: "The OpenCode agent harness runs OpenCode in the sandbox on the key of the provider its model id names and records its events."
 ---
 
 `opencode()` runs OpenCode in the sandbox on the provider the model id names, with that provider's key. For more information about the sandbox, see [Choose a sandbox](/configuration/sandboxes).
@@ -11,7 +11,7 @@ The part of the model id before the first `/` picks the provider, and the provid
 
 `opencode()` reads the provider's key from the environment or the `.env.local` file. A run exits with code 2 when the variable is unset, or when its value contains whitespace or a line break. reeval swaps the key into the provider's header on each request to the provider's hosts, and refuses it anywhere else. A restricted egress policy allows the provider's hosts and `mcp.exa.ai`.
 
-When the API rejects the key, the attempt is an infra error whose message begins with `The API rejected <Key>: set a valid key in the environment or .env.local`, with the provider's key variable.
+When the API rejects the key, the trial is an infra error whose message begins with `The API rejected <Key>: set a valid key in the environment or .env.local`, with the provider's key variable.
 
 For more information about keeping API keys on the host, see [Keep API keys on the host](/configuration/environments/secrets#keep-api-keys-on-the-host).
 
@@ -33,13 +33,13 @@ export default defineConfig({
 })
 ```
 
-`model` is required. For what each field takes, see [Harness factory options](/reference/options#harness-factory-options).
+`model` is required. For what each field takes, see [Agent harness factory options](/reference/options#harness-factory-options).
 
 The cell id is `opencode:` followed by the part of `model` after its last `/`.
 
 In the sandbox, OpenCode runs with its `question` and browser tools off, self-update, share links, and the model-catalog fetch off, session titles on the run's model, and its model calls over HTTP. That configuration overrides the workspace's own `opencode.json` file where both set a key.
 
-For more information about model ids and effort values, see [Set the agent's model](/configuration/agents/model). For rules, skills, MCP servers, usage, served models, and web events, see [Harness behavior](/reference/options#harness-behavior).
+For more information about model ids and effort values, see [Set the agent's model](/configuration/agents/model). For rules, skills, MCP servers, usage, served models, and web events, see [Agent harness behavior](/reference/options#harness-behavior).
 
 ## `plugins`
 

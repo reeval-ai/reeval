@@ -1,6 +1,6 @@
 ---
 title: "Run record reference"
-description: "A run record holds one run's cells, attempts, assertions, judgments, and the environment each ran in."
+description: "A run record holds one run's cells, trials, assertions, natural-language assertions, and the environment each ran in."
 ---
 
 The `reeval show --json` command prints one run's record. The record is the `<runId>.json` file in the `.reeval/runs/` directory, or the same name in the history folder, with artifacts in the `<runId>` directory.
@@ -30,7 +30,7 @@ For more information about which hosts a sandbox can reach, see [Egress](/config
 
 ## Record types
 
-`kind` is `reeval-run`, and `schemaVersion` is `1`. `git` is null outside a Git repository, or when that repository has no commits. `author` is `ci` on a CI run, and otherwise a slug of the Git user name. `config.concurrency` is how many attempts run together, and `config.configHash` omits it.
+`kind` is `reeval-run`, and `schemaVersion` is `1`. `git` is null outside a Git repository, or when that repository has no commits. `author` is `ci` on a CI run, and otherwise a slug of the Git user name. `config.concurrency` is how many trials run together, and `config.configHash` omits it.
 
 For more information about the keys on `stack.judge.state`, see [Judgments](/evaluations/grading/judgments).
 
@@ -1338,11 +1338,11 @@ On a CI run, `RunRecord.runner` has `kind` `ci` and `provider` `github`, `gitlab
 
 ## `TokenUsage`
 
-`TokenUsage` is the counts on `Cost.usage`, an attempt's `usage`, and a turn's `usage`. `input` excludes `cacheRead` and `cacheWrite`. The prompt total adds both. `reasoning` is part of `output`, or null when none are reported.
+`TokenUsage` is the counts on `Cost.usage`, a trial's `usage`, and a turn's `usage`. `input` excludes `cacheRead` and `cacheWrite`. The prompt total adds both. `reasoning` is part of `output`, or null when none are reported.
 
 ## `AttemptError`
 
-`AttemptRecord.error` is why an attempt failed, or null. `kind` is an `ErrorKind`, `infra` for a judge call its provider never answered after its retries when nothing else failed the attempt, and for an eval timeout in a turn whose every answered model call got a 402, 408, 429 or 5xx. `message` is the text. `prepare` is set when sandbox preparation fails. `resource` is set when the sandbox runs out of a resource, and `provider` (`cause` `credit`, `quota`, `rate_limit` or `overloaded`, and the HTTP `status` of the turn's last brokered call when that call failed, else null) when the model provider stopped a turn, or timed one out on 402s, 429s or 529s. A provider stop is a failed turn whose error is in the provider's own words (Anthropic's `credit balance is too low`, `insufficient_quota`, `RESOURCE_EXHAUSTED`, `rate_limit_error`, `overloaded_error`, a usage limit and the like) or whose last brokered call got a 402, 429 or 529.
+`AttemptRecord.error` is why a trial failed, or null. `kind` is an `ErrorKind`, `infra` for a model grader call its provider never answered after its retries when nothing else failed the trial, and for an eval timeout in a turn whose every answered model call got a 402, 408, 429 or 5xx. `message` is the text. `prepare` is set when sandbox preparation fails. `resource` is set when the sandbox runs out of a resource, and `provider` (`cause` `credit`, `quota`, `rate_limit` or `overloaded`, and the HTTP `status` of the turn's last brokered call when that call failed, else null) when the model provider stopped a turn, or timed one out on 402s, 429s or 529s. A provider stop is a failed turn whose error is in the provider's own words (Anthropic's `credit balance is too low`, `insufficient_quota`, `RESOURCE_EXHAUSTED`, `rate_limit_error`, `overloaded_error`, a usage limit and the like) or whose last brokered call got a 402, 429 or 529.
 
 ## `PrepareFailureRecord`
 
@@ -1350,13 +1350,13 @@ On a CI run, `RunRecord.runner` has `kind` `ci` and `provider` `github`, `gitlab
 
 ## `ResourceFailureRecord`
 
-`AttemptError.resource` means the sandbox ran out of memory, and the outcome is `infra_error`. `cause` is `oom`. `kills` is how many processes the kernel killed.
+`AttemptError.resource` means the sandbox ran out of memory, and the final state is `infra_error`. `cause` is `oom`. `kills` is how many processes the kernel killed.
 
 ## `AssertionRecord`
 
-An `AssertionRecord` is one settled `expect` or `expect.require` call of an older reeval, on `AttemptRecord.assertions`. `checks` on that attempt lists each `c.exec` command.
+An `AssertionRecord` is one settled `expect` or `expect.require` call of an older reeval, on `AttemptRecord.assertions`. `checks` on that trial lists each `c.exec` command.
 
-`label` is the supplied `expect` label. Without one, it is the matcher plus its first argument or named subject, cut at 60 characters. Repeats get ` #2`, ` #3`, and later suffixes. `labelled` is true when the evaluation supplies a label. `matcher` is the matcher path. `status` is `pass`, `fail`, or `error`. `soft` is false for `expect.require`. `at` is the call's `path:line`. `message` is cut at 1 KB. `durationMs` is set on async matchers only.
+`label` is the supplied `expect` label. Without one, it is the matcher plus its first argument or named subject, cut at 60 characters. Repeats get ` #2`, ` #3`, and later suffixes. `labelled` is true when the task supplies a label. `matcher` is the matcher path. `status` is `pass`, `fail`, or `error`. `soft` is false for `expect.require`. `at` is the call's `path:line`. `message` is cut at 1 KB. `durationMs` is set on async matchers only.
 
 ## `StartRetry`
 
@@ -1364,25 +1364,25 @@ A `StartRetry` is one entry of `AttemptRecord.startRetries`. `error` is `<harnes
 
 ## `CellCheck`
 
-`CellRecord.checks` tallies one label over the cell's counted attempts. `pass`, `fail`, `error`, and `notRun` are those counts, and `control` repeats them for the baseline. `verdict` is `discriminates` when every answered instance passes on one side and fails on the other, `both-pass` when every answered instance passes on both sides, `both-fail` when every answered instance fails on both sides, or `mixed` otherwise. It is absent when either side has no pass or fail.
+`CellRecord.checks` tallies one label over the cell's counted trials. `pass`, `fail`, `error`, and `notRun` are those counts, and `control` repeats them for the baseline. `verdict` is `discriminates` when every answered instance passes on one side and fails on the other, `both-pass` when every answered instance passes on both sides, `both-fail` when every answered instance fails on both sides, or `mixed` otherwise. It is absent when either side has no pass or fail.
 
 ## `EvalCompareMeta`
 
-`EvalEntry.compare` names the baseline when the evaluation uses `compare`. `baseline` is that environment's name. When `compare.baseline` was omitted, `from` is `environment` for the cascaded environment, or `empty` for an empty environment named `baseline`.
+`EvalEntry.compare` names the baseline when the task uses `compare`. `baseline` is that environment's name. When `compare.baseline` was omitted, `from` is `environment` for the cascaded environment, or `empty` for an empty environment named `baseline`.
 
 ## `CompareAnswer`
 
-`EvalEntry.answers` holds one `CompareAnswer` per pairwise question. `outcome` and `passRate` do not depend on it. `question`, `model`, and `resolvedModel` identify the question and the model. `votes` holds `PairVote` values, and `rates` holds `wins` out of `n` per `cut` and `name`. `error` is set when the model call fails. `artifacts` is `true` or capture names. `input` is a `FileRef` for the `questions/<n>.json` file. `stateOptions` is the inputs each side showed.
+`EvalEntry.answers` holds one `CompareAnswer` per comparative grader. `outcome` and `passRate` do not depend on it. `question`, `model`, and `resolvedModel` identify the question and the model. `votes` holds `PairVote` values, and `rates` holds `wins` out of `n` per `cut` and `name`. `error` is set when the model call fails. `artifacts` is `true` or capture names. `input` is a `FileRef` for the `questions/<n>.json` file. `stateOptions` is the inputs each side showed.
 
 For more information about each input, see [the `questions` option](/reference/options#questions).
 
 ## `PairVote`
 
-A `PairVote` judges one pair in one order. `cut` is `within` (two environments, one harness) or `across` (two harnesses, one environment). `harness` is set on `within`, and `arm` names the environment on `across`. `run` starts at 1. `a` and `b` name the sides, and `winner` is `a`, `b`, or `tie`. `swapped` is true when `b` was shown first. `reason` and `artifacts` are omitted when absent.
+A `PairVote` judges one pair in one order. `cut` is `within` (two environments, one agent harness) or `across` (two agent harnesses, one environment). `harness` is set on `within`, and `arm` names the environment on `across`. `run` starts at 1. `a` and `b` name the sides, and `winner` is `a`, `b`, or `tie`. `swapped` is true when `b` was shown first. `reason` and `artifacts` are omitted when absent.
 
 ## `AttemptRecord.turns`
 
-A turn's `usage` and `model` are null when the harness reports neither. `error` is the first error, cut at 1 KB, or null. `unreported` lists `web-search` or `web-fetch` when that event cannot be reported.
+A turn's `usage` and `model` are null when the agent harness reports neither. `error` is the first error, cut at 1 KB, or null. `unreported` lists `web-search` or `web-fetch` when that event cannot be reported.
 
 ## `AttemptRecord.activity`
 

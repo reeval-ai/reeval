@@ -3,7 +3,7 @@ title: "Restrict sandbox egress"
 description: "Limit which hosts the sandbox reaches, and see what was blocked."
 ---
 
-The `egress` option sets which hosts the sandbox can reach. The default is `'proxy'`: any host over HTTP, HTTPS and WebSockets, through the egress gateway, which records each request. The proxy variables, `NODE_USE_ENV_PROXY` included, send Node's `fetch`, `http`, `https` and `WebSocket` there. Set `'deny-all'` to block every host except automatic hosts, or `{ allow: [...] }` to allow selected hosts in addition to them. Brokered harness credentials and secrets with `hosts` stay on the host either way, but a secret without `hosts` is in the sandbox as its real value. For more information, see [Secrets](/configuration/environments/secrets#keep-api-keys-on-the-host).
+The `egress` option sets which hosts the sandbox can reach. The default is `'proxy'`: any host over HTTP, HTTPS and WebSockets, through the egress gateway, which records each request. The proxy variables, `NODE_USE_ENV_PROXY` included, send Node's `fetch`, `http`, `https` and `WebSocket` there. Set `'deny-all'` to block every host except automatic hosts, or `{ allow: [...] }` to allow selected hosts in addition to them. Brokered agent harness credentials and secrets with `hosts` stay on the host either way, but a secret without `hosts` is in the sandbox as its real value. For more information, see [Secrets](/configuration/environments/secrets#keep-api-keys-on-the-host).
 
 ## Block non-automatic hosts
 
@@ -31,7 +31,7 @@ export default defineEval({
 })
 ```
 
-A restricted policy still lets through the hosts an attempt can't run without: the harness's own API, the `hosts` of each brokered secret, and each `http` or `sse` MCP server. reeval adds these automatic hosts to `'deny-all'` and to every allow list, and the plan prints them:
+A restricted policy still lets through the hosts a trial can't run without: the agent harness's API, the `hosts` of each brokered secret, and each `http` or `sse` MCP server. reeval adds these automatic hosts to `'deny-all'` and to every allow list, and the plan prints them:
 
 ```bash
 npx reeval run --dry-run
@@ -44,17 +44,17 @@ egress  offline  deny-all
                  + auto: api.anthropic.com, *.anthropic.com
 ```
 
-An evaluation or group's `egress` option overrides the environment's, which overrides the one in the `reeval.config.ts` file or a profile, phase by phase when it sets `setup` or `agent`. A blocked request never fails the attempt on its own. The agent gets a refusal, and the assertions decide what that means.
+A task or suite's `egress` option overrides the environment's, which overrides the one in the `reeval.config.ts` file or a profile, phase by phase when it sets `setup` or `agent`. A blocked request never fails the trial on its own. The agent gets a refusal, and the assertions decide what that means.
 
 ## Read blocked requests
 
-Run the evaluation to create a record.
+Run the task to create a record.
 
 ```bash
 npx reeval run
 ```
 
-Each attempt's record holds its policy, the hosts it contacted, and the hosts the gateway refused. Print each attempt's `egress` field from the latest run:
+Each trial's record holds its policy, the hosts it contacted, and the hosts the gateway refused. Print each trial's `egress` field from the latest run:
 
 ```bash
 npx reeval show --json | jq '.evals[].attempts[].egress'
@@ -80,9 +80,9 @@ A refused request names the host and why it was blocked:
 }
 ```
 
-The `allowed` list is every host the policy let through, the `allow` hosts and the automatic ones; it is `null` under `'proxy'` and `'allow-all'`. Hosts the harness's CLI always tries and never needs, such as its telemetry, are recorded in `expectedBlocked`; other refused requests remain in `blocked`. Under `npx reeval run -v`, each blocked request also prints a `gateway` line as it happens. For more information, see [Debugging](/results/inspection/debugging).
+The `allowed` list is every host the policy let through, the `allow` hosts and the automatic ones; it is `null` under `'proxy'` and `'allow-all'`. Hosts the agent harness always tries and never needs, such as its telemetry, are recorded in `expectedBlocked`; other refused requests remain in `blocked`. Under `npx reeval run -v`, each blocked request also prints a `gateway` line as it happens. For more information, see [Debugging](/results/inspection/debugging).
 
-A host the policy lets through can still refuse one request: the harness's key is brokered only on its own endpoints, so a request carrying the key's placeholder anywhere else on that host gets a 403 and never goes upstream. It's in `blocked` once per method and path, beside the host's `contacted` entry, and `reeval run` prints a warning for it:
+A host the policy lets through can still refuse one request: the agent harness's key is brokered only on its own endpoints, so a request carrying the key's placeholder anywhere else on that host gets a 403 and never goes upstream. It's in `blocked` once per method and path, beside the host's `contacted` entry, and `reeval run` prints a warning for it:
 
 ```json
 { "host": "api.openai.com", "port": 443, "connections": 1,
@@ -115,7 +115,7 @@ GET http://169.254.169.254:80/ → 403 · blocked: 169.254.169.254 is a loopback
 
 ## Choose another policy
 
-Pass `{ allow: [...DEFAULT_EGRESS_ALLOW, 'example.com'] }` when the agent installs packages and needs a few more hosts, or `{ setup: 'allow-all', agent: 'deny-all' }` when only setup steps install them. Pass `'allow-all'` on the evaluations that need raw TCP or UDP, such as SSH, not in the `reeval.config.ts` file. For runnable projects, see [`with-egress-allowlist`](https://github.com/reeval-ai/reeval/tree/main/examples/with-egress-allowlist) and [`with-egress-allow-all`](https://github.com/reeval-ai/reeval/tree/main/examples/with-egress-allow-all). For each policy's rules, see [`egress`](/reference/options#egress).
+Pass `{ allow: [...DEFAULT_EGRESS_ALLOW, 'example.com'] }` when the agent installs packages and needs a few more hosts, or `{ setup: 'allow-all', agent: 'deny-all' }` when only setup steps install them. Pass `'allow-all'` on the tasks that need raw TCP or UDP, such as SSH, not in the `reeval.config.ts` file. For runnable projects, see [`with-egress-allowlist`](https://github.com/reeval-ai/reeval/tree/main/examples/with-egress-allowlist) and [`with-egress-allow-all`](https://github.com/reeval-ai/reeval/tree/main/examples/with-egress-allow-all). For each policy's rules, see [`egress`](/reference/options#egress).
 
 ## Reference
 

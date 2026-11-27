@@ -9,7 +9,7 @@ A run reference is `latest` (the default), `latest~N`, a run id, a unique prefix
 
 For more information about connecting an MCP client, see [CLI reference](/reference/cli#reeval-mcp).
 
-For more information about MCP servers an evaluation gives its harness, see [Connect MCP servers](/configuration/environments/mcp-servers).
+For more information about MCP servers a task gives its agent harness, see [Connect MCP servers](/configuration/environments/mcp-servers).
 
 ## `--http`
 
@@ -29,11 +29,11 @@ For more information about MCP servers an evaluation gives its harness, see [Con
 
 ## `failures`
 
-The `failures` tool returns `fail` and `infra_error` attempts for a run reference. `filter` keeps evaluations whose id contains the string, ignoring case. `limit` defaults to 10 (1 to 100), and `tail` defaults to 12 (0 to 100). Cells include `new`, `failingSince`, and `lastPass`. `note` is set when nothing failed, and `next` when something did.
+The `failures` tool returns `fail` and `infra_error` trials for a run reference. `filter` keeps tasks whose id contains the string, ignoring case. `limit` defaults to 10 (1 to 100), and `tail` defaults to 12 (0 to 100). Cells include `new`, `failingSince`, and `lastPass`. `note` is set when nothing failed, and `next` when something did.
 
 ## `history`
 
-The `history` tool, titled **Run history**, returns one row per evaluation, oldest run first. `filter` keeps evaluations whose id contains the string, ignoring case. `limit` defaults to 20 (1 to 500). `all` also includes scratch runs from the `.reeval/runs` directory. Otherwise runs come from the history directory (the `.history` directory by default), and when that directory has no run, scratch runs are returned and `note` is set. Rows have `id`, `outcomes` (`null` when the evaluation is absent), `drift`, `pass`, and `counted`, and `runs` omit `evals`.
+The `history` tool, titled **Run history**, returns one row per task, oldest run first. `filter` keeps tasks whose id contains the string, ignoring case. `limit` defaults to 20 (1 to 500). `all` also includes scratch runs from the `.reeval/runs` directory. Otherwise runs come from the history directory (the `.history` directory by default), and when that directory has no run, scratch runs are returned and `note` is set. Rows have `id`, `outcomes` (`null` when the task is absent), `drift`, `pass`, and `counted`, and `runs` omit `evals`.
 
 ## `show`
 
@@ -43,7 +43,7 @@ For more information about the run record, see [Run record reference](/reference
 
 ## `compare`
 
-The `compare` tool returns one row per evaluation. `head` and `base` are run references, and `head` defaults to `latest`. When `base` is absent, it is the nearest earlier recorded run with status `complete`, preferring a Git ancestor when one exists. When `base` is set and `head` is absent, `head` is `latest`. Statuses are `regressed`, `fixed`, `drift`, `added`, `removed`, `infra`, and `same`. `changes` lists stack fields that differ. Unless `all` is true, `same` rows are left out and `same` counts them. With no control, `base` is `null` and `head` is `{ runId }`.
+The `compare` tool returns one row per task. `head` and `base` are run references, and `head` defaults to `latest`. When `base` is absent, it is the nearest earlier recorded run with status `complete`, preferring a Git ancestor when one exists. When `base` is set and `head` is absent, `head` is `latest`. Statuses are `regressed`, `fixed`, `drift`, `added`, `removed`, `infra`, and `same`. `changes` lists stack fields that differ. Unless `all` is true, `same` rows are left out and `same` counts them. With no baseline, `base` is `null` and `head` is `{ runId }`.
 
 ## `analysis`
 
@@ -51,7 +51,7 @@ The `analysis` tool returns `{ runId, entries }` for a run reference, from saved
 
 ## `trajectory`
 
-The `trajectory` tool returns one page of lines for a run reference. `attempt` is the key, or `<cell>#<n>` when one evaluation has that id. `offset` defaults to 0, and `limit` defaults to 200 (1 to 1000). The result includes `uri`, `total`, and `lines`. An unknown attempt, an id that more than one evaluation has, or a missing file is an error.
+The `trajectory` tool returns one page of lines for a run reference. `attempt` is the key, or `<cell>#<n>` when one task has that id. `offset` defaults to 0, and `limit` defaults to 200 (1 to 1000). The result includes `uri`, `total`, and `lines`. An unknown trial, an id that more than one task has, or a missing file is an error.
 
 ## `query`
 
@@ -94,4 +94,4 @@ The `run` resource is `reeval://runs/{runId}` for the full run id. The list is n
 
 ## `reeval://runs/{runId}/trajectories/{attempt}`
 
-The `trajectory` resource is `reeval://runs/{runId}/trajectories/{attempt}`. The attempt key is percent-encoded, and the body is `application/jsonl`. The `trajectory` tool returns this URI as `uri`.
+The `trajectory` resource is `reeval://runs/{runId}/trajectories/{attempt}`. The trial key is percent-encoded, and the body is `application/jsonl`. The `trajectory` tool returns this URI as `uri`.

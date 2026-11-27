@@ -1,15 +1,15 @@
 ---
-title: "Ask questions across attempts"
-description: "Ask a language model about the attempts after they end, without changing the outcome."
+title: "Grade across trials"
+description: "Ask a comparative grader which side did better, without changing the final state."
 ---
 
-A question asks a language model about the attempts after they end. Assertions and judgments grade one attempt. A question with `across` reads across attempts and asks which side did better. Questions never change pass, fail, or the exit code.
+A question asks a language model about the trials after they end. A question with `across` is a comparative grader: it reads across trials and asks which side did better. Assertions and natural-language assertions grade one trial. Questions never change pass, fail, or the exit code.
 
-For more information about grading one attempt, see [Assertions](/evaluations/grading/assertions) and [Judge agent work](/evaluations/grading/judgments).
+For more information about grading one trial, see [Assertions](/evaluations/grading/assertions) and [Grade with a model grader](/evaluations/grading/judgments).
 
 ## Ask which side did better
 
-In the evaluation's options, add `questions`. This excerpt pairs Claude Code's attempts with Codex's in the same environment:
+In the task's options, add `questions`. This excerpt pairs Claude Code's trials with Codex's in the same environment:
 
 ```ts title="with-compare-harness.eval.ts"
 questions: [
@@ -21,11 +21,11 @@ questions: [
 ],
 ```
 
-`across: 'harness'` pairs agents in the same environment, and `across: 'environment'` pairs every two environments on the same agent, the control first. reeval asks about each pair of attempts that passed their assertions, in both orders, with the sides unlabeled. After the run, the block prints each side's wins as `won W of N`. For a runnable project, see [`with-compare-harness`](https://github.com/reeval-ai/reeval/tree/main/examples/with-compare-harness). For more information about asking each attempt on its own without `across`, see [the `questions` option](/reference/options#questions).
+`across: 'harness'` pairs agents in the same environment, and `across: 'environment'` pairs every two environments on the same agent, the baseline first. reeval asks about each pair of trials that passed their assertions, in both orders, with the sides unlabeled. After the run, the block prints each side's wins as `won W of N`. For a runnable project, see [`with-compare-harness`](https://github.com/reeval-ai/reeval/tree/main/examples/with-compare-harness). For more information about asking each trial on its own without `across`, see [the `questions` option](/reference/options#questions).
 
 ## Set the question model
 
-In the `reeval.config.ts` file, set `question.model` to a language model. The model answers every question that doesn't set its own `model`. Without it, reeval falls back to `analysis.model`, then to the judge's language model. reeval refuses an evaluation model, which only scores yes-or-no questions.
+In the `reeval.config.ts` file, set `question.model` to a language model. The model answers every question that doesn't set its own `model`. Without it, reeval falls back to `analysis.model`, then to the model grader's language model. reeval refuses an evaluation model, which only scores yes-or-no questions.
 
 ```ts title="reeval.config.ts"
 import { defineConfig } from '{{ pkg }}'
@@ -45,13 +45,13 @@ For more information about other providers and gateways, see [Route models throu
 
 ## Verify the plan
 
-The `reeval run --dry-run` command plans the run without starting a sandbox or a harness, so it needs no API key. Plan the run:
+The `reeval run --dry-run` command plans the run without starting a sandbox or an agent harness, so it needs no API key. Plan the run:
 
 ```bash
 npx reeval run --dry-run
 ```
 
-Under the evaluation, a `question` line names the question, when reeval asks it, what each side shows, the pairing, the number of pairs, and the model. This is the line the `with-compare-harness` example printed:
+Under the task, a `question` line names the question, when reeval asks it, what each side shows, the pairing, the number of pairs, and the model. This is the line the `with-compare-harness` example printed:
 
 ```text
   question 1/1  Which multiply() is easier to read? · after the run · shows diff · harness · 1 pair · anthropic/claude-sonnet-5
@@ -61,7 +61,7 @@ To ask the question, run the same command without `--dry-run`.
 
 ## Read the answers
 
-`npx reeval query question_pairs` lists the wins, ties, and splits of each pairwise question. `attempt_answers` lists each attempt's answer. For more information about both views, see [Query views](/reference/query-views).
+`npx reeval query question_pairs` lists the wins, ties, and splits of each comparative grader. `attempt_answers` lists each trial's answer. For more information about both views, see [Query views](/reference/query-views).
 
 ## Reference
 
