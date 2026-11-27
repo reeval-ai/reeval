@@ -208,10 +208,11 @@ const tokenLike = (value: string) =>
  */
 const WORDISH = /^(?:[a-z]+|[A-Z]+|\d+)$/
 /**
- * Letters of one case joined by `-`, `_` or `.` (`reeval-f`) are weak too in a secret that also
- * has other windows: its readable prefix (`reeval-fixture-token-`) would otherwise mask every
- * `/tmp/reeval-fx-probe.txt`. A secret with no other windows (`correct-horse-battery-staple`)
- * would then leak whole in short pieces, so there they're masked alone.
+ * Letters of one case joined by `-`, `_` or `.` (`reeval-f`) are weak too in a secret whose
+ * other windows cover at least half of it: its readable prefix (`reeval-fixture-token-`) would
+ * otherwise mask every `/tmp/reeval-fx-probe.txt`. A secret that's mostly words
+ * (`correct-horse-battery-staple-7`) would then leak whole in short pieces, so there they're
+ * masked alone. A stretch of `WORDISH` windows alone is never masked: they only join a stretch.
  */
 const WEAK = /^(?:[a-z._-]+|[A-Z._-]+)$/
 const MIN_WEAK_FRAGMENT = 12
@@ -316,13 +317,19 @@ function envSecrets(env: NodeJS.ProcessEnv, also: readonly string[] = []): Secre
   for (const value of values) {
     if (!(declared.has(value) ? value.length >= 12 : tokenLike(value))) continue
     const own: string[] = []
+    let random = 0
+    let randomEnd = 0
     for (let i = 0; i + MIN_FRAGMENT <= value.length; i++) {
       const window = value.slice(i, i + MIN_FRAGMENT)
       if (STRUCTURAL.test(window)) continue
       own.push(window)
       starts[pairHash(value, i)] = 1
+      if (!WORDISH.test(window) && !WEAK.test(window)) {
+        random += i + MIN_FRAGMENT - Math.max(i, randomEnd)
+        randomEnd = i + MIN_FRAGMENT
+      }
     }
-    const mixed = own.some((w) => !WORDISH.test(w) && !WEAK.test(w))
+    const mixed = random * 2 >= value.length
     for (const window of own) {
       const weak = WORDISH.test(window) || (mixed && WEAK.test(window))
       if (!windows.has(window)) {
@@ -341,28 +348,34 @@ function envSecrets(env: NodeJS.ProcessEnv, also: readonly string[] = []): Secre
 /**
  * The `[start, end)` stretches of `text` made of some secret's fragments, merged, with the first
  * one's rule, and whether the stretch is masked alone: it isn't when all its windows are weak and
- * it's shorter than `MIN_WEAK_FRAGMENT`.
+ * it's shorter than `MIN_WEAK_FRAGMENT` or made of `WORDISH` windows only.
  */
 function fragmentRanges(
   text: string,
   { windows, weakWindows, starts }: Secrets,
 ): Array<[number, number, string, boolean]> {
-  const ranges: Array<[number, number, string, boolean]> = []
-  if (windows.size === 0) return ranges
+  const ranges: Array<[number, number, string, boolean, boolean]> = []
+  if (windows.size === 0) return []
   for (let i = 0; i + MIN_FRAGMENT <= text.length; i++) {
     if (!starts[pairHash(text, i)]) continue
     const window = text.slice(i, i + MIN_FRAGMENT)
     const rule = windows.get(window)
     if (rule === undefined) continue
     const strong = !weakWindows.has(window)
+    const anchored = strong || !WORDISH.test(window)
     const last = ranges.at(-1)
     if (last && i <= last[1]) {
       last[1] = i + MIN_FRAGMENT
       last[3] ||= strong
-    } else ranges.push([i, i + MIN_FRAGMENT, rule, strong])
+      last[4] ||= anchored
+    } else ranges.push([i, i + MIN_FRAGMENT, rule, strong, anchored])
   }
-  for (const r of ranges) r[3] ||= r[1] - r[0] >= MIN_WEAK_FRAGMENT
-  return ranges
+  return ranges.map(([start, end, rule, strong, anchored]) => [
+    start,
+    end,
+    rule,
+    strong || (anchored && end - start >= MIN_WEAK_FRAGMENT),
+  ])
 }
 
 type Range = { start: number; end: number; rule: string; known: boolean }

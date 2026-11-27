@@ -1084,8 +1084,25 @@ describe('redacting fragments of a secret', () => {
       ['correct-horse-battery-staple', 'tail=tery-staple', 'tail=[REDACTED]'],
       ['PROD_DB_MASTER_PASSWORD', 'PROD_DB_MAS\nTER_PASSWORD', '[REDACTED]\n[REDACTED]'],
       ['4111-2222-3333-4444', 'a=4111-2222-\nb=3333-4444', 'a=[REDACTED]\nb=[REDACTED]'],
+      [
+        'correct-horse-battery-staple-2026',
+        'correct-hor\nse-battery-\nstaple-2026',
+        '[REDACTED]\n[REDACTED]\n[REDACTED]',
+      ],
+      ['PROD_DB_MASTER_PASSWORD_9', 'PROD_DB_MAS\nTER_PASSWOR\nD_9', '[REDACTED]\n[REDACTED]\nD_9'],
     ]) {
       assert.equal(redactJsonText(text as string, {}, [secret as string]), want, text)
+    }
+  })
+
+  test("twin: a word or number of a secret isn't masked alone, however long", () => {
+    for (const [secret, text] of [
+      ['my-incomprehensible-pass', 'that is incomprehensible to me'],
+      ['xK9-configuration-Q7z', '{"configurationPath":"/a","note":"configuration"}'],
+      ['tok-1764230000000-ab', 'ts=1764230000000 {"t":1764230000000}'],
+    ]) {
+      assert.equal(redactJsonText(text as string, {}, [secret as string]), text)
+      assert.equal(redactSecrets(text as string, { MY_TOKEN: secret as string }), text)
     }
   })
 
