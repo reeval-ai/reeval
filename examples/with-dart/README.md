@@ -47,7 +47,7 @@ later one starts from the saved snapshot:
   ◆  Running...
 
 with-dart.eval.ts
-  · with-dart  100%  metric()
+  · with-dart  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
 ```
 
 `pnpm reeval image list --profile boat` shows the snapshots, and

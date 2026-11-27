@@ -127,7 +127,7 @@ export async function project(name: string, files: Record<string, string>): Prom
 }
 
 export const fakeConfig = (options: { harness?: string; judge?: string; extra?: string } = {}) => `
-import { capability, defineConfig, defineEnvironment, metric, regression } from 'reeval'
+import { capability, defineConfig, defineEnvironment, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeSandbox } from 'reeval/sandbox'
 import { fakeJudge } from 'reeval/judge'

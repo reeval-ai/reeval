@@ -122,7 +122,7 @@ ids as `anthropic/…`, never `openrouter/…` or `vercel/…`.
   With a `gateway` list set, a judge model takes the first listed gateway that serves it, and only
   that gateway's key.
 - Imports: `reeval` (`defineConfig`, `defineEnvironment`, `defineEval`, `defineGrader`, `EvalError`,
-  `metric`, `regression`, `capability`, `DEFAULT_EGRESS_ALLOW`, `DEFAULT_SKILL_EXCLUDE`, types), `/agent`,
+  `regression`, `capability`, `DEFAULT_EGRESS_ALLOW`, `DEFAULT_SKILL_EXCLUDE`, types), `/agent`,
   `/graders` (the built-in graders and `judge`), `/gateway` (`direct`, `vercel`), `/sandbox`
   (`docker`, `fakeSandbox`), `/judge` (`fakeJudge`, `RECOMMENDED_JUDGE_MODEL`). There is no `test`, `describe`, `baseline`, `secret` or `skill` export.
 

@@ -1,4 +1,4 @@
-· greets-in-the-house-style-2  4/4 cases hit 100% (pass@1)  capability(1)
+· greets-in-the-house-style-2  mean 100% · 4/4 cases hit 100% (pass@1)  capability(1)
     #Ada     100%
     #Grace   100%
     #Linus   100%

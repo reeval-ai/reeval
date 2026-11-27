@@ -35,7 +35,7 @@ host, before any attempt, and names the commit every attempt starts from:
   ◆  Running...
 
 with-git-workspace.eval.ts
-  · with-git-workspace  100%  metric()
+  · with-git-workspace  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
     Observed:
       git-status  M src/math.js M test/math.test.js ?? .g… 1
 ```

@@ -40,18 +40,18 @@ REEVAL v0.31.0
   ◆  Running...
 
 with-concurrency.eval.ts
-  ✓ with-concurrency  100% ≥ 75%  metric(0.75)
+  · with-concurrency  mean 100% · 8/8 runs at 100% (pass@8)  capability(1)
 
-Done in 12s · 1 eval · 1 on target
+Done in 12s · 1 eval · 1 report only
 ```
 
 ```text
 $ pnpm reeval run --concurrency 1
 …
 with-concurrency.eval.ts
-  ✓ with-concurrency  100% ≥ 75%  metric(0.75)
+  · with-concurrency  mean 100% · 8/8 runs at 100% (pass@8)  capability(1)
 
-Done in 28s · 1 eval · 1 on target
+Done in 28s · 1 eval · 1 report only
 ```
 
 | File | What it is |

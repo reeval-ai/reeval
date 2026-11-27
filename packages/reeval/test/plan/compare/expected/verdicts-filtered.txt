@@ -1,25 +1,25 @@
 no profile · 5 evals · 10 cells · 52 attempts
 hint: 2 compares run 1 or 3 times per cell; below 4 runs a side their lift shows only a direction and their effort can't be tested (runs: 4)
 hint: verdicts/three-cases has 3 cases; its lift needs 6 to hold, so it shows only a direction whatever the runs (add cases)
-verdicts/four-runs    b/base/docker     control          ungated  ×4
-                      b/skilled/docker  variant skilled  ungated  ×4
-verdicts/one-run      b/base/docker     control          ungated  ×1
-                      b/skilled/docker  variant skilled  ungated  ×1
-verdicts/six-cases    b/base/docker     control          ungated  ×6   6 cases · runs 1 a case (compare with cases: the lift pairs cases)
-                      b/skilled/docker  variant skilled  ungated  ×6
+verdicts/four-runs    b/base/docker     control          ungated    ×4
+                      b/skilled/docker  variant skilled  gated any  ×4
+verdicts/one-run      b/base/docker     control          ungated    ×1
+                      b/skilled/docker  variant skilled  gated any  ×1
+verdicts/six-cases    b/base/docker     control          ungated    ×6   6 cases · runs 1 a case (compare with cases: the lift pairs cases)
+                      b/skilled/docker  variant skilled  gated any  ×6
                       case a            b/base/docker ×1, b/skilled/docker ×1
                       case b            b/base/docker ×1, b/skilled/docker ×1
                       case c            b/base/docker ×1, b/skilled/docker ×1
                       case d            b/base/docker ×1, b/skilled/docker ×1
                       case e            b/base/docker ×1, b/skilled/docker ×1
                       case f            b/base/docker ×1, b/skilled/docker ×1
-verdicts/three-cases  b/base/docker     control          ungated  ×12  3 cases
-                      b/skilled/docker  variant skilled  ungated  ×12
+verdicts/three-cases  b/base/docker     control          ungated    ×12  3 cases
+                      b/skilled/docker  variant skilled  gated any  ×12
                       case ada          b/base/docker ×4, b/skilled/docker ×4
                       case grace        b/base/docker ×4, b/skilled/docker ×4
                       case linus        b/base/docker ×4, b/skilled/docker ×4
-verdicts/three-runs   b/base/docker     control          ungated  ×3
-                      b/skilled/docker  variant skilled  ungated  ×3
+verdicts/three-runs   b/base/docker     control          ungated    ×3
+                      b/skilled/docker  variant skilled  gated any  ×3
 excluded: —
 image docker · cursor · 5 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

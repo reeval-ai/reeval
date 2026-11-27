@@ -31,7 +31,7 @@ names itself, here with the fake agent's first `multiply` adding instead:
 
 ```text
 with-multi-turn.eval.ts
-  · with-multi-turn  80%  metric()
+  · with-multi-turn  mean 80% · 0/1 run at 100% (pass@1)  capability(1)
     #1  80%  observed:turn-1 0%
     Observed:
       turn-1           5 1

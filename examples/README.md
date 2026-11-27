@@ -26,7 +26,6 @@ Every example takes the real agents in [`profiles.ts`](./profiles.ts) by name: `
 | [`with-multi-turn`](./with-multi-turn) | A session with a follow-up turn |
 | [`with-cases`](./with-cases) | One task over a list of cases |
 | [`with-skip`](./with-skip) | Evals sharing the config's options, and one skipped with a reason |
-| [`with-pass-rate`](./with-pass-rate) | A cell that passes on most tries, not all |
 | [`with-background-process`](./with-background-process) | A server started in the attempt and called over HTTP |
 
 ## Judges

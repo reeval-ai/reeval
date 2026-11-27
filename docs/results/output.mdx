@@ -9,14 +9,14 @@ description: "Read the outcomes, the tally, and the remarks that reeval run and 
 
 ```text
 with-reeval-mcp.eval.ts
-└─ ✗ with-reeval-mcp  0/1 run at 100%  regression(1)
+└─ ✗ with-reeval-mcp  mean 67% · 0/1 run at 100%  regression(1)
      #1  67%  succeeded:node --test 0%
 
 Done in 2s · 1 eval · 1 below
 Browse it: reeval studio · summary .reeval/runs/…/summary.md
 ```
 
-Each line is an icon, the evaluation's name, the number it's judged on and its [`target`](/reference/options#target): `✓` on target and `✗` below it for a target that blocks, `·` for one that only reports (the default, `metric()`) or an infra error, `–` skipped or todo, and `○` canceled. A miss, a throw, a comparison, or remarks add lines under it: a row per run or [case](/evaluations/task/cases) that cost points, with the graders and failed [assertions](/reference/glossary#assertion) behind it, and a table of the arms.
+Each line is an icon, the evaluation's name, its mean score, the number it's judged on and its [`target`](/reference/options#target): `✓` on target and `✗` below it for a target that blocks, `·` for one that only reports (the default, `capability()`) or an infra error, `–` skipped or todo, and `○` canceled. A miss, a throw, a comparison, or remarks add lines under it: a row per run or [case](/evaluations/task/cases) that cost points, with the graders and failed [assertions](/reference/glossary#assertion) behind it, and a table of the arms.
 
 `-v` prints them under every evaluation, with each full message, file excerpt, snapshot, interval and remark. `--ui agent` always adds the rest of each failure's message and its snapshot.
 
@@ -35,7 +35,7 @@ Under an evaluation, `Worth knowing:` names concerns about it, such as a flaky a
 A remark looks like this:
 
 ```text
-└─ ✓ with-rules-ab  1/1 run at 100%  regression(1)
+└─ ✓ with-rules-ab  mean 100% · 1/1 run at 100%  regression(1)
      arm              pass
      short-rules      0 of 1
      detailed-rules   1 of 1  helped

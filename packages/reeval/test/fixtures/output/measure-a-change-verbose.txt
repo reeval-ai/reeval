@@ -1,4 +1,4 @@
-✗ greets-in-the-house-style  4/8 runs at 100%, worst 0%  regression(1)
+✗ greets-in-the-house-style  mean 50% · 4/8 runs at 100%, worst 0%  regression(1)
     #1–4 · with-skill  100%
     #1–4 · with-doc    0%    "house greeting" failed
       expected command to succeed, exit code 1 · evals/greets-in-the-house-style.eval.ts:21
@@ -18,7 +18,7 @@
   with-skill       1      <0.1s
   with-doc         1      <0.1s
 
-· greets-once                100%                        metric()
+· greets-once                100%                                   metric()
     #1–4  100%
   arm              pass            vs control
   plain            0 of 4
@@ -28,7 +28,7 @@
   house greeting   0 of 4  4 of 4
     expected command to succeed, exit code 1
 
-✗ keeps-the-plain-greeting   0/4 runs at 100%, worst 0%  regression(1)
+✗ keeps-the-plain-greeting   mean 0% · 0/4 runs at 100%, worst 0%   regression(1)
     #1–4  0%  "says hello" failed
       expected command to succeed, exit code 1 · evals/keeps-the-plain-greeting.eval.ts:21
   arm              pass                   vs control

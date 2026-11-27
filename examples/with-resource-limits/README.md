@@ -31,7 +31,7 @@ allocates memory until it's killed:
 
 ```text
 with-resource-limits.eval.ts
-  · with-resource-limits  infra error  metric()
+  · with-resource-limits  infra error  capability(1)
     #1  infra error  out of memory: 1 process killed at the 1g limit; raise docker({ memory })
 ```
 

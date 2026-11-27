@@ -31,7 +31,7 @@ agent's `power` multiplies instead:
 
 ```text
 with-cases.eval.ts
-  · with-cases  67%  metric()
+  · with-cases  mean 67% · 2/3 cases hit 100% (pass@1)  capability(1)
     #subtract  100%
     #multiply  100%
     #power     0%    answers 0%

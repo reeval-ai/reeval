@@ -215,7 +215,7 @@ pass             stores invoice totals in cents with the billing skill
   skill. Say so, and suggest a harder task or a more specific rule from the skill next.
 - A check that fails every attempt on both arms is more often a broken check than a hard task.
   Open one attempt's `diff.patch` before you say the agent can't do it.
-- Exit 0 means no eval missed a blocking target (the default `metric()` never blocks); only the
+- Exit 0 means no eval missed a blocking target (the default `capability()` never blocks); only the
   variant is gated in a compare.
 - Details: `.reeval/runs/<run>/summary.md`, each attempt's `trajectory.jsonl` and `diff.patch`;
   `npx reeval studio` browses them; `npx reeval query effort` compares tools, time and tokens.

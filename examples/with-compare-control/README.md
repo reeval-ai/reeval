@@ -28,7 +28,7 @@ one profile you need.
 
 ```text
 with-compare-control.eval.ts
-  · with-compare-control  100%  metric()
+  · with-compare-control  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
     arm              pass
     math             0 of 4
       error  score 0.50 below 1: has-file:test/math.test.js scored 0.00 (4 runs)

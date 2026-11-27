@@ -32,14 +32,14 @@ one profile you need.
 
 ```text
 with-oracle-canary.eval.ts
-  ✓ with-oracle-canary  1/1 run at 100%  regression(1)
+  ✓ with-oracle-canary  mean 100% · 1/1 run at 100%  regression(1)
 ```
 
 The canary's own test passes, so only the grader it never saw catches it, and the run exits 1:
 
 ```text
 with-oracle-canary.eval.ts
-  ✗ with-oracle-canary  0/1 run at 100%  regression(1)
+  ✗ with-oracle-canary  mean 50% · 0/1 run at 100%  regression(1)
     #1  50%  clamp-clamps 0%
     Snapshot: .reeval/runs/<run>/…/1/snapshots/final
 ```

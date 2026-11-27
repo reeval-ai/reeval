@@ -2264,17 +2264,11 @@ export type PinnableKey = 'agents' | 'runs' | 'compare'
 
 /**
  * The eval's rule over its attempts' scores: whether it passes, and whether it can fail the run.
- * `metric` passes when the mean score is at least `threshold`, and with none only reports;
- * `regression` when every attempt scores at least `threshold` (pass^k); `capability` when one
- * does (pass@k), and fails the run only with `blocking`. Made by `metric()`, `regression()` and
- * `capability()`; an attempt passes when its score is at least the threshold, 1 without one.
+ * `regression` passes when every attempt scores at least `threshold` (pass^k); `capability` when
+ * one does (pass@k), and fails the run only with `blocking`. Made by `regression()` and
+ * `capability()`; an attempt passes when its score is at least the threshold.
  */
 export type Target =
-  | {
-      kind: 'metric'
-      /** The mean score, from 0 to 1, the attempts must reach; unset only reports. */
-      threshold?: number
-    }
   | {
       kind: 'regression'
       /** The score, from 0 to 1, every attempt must reach. */
@@ -2289,10 +2283,23 @@ export type Target =
     }
 
 /**
+ * A target as a record holds it: a `Target`, or in records an older reeval wrote, `metric`, which
+ * passed when the mean score reached `threshold` and with none only reported.
+ */
+export type RecordedTarget =
+  | Target
+  | {
+      kind: 'metric'
+      /** The mean score, from 0 to 1, the attempts had to reach; unset only reported. */
+      threshold?: number
+    }
+
+/**
  * A cell's gate: `'all'` when every counted attempt must pass, `'any'` when one must,
- * `{ passRate }` when its mean score must reach that share (its pass share in a
- * `runs: { bestOf }` cell), or `'none'` when its failures don't fail the run (a compare's
- * control, or an eval whose target doesn't block).
+ * `{ passRate }` when its pass share must reach that (a `runs: { bestOf }` cell; in an
+ * older record, its mean score), or `'none'` when its failures don't decide the eval (a compare's
+ * control, or in an older record a cell whose target couldn't block). Whether a failed cell
+ * fails the run is its target's.
  */
 export type CellGate = 'all' | 'any' | 'none' | { passRate: number }
 
@@ -2336,8 +2343,8 @@ type EvalOptionFields<N extends number = number> = {
    */
   runs?: Runs<N>
   /**
-   * Whether the eval passes and can fail the run, over its attempts' scores: `metric()`,
-   * `regression()` or `capability()`; default `metric()`, which only reports. On a compare it
+   * Whether the eval passes and can fail the run, over its attempts' scores: `regression()` or
+   * `capability()`; default `capability()`, which only reports. On a compare it
    * applies to the variants, and the control only reports.
    */
   target?: Target
@@ -2820,7 +2827,7 @@ export type ReevalConfig = {
   runs?: Runs
   /**
    * Whether each eval passes and can fail the run, over its attempts' scores; default
-   * `metric()`, which only reports.
+   * `capability()`, which only reports.
    */
   target?: Target
   /** Variables and secrets for the sandbox, merged by name down the cascade. */
@@ -3080,7 +3087,7 @@ export type ResolvedConfig = {
   environments: Environment[]
   /** Unset leaves each eval its default: 4 for a compare with variants, otherwise 1. */
   runs: Runs | undefined
-  /** Unset means `metric()`. */
+  /** Unset means `capability()`. */
   target: Target | undefined
   env: EnvVars
   egress?: Egress
@@ -4181,8 +4188,8 @@ export type EvalPlan = {
   runs: number
   /** Set by `runs: { bestOf }`: each cell stops once a majority of this many attempts agree. */
   bestOf?: number
-  /** The eval's target, the default `metric()` included; unset in records from before targets. */
-  target?: Target
+  /** The eval's target, the default `capability()` included; unset in records from before targets. */
+  target?: RecordedTarget
   /** In records from before targets, the eval's gate when it set one. Never written now. */
   gate?: 'all' | 'observe' | { passRate: number }
   attempts: number
@@ -4279,7 +4286,7 @@ export type AttemptMeta = {
    * The eval's target, which its attempts pass at the threshold of; unset in records from before
    * targets.
    */
-  target?: Target
+  target?: RecordedTarget
   /** Set on variant attempts whose compare has a `minLift`. */
   minLift?: number
   /**

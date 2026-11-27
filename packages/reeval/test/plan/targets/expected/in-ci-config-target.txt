@@ -1,5 +1,5 @@
 profile blocking (--profile) · 7 evals · 18 cells · 50–52 attempts
-hint: 2 evals can't fail CI (capability-reports, compare-reports): their targets only report; set target: regression() (or metric(0.8), capability(1, { blocking: true })) in the eval or the config to fail on a miss
+hint: 2 evals can't fail CI (capability-reports, compare-reports): their targets only report; set target: regression() (or capability(1, { blocking: true })) in the eval or the config to fail on a miss
 hint: 1 compare runs 2 times per cell; below 4 runs a side its lift shows only a direction and its effort can't be tested (runs: 4)
 best-of             a/-/docker        control          gated passRate 0.5  best of 3  target regression(0.8)
                     b/-/docker        control          gated passRate 0.5  best of 3
@@ -7,8 +7,8 @@ capability-reports  a/-/docker        control          gated any           ×3  
                     b/-/docker        control          gated any           ×3
 capability          a/-/docker        control          gated any           ×3         target capability(1, { blocking: true })
                     b/-/docker        control          gated any           ×3
-cases-metric        a/-/docker        control          gated passRate 0.8  ×2         target metric(0.8) · 2 cases
-                    b/-/docker        control          gated passRate 0.8  ×2
+cases-regression    a/-/docker        control          gated               ×2         target regression(0.8) · 2 cases
+                    b/-/docker        control          gated               ×2
                     case chat         a/-/docker ×1, b/-/docker ×1
                     case rag          a/-/docker ×1, b/-/docker ×1
 compare-regression  a/base/docker     control          ungated             ×2         target regression(0.8)
@@ -16,9 +16,9 @@ compare-regression  a/base/docker     control          ungated             ×2  
                     b/base/docker     control          ungated             ×2
                     b/skilled/docker  variant skilled  gated               ×2
 compare-reports     a/base/docker     control          ungated             ×4
-                    a/skilled/docker  variant skilled  ungated             ×4
+                    a/skilled/docker  variant skilled  gated any           ×4
                     b/base/docker     control          ungated             ×4
-                    b/skilled/docker  variant skilled  ungated             ×4
+                    b/skilled/docker  variant skilled  gated any           ×4
 reports             a/-/docker        control          gated               ×3         target regression(1)
                     b/-/docker        control          gated               ×3
 excluded: —

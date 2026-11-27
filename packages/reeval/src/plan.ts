@@ -415,7 +415,7 @@ function targetHint(units: PlanRow[][]): string[] {
   if (n === 0) return []
   const named = n > 3 ? `${ids.slice(0, 3).join(', ')} and ${n - 3} more` : ids.join(', ')
   return [
-    `${plural(n, 'eval')} can't fail CI (${named}): ${n === 1 ? 'its target only reports' : 'their targets only report'}; set target: regression() (or metric(0.8), capability(1, { blocking: true })) in the eval or the config to fail on a miss`,
+    `${plural(n, 'eval')} can't fail CI (${named}): ${n === 1 ? 'its target only reports' : 'their targets only report'}; set target: regression() (or capability(1, { blocking: true })) in the eval or the config to fail on a miss`,
   ]
 }
 
@@ -600,12 +600,7 @@ export function planTable(plan: RunPlan, todos: readonly string[] = []): string[
     // `where` can leave a case off some harnesses, so the eval runs on as many as its widest case.
     const harnesses = Math.max(p.harnesses, ...live.map((m) => m.plan.harnesses))
     const ran = live.length === family?.cases ? family.cases : `${live.length} of ${family?.cases}`
-    const decides =
-      p.variants !== null
-        ? ' · paired lift'
-        : p.target?.kind === 'metric' && p.target.threshold !== undefined
-          ? ' · mean score over the cases'
-          : ''
+    const decides = p.variants !== null ? ' · paired lift' : ''
     const pooled = family && family.cases >= 2 ? [`${ran} cases${decides}`] : []
     return [
       clip(id, 64),
@@ -904,6 +899,9 @@ export function planDocument(
         plan.questionModel,
         attempt.plan.skip,
       )
+      const target = attempt.plan.target ?? DEFAULT_TARGET
+      // `metric` is only ever an older record's target; a run never plans it.
+      if (target.kind === 'metric') throw new Error(`${id} planned a metric target`)
       e = {
         id,
         file,
@@ -912,7 +910,7 @@ export function planDocument(
         tags: attempt.tags,
         ...(attempt.revision !== undefined ? { revision: attempt.revision } : {}),
         skip: attempt.plan.skip ?? null,
-        target: attempt.plan.target ?? DEFAULT_TARGET,
+        target,
         notes: attempt.plan.notes,
         cells: [],
         ...(questions.length ? { questions } : {}),

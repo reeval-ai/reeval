@@ -576,7 +576,7 @@
                   "const": "metric"
                 },
                 "threshold": {
-                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "description": "The mean score, from 0 to 1, the attempts had to reach; unset only reported.",
                   "type": "number"
                 }
               },
@@ -1712,7 +1712,7 @@
       "required": ["error", "fail", "label", "notApplicable", "notRun", "pass"]
     },
     "CellGate": {
-      "description": "A cell's gate: `'all'` when every counted attempt must pass, `'any'` when one must, `{ passRate }` when its mean score must reach that share (its pass share in a `runs: { bestOf }` cell), or `'none'` when its failures don't fail the run (a compare's control, or an eval whose target doesn't block).",
+      "description": "A cell's gate: `'all'` when every counted attempt must pass, `'any'` when one must, `{ passRate }` when its pass share must reach that (a `runs: { bestOf }` cell; in an older record, its mean score), or `'none'` when its failures don't decide the eval (a compare's control, or in an older record a cell whose target couldn't block). Whether a failed cell fails the run is its target's.",
       "anyOf": [
         {
           "enum": ["all", "any", "none"]
@@ -3319,7 +3319,7 @@
           }
         },
         "target": {
-          "description": "What decides `outcome`; in records from before targets, read from the cells' gates (`all` is `regression()`, `{ passRate }` is `metric(passRate)`, none is `metric()`).",
+          "description": "What decides `outcome`; in records from before targets, read from the cells' gates (`all` is `regression()`, `{ passRate }` or none is a mean-score `metric`).",
           "anyOf": [
             {
               "type": "object",
@@ -3345,7 +3345,7 @@
                   "const": "metric"
                 },
                 "threshold": {
-                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "description": "The mean score, from 0 to 1, the attempts had to reach; unset only reported.",
                   "type": "number"
                 }
               },
@@ -3614,7 +3614,7 @@
           "type": "string"
         },
         "target": {
-          "description": "The eval's target, the default `metric()` included; unset in records from before targets.",
+          "description": "The eval's target, the default `capability()` included; unset in records from before targets.",
           "anyOf": [
             {
               "type": "object",
@@ -3640,7 +3640,7 @@
                   "const": "metric"
                 },
                 "threshold": {
-                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "description": "The mean score, from 0 to 1, the attempts had to reach; unset only reported.",
                   "type": "number"
                 }
               },
@@ -4556,7 +4556,7 @@
           "type": "string"
         },
         "threshold": {
-          "description": "The score each attempt passes at under a `regression()` or `capability()` target; unset at 1 and under `metric()`, whose threshold is its gate's.",
+          "description": "The score each attempt passes at under a `regression()` or `capability()` target; unset at 1 and under an older record's `metric`, whose threshold is its gate's.",
           "type": "string"
         }
       },

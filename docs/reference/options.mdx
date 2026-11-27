@@ -687,7 +687,7 @@ For more information about environments, see [Define an environment](/configurat
 `target` is what passes an evaluation, and whether a miss fails the run.
 
 <Property name="target" type="Target" optional>
-  `metric()` (the default) gates no cell: the attempts run and are recorded, the result prints `ran`, and only run and infra errors fail the run. `metric(threshold)` passes a cell when its attempts' mean score is at least `threshold`. `regression(threshold = 1)` passes when every counted attempt scores at least `threshold` (pass^k), and `capability(threshold = 1)` when one does (pass@k), failing the run on a miss only with `{ blocking: true }`. An attempt passes when its score reaches the threshold, 1 without one; thresholds are from 0 to 1. When no outcome counts, the cell takes its worst attempt outcome. Under `compare`, the target gates the variant cells only. With `cases`, `metric(threshold)` gates each cell's mean over its cases rather than each case: a case keeps its own outcome, with `verdict: 'family'`, and the evaluation's pooled outcome sets the exit code. The record writes each cell's gate as `all`, `any`, `{ passRate }`, or `none`.
+  `capability()` (the default) passes a cell when one attempt scores at least its threshold, 1 (pass@k), and only reports: a miss fails the evaluation, never the run. `capability(threshold = 1, { blocking: true })` fails the run on a miss, and so does `regression(threshold = 1)`, which passes when every counted attempt scores at least `threshold` (pass^k). An attempt passes when its score reaches the threshold, 1 without one; thresholds are from 0 to 1. The result prints the mean score under every target, and no target gates on it. When no outcome counts, the cell takes its worst attempt outcome. Under `compare`, the target gates the variant cells only. With `cases`, a case that misses the target fails the evaluation. The record writes each cell's gate as `all`, `any`, `{ passRate }`, or `none`.
 </Property>
 
 ## `env`
@@ -936,7 +936,7 @@ For more information about analysis, see [Analyze a run](/results/analyze#set-an
   The agents to compare on; the others run the control only. reeval refuses an id the evaluation does not run.
 </Property>
 
-An evaluation with `cases` reports one `all cases` row that sums each cell's counts, with a lift paired by case. A paired outcome is `insufficient` below six discordant pairs or cases, so six cases with one attempt a side can read `helped` only when all six are discordant. Under `regression()`, a case fails on its own assertions, and a failed case fails the evaluation. Under `metric(threshold)`, the `all cases` row's rate decides instead. The [`case_lift`](/reference/query-views#caselift) view lists each evaluation's pooled lift.
+An evaluation with `cases` reports one `all cases` row that sums each cell's counts, with a lift paired by case. A paired outcome is `insufficient` below six discordant pairs or cases, so six cases with one attempt a side can read `helped` only when all six are discordant. Under `regression()`, a case fails on its own assertions, and a failed case fails the evaluation. The [`case_lift`](/reference/query-views#caselift) view lists each evaluation's pooled lift.
 
 For more information about comparisons, see [Measure lift against a control](/results/compare/lift).
 

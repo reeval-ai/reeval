@@ -95,7 +95,7 @@ import { redactSecrets, registerSecret } from '../src/redact.ts'
 import { createFakeSandbox, posixShell } from '../src/sandbox/fake.ts'
 import { InfraError, type Sandbox } from '../src/sandbox/types.ts'
 import { fakeSandbox } from '../src/sandbox.ts'
-import { regression } from '../src/target.ts'
+import { capability, regression } from '../src/target.ts'
 import { clip } from '../src/text.ts'
 import type { EvalOptions, ExecResult, Outcome, ResolvedProfile } from '../src/types.ts'
 import { gatePart } from '../src/view/gate.ts'
@@ -2090,6 +2090,20 @@ test('compare reads an eval with cases by its pooled gate, comparable when its c
   assert.deepEqual(
     regressions(compare(byRate('pass', 'pass'), byRate('fail', 'fail'))).map((r) => r.id),
     [EVAL],
+  )
+  const targeted = (target: HistoryEntry['evals'][number]['target']) => ({
+    evals: byRate('fail', 'fail').evals.map((e) => ({ ...e, target })),
+  })
+  const regressed = compare(byRate('pass', 'pass'), byRate('fail', 'fail'))
+  assert.deepEqual(
+    regressions(regressed, targeted(capability())),
+    [],
+    'a head whose target only reports never fails --fail-on-regression',
+  )
+  assert.deepEqual(
+    regressions(regressed, targeted(capability(1, { blocking: true }))).map((r) => r.id),
+    [EVAL],
+    'canary: one that blocks does',
   )
   assert.deepEqual(
     row(rated('pass'), rated('fail'))?.rates,

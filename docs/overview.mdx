@@ -72,14 +72,13 @@ export const withSkill = page.extendEnvironment(
 The evaluation goes in its own file:
 
 ```ts title="evals/brand.eval.ts"
-import { defineEval, metric } from 'reeval'
+import { defineEval } from 'reeval'
 import { hasFile } from 'reeval/graders'
 import { page, withSkill } from './environments.ts'
 
 export default defineEval({
   compare: { control: page, variants: [withSkill] },
   runs: 4,
-  target: metric(0.75),
   graders: [
     hasFile('index.html', /href="styles\.css"/, {
       name: 'links-styles-css',
@@ -101,10 +100,10 @@ export default defineEval({
 The prompt never names the color or the fonts, so those graders pass only when the agent knows them. `reeval run` prints the outcome for each side:
 
 ```text
-└─ ✓ brand  100% ≥ 75%  metric(0.75)
+└─ · brand  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
      arm               pass
      page              0 of 4
-       error  score 0.33 below 0.75: brand-orange scored 0.00; brand-fonts scored 0.00 (4 runs)
+       error  score 0.33 below 1: brand-orange scored 0.00; brand-fonts scored 0.00 (4 runs)
      brand-guidelines  4 of 4  helped
 ```
 

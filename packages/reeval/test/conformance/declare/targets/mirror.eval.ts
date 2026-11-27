@@ -1,4 +1,4 @@
-import { capability, metric, regression } from 'reeval'
+import { capability, regression } from 'reeval'
 import { defineEnvironment, evaluate } from 'reeval/legacy'
 
 const base = defineEnvironment('base', { env: { MODE: 'base' } })
@@ -8,8 +8,8 @@ evaluate('best of', { runs: { bestOf: 3 }, target: regression(0.8) }, async () =
 evaluate('capability reports', { runs: 3, target: capability(0.5) }, async () => {})
 evaluate('capability', { runs: 3, target: capability(1, { blocking: true }) }, async () => {})
 evaluate(
-  'cases metric',
-  { cases: [{ key: 'chat' }, { key: 'rag' }], target: metric(0.8) },
+  'cases regression',
+  { cases: [{ key: 'chat' }, { key: 'rag' }], target: regression(0.8) },
   async () => {},
 )
 evaluate(
@@ -19,7 +19,7 @@ evaluate(
 )
 evaluate(
   'compare reports',
-  { compare: { control: base, variants: [skilled] }, target: metric(), runs: 4 },
+  { compare: { control: base, variants: [skilled] }, target: capability(), runs: 4 },
   async () => {},
 )
 evaluate('reports', { runs: 3 }, async () => {})

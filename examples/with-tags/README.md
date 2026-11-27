@@ -32,7 +32,7 @@ one profile you need.
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 attempt
 …
 adds-multiply.eval.ts
-  · adds-multiply  100%  metric()
+  · adds-multiply  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
 
 Done in 18s · 1 eval · 1 report only
 ```

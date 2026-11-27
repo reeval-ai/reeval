@@ -102,7 +102,7 @@ export function activityLabel(
 /**
  * A run's outcome, which `reeval run`'s exit code is read from: an error outside any attempt, a
  * failed eval whose target blocks or a budget stop fails the run, while a compare's controls and
- * an eval whose target doesn't block (`metric()`, the default) don't. An interrupted run is `skipped`, whatever ran; a resume its filters left
+ * an eval whose target doesn't block (`capability()`, the default) don't. An interrupted run is `skipped`, whatever ran; a resume its filters left
  * `interrupted` exits on its outcome as if it were complete.
  */
 export function runOutcome(run: {
@@ -542,12 +542,6 @@ export const COMPARE_ORDER: CompareStatus[] = [
  */
 export const hasUngatedCells = (cells: readonly Pick<HistoryCell, 'gate'>[]) =>
   cells.some((c) => c.gate === 'none')
-
-/** A study's pass: every cell `gate: 'none'`, so nothing it saw passed or failed it. */
-export const isNotGatedPass = (e: {
-  outcome: Outcome
-  cells: readonly Pick<HistoryCell, 'gate'>[]
-}) => e.outcome === 'pass' && e.cells.length > 0 && e.cells.every((c) => c.gate === 'none')
 
 /**
  * An expected miss: a failed attempt in an ungated cell (a control, by default). It's reported

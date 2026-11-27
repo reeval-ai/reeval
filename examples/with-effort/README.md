@@ -3,8 +3,8 @@
 **Shows:** a skill's effect on effort when it doesn't change the pass rate. The agent adds a
 tested `multiply(a, b)`, with and without a `project-layout` skill that says where things are.
 Both arms pass, and from `runs: 4` the result block adds an effort table (median tool calls,
-agent time and tokens per arm), with `reeval query effort` behind it. `target: metric(0.75)`
-gates each arm on its mean score, so one miss in four doesn't fail the run.
+agent time and tokens per arm), with `reeval query effort` behind it. The default
+target, `capability()`, only reports, so one miss in four doesn't fail the run.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
 first. A real agent needs its key in `.env.local` (`ANTHROPIC_API_KEY` for Claude Code), Docker,
@@ -31,7 +31,7 @@ one profile you need.
 
 ```text
 with-effort.eval.ts
-  ✓ with-effort  100% ≥ 75%  metric(0.75)
+  · with-effort  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
     arm              pass          vs control
     math             4 of 4
     project-layout   4 of 4  same  85× faster

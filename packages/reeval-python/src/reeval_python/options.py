@@ -76,8 +76,8 @@ class EvalOptions(TypedDict, total=False):
     attempts agree. Not on a compared eval."""
     tags: Sequence[str]
     target: Target
-    """Whether the eval passes and can fail the run, over its attempts' scores: `metric(…)`,
-    `regression(…)` or `capability(…)`; default `metric()`, which only reports. On a compare it
+    """Whether the eval passes and can fail the run, over its attempts' scores: `regression(…)`
+    or `capability(…)`; default `capability()`, which only reports. On a compare it
     applies to the variants."""
     timeout: timedelta | float
     """Per attempt, in seconds or as a timedelta."""

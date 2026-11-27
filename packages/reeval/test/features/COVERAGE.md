@@ -24,16 +24,16 @@
 | Option cascade through config, profiles and evals; agent edits (`{ add }`, `{ only }`, functions) | ✓ 2 | ✓ 1 | — | — | — | — |
 | `environments` as a list: a cell per environment beside each harness, and its edits | ✓ 1 | ✓ 1 | — | — | — | — |
 | `compare`: control, variants, lift and `minLift` | ✓ 2 | ✓ 2 | ● 1 | ● 1 | — | — |
-| `target: metric()`, the default: every cell ungated, and a failing attempt fails nothing | ✓ 1 | ✓ 1 | ● 2 | — | — | — |
+| No `target` is `capability()`: pass@k over the attempts, and a miss fails the eval but never the run | ✓ 1 | ✓ 1 | ● 2 | — | — | — |
 | `where`: which case and environment pairs of an eval with `cases` run, decided at plan time from environment `traits` (and the harness when it reads it), listed in `--dry-run` and the record's `excluded`; with `compare`, the control decides for every variant | ✓ 1 | ✓ 1 | ● 1 | — | — | — |
 | `defineEval` as the file default export: one eval per file, id from its path, case members as `#key`, `--cell` for cell selection | ✓ 3 | ✓ 3 | ● 1 | — | — | — |
-| `cases`: one eval over a list of cases, each an object with its `key`, counted and named once with its cases as rows inside it, pooled into a mean score that `target: metric(threshold)` gates and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history | ✓ 8 | ✓ 3 | ● 2 | — | — | — |
+| `cases`: one eval over a list of cases, each an object with its `key`, counted and named once with its cases as rows inside it, pooled into a mean score and a paired lift that `minLift` gates; older records fold into the same shape, an `evaluate.each` family under its template without placeholders, so a port continues its history | ✓ 8 | ✓ 3 | ● 1 | — | — | — |
 | `compare.harnesses` | ✓ 1 | ✓ 1 | — | — | — | — |
 | `compare.control`: the control cell, which replaces an inherited `environments` | ✓ 1 | ✓ 4 | ● 1 | ● 1 | — | — |
 | `questions` with `across`: pairwise questions in the plan, answered after the run with win rates | ✓ 4 | ✓ 5 | — | — | — | ◐ 1 (1 without a canary) |
 | What a question shows: only the inputs each entry turns on (task, output, files, diff, trajectory, checks, artifacts), at least one, over `turns`, refused at plan time otherwise; and the `question` option's cascaded model | ✓ 3 | ✓ 2 | ● 3 | ● 1 | — | — |
 | `questions` without `across`: asked of each attempt as it ends, free text or `choices`, in `evals[].attempts[].answers` | ✓ 2 | ✓ 2 | ● 1 | ● 1 | — | — |
-| `target`: `metric(threshold?)` over the mean score, `regression(threshold)` over every attempt (pass^k), `capability(threshold, { blocking })` over any (pass@k); an attempt passes at the threshold, a compare's control only reports, and each eval records its target and its mean score, pass@k and pass^k | ✓ 3 | ✓ 2 | ● 3 | — | — | — |
+| `target`: `regression(threshold)` over every attempt (pass^k), `capability(threshold, { blocking })` over any (pass@k); an attempt passes at the threshold, a compare's control only reports, and each eval records its target and prints and records its mean score, pass@k and pass^k | ✓ 3 | ✓ 2 | ● 2 | — | — | — |
 | The CI hint: in CI, the plan names the evals whose target can't fail the run, and how to set one | ✓ 1 | ✓ 3 | — | — | — | — |
 | Profiles: `defaults`, `limit`, `pin`, selection and typos | ✓ 3 | ✓ 5 | — | — | — | — |
 | `reeval.yaml`: the config as data, with profiles, `--config` and one config per directory | ✓ 2 | ✓ 4 | — | — | — | — |
@@ -275,7 +275,7 @@
 | `reeval query` | ✓ 1 | — | — | — | — | ◐ 1 (1 without a canary) |
 | `reeval mcp`: run history as read-only MCP tools and resources, over stdio or stateless HTTP | ✓ 1 | — | — | — | — | — |
 | `reeval mcp` for debugging a failed run: `failures` (each failed attempt's checks, judge scores, error, check logs and trajectory tail, and whether its cell failed before) and `history` listing scratch runs, with a note, when nothing is recorded | ✓ 1 | — | — | — | — | — |
-| An eval whose cells are all ungated is marked ○ and `not gated` in the run summary when its attempts miss, never ✓ beside 0/n, and reads `not gated` (○) in the tally, `reeval compare` and `reeval history`, never `pass` | ✓ 1 | — | ● 1 | — | — | — |
+| An eval whose target only reports reads `report only` in the tally and `reeval compare` when its attempts miss, never ✓ beside 0/n; one whose cells are all ungated, from an older record, reads `not gated` (○) in `reeval history`, never `pass` | ✓ 1 | — | ● 1 | — | — | — |
 | `reeval query` facts views: `effort`, `factor_effects` (controlled, pooled over runs and across one run's evals, observed, not measured), `skill_reads` and `tool_calls`, `attempt_context` | ✓ 2 | — | — | — | — | — |
 | Skill use of skills reeval didn't place (a setup step, the workspace or a package cache put them there): `skill_reads` and `skill_uses` by `source` (`placed`, `skill-dir`, `elsewhere`), from a native load or a path under an agent's skill directory | ✓ 1 | — | ● 1 | ● 1 | — | ● 1 |
 | `flaky_cells` pooled over comparable runs, `flaky` from a minimum n and `mixed` below it, and `drift` with changed paths and a `noise` flag | ✓ 2 | — | — | — | — | — |

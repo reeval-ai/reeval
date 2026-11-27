@@ -157,7 +157,7 @@ export function mergeSnapshot(
   return { when: inner.when ?? outer.when, compress: inner.compress ?? outer.compress }
 }
 
-/** Throws unless `value` is a target from `metric()`, `regression()` or `capability()`. */
+/** Throws unless `value` is a target from `regression()` or `capability()`. */
 export function checkTarget(value: unknown, where: string): void {
   const problem = targetProblem(value, where)
   if (problem) throw new UsageError(problem)
@@ -691,7 +691,7 @@ export type Resolved = {
   runs: number
   /** Set by `runs: { bestOf }`, which `runs` then equals. */
   bestOf: number | undefined
-  /** Unset means `metric()`. */
+  /** Unset means `capability()`. */
   target: Target | undefined
   env: EnvVars
   /** From the config and profile defaults, under the environment; from groups and the eval, over it. */

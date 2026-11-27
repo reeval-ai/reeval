@@ -1,4 +1,4 @@
-import { defineEval, defineGrader, metric } from 'reeval'
+import { defineEval, defineGrader, regression } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 
 const advisor = fakeAgent({
@@ -23,7 +23,7 @@ export default defineEval({
   ],
   agents: advisor,
   runs: 2,
-  target: metric(0.8),
+  target: regression(0.8),
   graders: [namesGenkit, onlyGenkit],
   task: async (c, { key: task }) => {
     await c.send(`Which framework should I use to build ${task}? Pick one.`)

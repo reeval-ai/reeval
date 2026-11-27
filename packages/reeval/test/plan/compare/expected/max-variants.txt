@@ -1,18 +1,18 @@
 profile lean (--profile) · 3 evals · 14 cells · 56 attempts
-limited/one-variant   a/base/docker     control          ungated  ×4  runs 4 (compare default)
-                      a/skilled/docker  variant skilled  ungated  ×4
-                      b/base/docker     control          ungated  ×4
-                      b/skilled/docker  variant skilled  ungated  ×4
-limited/pinned        a/base/docker     control          ungated  ×4  runs 4 (compare default) · pinned: compare
-                      a/skilled/docker  variant skilled  ungated  ×4
-                      a/terse/docker    variant terse    ungated  ×4
-                      b/base/docker     control          ungated  ×4
-                      b/skilled/docker  variant skilled  ungated  ×4
-                      b/terse/docker    variant terse    ungated  ×4
-limited/two-variants  a/base/docker     control          ungated  ×4  variants 2 → 1 (profile lean) · runs 4 (compare default)
-                      a/skilled/docker  variant skilled  ungated  ×4
-                      b/base/docker     control          ungated  ×4
-                      b/skilled/docker  variant skilled  ungated  ×4
+limited/one-variant   a/base/docker     control          ungated    ×4  runs 4 (compare default)
+                      a/skilled/docker  variant skilled  gated any  ×4
+                      b/base/docker     control          ungated    ×4
+                      b/skilled/docker  variant skilled  gated any  ×4
+limited/pinned        a/base/docker     control          ungated    ×4  runs 4 (compare default) · pinned: compare
+                      a/skilled/docker  variant skilled  gated any  ×4
+                      a/terse/docker    variant terse    gated any  ×4
+                      b/base/docker     control          ungated    ×4
+                      b/skilled/docker  variant skilled  gated any  ×4
+                      b/terse/docker    variant terse    gated any  ×4
+limited/two-variants  a/base/docker     control          ungated    ×4  variants 2 → 1 (profile lean) · runs 4 (compare default)
+                      a/skilled/docker  variant skilled  gated any  ×4
+                      b/base/docker     control          ungated    ×4
+                      b/skilled/docker  variant skilled  gated any  ×4
 excluded: —
 image docker · cursor · 3 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

@@ -1,8 +1,8 @@
-· adds-a-button-that-builds  2/3 cases hit 100% (pass@1)  capability(1)
+· adds-a-button-that-builds  mean 67% · 2/3 cases hit 100% (pass@1)  capability(1)
     #double  0%  the build fails
       button: double
       exitCode: 1
       after turn 1
-✓ choose                     83% ≥ 80%                    metric(0.8)
+✓ choose                     83% ≥ 80%                               metric(0.8)
 
 2 evals · 1 on target · 1 report only

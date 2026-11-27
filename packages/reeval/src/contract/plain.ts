@@ -98,7 +98,6 @@ const host = z.string().superRefine((value, ctx) => {
 const threshold = z.number().min(0).max(1)
 
 export const targetSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('metric'), threshold: threshold.optional() }),
   z.strictObject({ kind: z.literal('regression'), threshold }),
   z.strictObject({ kind: z.literal('capability'), threshold, blocking: z.boolean() }),
 ])
@@ -359,7 +358,7 @@ export function descriptorProblem(
 }
 
 const TARGET_SHAPE =
-  "is metric(), regression() or capability() from 'reeval', each with an optional threshold from 0 to 1, e.g. target: regression(0.8)"
+  "is regression() or capability() from 'reeval', each with an optional threshold from 0 to 1, e.g. target: regression(0.8)"
 
 /** reeval's sentence for a target that isn't one, or undefined. */
 export const targetProblem = (value: unknown, where: string) =>

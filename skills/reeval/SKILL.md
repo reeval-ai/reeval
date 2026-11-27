@@ -124,7 +124,7 @@ export default defineConfig({
   list ends with `direct()`, so a cell no listed gateway serves falls back to its own key (the
   plan's hint says so); `direct({ enabled: false })` refuses it instead.
 - Imports: `reeval` (`defineConfig`, `defineEnvironment`, `defineEval`, `defineGrader`, `EvalError`,
-  `metric`, `regression`, `capability`, `DEFAULT_EGRESS_ALLOW`, `DEFAULT_SKILL_EXCLUDE`, types), `/agent`, `/graders`
+  `regression`, `capability`, `DEFAULT_EGRESS_ALLOW`, `DEFAULT_SKILL_EXCLUDE`, types), `/agent`, `/graders`
   (the built-in graders and `judge`), `/sandbox`
   (`docker`, `fakeSandbox`), `/judge` (`fakeJudge`, `RECOMMENDED_JUDGE_MODEL`). There is no `test`, `describe`, `baseline`, `secret` or `skill` export.
 - `defineConfig` and each eval's `defineEval` take the same options (`agents`, `sandbox`,
@@ -196,7 +196,7 @@ export default defineEval({
 - One `*.eval.ts` file is one eval: `export default defineEval({ …options, task })`. `skip: true`
   or `skip: 'reason'` skips it (no `.only` or `.todo` in TypeScript). `{ cases: [...] }` runs one
   eval over a list, with `task: async (c, item) => …` (cases pool into one pass rate, see
-  [references/evals.md](references/evals.md)). The default `target`, `metric()`, gates nothing: the eval
+  [references/evals.md](references/evals.md)). The default `target`, `capability()`, never fails the run: the eval
   records what agents do; `regression()` fails the run on any miss. The eval id is the file path under the eval root without `.eval.ts`; moving the
   file restarts its history. Organize paths after the question they answer
   (`recommendation/genkit`, not `genkit-test-2`), so results and `reeval analyze` read clearly.
@@ -331,7 +331,7 @@ per run or case that cost points, with the graders and failed checks that cost i
 `made it worse` or `same`; for an agent, also the rest of each message, the snapshot and each
 remark's whole sentence); `-v` expands every eval. Then the tally
 (`Done in 12s · 3 evals · 1 on target · 1 below · 1 report only`; an `error:` outside any eval, such as a stray rejection in an eval file, is
-`1 run error` and fails the run; an eval with the default `target: metric()` is `report only`, never on
+`1 run error` and fails the run; an eval with the default `target: capability()` is `report only`, never on
 target or below, so read its mean and rows for how it went). `Worth knowing:` under an eval names what about it needs work
 (a flaky check, too few tries, a slow MCP server), with the line to fix, from fixed rules with no
 model; they never change a verdict or the exit code, and go in `remarks.json` beside the run. The

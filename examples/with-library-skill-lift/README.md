@@ -31,10 +31,10 @@ one profile you need.
 
 ```text
 with-library-skill-lift.eval.ts
-  ✓ with-library-skill-lift  100% ≥ 75%  metric(0.75)
+  · with-library-skill-lift  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
     arm               pass
     page              0 of 4
-      error  score 0.33 below 0.75: brand-orange scored 0.00; brand-fonts scored 0.00 (4 runs)
+      error  score 0.33 below 1: brand-orange scored 0.00; brand-fonts scored 0.00 (4 runs)
     brand-guidelines  4 of 4  helped
 ```
 

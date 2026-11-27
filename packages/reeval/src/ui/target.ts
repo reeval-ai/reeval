@@ -18,10 +18,7 @@ export const location = (at: string) => at.replace(/^source:/, '').replace(/#L(\
 /** `67%`: rounded, but a score under `threshold` or under 1 never reads as reaching it. */
 export const percent = scorePercent
 
-/**
- * A case row's score against the threshold each attempt meets (a metric's applies to the mean,
- * which a row under it shares), so a row under it never reads as reaching it.
- */
+/** A case row's score against the threshold each attempt meets, so a row under it never reads as reaching it. */
 export const rowPercent = (e: EvalResult, score: number) => percent(score, e.target.threshold)
 
 const counts = (a: ScoredAttempt) => a.score !== null

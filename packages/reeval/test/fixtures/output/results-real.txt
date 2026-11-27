@@ -1,20 +1,20 @@
-✓ edit and run         1/1 run at 100%  regression(1)
-✗ edit and run canary  0/1 run at 100%  regression(1)
+✓ edit and run         mean 100% · 1/1 run at 100%  regression(1)
+✗ edit and run canary  mean 0% · 0/1 run at 100%    regression(1)
     #1  0%  expected 'status: draft' to be 'status: final' // Object.is equality
-✓ egress               1/1 run at 100%  regression(1)
-✗ egress canary        0/1 run at 100%  regression(1)
+✓ egress               mean 100% · 1/1 run at 100%  regression(1)
+✗ egress canary        mean 0% · 0/1 run at 100%    regression(1)
     #1  0%  expected '403 000' to match /^200 /
-✓ key                  1/1 run at 100%  regression(1)
-✗ key canary           0/1 run at 100%  regression(1)
+✓ key                  mean 100% · 1/1 run at 100%  regression(1)
+✗ key canary           mean 0% · 0/1 run at 100%    regression(1)
     #1  0%  expected [ '/proc/1/environ (raw)', …(3) ] to deeply equal []
-✓ mcp                  1/1 run at 100%  regression(1)
-✗ mcp canary           0/1 run at 100%  regression(1)
+✓ mcp                  mean 100% · 1/1 run at 100%  regression(1)
+✗ mcp canary           mean 0% · 0/1 run at 100%    regression(1)
     #1  0%  expected '' to contain 'tools/call'
-✓ rules                1/1 run at 100%  regression(1)
-✗ rules canary         0/1 run at 100%  regression(1)
+✓ rules                mean 100% · 1/1 run at 100%  regression(1)
+✗ rules canary         mean 0% · 0/1 run at 100%    regression(1)
     #1  0%  expected null to be 'TANGERINE-41' // Object.is equality
-✓ skill                1/1 run at 100%  regression(1)
-✗ skill canary         0/1 run at 100%  regression(1)
+✓ skill                mean 100% · 1/1 run at 100%  regression(1)
+✗ skill canary         mean 0% · 0/1 run at 100%    regression(1)
     #1  0%  expected null to be 'PROBE-7F3K-QUILL' // Object.is equality
 
 12 evals · 6 on target · 6 below

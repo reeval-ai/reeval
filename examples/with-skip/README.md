@@ -29,14 +29,14 @@ one profile you need.
 no attempts, with its reason in the notes:
 
 ```text
-eval           agents  variants  runs  attempts  target       notes
-adds-divide    0       —         2     0         metric(0.5)  skipped: divide by zero isn't specified yet
-adds-multiply  1       —         2     2         metric(0.5)
-adds-subtract  1       —         1     1         metric(0.5)
+eval           agents  variants  runs  attempts  target         notes
+adds-divide    0       —         2     0         capability(1)  skipped: divide by zero isn't specified yet
+adds-multiply  1       —         2     2         capability(1)
+adds-subtract  1       —         1     1         capability(1)
 ```
 
-`target: metric(0.5)` passes a cell when its runs' mean score is at least 0.5, so one of two passing
-runs is enough; `regression()` would need both. Every eval is tagged `math`, so `pnpm reeval run
+The default target, `capability()`, passes a cell when one of its runs passes and only reports;
+`regression()` would need both and fail the run on a miss. Every eval is tagged `math`, so `pnpm reeval run
 --tag smoke --dry-run` plans only `adds-subtract`, and `--tag math` plans all three. The run's
 status list ends:
 
@@ -45,12 +45,12 @@ adds-divide.eval.ts
   – adds-divide  skipped
 
 adds-multiply.eval.ts
-  ✓ adds-multiply  100% ≥ 50%  metric(0.5)
+  · adds-multiply  mean 100% · 2/2 runs at 100% (pass@2)  capability(1)
 
 adds-subtract.eval.ts
-  ✓ adds-subtract  100% ≥ 50%  metric(0.5)
+  · adds-subtract  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
 
-Done in 2s · 3 evals · 2 on target · 1 skipped
+Done in 2s · 3 evals · 2 report only · 1 skipped
 ```
 
 | File | What it is |

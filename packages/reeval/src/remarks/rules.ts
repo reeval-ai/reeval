@@ -16,6 +16,7 @@ import {
   SMALL_SAMPLE_MARGIN,
   smallSample,
 } from '../stats.ts'
+import { blocks } from '../target.ts'
 import { clip } from '../text.ts'
 import {
   boundOf,
@@ -827,13 +828,13 @@ function snapshotTooLarge(e: EvalResult, entries: EvalEntry[], ctx: RemarkContex
 }
 
 /**
- * observe-throws: an eval whose target only reports (`metric()`) whose body threw in more than
+ * observe-throws: an eval whose target only reports (`capability()`) whose body threw in more than
  * half its counted tries. Graders run only after a body that returned, so a
- * graded attempt's failure is its score, not a throw. Such an eval fails only on run and infra errors, so those tries read
- * `ran` while recording the eval's error, not what the agent did. One per eval.
+ * graded attempt's failure is its score, not a throw. Such an eval fails the run only on run and infra errors, so those
+ * tries record the eval's error, not what the agent did. One per eval.
  */
 function observeThrows(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext): Candidate[] {
-  if (!entries.every((entry) => entry.cells.every((c) => c.gate === 'none'))) return []
+  if (entries.some((entry) => blocks(entry.target))) return []
   const cellPaths = new Map<string, string>()
   for (const u of units(e)) for (const c of u.cells) cellPaths.set(`${u.id}\0${c.key}`, c.path)
   const counted = entries.flatMap((entry) =>
@@ -861,7 +862,7 @@ function observeThrows(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext):
       ),
       fix: {
         at: ctx.locate(first.entry, null),
-        edit: 'fix what the body throws, or check what can fail with a grader, which metric() records without failing',
+        edit: 'fix what the body throws, or check what can fail with a grader, so a miss scores the attempt instead of ending it',
       },
     },
   ]

@@ -87,7 +87,7 @@ Run the evaluation. It prints one row; a miss, or `-v` as here, adds a row per c
 
 ```text
 with-cases.eval.ts
-└─ · with-cases  100%  metric()
+└─ · with-cases  mean 100% · 3/3 cases hit 100% (pass@1)  capability(1)
      #subtract  100%
      #multiply  100%
      #power     100%
@@ -98,17 +98,17 @@ The rows list only the cases that cost points, at most eight; `-v` lists every c
 </Step>
 </Steps>
 
-## Gate on the rate over the cases
+## Report the mean over the cases
 
-With `target: metric(threshold)`, each cell passes on its rate over the cases, the mean of each case's mean score. A failing case doesn't fail the evaluation on its own:
+Under the default target, `capability()`, a failing case fails the evaluation but never the run, and the result prints the mean over the cases:
 
 ```ts title="evals/rate.eval.ts"
-import { defineEval, defineGrader, metric } from '{{ pkg }}'
+import { defineEval, defineGrader } from '{{ pkg }}'
 
 const notC = defineGrader('not-c', { grade: (c) => c.case.key !== 'c' })
 
 export default defineEval({
-  target: metric(0.6), cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }],
+  cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }],
   graders: [notC],
   task: async (c, { key }) => {
     await c.send(key)
@@ -116,19 +116,19 @@ export default defineEval({
 })
 ```
 
-Two of three cases pass, a mean of 67%, so the evaluation passes (shown with `-v`):
+Two of three cases pass, a mean of 67% (shown with `-v`):
 
 ```text
 evals/rate.eval.ts
-└─ ✓ rate  67% ≥ 60%  metric(0.6)
+└─ · rate  mean 67% · 2/3 cases hit 100% (pass@1)  capability(1)
      #a  100%
      #b  100%
      #c  0%    not-c 0%
 ```
 
-Under `target: regression()`, every case must pass, and a failing case fails the evaluation. A case whose every attempt hit an infra error makes the evaluation an infra error, unless another case fails.
+Under `target: regression()`, a failing case fails the run too. A case whose every attempt hit an infra error makes the evaluation an infra error, unless another case fails.
 
-In the record, the cases are rows in the evaluation's `cases`. Case `c` keeps its `fail`, and the rate over the cases decides the evaluation, its exit code and the tally. `reeval compare` shows a case that flipped as `now fails` or `now passes`, and `--fail-on-regression` reads the evaluation's gate over its cases.
+In the record, the cases are rows in the evaluation's `cases`. Case `c` keeps its `fail`, which fails the evaluation. `reeval compare` names a case that regressed inside the evaluation's row, and `--fail-on-regression` reads the evaluation's outcome.
 
 ## Run a case on some environments
 
@@ -157,7 +157,7 @@ Cases with `compare` report one effect per variant, paired by case, with the con
 
 ```text
 with-case-lift.eval.ts
-└─ ✓ with-case-lift  6/6 runs at 100%  regression(1)
+└─ ✓ with-case-lift  mean 100% · 6/6 runs at 100%  regression(1)
      arm              pass            vs control
      math             0 of 6
      jsdoc            6 of 6  helped  "JSDoc block" +100 pts

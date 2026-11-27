@@ -948,13 +948,13 @@ const sandbox = fakeSandbox({ dir: new URL('../sandboxes', import.meta.url) })
 export const next = defineEnvironment('next-app', { sandbox, traits: { stack: 'next' } })
 export const vite = defineEnvironment('vite-app', { sandbox, traits: { stack: 'vite' } })
 `,
-      'evals/fam.eval.ts': `import { defineEval, metric } from 'reeval'
+      'evals/fam.eval.ts': `import { defineEval, regression } from 'reeval'
 import { next, vite } from './env.ts'
 export default defineEval({
   environment: [next, vite],
   cases: [{ key: 'next' }, { key: 'vite' }, { key: 'both' }],
   runs: 2,
-  target: metric(0.6),
+  target: regression(),
   where: ({ case: { key: k }, environment }) => k === 'both' || environment.traits.stack === k,
   async task(_c, { key: k }) { if (k === 'next') throw new Error('next fails') },
 })
@@ -998,12 +998,11 @@ export default defineEval({
     assert.deepEqual(vite?.excluded, [{ case: 'vite', environment: 'next-app' }])
     const family = part.families?.[0]
     assert.equal(family?.ran, 2)
-    assert.equal(family?.outcome, 'fail')
     assert.deepEqual(
-      family?.rates.map((x) => [x.cell, x.cases, x.pass, x.counted, x.outcome]),
+      family?.rates.map((x) => [x.cell, x.cases, x.pass, x.counted]),
       [
-        ['fake/next-app/fake', 2, 2, 4, 'fail'],
-        ['fake/vite-app/fake', 1, 2, 2, 'pass'],
+        ['fake/next-app/fake', 2, 2, 4],
+        ['fake/vite-app/fake', 1, 2, 2],
       ],
     )
     assert.equal((await runCli(p.dir, ['run', '--resume', started.runId])).code, 1)

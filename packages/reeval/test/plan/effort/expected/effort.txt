@@ -1,8 +1,8 @@
 no profile · 1 evals · 4 cells · 4 attempts
-e  claude-code:claude-sonnet-5[effort=high]/-/docker  control  ungated  ×1
-   claude-code:claude-sonnet-5[effort=low]/-/docker   control  ungated  ×1
-   cursor:grok-4.7[effort=high]/-/docker              control  ungated  ×1
-   pi:gemini-3.8-flash[effort=xhigh]/-/docker         control  ungated  ×1
+e  claude-code:claude-sonnet-5[effort=high]/-/docker  control  gated any  ×1
+   claude-code:claude-sonnet-5[effort=low]/-/docker   control  gated any  ×1
+   cursor:grok-4.7[effort=high]/-/docker              control  gated any  ×1
+   pi:gemini-3.8-flash[effort=xhigh]/-/docker         control  gated any  ×1
 excluded: —
 image docker · claude-code · 1 evals
   base  reeval-sandbox:claude-code-1.0.176-patch.3b2ddb94  (reeval's image: pulled or built when missing or when its key changed)

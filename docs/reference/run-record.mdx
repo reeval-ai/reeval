@@ -356,8 +356,8 @@ The tokens the run used, as the harnesses count them, and what they cost.
   A placeholder (Python's `evaluate.todo` or `group.todo`): it never runs, and its outcome is `skipped`.
 </Property>
 
-<Property name="target" type="Target" optional>
-  What decides `outcome`; in records from before targets, read from the cells' gates (`all` is `regression()`, `{ passRate }` is `metric(passRate)`, none is `metric()`).
+<Property name="target" type="RecordedTarget" optional>
+  What decides `outcome`; in records from before targets, read from the cells' gates (`all` is `regression()`, `{ passRate }` or none is a mean-score `metric`).
 </Property>
 
 <Property name="scores" type="ScoreSummary" optional>
@@ -721,7 +721,7 @@ Each input of a cell fingerprint, hashed on its own, so a change can be named.
 </Property>
 
 <Property name="threshold" type="string" optional>
-  The score each attempt passes at under a `regression()` or `capability()` target; unset at 1 and under `metric()`, whose threshold is its gate's.
+  The score each attempt passes at under a `regression()` or `capability()` target; unset at 1 and under an older record's `metric`, whose threshold is its gate's.
 </Property>
 
 ### `AttemptRecord`

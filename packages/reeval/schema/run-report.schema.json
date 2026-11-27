@@ -1646,7 +1646,7 @@
               "enum": ["pass", "fail", "report", "infra", "skipped"]
             },
             "target": {
-              "description": "The target as written: `metric(0.8)`.",
+              "description": "The target as written: `regression(0.8)`.",
               "type": "string"
             }
           },

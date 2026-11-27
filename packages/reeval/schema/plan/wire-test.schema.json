@@ -242,7 +242,7 @@
                   "const": "metric"
                 },
                 "threshold": {
-                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "description": "The mean score, from 0 to 1, the attempts had to reach; unset only reported.",
                   "type": "number"
                 }
               },
@@ -486,7 +486,7 @@
       "required": ["environment", "harness", "key", "role", "sandbox"]
     },
     "CellGate": {
-      "description": "A cell's gate: `'all'` when every counted attempt must pass, `'any'` when one must, `{ passRate }` when its mean score must reach that share (its pass share in a `runs: { bestOf }` cell), or `'none'` when its failures don't fail the run (a compare's control, or an eval whose target doesn't block).",
+      "description": "A cell's gate: `'all'` when every counted attempt must pass, `'any'` when one must, `{ passRate }` when its pass share must reach that (a `runs: { bestOf }` cell; in an older record, its mean score), or `'none'` when its failures don't decide the eval (a compare's control, or in an older record a cell whose target couldn't block). Whether a failed cell fails the run is its target's.",
       "anyOf": [
         {
           "enum": ["all", "any", "none"]
@@ -1152,7 +1152,7 @@
           "type": "string"
         },
         "target": {
-          "description": "The eval's target, the default `metric()` included; unset in records from before targets.",
+          "description": "The eval's target, the default `capability()` included; unset in records from before targets.",
           "anyOf": [
             {
               "type": "object",
@@ -1178,7 +1178,7 @@
                   "const": "metric"
                 },
                 "threshold": {
-                  "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
+                  "description": "The mean score, from 0 to 1, the attempts had to reach; unset only reported.",
                   "type": "number"
                 }
               },

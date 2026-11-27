@@ -1,7 +1,7 @@
 no profile · 5 evals · 5 cells · 6 attempts
-cloud-in-an-image        fake/python/cloud:python:3.12+393c1c97  control  ungated  ×1
-cloud-medium             fake/medium/cloud:medium                control  ungated  ×1  egress "allow-all"
-cloud-on-a-real-harness  cursor:composer-2.5/small/cloud         control  ungated  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · egress "allow-all"
-cloud-shared             fake/shared/cloud:large                 control  ungated  ×2  egress "allow-all"
-cloud                    fake/small/cloud                        control  ungated  ×1  egress "allow-all"
+cloud-in-an-image        fake/python/cloud:python:3.12+393c1c97  control  gated any  ×1
+cloud-medium             fake/medium/cloud:medium                control  gated any  ×1  egress "allow-all"
+cloud-on-a-real-harness  cursor:composer-2.5/small/cloud         control  gated any  ×1  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · egress "allow-all"
+cloud-shared             fake/shared/cloud:large                 control  gated any  ×2  egress "allow-all"
+cloud                    fake/small/cloud                        control  gated any  ×1  egress "allow-all"
 excluded: —

@@ -1,4 +1,4 @@
-· greets-in-the-house-style-2  4/4 cases hit 100% (pass@1)  capability(1)
+· greets-in-the-house-style-2  mean 100% · 4/4 cases hit 100% (pass@1)  capability(1)
   arm              pass            vs control
   plain            0 of 4
   with-skill       4 of 4  helped  "house greeting" +100 pts

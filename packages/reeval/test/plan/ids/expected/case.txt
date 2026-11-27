@@ -1,4 +1,4 @@
 no profile · 1 evals · 1 cells · 1 attempts
-with-case  fake/-/fake  control  ungated  ×1  1 of 2 cases
+with-case  fake/-/fake  control  gated any  ×1  1 of 2 cases
            case x       fake/-/fake ×1
 excluded: —

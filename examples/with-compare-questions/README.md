@@ -33,7 +33,7 @@ orders, so one pair is two votes, and four runs a side make four pairs:
 
 ```text
 with-compare-questions.eval.ts
-  · with-compare-questions  100%  metric()
+  · with-compare-questions  mean 100% · 4/4 runs at 100% (pass@4)  capability(1)
     arm              pass
     math             4 of 4
     errors           4 of 4  same

@@ -1,10 +1,10 @@
 profile vite (--profile) · 2 evals (1 skipped) · 4 cells · 7 attempts
-per-harness      a/vite-app/docker  control  ungated  ×2  2 cases · profiles.vite.limit.traits.stack leaves out next-app · where excludes 2 pairs · excluded on next-app for b: y · excluded on vite-app for b: y · traits {"stack":"vite"}
-                 b/vite-app/docker  control  ungated  ×1  traits {"stack":"vite"}
+per-harness      a/vite-app/docker  control  gated any  ×2  2 cases · profiles.vite.limit.traits.stack leaves out next-app · where excludes 2 pairs · excluded on next-app for b: y · excluded on vite-app for b: y · traits {"stack":"vite"}
+                 b/vite-app/docker  control  gated any  ×1  traits {"stack":"vite"}
                  case x             a/vite-app/docker ×1, b/vite-app/docker ×1
                  case y             a/vite-app/docker ×1  where excludes next-app/b, vite-app/b
-stack-questions  a/vite-app/docker  control  ungated  ×2  3 cases · profiles.vite.limit.traits.stack leaves out next-app · where excludes 2 pairs · excluded on vite-app: q2 · excluded on next-app: q3 · traits {"stack":"vite"}
-                 b/vite-app/docker  control  ungated  ×2  traits {"stack":"vite"}
+stack-questions  a/vite-app/docker  control  gated any  ×2  3 cases · profiles.vite.limit.traits.stack leaves out next-app · where excludes 2 pairs · excluded on vite-app: q2 · excluded on next-app: q3 · traits {"stack":"vite"}
+                 b/vite-app/docker  control  gated any  ×2  traits {"stack":"vite"}
                  case q1            a/vite-app/docker ×1, b/vite-app/docker ×1
                  case q2            skipped: no cell left: profiles.vite.limit.traits.stack leaves out next-app  where excludes vite-app
                  case q3            a/vite-app/docker ×1, b/vite-app/docker ×1  where excludes next-app

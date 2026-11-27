@@ -1,14 +1,14 @@
 no profile · 9 evals · 10 cells · 16 attempts
-a-group-sets-setup-and-the-eval-the-agent        fake/-/docker           control           ungated  ×1  egress.setup {"allow":["config.example.com"]} · egress "deny-all"
-a-phase-on-the-eval-replaces-only-that-phase     fake/phased/docker      control           ungated  ×1  egress.setup "allow-all" · egress {"allow":["eval.example.com"]}
-a-plain-policy-on-the-eval-replaces-both-phases  fake/phased/docker      control           ungated  ×1  egress "deny-all"
-a-variant-changes-only-setup                     fake/closed/docker      control           ungated  ×4  runs 4 (compare default) · egress "deny-all"
-                                                 fake/reopened/docker    variant reopened  ungated  ×4  egress.setup "allow-all" · egress "deny-all"
-an-environment-sets-each-phase                   fake/phased/docker      control           ungated  ×1  egress.setup "allow-all" · egress "deny-all"
-an-extend-child-sets-setup-over-its-parent       fake/reopened/docker    control           ungated  ×1  egress.setup "allow-all" · egress "deny-all"
-an-unset-phase-keeps-the-config-policy           fake/setup-only/docker  control           ungated  ×1  egress.setup "allow-all" · egress {"allow":["config.example.com"]}
-each-restricted-phase-gets-the-automatic-hosts   fake/closed/docker      control           ungated  ×1  egress.setup {"allow":["registry.npmjs.org"]} + api.anthropic.com, *.anthropic.com · egress "deny-all" + api.anthropic.com, *.anthropic.com
-equal-phases-are-one-policy                      fake/same/docker        control           ungated  ×1  egress "deny-all"
+a-group-sets-setup-and-the-eval-the-agent        fake/-/docker           control           gated any  ×1  egress.setup {"allow":["config.example.com"]} · egress "deny-all"
+a-phase-on-the-eval-replaces-only-that-phase     fake/phased/docker      control           gated any  ×1  egress.setup "allow-all" · egress {"allow":["eval.example.com"]}
+a-plain-policy-on-the-eval-replaces-both-phases  fake/phased/docker      control           gated any  ×1  egress "deny-all"
+a-variant-changes-only-setup                     fake/closed/docker      control           ungated    ×4  runs 4 (compare default) · egress "deny-all"
+                                                 fake/reopened/docker    variant reopened  gated any  ×4  egress.setup "allow-all" · egress "deny-all"
+an-environment-sets-each-phase                   fake/phased/docker      control           gated any  ×1  egress.setup "allow-all" · egress "deny-all"
+an-extend-child-sets-setup-over-its-parent       fake/reopened/docker    control           gated any  ×1  egress.setup "allow-all" · egress "deny-all"
+an-unset-phase-keeps-the-config-policy           fake/setup-only/docker  control           gated any  ×1  egress.setup "allow-all" · egress {"allow":["config.example.com"]}
+each-restricted-phase-gets-the-automatic-hosts   fake/closed/docker      control           gated any  ×1  egress.setup {"allow":["registry.npmjs.org"]} + api.anthropic.com, *.anthropic.com · egress "deny-all" + api.anthropic.com, *.anthropic.com
+equal-phases-are-one-policy                      fake/same/docker        control           gated any  ×1  egress "deny-all"
 excluded: —
 image docker · cursor · 8 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

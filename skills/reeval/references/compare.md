@@ -40,8 +40,7 @@ does not layer, inherit or extend. Share setup first (the example is in SKILL.md
 - Only variant cells gate, by the eval's `target`. A control's misses
   show in its arm's count (`plain  0 of 2`) and never fail the run. `compare.agents: [cursor({ model: 'composer-2.5' })]` compares on some harnesses only.
 - With `runs > 1` and `target: regression()`, a cell passes only if every counted attempt passes
-  (pass^k); `target: metric(0.8)` passes on a mean score of 0.8 (for pass/fail attempts, pass@1:
-  passes over passes and fails), and the default `metric()` only reports. `minLift` needs a target
+  (pass^k), and the default `capability()` passes when one does (pass@k) and only reports. `minLift` needs a target
   that can fail the run. Infra errors don't count; a cell is `infra_error`
   only when nothing counted.
 - **Lift** is the variant's mean score minus the control's, with a 95% interval. The result block

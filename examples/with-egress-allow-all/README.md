@@ -30,7 +30,7 @@ the connection fail:
 
 ```text
 with-egress-allow-all.eval.ts
-  · with-egress-allow-all  0%  metric()
+  · with-egress-allow-all  mean 0% · 0/1 run at 100% (pass@1)  capability(1)
     #1  0%  succeeded:bash banner.sh 0%, observed:banner 0%
     …
 ```

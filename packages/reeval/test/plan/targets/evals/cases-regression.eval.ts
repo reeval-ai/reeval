@@ -1,7 +1,7 @@
-import { defineEval, metric } from 'reeval'
+import { defineEval, regression } from 'reeval'
 
 export default defineEval({
   cases: [{ key: 'chat' }, { key: 'rag' }],
-  target: metric(0.8),
+  target: regression(0.8),
   task: async () => {},
 })

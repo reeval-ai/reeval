@@ -1,4 +1,4 @@
-import { defineEnvironment, defineEval, metric } from 'reeval'
+import { defineEnvironment, defineEval } from 'reeval'
 import { hasFile } from 'reeval/graders'
 
 // The page in ./project is the control; the variant adds Anthropic's published brand-guidelines
@@ -17,7 +17,6 @@ const withSkill = page.extendEnvironment('brand-guidelines', ({ skill }) => ({
 export default defineEval({
   compare: { control: page, variants: [withSkill] },
   runs: 4,
-  target: metric(0.75),
   graders: [
     hasFile('index.html', /href="styles\.css"/),
     hasFile('styles.css', /#d97757/i, { name: 'brand-orange' }),

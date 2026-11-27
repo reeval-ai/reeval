@@ -111,8 +111,8 @@ when nobody reads its workspace.
 
 ## `observe-throws`
 
-Concern. The body of an eval with the default `target: metric()` threw in more than half its
-counted tries. Such an eval fails only on run and infra errors, so those tries read `ran`, but what they recorded is the
+Concern. The body of an eval whose target can't fail the run (the default `capability()`) threw in more than half its
+counted tries. Such an eval fails the run only on run and infra errors, but what those tries recorded is the
 eval's own error, not what the agent did. The remark quotes the first error and lists each try.
 **Fix:** fix what the body throws (a missing file it reads, a bad selector), or grade what can
 fail with a grader, so a miss lowers the score instead of ending the try.

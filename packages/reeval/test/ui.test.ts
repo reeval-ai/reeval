@@ -261,23 +261,23 @@ function render(
 const lines = (...l: string[]) => `${l.join('\n')}\n`
 
 const LIST = [
-  ['✓ writes greet.js              1/1 run at 100%             regression(1)'],
+  ['✓ writes greet.js              mean 100% · 1/1 run at 100%            regression(1)'],
   [
-    '✗ greets in French             0/1 run at 100%             regression(1)',
+    '✗ greets in French             mean 0% · 0/1 run at 100%              regression(1)',
     '#1  0%  "french greeting" failed',
     '  expected command to succeed, exit code 1',
   ],
   [
-    '✗ explains why greet.js fails  1/2 runs at 100%, worst 0%  regression(1)',
+    '✗ explains why greet.js fails  mean 50% · 1/2 runs at 100%, worst 0%  regression(1)',
     '#2  0%  "names the root cause" failed',
     "  expected 'Docker is down' to contain 'null'",
   ],
   [
-    '✗ reads the fixture repo       0/1 run at 100%             regression(1)',
+    '✗ reads the fixture repo       mean 0% · 0/1 run at 100%              regression(1)',
     '#1  0%  the fixture repo is missing',
   ],
   [
-    '· starts its sandbox           infra error                 regression(1)',
+    '· starts its sandbox           infra error                            regression(1)',
     '#1  infra error  the fake sandbox fell over',
   ],
   ['– greets in Welsh              skipped'],
@@ -379,7 +379,7 @@ describe('plain renderer', () => {
     const out = render(events, options()).split('\n')
     const row = out.findIndex((l) => l.startsWith('├─ ✓ writes greet.js'))
     assert.deepEqual(out.slice(row, row + 2), [
-      '├─ ✓ writes greet.js              1/1 run at 100%             regression(1)',
+      '├─ ✓ writes greet.js              mean 100% · 1/1 run at 100%            regression(1)',
       '│    Worth knowing: served by Anthropic 2 · Amazon Bedrock 1; judge served by Google 1',
     ])
   })

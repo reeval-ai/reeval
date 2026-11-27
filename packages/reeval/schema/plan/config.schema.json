@@ -3093,7 +3093,7 @@
           ]
         },
         "target": {
-          "description": "Whether each eval passes and can fail the run, over its attempts' scores; default `metric()`, which only reports.",
+          "description": "Whether each eval passes and can fail the run, over its attempts' scores; default `capability()`, which only reports.",
           "$ref": "#/$defs/Target"
         },
         "timeout": {
@@ -3482,25 +3482,8 @@
       "enum": ["header", "query", "body"]
     },
     "Target": {
-      "description": "The eval's rule over its attempts' scores: whether it passes, and whether it can fail the run. `metric` passes when the mean score is at least `threshold`, and with none only reports; `regression` when every attempt scores at least `threshold` (pass^k); `capability` when one does (pass@k), and fails the run only with `blocking`. Made by `metric()`, `regression()` and `capability()`; an attempt passes when its score is at least the threshold, 1 without one.",
+      "description": "The eval's rule over its attempts' scores: whether it passes, and whether it can fail the run. `regression` passes when every attempt scores at least `threshold` (pass^k); `capability` when one does (pass@k), and fails the run only with `blocking`. Made by `regression()` and `capability()`; an attempt passes when its score is at least the threshold.",
       "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "type": "string",
-              "const": "metric"
-            },
-            "threshold": {
-              "description": "The mean score, from 0 to 1, the attempts must reach; unset only reports.",
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1
-            }
-          },
-          "required": ["kind"],
-          "additionalProperties": false
-        },
         {
           "type": "object",
           "properties": {

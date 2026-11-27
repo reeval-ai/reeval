@@ -889,12 +889,6 @@ class EvalOptionsDataCompareTargetCapability(TypedDict):
     threshold: float
 
 
-class EvalOptionsDataCompareTargetMetric(TypedDict):
-    kind: Literal["metric"]
-    # The mean score, from 0 to 1, the attempts must reach; unset only reports.
-    threshold: NotRequired[float]
-
-
 class EvalOptionsDataCompareTargetRegression(TypedDict):
     kind: Literal["regression"]
     # The score, from 0 to 1, every attempt must reach.
@@ -942,10 +936,10 @@ class EvalOptionsDataCompare(TypedDict):
     snapshot: NotRequired[SnapshotOptions | Literal["turns"] | bool]
     # Labels for `--tag` and profiles to select by; a group's are added to its evals'.
     tags: NotRequired[list[str]]
-    # Whether the eval passes and can fail the run, over its attempts' scores: `metric()`,
-    # `regression()` or `capability()`; default `metric()`, which only reports. On a compare it
-    # applies to the variants, and the control only reports.
-    target: NotRequired[EvalOptionsDataCompareTargetCapability | EvalOptionsDataCompareTargetMetric | EvalOptionsDataCompareTargetRegression]
+    # Whether the eval passes and can fail the run, over its attempts' scores: `regression()` or
+    # `capability()`; default `capability()`, which only reports. On a compare it applies to the
+    # variants, and the control only reports.
+    target: NotRequired[EvalOptionsDataCompareTargetCapability | EvalOptionsDataCompareTargetRegression]
     # Per attempt.
     timeout: NotRequired[float | str]
 
@@ -980,12 +974,6 @@ class EvalOptionsData2TargetCapability(TypedDict):
     kind: Literal["capability"]
     # The score, from 0 to 1, one attempt must reach.
     threshold: float
-
-
-class EvalOptionsData2TargetMetric(TypedDict):
-    kind: Literal["metric"]
-    # The mean score, from 0 to 1, the attempts must reach; unset only reports.
-    threshold: NotRequired[float]
 
 
 class EvalOptionsData2TargetRegression(TypedDict):
@@ -1036,10 +1024,10 @@ class EvalOptionsData2(TypedDict):
     snapshot: NotRequired[SnapshotOptions | Literal["turns"] | bool]
     # Labels for `--tag` and profiles to select by; a group's are added to its evals'.
     tags: NotRequired[list[str]]
-    # Whether the eval passes and can fail the run, over its attempts' scores: `metric()`,
-    # `regression()` or `capability()`; default `metric()`, which only reports. On a compare it
-    # applies to the variants, and the control only reports.
-    target: NotRequired[EvalOptionsData2TargetCapability | EvalOptionsData2TargetMetric | EvalOptionsData2TargetRegression]
+    # Whether the eval passes and can fail the run, over its attempts' scores: `regression()` or
+    # `capability()`; default `capability()`, which only reports. On a compare it applies to the
+    # variants, and the control only reports.
+    target: NotRequired[EvalOptionsData2TargetCapability | EvalOptionsData2TargetRegression]
     # Per attempt.
     timeout: NotRequired[float | str]
 

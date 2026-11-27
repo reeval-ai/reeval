@@ -209,9 +209,9 @@ export default defineEval({ runs: 1, compare, questions: [{ question: 'Which is 
 import { body, compare } from './envs.ts'
 export default defineEval({ runs: 1, compare, questions: [{ question: 'Which reads better?', across: 'environment', task: true, diff: true }], task: body })
 `,
-      'evals/three-arms.eval.ts': `import { defineEval, metric } from 'reeval'
+      'evals/three-arms.eval.ts': `import { capability, defineEval } from 'reeval'
 import { body, current, next, none } from './envs.ts'
-export default defineEval({ target: metric(), compare: { control: none, variants: [current, next] }, questions: [{ question: 'Which delivers a better user experience?', across: 'environment', task: true, diff: true }], runs: 3, task: body })
+export default defineEval({ target: capability(), compare: { control: none, variants: [current, next] }, questions: [{ question: 'Which delivers a better user experience?', across: 'environment', task: true, diff: true }], runs: 3, task: body })
 `,
     })
     const dry = await runCli(p.dir, ['run', '--dry-run'])
