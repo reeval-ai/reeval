@@ -21,11 +21,11 @@
 
 reeval is an open-source evaluation runner for developer tools. It gives a real coding agent a task in a fresh sandbox, then checks the result with assertions on files, commands, and the trajectory, and with an LLM judge where an assertion can't decide. Run the same task with and without a skill, doc, or MCP server, and reeval reports whether the change helped.
 
-Evals are TypeScript files in `evals/`, next to the tool they test. Each run writes a JSON record, and recorded runs commit to Git, so `reeval compare` can diff a pull request's run against the last recorded one and fail the job when an eval regresses.
+Each task is a `*.eval.ts` file in `evals/`, next to the tool it tests. Each run writes a JSON record, and recorded runs commit to Git, so `reeval compare` can diff a pull request's run against the last recorded one and fail the job when a task regresses.
 
 ## Features
 
-Cursor ⋅ Claude Code ⋅ Codex ⋅ Antigravity ⋅ OpenCode ⋅ Goose ⋅ pi ⋅ Grok Build
+Cursor ⋅ Claude Code ⋅ Codex ⋅ Antigravity ⋅ OpenCode ⋅ Goose ⋅ pi ⋅ fx ⋅ Grok Build
 
 - **Real agents**: each harness runs the agent itself, with its own tools, skills, and rules, as it works on a developer's machine ([Choose an agent](docs/configuration/agents/index.mdx)).
 - **Keys stay on the host**: each attempt starts in a fresh sandbox that holds only a placeholder key. reeval's egress gateway swaps in the real key on requests to that provider and nowhere else ([Pass secrets](docs/configuration/environments/secrets.mdx)).
@@ -41,7 +41,7 @@ npm i -D reeval
 
 reeval runs on Node.js 22.16 or later. Real runs also need a sandbox runtime (Docker or Podman) and an API keys for the agents. `npx reeval doctor` checks both and names the fix for anything missing.
 
-## Quick start
+## Quickstart
 
 Scaffold a config and one eval, then check that reeval loads them:
 
@@ -54,13 +54,15 @@ npx reeval run --dry-run  # smoke check: plans the run, no keys or sandbox
 REEVAL v0.16.1  dry run
 
   ➜  Run:       …
-  ➜  Harness:   cursor:composer-2.5 (effort: not checked)
+  ➜  Agent:     cursor:composer-2.5 (effort: not checked)
   ➜  Sandbox:   docker
   ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 attempt
   ➜  Est. Time: ~3m 00s (serial)
 
-eval                                    agents     variants  runs  attempts  notes
-evals/greet.eval.ts › creates greet.js  1          —         1     1         effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set)
+eval   agents  variants  runs  attempts  target         notes
+greet  1       —         1     1         capability(1)  effort: cursor:composer-2.5 not checked …
+  grader 1/2  has-file:greet.js · built-in · weight 1
+  grader 2/2  succeeded:greets Ada · built-in · weight 1
 …
 ```
 
@@ -125,13 +127,13 @@ Without the skill, no attempt used `Output.object`; with it, all four did. `help
 
 ## Run in CI and inspect runs
 
-| Command | Use it for |
-| --- | --- |
-| <code>reeval&nbsp;run&nbsp;--profile&nbsp;pr</code> | A run sized for a pull request. In the config `init` writes, that is one run per cell, no variants, and at most 20 attempts. |
-| <code>reeval&nbsp;compare&nbsp;--fail-on-regression</code> | Diff a run against its nearest recorded ancestor, and exit 1 when an eval regressed. |
-| <code>reeval&nbsp;show&nbsp;--md</code> | One run's results as Markdown, for a job summary or a PR comment. |
-| <code>reeval&nbsp;query</code> | Read-only SQL over every run, or built-in views such as `lift`, `effort`, and `failing_attempts`. |
-| <code>reeval&nbsp;studio</code> | Runs, trajectories, diffs, and checks in the browser. |
+| Command                               | Use it for                                                                                                                     |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `reeval run --profile pr`             | A run sized for a pull request. In the config `init` writes, that is one run per cell, no variants, and a budget of 20 trials. |
+| `reeval compare --fail-on-regression` | Diff a run against its nearest recorded ancestor, and exit 1 when a task regressed.                                            |
+| `reeval show --md`                    | One run's results as Markdown, for a job summary or a PR comment.                                                              |
+| `reeval query`                        | Read-only SQL over every run, or built-in views such as `lift`, `effort`, and `failing_attempts`.                              |
+| `reeval studio`                       | Runs, trajectories, diffs, and graders in the browser.                                                                         |
 
 Environments load extensions from where teams already keep them:
 
