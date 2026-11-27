@@ -20,7 +20,7 @@ export const fakeJudge = ({
 })
 
 /**
- * An analysis model for tests: `reeval analyze` gets `output` (or `output(digest)`) back as the
+ * An analysis model for tests: `reeval explain` gets `output` (or `output(digest)`) back as the
  * model's structured answer, each pairwise question's pair gets `vote` (a fixed `'A'`, `'B'` or
  * `'tie'`, `{ winner, reason? }`, a function of the blinded pair, or `{ error }`), and each
  * question asked of one attempt gets `answer` (its text, `{ choice?, text? }`, a function of the

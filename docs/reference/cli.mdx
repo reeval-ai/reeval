@@ -402,14 +402,14 @@ Options:
 
 For more information about views and tables, see [Query views](/reference/query-views).
 
-## `reeval analyze`
+## `reeval explain`
 
-The `reeval analyze` command explains a run from a digest of its facts. An omitted run is `latest`, and the default base is the one `reeval compare` picks. The model is `analysis.model`, else a language-model `judge.model`.
+The `reeval explain` command explains a run from a digest of its facts. An omitted run is `latest`, and the default base is the one `reeval compare` picks. The model is `analysis.model`, else a language-model `judge.model`.
 
-[//]: # (generated:cli-help:analyze)
+[//]: # (generated:cli-help:explain)
 
 ```text
-Usage: reeval analyze [run] [options]
+Usage: reeval explain [run] [options]
 
 Explain a run with an LLM
 
@@ -428,7 +428,7 @@ Options:
   --profile <name>          Profile whose history store to use
 ```
 
-[//]: # (/generated:cli-help:analyze)
+[//]: # (/generated:cli-help:explain)
 
 ## `reeval mcp`
 

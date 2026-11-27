@@ -1171,7 +1171,7 @@ for (const file of mdxFiles()) {
   if (/reeval init\b/.test(text) && /^No problems(?:, \d+ warnings?)?\.$/m.test(text)) {
     if (ANALYSIS_KEY_REQUIRED.test(text)) {
       problems.push(
-        `${relative(root, file)} shows reeval init and calls the analysis key required: a run without GOOGLE_GENERATIVE_AI_API_KEY still runs and doctor ends "No problems, 1 warning.", so say the key is for reeval analyze`,
+        `${relative(root, file)} shows reeval init and calls the analysis key required: a run without GOOGLE_GENERATIVE_AI_API_KEY still runs and doctor ends "No problems, 1 warning.", so say the key is for reeval explain`,
       )
     }
   }

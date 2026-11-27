@@ -25,7 +25,7 @@
           "maximum": 9007199254740991
         },
         "model": {
-          "description": "`'provider/model'`, e.g. `'google/gemini-3.8-flash'`. Unset, `reeval analyze` and questions fall back to the judge's when it's a language model.",
+          "description": "`'provider/model'`, e.g. `'google/gemini-3.8-flash'`. Unset, `reeval explain` and questions fall back to the judge's when it's a language model.",
           "anyOf": [
             {
               "type": "string"
@@ -2871,7 +2871,7 @@
           ]
         },
         "analysis": {
-          "description": "`reeval analyze`, and questions without a model of their own.",
+          "description": "`reeval explain`, and questions without a model of their own.",
           "$ref": "#/$defs/AnalysisConfigData"
         },
         "budget": {

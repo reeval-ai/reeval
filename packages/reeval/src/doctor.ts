@@ -845,7 +845,7 @@ export async function judgeCallers(config: ResolvedConfig): Promise<string[]> {
 
 /**
  * `analysis.model`'s key, when there's a model: a warning when it's missing, since `reeval
- * analyze` and compare questions then can't run. Nothing when no model is set.
+ * explain` and compare questions then can't run. Nothing when no model is set.
  */
 export async function checkAnalysis(
   config: ResolvedConfig,

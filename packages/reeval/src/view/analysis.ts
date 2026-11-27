@@ -1,4 +1,4 @@
-// What `reeval analyze` writes: one LLM reading of a digest of facts, with every claim's citations
+// What `reeval explain` writes: one LLM reading of a digest of facts, with every claim's citations
 // checked. Browser-safe, so the studio's Analysis tab renders the same document the CLI prints.
 
 /** Bumped when the system prompt or output schema changes: an older analysis is superseded. */
@@ -116,7 +116,7 @@ export type AnalysisDoc = {
   /** Each cited fact or evidence id, summarized in one line. */
   cited: Record<string, string>
   /**
-   * Why the analysis failed; its `analysis` is then empty. `reeval analyze` treats a cached one as
+   * Why the analysis failed; its `analysis` is then empty. `reeval explain` treats a cached one as
    * a miss and calls the model again.
    */
   error?: string

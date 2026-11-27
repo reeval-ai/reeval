@@ -2790,10 +2790,10 @@ export type BlindSide = BlindTurn & {
   >
 }
 
-/** `reeval analyze`: a language model (not an evaluation model) and what matters in this project. */
+/** `reeval explain`: a language model (not an evaluation model) and what matters in this project. */
 export type AnalysisConfig = {
   /**
-   * `'provider/model'`, e.g. `'google/gemini-3.8-flash'`. Unset, `reeval analyze` and questions
+   * `'provider/model'`, e.g. `'google/gemini-3.8-flash'`. Unset, `reeval explain` and questions
    * fall back to the judge's when it's a language model.
    */
   model?: string | FakeAnalysisModel
@@ -2885,7 +2885,7 @@ export type ReevalConfig = {
    * trace each attempt buffers for trace.ndjson (default 8; the oldest entries go first).
    */
   debug?: { keep?: number; traceBufferMb?: number }
-  /** `reeval analyze`, and questions without a model of their own. */
+  /** `reeval explain`, and questions without a model of their own. */
   analysis?: AnalysisConfig
   /**
    * The gateways model calls may go through, in the order you prefer them: each harness takes
@@ -2947,7 +2947,7 @@ export type FakeAnalysisData = {
 /** `AnalysisConfig` as data: the model by name, or a fake analysis. */
 export type AnalysisConfigData = Omit<AnalysisConfig, 'model'> & {
   /**
-   * `'provider/model'`, e.g. `'google/gemini-3.8-flash'`. Unset, `reeval analyze` and questions
+   * `'provider/model'`, e.g. `'google/gemini-3.8-flash'`. Unset, `reeval explain` and questions
    * fall back to the judge's when it's a language model.
    */
   model?: string | FakeAnalysisData
@@ -3000,7 +3000,7 @@ export type ReevalConfigData = Omit<
   judge?: ConfigJudgeData
   /** Named presets of `defaults`, `limit`, `judge`, `budget`, `record` and `tags`. */
   profiles?: Record<string, ProfileData>
-  /** `reeval analyze`, and questions without a model of their own. */
+  /** `reeval explain`, and questions without a model of their own. */
   analysis?: AnalysisConfigData
   /**
    * The gateways model calls may go through, in the order you prefer them: each harness takes

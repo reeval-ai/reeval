@@ -988,7 +988,7 @@ export default defineEval({ async task() { assert.equal('this config', 'never ru
     assert.match((await ok(['compare'])).stdout, /same/i)
     assert.deepEqual(JSON.parse((await ok(['query', 'failing_attempts', '--json'])).stdout), [])
     assert.ok(existsSync(join(p.dir, '.reeval/history.db')))
-    await ok(['analyze', '--context'])
+    await ok(['explain', '--context'])
     assert.match(
       (await ok(['image', 'build', '--dry-run'])).stdout,
       /No eval runs in a Docker or Tart sandbox/,

@@ -45,7 +45,7 @@ export const SHAPES: PersistedShape[] = [
     name: 'analysis',
     file: 'src/view/analysis.ts',
     type: 'AnalysisDoc',
-    where: 'A reeval analyze document: <run>/analysis/*.json and .reeval/analysis/<key>.json',
+    where: 'A reeval explain document: <run>/analysis/*.json and .reeval/analysis/<key>.json',
     zod: ANALYSIS_SCHEMAS,
     versionField: 'schemaVersion',
   },

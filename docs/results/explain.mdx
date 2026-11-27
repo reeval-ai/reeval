@@ -1,9 +1,9 @@
 ---
-title: "Analyze a run"
+title: "Explain a run"
 description: "Explain a run's results with an analysis model."
 ---
 
-Set an analysis model when you want a language model to explain a run. `reeval analyze` writes an analysis of one run.
+Set an analysis model when you want a language model to explain a run. `reeval explain` writes an analysis of one run.
 
 For more information about what an analysis is, see [Analysis](/reference/glossary#analysis).
 
@@ -33,9 +33,9 @@ For more information about other model prefixes, see [`AI_GATEWAY_API_KEY`](/ref
 
 For more information about the other `analysis` fields, see [the `analysis` option](/reference/options#analysis).
 
-## Analyze a run
+## Explain a run
 
-`reeval analyze` makes one language model call over a digest of the most recent run's facts. When a recorded run on an ancestor commit exists, the digest includes that run.
+`reeval explain` makes one language model call over a digest of the most recent run's facts. When a recorded run on an ancestor commit exists, the digest includes that run.
 
 1. In the `reeval.config.ts` file, set `analysis.instructions` to the question you want answered:
 
@@ -49,11 +49,11 @@ For more information about the other `analysis` fields, see [the `analysis` opti
 2. Run the analysis:
 
    ```bash
-   npx reeval analyze
+   npx reeval explain
    ```
 
-The analysis starts with `analysis` and the run id, then `vs` and the ancestor's run id when the digest includes one. `TL;DR`, `Suggested actions`, and `Confidence` always print. `What happened`, `Results`, `Why`, and `Anomalies` print when the model has something for them. reeval caches each analysis in the `.reeval/analysis` directory, so the same runs, model, and `analysis.instructions` print the cached analysis. To analyze another run, pass its id, and to choose the run it compares with, pass `--vs`.
+The analysis starts with `analysis` and the run id, then `vs` and the ancestor's run id when the digest includes one. `TL;DR`, `Suggested actions`, and `Confidence` always print. `What happened`, `Results`, `Why`, and `Anomalies` print when the model has something for them. reeval caches each analysis in the `.reeval/analysis` directory, so the same runs, model, and `analysis.instructions` print the cached analysis. To explain another run, pass its id, and to choose the run it compares with, pass `--vs`.
 
 ## Reference
 
-For more information about every flag, see [`reeval analyze`](/reference/cli#reeval-analyze).
+For more information about every flag, see [`reeval explain`](/reference/cli#reeval-explain).

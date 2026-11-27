@@ -1,6 +1,6 @@
 // A run's saved analyses as they leave this machine: with the run, in `reeval cloud push`'s and
 // `reeval studio share`'s archive, and one at a time to `PUT /api/v1/runs/:runId/analysis`
-// (`reeval analyze --save --push`). Each is checked first: at most `MAX_ANALYSIS_BYTES`, an
+// (`reeval explain --save --push`). Each is checked first: at most `MAX_ANALYSIS_BYTES`, an
 // analysis this reeval reads that fits `AnalysisDoc` (`parsedAnalysis`), and anchored on the run.
 import { lstat, readdir, readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'

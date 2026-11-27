@@ -86,7 +86,7 @@ npx reeval init --bare --agent cursor      # pnpm reeval init … · yarn reeval
 `--bare` writes only `reeval.config.ts`, the `.gitignore` entries (`.reeval/`, `.env*`) and the
 `eval` script; it merges into existing files and skips the rest. It exits 2 if reeval is set up
 already: that's your cue to stop initializing, not to `--force`. The config sets
-`analysis.model` for `reeval analyze` (needs `GOOGLE_GENERATIVE_AI_API_KEY`) and `pr` and `nightly`
+`analysis.model` for `reeval explain` (needs `GOOGLE_GENERATIVE_AI_API_KEY`) and `pr` and `nightly`
 profiles. Leave them.
 
 ## 4. Write one to three evals
@@ -134,7 +134,7 @@ Each eval:
   only for what no check can see, with the inputs its question reads
   (`{ inputs: { diff: true } }`, `{ inputs: { output: true } }`), and then add `judge:` to the config.
 - **A name that states the question:** `stores invoice totals in cents with the billing skill`,
-  not `billing test`. The results and `reeval analyze` read in its terms.
+  not `billing test`. The results and `reeval explain` read in its terms.
 - **Small:** leave `runs` unset: a compare runs 4 a cell (8 attempts), the fewest for a lift
   verdict, and anything else once. Seed only the files the task
   needs. If it needs the repo, seed it with `directory('..', { glob: ['!.env*', '!.reeval/',

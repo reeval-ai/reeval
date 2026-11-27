@@ -141,7 +141,7 @@ const HISTORY_COMMANDS = {
   compare: 1,
   checkout: 1,
   query: 1,
-  analyze: 1,
+  explain: 1,
   sync: 1,
 }
 
@@ -153,7 +153,7 @@ const PULLS = {
   compare: 1,
   checkout: 1,
   query: 1,
-  analyze: 1,
+  explain: 1,
   mcp: 1,
   'cloud push': 1,
   'studio share': 1,
@@ -489,9 +489,9 @@ async function run(argv: string[]): Promise<number> {
         const { queryCommand } = await import('./query.ts')
         return queryCommand(ctx, filters)
       }
-      case 'analyze': {
-        const { analyzeCommand } = await import('./analysis/command.ts')
-        return analyzeCommand(ctx, filters)
+      case 'explain': {
+        const { explainCommand } = await import('./analysis/command.ts')
+        return explainCommand(ctx, filters)
       }
     }
   }

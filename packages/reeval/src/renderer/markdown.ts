@@ -1,5 +1,5 @@
 // `reeval/renderer/markdown`: a `RunReport` as Markdown, the one renderer behind summary.md,
-// `reeval show --md`, `reeval compare --md`, the MCP server's `md` and `reeval analyze --save`.
+// `reeval show --md`, `reeval compare --md`, the MCP server's `md` and `reeval explain --save`.
 
 import { medianWithDelta } from '../view/report/format.ts'
 import { attemptAnchorId } from '../view/report/ids.ts'

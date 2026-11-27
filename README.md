@@ -163,7 +163,7 @@ To preview a run without starting sandboxes or spending tokens, run `npx reeval 
 
 To check a machine's setup, run `npx reeval doctor --json`. It checks Node.js, the sandbox and its images, and the agents' keys, never prints a key, and changes nothing.
 
-To read past runs without calling a model, run `npx reeval query failing_attempts --json`, or `npx reeval analyze --context` for a run's digest. `npx reeval mcp` serves the run history over stdio as read-only MCP tools.
+To read past runs without calling a model, run `npx reeval query failing_attempts --json`, or `npx reeval explain --context` for a run's digest. `npx reeval mcp` serves the run history over stdio as read-only MCP tools.
 
 ## License
 

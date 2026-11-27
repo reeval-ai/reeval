@@ -73,11 +73,11 @@ export default defineEval({
     `the judge's cost: ${judgment.costUsd}`,
   )
 
-  const analyze = await runCli(p.dir, ['analyze', run.runId, '--json'], {
+  const analyze = await runCli(p.dir, ['explain', run.runId, '--json'], {
     env: { OPENROUTER_API_KEY: key },
     timeoutMs: 120_000,
   })
-  assert.equal(analyze.code, 0, `reeval analyze\n${analyze.stdout}\n${analyze.stderr}`)
+  assert.equal(analyze.code, 0, `reeval explain\n${analyze.stdout}\n${analyze.stderr}`)
   const doc = JSON.parse(analyze.stdout) as AnalysisDoc
   assert.equal(doc.model, ANALYSIS_MODEL)
   assert.equal(doc.route, 'openrouter')

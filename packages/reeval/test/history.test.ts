@@ -896,7 +896,7 @@ export default defineEval({
       [true, false],
     )
 
-    const analyze = await runCli(p.dir, ['analyze', head ?? '', '--dry-run'])
+    const analyze = await runCli(p.dir, ['explain', head ?? '', '--dry-run'])
     assert.equal(analyze.code, 0, analyze.stderr)
     assert.match(analyze.stdout, new RegExp(`^digest ${head} vs ${onFirst}:`))
   })

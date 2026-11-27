@@ -2,7 +2,7 @@
 // check's pass rate, each judge's scores, each pairwise question's votes, and tool calls, agent
 // time and tokens. Each measure keeps the test the output already prints it with, at its own
 // alpha, so a verdict here never disagrees with a number shown elsewhere. The `reeval run` status
-// list, `compare -v`, the tie remarks, the analyze digest and `reeval query measure_effects` all
+// list, `compare -v`, the tie remarks, the explain digest and `reeval query measure_effects` all
 // read it.
 import { pairTallies } from '../compare/pairs.ts'
 import { casePairs } from '../history/families.ts'

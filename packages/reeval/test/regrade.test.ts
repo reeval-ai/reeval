@@ -714,11 +714,11 @@ export default defineEval({ graders: [inDiff('out.txt', { required: ${a} }), has
     assert.deepEqual(regradeFiles(p.dir), [])
   })
 
-  test('analyze and query read the regraded outcome', async () => {
+  test('explain and query read the regraded outcome', async () => {
     const p = await recorded('regrade-readers', { artifacts: 'all' })
     await writeFile(join(p.dir, 'evals/graders.ts'), graders('goodbye'))
     await cli(p.dir, ['regrade', '--yes'])
-    const context = await cli(p.dir, ['analyze', '--context'])
+    const context = await cli(p.dir, ['explain', '--context'])
     assert.match(context, /"outcome":\s*"fail"/)
     assert.doesNotMatch(context, /"outcome":\s*"pass"/)
     assert.match(await cli(p.dir, ['query', 'SELECT outcome FROM attempts']), /fail/)

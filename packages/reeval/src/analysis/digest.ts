@@ -1,4 +1,4 @@
-// The digest `reeval analyze` hands a model: facts computed by reeval (ids F1…), evidence excerpts chosen
+// The digest `reeval explain` hands a model: facts computed by reeval (ids F1…), evidence excerpts chosen
 // by rule (ids E1…, trajectory lines keep their numbers as L<n>), and an attempts table with short
 // ids. Deterministic: the same records give the same digest, byte for byte, so it can be cached.
 import { readFile } from 'node:fs/promises'

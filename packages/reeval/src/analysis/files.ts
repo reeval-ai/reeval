@@ -86,7 +86,7 @@ export async function saveAnalysis(
   const json = `${JSON.stringify(doc, null, 2)}\n`
   if (findSecretsInJson(json).length > 0 || countSecrets(markdown) > 0) {
     throw new HistoryError(
-      'Refusing to save the analysis: it looks like it contains a secret. Check it with reeval analyze --json.',
+      'Refusing to save the analysis: it looks like it contains a secret. Check it with reeval explain --json.',
     )
   }
   const dir = savedAnalysisDir(historyDir, doc.anchor)

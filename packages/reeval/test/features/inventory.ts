@@ -2494,7 +2494,7 @@ export const inventory: InventoryFeature[] = [
   {
     id: 'effort.separation',
     area: 'Records and studio',
-    name: 'Effort separation per metric (`no overlap` at 3 vs 3 or more, directional in `reeval analyze`)',
+    name: 'Effort separation per metric (`no overlap` at 3 vs 3 or more, directional in `reeval explain`)',
     plan: ['compare/study'],
     unit: ['reeval/test/analysis.test.ts'],
   },
@@ -2625,27 +2625,27 @@ export const inventory: InventoryFeature[] = [
     unit: ['reeval/test/studio.test.ts', 'reeval/test/view-boundary.test.ts'],
   },
   {
-    id: 'analyze',
+    id: 'explain',
     area: 'Records and studio',
-    name: '`reeval analyze`: a digest of facts, one structured call on `analysis.model`, citation and CLI-command validation',
+    name: '`reeval explain`: a digest of facts, one structured call on `analysis.model`, citation and CLI-command validation',
     unit: ['reeval/test/analysis.test.ts'],
   },
   {
-    id: 'analyze.store',
+    id: 'explain.store',
     area: 'Records and studio',
-    name: '`reeval analyze` caches in `.reeval/analysis`; `--save` writes create-only under `<run>/analysis/`; the studio Analysis tab shows them',
+    name: '`reeval explain` caches in `.reeval/analysis`; `--save` writes create-only under `<run>/analysis/`; the studio Analysis tab shows them',
     unit: ['reeval/test/analysis.test.ts'],
   },
   {
-    id: 'analyze.push',
+    id: 'explain.push',
     area: 'Records and studio',
-    name: '`reeval analyze --save --push`: after saving, uploads the saved analysis as it was saved to `PUT /api/v1/runs/:runId/analysis` with the stored sign-in (or `REEVAL_TOKEN`); a run the cloud lacks exits 2 with how to push it, the analysis kept saved; `--push` without `--save`, or signed out, is refused before any model call',
+    name: '`reeval explain --save --push`: after saving, uploads the saved analysis as it was saved to `PUT /api/v1/runs/:runId/analysis` with the stored sign-in (or `REEVAL_TOKEN`); a run the cloud lacks exits 2 with how to push it, the analysis kept saved; `--push` without `--save`, or signed out, is refused before any model call',
     unit: ['reeval/test/cloud-push.test.ts', 'reeval/test/cli.test.ts'],
   },
   {
     id: 'analysis.notes',
     area: 'Records and studio',
-    name: "A run's notes in `.reeval/analysis/<run>/notes/`: the studio's Analysis tab shows them with the cached `reeval analyze` document",
+    name: "A run's notes in `.reeval/analysis/<run>/notes/`: the studio's Analysis tab shows them with the cached `reeval explain` document",
     unit: ['reeval/test/studio.test.ts', 'reeval/test/view-boundary.test.ts'],
   },
   {

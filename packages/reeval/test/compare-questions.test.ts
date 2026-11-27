@@ -38,9 +38,9 @@ export default defineEval({ runs: 1, compare, questions: ${question}, task: body
     VERCEL_OIDC_TOKEN: '',
   }
 
-  /** The facts of `kind` in `reeval analyze`'s digest of the latest run. */
+  /** The facts of `kind` in `reeval explain`'s digest of the latest run. */
   async function digestFacts(dir: string, kind: string) {
-    const out = await runCli(dir, ['analyze', '--context', '--vs', 'none'])
+    const out = await runCli(dir, ['explain', '--context', '--vs', 'none'])
     assert.equal(out.code, 0, out.stderr)
     const json = /```json\n([\s\S]*?)\n```/.exec(out.stdout)?.[1]
     assert.ok(json)

@@ -135,7 +135,7 @@ describe('cli', () => {
 
   test('only the commands that take a run say how to name one', () => {
     const ref = /^A run is latest, latest~N, /m
-    for (const path of [['show'], ['compare'], ['analyze'], ['studio'], ['studio', 'share']]) {
+    for (const path of [['show'], ['compare'], ['explain'], ['studio'], ['studio', 'share']]) {
       assert.match(commandHelpText('V', path), ref, path.join(' '))
     }
     for (const path of [['run'], ['doctor'], ['image', 'build'], ['query']]) {
@@ -361,7 +361,7 @@ Run reeval --help to see every command
       'no-open': true,
       'no-scratch': true,
     })
-    assert.deepEqual(parseCli(['analyze', '--vs', 'none']).values, { vs: 'none' })
+    assert.deepEqual(parseCli(['explain', '--vs', 'none']).values, { vs: 'none' })
     assert.deepEqual(parseCli(['mcp', '--http', '--port', '4990', '--token', 't']), {
       positionals: ['mcp'],
       values: { http: true, port: '4990', token: 't' },

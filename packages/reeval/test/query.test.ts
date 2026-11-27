@@ -853,13 +853,13 @@ export default defineEval({
       'the spawn calls are the agent’s own; a fake subagent makes only file edits',
     )
     assert.equal(calls.length, ids.length)
-    const context = await runCli(p.dir, ['analyze', '--context'])
+    const context = await runCli(p.dir, ['explain', '--context'])
     assert.equal(context.code, 0, context.stderr)
     const digest = JSON.parse(/```json\n([\s\S]*?)\n```/.exec(context.stdout)?.[1] ?? '{}')
     assert.deepEqual(
       Object.values(digest.attempts as Record<string, Row>).map((a) => a.subagents),
       [2],
-      'the analyze digest counts them',
+      'the explain digest counts them',
     )
   })
 

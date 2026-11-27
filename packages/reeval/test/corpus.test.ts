@@ -1,13 +1,13 @@
 // Every reader against every run in the record corpus (test/fixtures/records/), so a record reeval
 // wrote at any point since keeps loading in the CLI. Every entry's runs go into one history: the
 // commands that read all of it (history, query) run once, through the CLI, and the
-// per-run ones (show, compare, analyze, the studio's run view) run in this process for every run, since a CLI start each
+// per-run ones (show, compare, explain, the studio's run view) run in this process for every run, since a CLI start each
 // would be most of the suite's time.
 import assert from 'node:assert/strict'
 import { cpSync, existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { describe, test } from 'node:test'
-import { analyzeCommand } from '../src/analysis/command.ts'
+import { explainCommand } from '../src/analysis/command.ts'
 import { attach } from '../src/attach.ts'
 import { compareCommand, showCommand } from '../src/commands.ts'
 import { loadConfig } from '../src/config.ts'
@@ -163,7 +163,7 @@ const inProcess = () =>
     config: await loadConfig(join(p.dir, 'reeval.config.ts'), 'show'),
   })))
 
-/** The corpus's own config: the fake harness, and an analysis model for `reeval analyze`. */
+/** The corpus's own config: the fake harness, and an analysis model for `reeval explain`. */
 const CONFIG = `import { defineConfig, defineEnvironment } from 'reeval'
 import { fakeAgent } from 'reeval/agent'
 import { fakeAnalysis } from 'reeval/judge'
@@ -303,7 +303,7 @@ describe('the record corpus', { concurrency: 4 }, () => {
       await ok(['show', id, '--trace'])
       readFileSync(join(p.dir, '.reeval/traces', `${id}.json`))
       await ok(['compare', id], [0, 1])
-      await ok(['analyze', id, '--dry-run'])
+      await ok(['explain', id, '--dry-run'])
     }
     await ok(['compare', ALL_IDS[0] as string, ALL_IDS.at(-1) as string, '--md'], [0, 1])
     const schema = JSON.parse(await ok(['query', '--schema', '--json'])) as QuerySchema
@@ -419,13 +419,13 @@ describe('the record corpus', { concurrency: 4 }, () => {
             (out) => compareCommand({ config, flags: {}, out }, [id]),
             [0, 1],
           )
-          await run(`reeval analyze ${id} --dry-run --vs ${vs}`, (out, err) =>
-            analyzeCommand({ config, flags: { 'dry-run': true, vs }, out, err }, [id]),
+          await run(`reeval explain ${id} --dry-run --vs ${vs}`, (out, err) =>
+            explainCommand({ config, flags: { 'dry-run': true, vs }, out, err }, [id]),
           )
           if (r.analyses)
             assert.match(
-              await run(`reeval analyze ${id} --json --vs ${vs}`, (out, err) =>
-                analyzeCommand({ config, flags: { json: true, vs }, out, err }, [id]),
+              await run(`reeval explain ${id} --json --vs ${vs}`, (out, err) =>
+                explainCommand({ config, flags: { json: true, vs }, out, err }, [id]),
               ),
               /"kind": "reeval-analysis"/,
             )

@@ -122,7 +122,7 @@ describe('reeval mcp', () => {
     assert.equal((await runCli(dir, ['run', '--record'])).code, 0)
     const second = await runCli(dir, ['run', '--record'], { env: { BREAK: '1' } })
     assert.equal(second.code, 1, 'the second run fails both evals')
-    const saved = await runCli(dir, ['analyze', '--save'])
+    const saved = await runCli(dir, ['explain', '--save'])
     assert.equal(saved.code, 0, saved.stderr)
     runs = (await cliJson(dir, ['history'])).runs.map((r: { runId: string }) => r.runId)
     assert.equal(runs.length, 2)

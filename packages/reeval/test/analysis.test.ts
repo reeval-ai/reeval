@@ -1,5 +1,5 @@
 // The analysis pipeline: the facts views in `reeval query`, effort next to
-// lift, and `reeval analyze`. The facts come out exactly on two real dogfood histories (trimmed by
+// lift, and `reeval explain`. The facts come out exactly on two real dogfood histories (trimmed by
 // fixtures/analysis/trim.mjs), each verdict rule has a canary where the opposite data must flip it,
 // and the model step runs on a fake model that returns canned (and deliberately wrong) answers.
 import assert from 'node:assert/strict'
@@ -88,9 +88,9 @@ async function query(dir: string, sql: string): Promise<Row[]> {
   return JSON.parse(r.stdout) as Row[]
 }
 
-/** The digest `reeval analyze --context` hands over, parsed back out of its Markdown. */
+/** The digest `reeval explain --context` hands over, parsed back out of its Markdown. */
 async function digestOf(dir: string, args: string[] = []) {
-  const r = await runCli(dir, ['analyze', '--context', ...args])
+  const r = await runCli(dir, ['explain', '--context', ...args])
   assert.equal(r.code, 0, r.stderr)
   const json = /```json\n([\s\S]*?)\n```/.exec(r.stdout)?.[1]
   assert.ok(json, 'the context holds the digest')
@@ -796,8 +796,8 @@ describe('reeval CLI spec', () => {
       'reeval query effort',
       'npx reeval run --record',
       'pnpm reeval compare latest~1 latest --md',
-      'reeval analyze latest --vs latest~1 --json',
-      'reeval analyze --vs none',
+      'reeval explain latest --vs latest~1 --json',
+      'reeval explain --vs none',
       'reeval run --tag smoke -vv',
       'reeval studio --no-open',
       'reeval image build --dry-run',
@@ -1009,7 +1009,7 @@ function tree(dir: string): Map<string, string> {
 const HEAD = '20260926T104633Z_041aef3_ci_jzvq'
 const BASE = '20260926T104130Z_60f3dc9_cursor-agent_92gs'
 
-describe('reeval analyze', () => {
+describe('reeval explain', () => {
   test('the prompt says insufficient is not measured, and the lift rule has no floor', () => {
     assert.match(SYSTEM_PROMPT, /insufficient is not measured: never put it on a results line/)
     assert.match(RULES[0] ?? '', /whatever the point estimate or the number of attempts/)
@@ -1184,7 +1184,7 @@ describe('reeval analyze', () => {
   })
 
   test('the digest is facts with ids, evidence by rule, and the verdict rules; --context needs no key', async () => {
-    const p = await historyProject('analyze-context', 'dogfood')
+    const p = await historyProject('explain-context', 'dogfood')
     const { text, digest } = await digestOf(p.dir)
     assert.match(text, new RegExp(`# reeval analysis context: ${HEAD} vs ${BASE}`))
     assert.match(text, /reeval query factor_effects/)
@@ -1213,7 +1213,7 @@ describe('reeval analyze', () => {
   })
 
   test("the digest lists each eval's tags", async () => {
-    const p = await project('analyze-eval-tags', {
+    const p = await project('explain-eval-tags', {
       'reeval.config.ts': fakeConfig({ extra: "record: 'always'," }),
       'evals/sign-in.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
@@ -1239,7 +1239,7 @@ export default defineEval({
   })
 
   test('the digest includes compare-question answers: rates by cut, ties, error and no pairs', async () => {
-    const p = await project('analyze-compare-answers', {
+    const p = await project('explain-compare-answers', {
       'reeval.config.ts': fakeConfig({ extra: "record: 'always'," }),
     })
     cpSync(
@@ -1308,19 +1308,19 @@ export default defineEval({
       }
     }
     assert.deepEqual(
-      await tieOf('analyze-tie-four', 4),
+      await tieOf('explain-tie-four', 4),
       { smallSample: true, ceiling: 'both always pass' },
       "a ceiling at 4 a side is a tie: every turn's agent time is the same 1s",
     )
     assert.deepEqual(
-      await tieOf('analyze-tie-one', 1),
+      await tieOf('explain-tie-one', 1),
       { smallSample: true, ceiling: undefined },
       'one pass a side is too few to say both always pass',
     )
   })
 
   test('one counted attempt a side is a direction within noise, flagged as a small sample', async () => {
-    const p = await compareProject('analyze-sparse-lift', 1)
+    const p = await compareProject('explain-sparse-lift', 1)
     const run = await runCli(p.dir, ['run', '-v'])
     assert.equal(run.code, 0, run.stdout)
     assert.match(
@@ -1350,7 +1350,7 @@ export default defineEval({
   })
 
   test('a changed eval is not comparable, not an effect', async () => {
-    const p = await project('analyze-eval-changed', {
+    const p = await project('explain-eval-changed', {
       'reeval.config.ts': fakeConfig({
         harness: "{ withSkill: { files: { 'ok.txt': 'y' } } }",
         extra: "record: 'always',",
@@ -1416,7 +1416,7 @@ export default defineEval({
     const implicit = await digestOf(p.dir)
     assert.ok(
       implicit.digest.facts.some((f) => f.kind === 'eval-changed'),
-      'analyze with no --vs still sees the previous recorded run',
+      'explain with no --vs still sees the previous recorded run',
     )
     const { digest, text } = await digestOf(p.dir, ['--vs', 'latest~1'])
     assert.match(text, /not comparable: the eval changed/)
@@ -1455,7 +1455,7 @@ export default defineEval({
   },
 })
 `
-    const p = await project('analyze-eval-changed-mixed-rate', {
+    const p = await project('explain-eval-changed-mixed-rate', {
       'reeval.config.ts': fakeConfig({ extra: "record: 'always'," }),
       'evals/c.eval.ts': evalFile('go', 9, 9),
     })
@@ -1503,7 +1503,7 @@ export default defineEval({
   })
 
   test('--vs none analyses this run only, with no ancestor', async () => {
-    const p = await project('analyze-vs-none', {
+    const p = await project('explain-vs-none', {
       'reeval.config.ts': fakeConfig({ extra: "record: 'always'," }),
       'evals/c.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({
@@ -1531,9 +1531,9 @@ export default defineEval({
       (await digestOf(p.dir)).digest.facts.some((f) => f.kind === 'eval-changed'),
       'the default still compares with the ancestor',
     )
-    const self = await runCli(p.dir, ['analyze', '--vs', 'latest'])
+    const self = await runCli(p.dir, ['explain', '--vs', 'latest'])
     assert.equal(self.code, 2, 'the run against itself')
-    assert.match(self.stderr, /reeval analyze --vs names the run itself/)
+    assert.match(self.stderr, /reeval explain --vs names the run itself/)
     const { text, digest } = await digestOf(p.dir, ['--vs', 'none'])
     assert.match(text.split('\n')[0] ?? '', /^# reeval analysis context: \S+$/)
     assert.equal(digest.scope.base, null)
@@ -1548,7 +1548,7 @@ export default defineEval({
       ),
       '--vs none keeps no cross-run factor rows',
     )
-    const dry = await runCli(p.dir, ['analyze', '--vs', 'none', '--dry-run'])
+    const dry = await runCli(p.dir, ['explain', '--vs', 'none', '--dry-run'])
     assert.equal(dry.code, 0, dry.stderr)
     assert.match(dry.stdout.split('\n')[0] ?? '', /^digest \S+: /)
     assert.doesNotMatch(dry.stdout.split('\n')[0] ?? '', / vs /)
@@ -1560,7 +1560,7 @@ export default defineEval({
     [4, '+100 pts (95% +31…+100)', 'effect', 'effect'],
   ] as const) {
     test(`${runs} against ${runs}: every view gives the same verdict`, async () => {
-      const p = await compareProject(`analyze-lift-${runs}`, runs)
+      const p = await compareProject(`explain-lift-${runs}`, runs)
       const run = await runCli(p.dir)
       assert.equal(run.code, 0, run.stdout)
       assert.match(run.stdout, new RegExp(`^ +\\S+ +${runs} of ${runs} {2}helped\\b`, 'm'))
@@ -1602,8 +1602,8 @@ export default defineEval({
   })
 
   test('claims with invented citations or quotes are dropped; invented CLI flags are rejected', async () => {
-    const p = await fakeProject('analyze-validate')
-    const r = await runCli(p.dir, ['analyze', '--json'])
+    const p = await fakeProject('explain-validate')
+    const r = await runCli(p.dir, ['explain', '--json'])
     assert.equal(r.code, 0, r.stderr)
     const doc = JSON.parse(r.stdout)
     assert.deepEqual(
@@ -1654,7 +1654,7 @@ export default defineEval({
       evalSlug: 'evals-fix-config-es-ts-broken-project-fixes-a-broken-config-854800',
       attempt: 'cursor:composer-2.5/broken-project/es-tarball#1',
     })
-    const text = await runCli(p.dir, ['analyze'])
+    const text = await runCli(p.dir, ['explain'])
     assert.doesNotMatch(text.stdout, /verify: none/)
     assert.match(text.stdout, /verify: reeval query effort/)
     assert.match(
@@ -1791,33 +1791,33 @@ export default defineEval({
   })
 
   test('a cached analysis makes no call; --no-cache does', async () => {
-    const p = await fakeProject('analyze-cache')
-    assert.equal((await runCli(p.dir, ['analyze'])).code, 0)
+    const p = await fakeProject('explain-cache')
+    assert.equal((await runCli(p.dir, ['explain'])).code, 0)
     assert.equal(calls(p.dir), 1)
-    const again = await runCli(p.dir, ['analyze', '--md'])
+    const again = await runCli(p.dir, ['explain', '--md'])
     assert.equal(again.code, 0, again.stderr)
     assert.equal(calls(p.dir), 1, 'the cache answered')
     assert.match(again.stderr, /cached analysis from/)
     assert.match(again.stdout, /^## reeval analysis · /)
     assert.equal(readdirSync(join(p.dir, '.reeval/analysis')).length, 1)
-    const dry = await runCli(p.dir, ['analyze', '--dry-run'])
+    const dry = await runCli(p.dir, ['explain', '--dry-run'])
     assert.match(dry.stdout, /cache hit/)
     assert.match(dry.stdout, /≈ \d+ tokens \(cap 20000 in, 32000 out\)/)
     assert.doesNotMatch(again.stdout + dry.stdout, /\$\d|USD/, 'tokens only, never dollars')
-    assert.equal((await runCli(p.dir, ['analyze', '--no-cache'])).code, 0)
+    assert.equal((await runCli(p.dir, ['explain', '--no-cache'])).code, 0)
     assert.equal(calls(p.dir), 2)
     assert.equal(
-      (await runCli(p.dir, ['analyze', '--vs', 'latest'])).code,
+      (await runCli(p.dir, ['explain', '--vs', 'latest'])).code,
       2,
       'the run against itself',
     )
   })
 
   test('--save writes two new files under <run>/analysis/ and nothing else; it never overwrites', async () => {
-    const p = await fakeProject('analyze-save')
+    const p = await fakeProject('explain-save')
     const history = join(p.dir, 'evals/.history')
     const before = tree(history)
-    const r = await runCli(p.dir, ['analyze', '--save'])
+    const r = await runCli(p.dir, ['explain', '--save'])
     assert.equal(r.code, 0, r.stderr)
     assert.match(
       r.stderr,
@@ -1842,14 +1842,14 @@ export default defineEval({
     assert.ok(after.has(`${HEAD}/report.json`), 'report.json is rendered beside summary.md')
     assert.equal(readdirSync(join(p.dir, '.reeval/analysis')).length, 1, 'the cache has it too')
 
-    const twice = await runCli(p.dir, ['analyze', '--save'])
+    const twice = await runCli(p.dir, ['explain', '--save'])
     assert.equal(twice.code, 2)
     assert.match(twice.stderr, /is already saved for .+\. Saved analyses are never rewritten\./)
     assert.deepEqual([...tree(history).keys()].sort(), [...after.keys()].sort())
   })
 
   test("a saved analysis file this reeval can't read is skipped with a warning by show --md and the --save re-render", async () => {
-    const p = await fakeProject('analyze-unreadable')
+    const p = await fakeProject('explain-unreadable')
     const folder = join(p.dir, 'evals/.history', HEAD, 'analysis')
     mkdirSync(folder, { recursive: true })
     const good = JSON.parse(
@@ -1877,7 +1877,7 @@ export default defineEval({
     const show = await runCli(p.dir, ['show', HEAD, '--md'])
     assert.equal(show.code, 0, show.stdout + show.stderr)
     for (const said of skipped) assert.match(show.stderr, said)
-    const save = await runCli(p.dir, ['analyze', HEAD, '--save'])
+    const save = await runCli(p.dir, ['explain', HEAD, '--save'])
     assert.equal(save.code, 0, save.stdout + save.stderr)
     for (const said of skipped) assert.match(save.stderr, said)
   })
@@ -1886,7 +1886,7 @@ export default defineEval({
     const cases: Array<[string, RegExp]> = [
       [
         '',
-        /reeval analyze needs a language model\. Set analysis: \{ model: 'google\/gemini-3\.8-flash' \}.*reeval analyze --context/,
+        /reeval explain needs a language model\. Set analysis: \{ model: 'google\/gemini-3\.8-flash' \}.*reeval explain --context/,
       ],
       [
         "analysis: { model: 'typesafe-ai/jev-1.14.0' },",
@@ -1914,12 +1914,12 @@ export default defineEval({
       ],
     ]
     for (const [analysis, message] of cases) {
-      const p = await historyProject('analyze-errors', 'dogfood', analysis)
-      const r = await runCli(p.dir, ['analyze'])
+      const p = await historyProject('explain-errors', 'dogfood', analysis)
+      const r = await runCli(p.dir, ['explain'])
       assert.equal(r.code, 2, analysis)
       assert.match(r.stderr, message, analysis)
     }
-    const p = await fakeProject('analyze-scratch')
+    const p = await fakeProject('explain-scratch')
     const later = '20260926T120000Z_041aef3_ci_abcd'
     const record = JSON.parse(readFileSync(join(p.dir, 'evals/.history', `${HEAD}.json`), 'utf8'))
     mkdirSync(join(p.dir, '.reeval/runs'), { recursive: true })
@@ -1927,7 +1927,7 @@ export default defineEval({
       join(p.dir, '.reeval/runs', `${later}.json`),
       JSON.stringify({ ...record, runId: later }),
     )
-    const r = await runCli(p.dir, ['analyze', 'latest', '--save'])
+    const r = await runCli(p.dir, ['explain', 'latest', '--save'])
     assert.equal(r.code, 2)
     assert.match(
       r.stderr,
@@ -1936,7 +1936,7 @@ export default defineEval({
   })
 })
 
-/** A study's digest: the run, then `reeval analyze --context` on it alone. */
+/** A study's digest: the run, then `reeval explain --context` on it alone. */
 async function studyDigest(name: string, options: StudyOptions = {}) {
   const p = await project(name, studyFiles(options))
   const run = await runCli(p.dir)
@@ -2001,7 +2001,7 @@ describe('a study: several arms, every cell ungated', () => {
       text.indexOf('## Project instructions') < text.indexOf('## How reeval decided'),
       'the project instructions come before the rules',
     )
-    const analyzed = await runCli(p.dir, ['analyze', '--vs', 'none'])
+    const analyzed = await runCli(p.dir, ['explain', '--vs', 'none'])
     assert.equal(analyzed.code, 0, analyzed.stderr)
     assert.match(analyzed.stdout, /A study of 3 arms\./)
   })
