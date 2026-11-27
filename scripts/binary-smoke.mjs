@@ -79,7 +79,7 @@ function reeval(cwd, args, env = {}) {
   console.log(args.includes('--json') ? `${out.slice(0, 300)}…` : out)
   return { ...r, out }
 }
-/** The tally on the run's `Done in …` line, e.g. `1 eval · 1 on target` or `2 evals · 1 on target · 1 below`. */
+/** The tally on the run's `Done in …` line, e.g. `1 eval · 1 report only` or `2 evals · 1 on target · 1 below`. */
 const outcome = (r) =>
   stripVTControlCharacters(r.out)
     .split('\n')
@@ -107,7 +107,7 @@ check(`the example plans (${evals} evals)`, plan.status === 0 && evals > 0)
 const run = reeval(example, ['run'])
 check(
   'the example runs',
-  run.status === 0 && /^(\d+) evals? · \1 on target$/.test(outcome(run) ?? ''),
+  run.status === 0 && /^(\d+) evals? · \1 report only$/.test(outcome(run) ?? ''),
 )
 
 // follow-redirects, under @daytona/sdk, calls Error.captureStackTrace on an object that isn't an
