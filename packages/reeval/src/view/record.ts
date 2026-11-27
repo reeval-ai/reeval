@@ -361,9 +361,10 @@ function trialHrefs<T>(value: T): T {
   if (Array.isArray(value)) {
     for (const v of value) trialHrefs(v)
   } else if (isObject(value)) {
-    for (const [k, v] of Object.entries(value)) {
+    const obj: Obj = value
+    for (const [k, v] of Object.entries(obj)) {
       if (k === 'href' && typeof v === 'string' && v.startsWith('#attempt-')) {
-        value[k] = `#trial-${v.slice('#attempt-'.length)}`
+        obj[k] = `#trial-${v.slice('#attempt-'.length)}`
       } else {
         trialHrefs(v)
       }
