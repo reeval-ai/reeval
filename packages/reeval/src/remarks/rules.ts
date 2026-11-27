@@ -862,7 +862,7 @@ function observeThrows(e: EvalResult, entries: EvalEntry[], ctx: RemarkContext):
       ),
       fix: {
         at: ctx.locate(first.entry, null),
-        edit: 'fix what the body throws, or check what can fail with a grader, which capability() records without failing',
+        edit: 'fix what the body throws, or check what can fail with a grader, so a miss scores the attempt instead of ending it',
       },
     },
   ]

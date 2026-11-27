@@ -1,8 +1,8 @@
+import { blocks } from '../target.ts'
 import { formatDuration } from '../text.ts'
 import type { Outcome } from '../types.ts'
 import { render } from '../ui/layout.ts'
 import { cellsChanged } from '../view/compare.ts'
-import { isNotGatedPass } from '../view/model.ts'
 import type { RunRemarks } from '../view/remarks.ts'
 import { suiteResult } from '../view/suite.ts'
 import { warnings } from './state.ts'
@@ -87,7 +87,7 @@ export type HistoryRow = {
   id: string
   /**
    * Oldest first, one per run; null when the eval wasn't in that run, and `not_gated` for a
-   * study's pass, which `pass` and `counted` leave out.
+   * pass or fail under a target that can't fail the run, which `pass` and `counted` leave out.
    */
   outcomes: Array<Outcome | 'not_gated' | null>
   /** Indexes into `outcomes` where the eval's fingerprint changed from the previous run. */
@@ -132,7 +132,7 @@ export function history(
       const seen = new Map<string, string>()
       runs.forEach((run, i) => {
         const e = run.evals.find((x) => x.id === id)
-        const notGated = e !== undefined && isNotGatedPass(e)
+        const notGated = (e?.outcome === 'pass' || e?.outcome === 'fail') && !blocks(e.target)
         row.outcomes.push(notGated ? 'not_gated' : (e?.outcome ?? null))
         if (!e) return
         if (cellsChanged(seen, id, e.cells)) row.drift.push(i)
