@@ -183,15 +183,18 @@ Environments load extensions from where teams already keep them:
 
 ## Examples
 
-The recipes in [`docs/evaluations/recipes`](docs/evaluations/recipes) are complete evals for common jobs:
-
-- [Measure a skill](docs/evaluations/recipes/measure-a-skill.mdx): with and without a skill, gated on a minimum lift.
-- [Compare harnesses](docs/evaluations/recipes/compare-harnesses.mdx): one suite on several agents at once, with pass rate and effort per agent.
-- [Measure MCP servers](docs/evaluations/recipes/measure-mcp-servers.mdx): check the agent calls the server's tools, and whether answers improve.
-- [Check a recommendation](docs/evaluations/recipes/test-recommendations.mdx): ask which library to use, and let a judge decide whether the agent picks the right one.
-- [Fail a pull request](docs/evaluations/recipes/gate-pull-requests.mdx): run on every pull request and fail the check on a regression.
-
-The [`examples/`](examples) directory has 80 runnable projects, one idea each, from [`with-checks`](examples/with-checks) (deterministic checks) and [`with-skill-lift`](examples/with-skill-lift) (does a skill help?) to sandboxes, egress, judges, captures and real-world tasks. Most run on a fake agent with no keys or Docker; [`examples/README.md`](examples/README.md) lists them all.
+- Explore [`examples/`](examples) for 88 runnable projects. Most run on a fake agent with no keys or Docker.
+- Explore [recipes](docs/recipes) for step-by-step guides to common jobs. Most build on one of the examples:
+  - [Measure a skill](docs/recipes/measure-a-skill.mdx)
+  - [Measure your docs](docs/recipes/measure-your-docs.mdx)
+  - [Measure MCP servers](docs/recipes/measure-mcp-servers.mdx)
+  - [Test an SDK](docs/recipes/test-an-sdk.mdx)
+  - [Test a CLI](docs/recipes/test-a-cli.mdx)
+  - [Test recommendations](docs/recipes/test-recommendations.mdx)
+  - [Judge an app](docs/recipes/judge-an-app.mdx)
+  - [Compare harnesses](docs/recipes/compare-harnesses.mdx)
+  - [Gate pull requests](docs/recipes/gate-pull-requests.mdx)
+  - [Track past runs](docs/recipes/track-past-runs.mdx)
 
 ## Documentation
 
