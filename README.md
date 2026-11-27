@@ -49,9 +49,24 @@ reeval runs on Node.js 22.16 or later. Real runs also need a sandbox runtime (Do
 Scaffold a config and one eval, then check that reeval loads them:
 
 ```bash
-npx reeval init --yes     # reeval.config.ts on Cursor, and evals/greet.eval.ts
-npx reeval run --dry-run  # smoke check: plans the run, no keys or sandbox
+npx reeval init
+npx reeval run
+npx reeval studio
 ```
+
+If you want your coding agent to write the first task for you, paste this into your session:
+
+```text
+Add a reeval evaluation suite to this repository:
+1. Run `npx reeval init` to scaffold the config and eval directory.
+2. Create an environment in `evals/environments.ts` pointing to our starter app or minimal fixture.
+3. Write one task in `evals/` that tests a core user workflow end to end using our SDK/CLI/API, with a deterministic grader (`succeeded(...)`) and a binary `judge(...)` check.
+4. Run `npx reeval run` and summarize the baseline pass rate and any failure patterns.
+```
+
+A coding agent can also follow the [setup skill](skills/setup/SKILL.md).
+
+To check the plan without starting a sandbox or spending tokens, run `npx reeval run --dry-run`:
 
 ```text
 REEVAL v0.16.1  dry run
@@ -158,17 +173,7 @@ The [`examples/`](examples) directory has 80 runnable projects, one idea each, f
 
 ## Documentation
 
-The manual in [`docs/`](docs/overview.mdx) covers harnesses, sandboxes, environments, secrets and egress, checks and judges, profiles, history, and every CLI command and flag.
-
-## For coding agents
-
-To write or update evals, load [`skills/reeval/SKILL.md`](skills/reeval/SKILL.md). For every command, flag, and exit code, run `npx reeval --help`.
-
-To preview a run without starting sandboxes or spending tokens, run `npx reeval run --dry-run --json`. It prints the planned evals, cells, and attempts as one JSON document and exits 0.
-
-To check a machine's setup, run `npx reeval doctor --json`. It checks Node.js, the sandbox and its images, and the agents' keys, never prints a key, and changes nothing.
-
-To read past runs without calling a model, run `npx reeval query failing_attempts --json`, or `npx reeval analyze --context` for a run's digest. `npx reeval mcp` serves the run history over stdio as read-only MCP tools.
+Read the [docs](https://docs.reeval.ai) to learn more about writing tasks and graders, choosing agents, environments, and sandboxes, running in CI, and reading results and trajectories.
 
 ## License
 
