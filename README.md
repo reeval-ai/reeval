@@ -14,10 +14,15 @@
  npm i -D reeval && npx reeval init
 ```
 
-> [!IMPORTANT]
+> [!IMPORTANT]  
 > **Work in Progress**: reeval is under active development. Expect breaking changes between minor version releases.
 
-# reeval
+<p align="center">
+  <a href="https://www.npmjs.com/package/reeval"><img src="https://img.shields.io/npm/v/reeval.svg" alt="npm"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/npm/l/reeval.svg" alt="license"></a>
+  <a href="https://docs.reeval.ai"><img src="https://img.shields.io/badge/docs-docs.reeval.ai-63D0BD" alt="docs"></a>
+  <a href="https://x.com/reeval_ai"><img src="https://img.shields.io/badge/follow-%40reeval__ai-000000?logo=x&logoColor=white" alt="follow on X"></a>
+</p>
 
 **reeval** is an open-source TypeScript evaluation harness. It gives a real coding agent a task in a fresh sandbox, then grades the final state with deterministic graders and, where code can't decide, a model grader. Run the same task with and without a skill, doc, or MCP server, and reeval reports whether the change helped.
 
