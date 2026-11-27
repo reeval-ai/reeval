@@ -779,10 +779,6 @@ function worst(outcomes: ResultOutcome[]): ResultOutcome {
   return 'pass'
 }
 
-/** A study: every cell `gate: 'none'`, so it passes whatever it saw and never reads `pass`. */
-export const isStudy = (cells: readonly Pick<CellResult, 'gated'>[]): boolean =>
-  cells.length > 0 && cells.every((c) => !c.gated)
-
 /** The scored graders an attempt lost points on: a score under 1, or an error. */
 function lostOf(a: AttemptRecord): LostGrade[] {
   return (a.grades ?? []).flatMap((g) =>

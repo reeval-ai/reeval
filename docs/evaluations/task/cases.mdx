@@ -128,7 +128,7 @@ evals/rate.eval.ts
 
 Under `target: regression()`, a failing case fails the run too. A case whose every attempt hit an infra error makes the evaluation an infra error, unless another case fails.
 
-In the record, the cases are rows in the evaluation's `cases`. Case `c` keeps its `fail`, which fails the evaluation. `reeval compare` names a case that regressed inside the evaluation's row, and `--fail-on-regression` reads the evaluation's outcome.
+In the record, the cases are rows in the evaluation's `cases`. Case `c` keeps its `fail`, which fails the evaluation. Under a target that blocks, `reeval compare` names a case that regressed inside the evaluation's row, and `--fail-on-regression` reads the evaluation's outcome.
 
 ## Run a case on some environments
 

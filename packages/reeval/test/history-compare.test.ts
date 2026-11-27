@@ -323,6 +323,56 @@ export default defineEval({
     assert.equal(twin.code, 0, twin.out)
   })
 
+  test('reeval compare reads a report-only eval as ran on each side, as reeval history marks it', async () => {
+    const flip = (target: string) => `import assert from 'node:assert/strict'
+import { capability, defineEval, regression } from 'reeval'
+export default defineEval({
+  target: ${target},
+  async task(c) {
+    await c.send('write hello.txt')
+    assert.equal(process.env.REEVAL_TEST_BREAK ?? 'ok', 'ok')
+  },
+})
+`
+    const p = await gitProject('report-only-compare', {
+      'evals/reports.eval.ts': flip('capability()'),
+      'evals/blocks.eval.ts': flip('regression()'),
+      'evals/demoted.eval.ts': flip(
+        'process.env.REEVAL_TEST_BREAK ? capability() : capability(1, { blocking: true })',
+      ),
+    })
+    assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
+    assert.equal((await runCli(p.dir, ['run'], { env: { REEVAL_TEST_BREAK: '1' } })).code, 1)
+    const flipped = await runCli(p.dir, ['compare'])
+    assert.match(flipped.stdout, /^regressed {8}blocks$/m, 'canary: a regression() miss regresses')
+    assert.match(
+      flipped.stdout,
+      /^regressed {8}demoted$/m,
+      'a target that stopped blocking shows its flip',
+    )
+    assert.doesNotMatch(flipped.stdout, /^regressed +reports$/m)
+    assert.match(flipped.stdout, /^2 regressed · 1 same$/m, 'a report-only flip is the same')
+    const rows = JSON.parse((await runCli(p.dir, ['compare', '--json'])).stdout).rows
+    assert.deepEqual(rows.map((r: { id: string; status: string }) => [r.id, r.status]).sort(), [
+      ['blocks', 'regressed'],
+      ['demoted', 'regressed'],
+      ['reports', 'same'],
+    ])
+    const md = (await runCli(p.dir, ['compare', '--md'])).stdout
+    assert.match(md, /^\| reports \| outcome .* \| -100 pts \| Report only \|/m)
+    assert.match(md, /^\| demoted \| outcome .* \| Worse \|/m)
+    assert.doesNotMatch(md, /Unchanged/, "--md doesn't call a report-only flip unchanged")
+
+    await writeFile(join(p.dir, 'evals/added.eval.ts'), flip('capability()'))
+    assert.equal((await runCli(p.dir, ['run'], { env: { REEVAL_TEST_BREAK: '1' } })).code, 1)
+    const added = await runCli(p.dir, ['compare'])
+    assert.match(
+      added.stdout,
+      /^new {14}added\n {2}head {13}\S+ {2}ran$/m,
+      'a new miss reads as ran',
+    )
+  })
+
   test('reeval compare --fail-on-regression fails on a failing eval that changed (not comparable); a passing one is fine', async () => {
     const edited = (prompt: string) => `import assert from 'node:assert/strict'
 import { defineEval } from 'reeval'

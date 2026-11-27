@@ -193,34 +193,34 @@ describe('an eval with cases in a record from before it was one entry', () => {
 })
 
 describe('reeval compare of an eval with cases', () => {
-  test('names the case that regressed in an eval that only reports', async () => {
-    const p = await project('compare-rated-case', {
-      'reeval.config.ts': fakeConfig(),
-      'evals/e.eval.ts': `import assert from 'node:assert/strict'
-import { capability, defineEval } from 'reeval'
+  test('an eval that only reports reads the same when a case flips; under regression() it names the case', async () => {
+    const evalOf = (target: string) => `import assert from 'node:assert/strict'
+import { capability, defineEval, regression } from 'reeval'
 const bad = process.env.BAD ?? ''
 export default defineEval({
   cases: [{ key: 'a' }, { key: 'b' }, { key: 'c' }, { key: 'd' }, { key: 'e' }],
-  target: capability(),
+  target: ${target},
   async task(c, { key: k }) {
     await c.send(k)
     assert.notEqual(k, bad, 'ok')
   },
 })
-`,
+`
+    const p = await project('compare-rated-case', {
+      'reeval.config.ts': fakeConfig(),
+      'evals/reports.eval.ts': evalOf('capability()'),
+      'evals/blocks.eval.ts': evalOf('regression()'),
     })
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 0)
     const head = await runCli(p.dir, ['run', '--record'], { env: { BAD: 'e' } })
-    assert.equal(head.code, 0, head.stdout + head.stderr)
+    assert.equal(head.code, 1, head.stdout + head.stderr)
     const [a, b] = recordedRuns(p.dir)
     const cmp = await runCli(p.dir, ['compare', a ?? '', b ?? ''])
     assert.equal(cmp.code, 0, cmp.stdout + cmp.stderr)
-    assert.match(cmp.stdout, /^1 regressed$/m)
-    assert.match(
-      cmp.stdout,
-      /^ {2}regressed +e$/m,
-      'the eval regressed, and its block names the case',
-    )
+    assert.match(cmp.stdout, /^1 regressed · 1 same$/m)
+    assert.match(cmp.stdout, /^regressed +blocks$/m, 'canary: the regression() eval regressed')
+    assert.match(cmp.stdout, /^ {2}regressed +e$/m, 'and its block names the case')
+    assert.doesNotMatch(cmp.stdout, /^regressed +reports$/m)
   })
 })
 
