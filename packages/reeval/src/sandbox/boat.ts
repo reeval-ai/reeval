@@ -3,7 +3,7 @@
 // credentials stay on the host as they do for Docker.
 import { createHash, randomBytes } from 'node:crypto'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { connect, isIPv6 } from 'node:net'
+import { BlockList, connect, isIPv6 } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type * as BoatSdkModule from '@boatdev/sdk'
@@ -16,7 +16,7 @@ import {
   VmNotReady,
   waitReady,
 } from '@reeval/vm-api'
-import { type BoatVmApi, boatApi } from '@reeval/vm-api/boat'
+import { type BoatNetwork, type BoatVmApi, boatApi } from '@reeval/vm-api/boat'
 import type { Check } from '../doctor.ts'
 import { redactSecrets, registerSecret } from '../redact.ts'
 import { hostEnv } from '../secrets-file.ts'
@@ -331,6 +331,108 @@ export async function firstReachable(
   }
 }
 
+/** Whether `address` is one of `list`'s addresses or CIDR ranges. */
+function listed(list: readonly string[], address: string): boolean {
+  const type = (ip: string) => (isIPv6(ip) ? 'ipv6' : 'ipv4')
+  const block = new BlockList()
+  for (const entry of list) {
+    const [ip = '', bits] = entry.split('/')
+    try {
+      if (bits) block.addSubnet(ip, Number(bits), type(ip))
+      else block.addAddress(ip, type(ip))
+    } catch {}
+  }
+  return block.check(address, type(address))
+}
+
+/** What a Boat network policy stops reeval doing, on the side it stops it. */
+export type PolicyFinding = {
+  side: 'inbound' | 'outbound'
+  status: 'warn' | 'fail'
+  summary: string
+  fix: string
+}
+
+/**
+ * What Boat network policy `net`, on `where`, stops: SSH from this host, at `caller` (null when
+ * Boat won't say), under inbound `boat-only`; the VM's own traffic under outbound `deny` or `allow`.
+ */
+export function networkFindings(
+  net: BoatNetwork,
+  where: string,
+  caller: string | null,
+  environment = '<environment>',
+): PolicyFinding[] {
+  const found: PolicyFinding[] = []
+  if (net.inbound === 'boat-only' && !(caller && listed(net.inboundAllow, caller))) {
+    const list = !net.inboundAllow.length
+      ? 'is empty'
+      : caller
+        ? `doesn't have this host's address, ${caller}`
+        : "may not have this host's address (Boat didn't say what it is)"
+    found.push({
+      side: 'inbound',
+      status: caller || !net.inboundAllow.length ? 'fail' : 'warn',
+      summary: `Boat's network policy on ${where} is inbound boat-only, and its inbound list ${list}, so this host can't reach the VMs over SSH`,
+      fix: `add this host's public IPv4 and IPv6 addresses to the inbound list (boat env set ${environment} --allow-from <address>), or set inbound open`,
+    })
+  }
+  if (net.mode === 'deny' || net.mode === 'allow') {
+    found.push({
+      side: 'outbound',
+      status: 'warn',
+      summary: `Boat's network policy on ${where} ${net.mode === 'deny' ? 'denies outbound traffic' : `allows outbound traffic only to ${net.allow.join(', ') || 'no host'}`}, so the VMs can't pull or build images that need other hosts, and allow-all attempts can't reach them`,
+      fix: `allow the hosts the images and attempts need (boat env set ${environment} --network allow --allow <host>), or remove the outbound policy`,
+    })
+  }
+  return found
+}
+
+/**
+ * `error`, a failure to reach Boat sandbox `id` over SSH (`inbound`) or of its own traffic
+ * (`outbound`), with the sandbox's network policy where that explains it; otherwise `error`.
+ */
+export async function withPolicyHint(
+  service: VmService,
+  api: BoatClient,
+  id: string,
+  side: PolicyFinding['side'],
+  error: unknown,
+): Promise<unknown> {
+  if (service.kind !== 'boat' || !(error instanceof InfraError)) return error
+  const signal = AbortSignal.timeout(LIMITS_TIMEOUT_MS)
+  const found = await Promise.all([
+    api.network(id, { signal }),
+    side === 'inbound' ? api.callerAddress({ signal }) : null,
+  ])
+    .then(([net, caller]) => networkFindings(net, `sandbox ${id}`, caller))
+    .then((all) => all.find((f) => f.side === side))
+    .catch(() => undefined)
+  if (!found) return error
+  const message = `${error.message}. ${found.summary}: ${found.fix}`
+  return error instanceof PrepareError
+    ? new PrepareError({ ...error.failure, message })
+    : new InfraError(message)
+}
+
+/**
+ * `reeval doctor --online`'s read of the Boat network policy of the default environment, which
+ * reeval's sandboxes start in; nothing when Boat doesn't answer.
+ */
+export async function boatNetworkFindings(
+  sandbox: Pick<BoatSandboxDescriptor, 'apiKey'>,
+  root: string,
+): Promise<PolicyFinding[]> {
+  const api = await boatClient(sandbox, root)
+  const signal = AbortSignal.timeout(LIMITS_TIMEOUT_MS)
+  const [env, caller] = await Promise.all([
+    api.defaultEnvironment({ signal }),
+    api.callerAddress({ signal }),
+  ]).catch(() => [null, null] as const)
+  if (!env?.network) return []
+  return networkFindings(env.network, `the default environment, ${env.name}`, caller, env.name)
+}
+
 /** Boat refused a start for now: 429, with when to try again if it said. */
 export class BoatRateLimited extends Error {
   readonly retryAfterMs: number | null
@@ -576,10 +678,13 @@ export async function startVm(
       },
     }
   } catch (error) {
-    if (id && ready) await api.remove(id).catch(() => {})
-    else if (id) await deleteUntilGone(api, id, { signal }).catch(() => {})
+    let failure = error
+    if (id && ready) {
+      failure = await withPolicyHint(service, api, id, 'inbound', error)
+      await api.remove(id).catch(() => {})
+    } else if (id) await deleteUntilGone(api, id, { signal }).catch(() => {})
     await rm(dir, { recursive: true, force: true })
-    throw error
+    throw failure
   }
 }
 
@@ -783,7 +888,7 @@ export async function boatDoctor(
       continue
     }
     try {
-      await ctx.deps.boatAccount(sandbox, ctx.root, ctx.online)
+      const found = await ctx.deps.boatAccount(sandbox, ctx.root, ctx.online)
       checks.push({
         id: 'boat',
         status: 'ok',
@@ -791,6 +896,8 @@ export async function boatDoctor(
           ? `Boat takes the key in ${key} and starts ${type} machines`
           : `the Boat SDK loads, and ${key} is set (--online asks Boat whether it takes the key)`,
       })
+      for (const { status, summary, fix } of found)
+        checks.push({ id: 'boat', status, summary, fix })
     } catch (error) {
       checks.push({
         id: 'boat',

@@ -1,5 +1,6 @@
 // A fake Boat API for tests: the routes of Boat's REST API that reeval calls (create, get, sshkey,
-// list by name prefix, update, delete, limits and saved snapshots) on 127.0.0.1, with Boat's own shapes and quirks: a
+// list by name prefix, update, delete, limits, saved snapshots, network policies, environments and
+// the caller's address) on 127.0.0.1, with Boat's own shapes and quirks: a
 // sandbox reports `starting` before `ready`, a delete needs `X-Ascii-Confirm-Delete`, and every
 // call needs the key as a bearer token. Where its sandboxes run is up to `machines`: an SSH VM in a
 // container (`startSshVm`, ssh-vm.ts), or an address nothing listens on (`unreachableMachines`),
@@ -73,6 +74,13 @@ export type FakeBoat = {
    * `Retry-After: retryAfterSeconds`, as Boat does past a start limit.
    */
   refuseStarts(count: number, o?: { namePrefix?: string; retryAfterSeconds?: number }): void
+  /**
+   * The network policy of the default environment, `base`, which every sandbox follows; null, as
+   * Boat's default, for none.
+   */
+  network: { mode: string; allow?: string[]; inbound?: string; inboundAllow?: string[] } | null
+  /** What `GET /caller-address` answers; null answers 403, as for an organization's key. */
+  callerAddress: string | null
   close(): Promise<void>
 }
 
@@ -123,6 +131,7 @@ export async function fakeBoat(
     ttlSeconds: s.ttlSeconds,
     ...(s.error && { error: s.error }),
   })
+  const fake = { network: null, callerAddress: null } as FakeBoat
   const handle = async (req: IncomingMessage) => {
     const url = new URL(req.url ?? '/', 'http://localhost')
     const path = url.pathname.replace(/^\/api\/v1/, '')
@@ -138,6 +147,25 @@ export async function fakeBoat(
       return json(401, { error: { code: 'unauthorized', message: 'invalid API key' } })
     }
     const [, collection, id, sub] = path.split('/')
+    const policy = { allow: [], inbound: 'open', inboundAllow: [], ...fake.network }
+    if (collection === 'environments' && method === 'GET') {
+      return json(200, {
+        environments: [
+          {
+            name: 'base',
+            isDefault: true,
+            network: fake.network && policy,
+            secretFiles: [],
+            versions: [],
+          },
+        ],
+      })
+    }
+    if (collection === 'caller-address' && method === 'GET') {
+      return fake.callerAddress
+        ? json(200, { address: fake.callerAddress })
+        : json(403, { code: 'api_key_org_forbidden', message: 'an organization API key' })
+    }
     if (collection === 'limits' && method === 'GET') {
       return json(200, {
         canStart: true,
@@ -288,6 +316,13 @@ export async function fakeBoat(
         return json(200, { sandbox: { ...view(sandbox), state: 'starting' } })
       return json(200, { sandbox: view(sandbox) })
     }
+    if (sub === 'network' && method === 'GET') {
+      return json(200, {
+        network: fake.network
+          ? { ...policy, status: 'enforced', source: 'environment' }
+          : { ...policy, mode: 'open', status: 'none', source: 'default' },
+      })
+    }
     if (sub === 'sshkey' && method === 'POST') {
       const machine = await sandbox.machine
       await machine.authorize(String((body as { key?: string }).key))
@@ -336,7 +371,7 @@ export async function fakeBoat(
   server.keepAliveTimeout = 0
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   const { port } = server.address() as AddressInfo
-  return {
+  Object.assign(fake, {
     url: `http://127.0.0.1:${port}/api/v1`,
     key,
     live: () => [...sandboxes.values()].map((s) => s.name),
@@ -362,7 +397,8 @@ export async function fakeBoat(
       sandboxes.clear()
       await new Promise<void>((resolve) => server.close(() => resolve()))
     },
-  }
+  } satisfies Omit<FakeBoat, 'network' | 'callerAddress'>)
+  return fake
 }
 
 /** An address in IPv6's documentation range (RFC 3849): routed nowhere. */

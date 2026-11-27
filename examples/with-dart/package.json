@@ -8,7 +8,7 @@
     "eval": "reeval run"
   },
   "dependencies": {
-    "@boatdev/sdk": "1.13.0",
+    "@boatdev/sdk": "1.13.2",
     "@daytona/sdk": "0.231.0",
     "reeval": "workspace:*"
   }

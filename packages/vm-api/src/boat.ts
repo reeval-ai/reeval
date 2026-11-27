@@ -9,6 +9,7 @@ import type {
   SavedSnapshot,
   SshKeyResponse,
 } from '@boatdev/sdk'
+import { VmApiError } from './errors.ts'
 import {
   DEFAULT_TIMEOUT_MS,
   type Failures,
@@ -62,9 +63,29 @@ export const BOAT_CAPABILITIES: VmCapabilities = {
 /** A saved snapshot: a VM's disk, which later sandboxes start `from`. */
 export type BoatSavedSnapshot = SavedSnapshot
 
+/** A Boat network policy (https://docs.boat.dev/network-policy), a sandbox's or an environment's. */
+export type BoatNetwork = {
+  /** Outbound: `open`, `deny` or `allow` (only the hosts in `allow`). */
+  mode: string
+  allow: string[]
+  /** `open`, or `boat-only`: only Boat and the addresses in `inboundAllow` connect. */
+  inbound: string
+  inboundAllow: string[]
+  /** Whose policy a sandbox has: its own (`sandbox`), its environment's, or none (`default`). */
+  source?: string
+}
+
 export interface BoatVmApi extends VmApi {
   provider: 'boat'
   limits(o?: { signal?: AbortSignal }): Promise<VmLimits>
+  /** The network policy sandbox `id` has. */
+  network(id: string, o?: { signal?: AbortSignal }): Promise<BoatNetwork>
+  /** The default environment, which reeval's sandboxes start in, and its policy (null for none). */
+  defaultEnvironment(o?: {
+    signal?: AbortSignal
+  }): Promise<{ name: string; network: BoatNetwork | null } | null>
+  /** The address Boat sees this host's calls from, or null when it can't tell or won't say. */
+  callerAddress(o?: { signal?: AbortSignal }): Promise<string | null>
   exec(
     id: string,
     command: string,
@@ -82,6 +103,17 @@ export interface BoatVmApi extends VmApi {
     list(): Promise<BoatSavedSnapshot[]>
   }
 }
+
+const networkOf = (n: Partial<BoatNetwork> | null | undefined): BoatNetwork | null =>
+  n
+    ? {
+        mode: n.mode ?? 'open',
+        allow: n.allow ?? [],
+        inbound: n.inbound ?? 'open',
+        inboundAllow: n.inboundAllow ?? [],
+        ...(n.source && { source: n.source }),
+      }
+    : null
 
 const stateOf = (raw: string): VmState =>
   READY_STATES.includes(raw) ? 'ready' : BOAT_DEAD_STATES.includes(raw) ? 'dead' : 'starting'
@@ -332,6 +364,36 @@ export function boatApi(sdk: BoatApi, o: { timeoutMs?: number } = {}): BoatVmApi
       } satisfies VmLimits
     },
 
+    async network(id, o = {}) {
+      const got = await call(
+        `network ${id}`,
+        (init) => sdk.getNetworkPolicy({ sandboxId: id, include: ['inboundAllow'] }, init),
+        o,
+      )
+      return networkOf(got.network) as BoatNetwork
+    },
+
+    async defaultEnvironment(o = {}) {
+      const got = await call(
+        'environments',
+        (init) => sdk.environments({ include: ['inboundAllow'] }, init),
+        o,
+      )
+      const env = got.environments.find((e) => e.isDefault)
+      return env ? { name: env.name, network: networkOf(env.network) } : null
+    },
+
+    async callerAddress(o = {}) {
+      const got = await call('caller address', (init) => sdk.getCallerAddress(init), o).catch(
+        (error: unknown) => {
+          // An organization's key may not read the account's settings.
+          if (error instanceof VmApiError && error.status === 403) return null
+          throw error
+        },
+      )
+      return got?.address ?? null
+    },
+
     async exec(id, command, o = {}): Promise<ExecResult> {
       const timeoutSeconds = o.timeoutSeconds ?? BOAT_MAX_EXEC_SECONDS
       const res = await call(
@@ -412,7 +474,7 @@ export function boatApi(sdk: BoatApi, o: { timeoutMs?: number } = {}): BoatVmApi
         )
       },
       async list() {
-        const listed = await call('list snapshots', (init) => sdk.listSavedSnapshots(init))
+        const listed = await call('list snapshots', (init) => sdk.listSavedSnapshots({}, init))
         return listed.snapshots
       },
     },

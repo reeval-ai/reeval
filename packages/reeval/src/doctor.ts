@@ -126,9 +126,13 @@ export type DoctorDeps = {
   missingSshTool: () => Promise<string | null>
   /**
    * Loads the Boat SDK for `root` and, `online`, asks Boat whether the account takes the key and
-   * starts the machine size; throws with why not.
+   * starts the machine size, throwing with why not, and what its network policy stops.
    */
-  boatAccount: (sandbox: BoatSandboxDescriptor, root: string, online: boolean) => Promise<void>
+  boatAccount: (
+    sandbox: BoatSandboxDescriptor,
+    root: string,
+    online: boolean,
+  ) => Promise<Array<Pick<Check, 'status' | 'summary' | 'fix'>>>
   /**
    * Loads Daytona's SDK for `root` and, `online`, asks Daytona whether the organization takes the
    * key; throws with why not.
@@ -211,8 +215,12 @@ export function defaultDeps(env: NodeJS.ProcessEnv = process.env): DoctorDeps {
     missingSshTool: async () => (await import('./sandbox/ssh-pool.ts')).missingSshTool(),
     boatAccount: async (sandbox, root, online) => {
       const boat = await import('./sandbox/boat.ts')
-      if (online) await boat.checkBoat(sandbox, root)
-      else await boat.loadBoatSdk(root)
+      if (!online) {
+        await boat.loadBoatSdk(root)
+        return []
+      }
+      await boat.checkBoat(sandbox, root)
+      return boat.boatNetworkFindings(sandbox, root)
     },
     daytonaAccount: async (sandbox, root, online) => {
       const daytona = await import('./sandbox/daytona.ts')

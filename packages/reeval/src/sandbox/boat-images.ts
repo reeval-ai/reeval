@@ -21,7 +21,14 @@ import type {
   HarnessDescriptor,
   PluginSource,
 } from '../types.ts'
-import { type BoatClient, boatError, deleteUntilGone, startVm, type VmService } from './boat.ts'
+import {
+  type BoatClient,
+  boatError,
+  deleteUntilGone,
+  startVm,
+  type VmService,
+  withPolicyHint,
+} from './boat.ts'
 import { sandboxLabels } from './labels.ts'
 import { createBuilds, imageHarness, pluginBuildSpec, prepareImage } from './prepare.ts'
 import { type PrepareContext, PrepareError } from './provider.ts'
@@ -383,6 +390,8 @@ export async function boatImage(
       sizeBytes: result.saved.sizeBytes ?? null,
       built: true,
     }
+  } catch (error) {
+    throw await withPolicyHint(service, api, vm.id, 'outbound', error)
   } finally {
     if (
       !(await api.remove(vm.id).then(
