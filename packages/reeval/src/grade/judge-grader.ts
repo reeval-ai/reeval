@@ -18,7 +18,7 @@ export type JudgeGraderOptions<C = unknown> = Omit<JudgeSpec<C>, 'question'> &
 const OWN = ['name', 'score', 'weight', 'required', 'revision', 'timeout']
 
 /**
- * A judge grader: reeval's judge answers `question` about the stored attempt, once per model.
+ * A judge grader: reeval's judge answers `question` about the stored trial, once per model.
  * Pass options, or a callback that takes the `file` and `directory` helpers for its `reference`.
  *
  *     judge('Is the retry logic easy to review?', {

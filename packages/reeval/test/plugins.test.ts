@@ -318,7 +318,7 @@ test('a build is commands and where they run, the same for each way of writing i
       { run: ['pnpm i'], cwd: '.' },
     ],
   )
-  // Preflight and the attempt name a build by its declaration, so another build is another layer.
+  // Preflight and the trial name a build by its declaration, so another build is another layer.
   const ids = builds.map(pluginBuildId)
   assert.equal(new Set(ids).size, 3)
   assert.deepEqual(builtPlugins(applied(env).layers).map(pluginBuildId), ids)

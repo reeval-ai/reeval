@@ -7,7 +7,7 @@ skilled = base.extend("skilled", {"env": {"MODE": "skilled"}})
 @evaluate(
     "trajectory across harnesses",
     {
-        "compare": {"control": base, "variants": [skilled]},
+        "compare": {"baseline": base, "variants": [skilled]},
         "questions": [
             {
                 "question": "Which agent verified its work?",
@@ -23,10 +23,10 @@ async def trajectory_across_harnesses(c): ...
 @evaluate(
     "trajectory within a harness",
     {
-        "compare": {"control": base, "variants": [skilled]},
+        "compare": {"baseline": base, "variants": [skilled]},
         "questions": [
             {
-                "question": "Which arm verified its work?",
+                "question": "Which environment verified its work?",
                 "across": "environment",
                 "trajectory": "tools",
             }
@@ -39,7 +39,7 @@ async def trajectory_within_a_harness(c): ...
 @evaluate(
     "screenshots",
     {
-        "compare": {"control": base, "variants": [skilled]},
+        "compare": {"baseline": base, "variants": [skilled]},
         "questions": [
             {
                 "question": "Which page looks better?",
@@ -53,7 +53,7 @@ async def screenshots(c): ...
 
 
 @evaluate(
-    "each attempt with the trajectory",
+    "each trial with the trajectory",
     {
         "questions": [
             {
@@ -66,11 +66,11 @@ async def screenshots(c): ...
         ]
     },
 )
-async def each_attempt_with_the_trajectory(c): ...
+async def each_trial_with_the_trajectory(c): ...
 
 
 @evaluate(
-    "each attempt without the trajectory",
+    "each trial without the trajectory",
     {
         "questions": [
             {
@@ -82,4 +82,4 @@ async def each_attempt_with_the_trajectory(c): ...
         ]
     },
 )
-async def each_attempt_without_the_trajectory(c): ...
+async def each_trial_without_the_trajectory(c): ...

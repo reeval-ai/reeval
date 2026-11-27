@@ -36,11 +36,11 @@ export const chatbot = defineEnvironment('chatbot', ({
 ```
 
 <Property name="sandbox" type="SandboxDescriptor" optional>
-  Where the attempt runs. Omitted on a root environment, the cascaded sandbox or the default sandbox is used, and putting `image`, `from`, `dockerfile`, or `install` beside `sandbox` in the environment spec stops the run with exit code 2.
+  Where the trial runs. Omitted on a root environment, the cascaded sandbox or the default sandbox is used, and putting `image`, `from`, `dockerfile`, or `install` beside `sandbox` in the environment spec stops the run with exit code 2.
 </Property>
 
 <Property name="workspace" type="GitWorkspace" optional>
-  The tree the attempt starts from, before `files`, `rules`, and `setup`.
+  The tree the trial starts from, before `files`, `rules`, and `setup`.
 </Property>
 
 <Property name="env" type="Record<string, string | Secret>" optional>
@@ -52,11 +52,11 @@ export const chatbot = defineEnvironment('chatbot', ({
 </Property>
 
 <Property name="files" type="Record<string, string | HostFile>" optional>
-  Workspace paths, or `~/` paths in the home directory. A string is the contents, `file()` is read at attempt start, and `..` or a backslash stops the run with exit code 2.
+  Workspace paths, or `~/` paths in the home directory. A string is the contents, `file()` is read at trial start, and `..` or a backslash stops the run with exit code 2.
 </Property>
 
 <Property name="rules" type="string | HostFile" optional>
-  Instructions for the harness rules file, written after `files`. A string is copied, `file()` is read at attempt start, and a missing file ends the attempt as an infrastructure error. For more information about the file each harness reads, see [Rules and skills](/reference/options#rules-and-skills).
+  Instructions for the harness rules file, written after `files`. A string is copied, `file()` is read at trial start, and a missing file ends the trial as an infrastructure error. For more information about the file each harness reads, see [Rules and skills](/reference/options#rules-and-skills).
 </Property>
 
 <Property name="setup" type="Array<string | { run: string; timeout?: Duration; cwd?: string }>" optional>
@@ -81,7 +81,7 @@ export const chatbot = defineEnvironment('chatbot', ({
 
 ## `git()`
 
-`git()` supplies `workspace`, fetched on the host with credentials kept there. A fetch that cannot complete fails the attempts.
+`git()` supplies `workspace`, fetched on the host with credentials kept there. A fetch that cannot complete fails the trials.
 
 <Property name="repo" type="string | URL" required>
   A URL, `github:owner/repo`, a GitHub `/tree/<ref>/<path>` URL, or a local path. A `/tree/` URL sets `ref` and `path`, and a password or token in the URL stops the run with exit code 2.
@@ -108,12 +108,12 @@ export const chatbot = defineEnvironment('chatbot', ({
 `file()` is one host file for `files` or `rules`.
 
 <Property name="path" type="string | URL" required>
-  A path relative to the calling file, or absolute, read at attempt start. A missing file ends the attempt as an infrastructure error, and an owner execute bit stays executable.
+  A path relative to the calling file, or absolute, read at trial start. A missing file ends the trial as an infrastructure error, and an owner execute bit stays executable.
 </Property>
 
 ## `directory()`
 
-`directory()` walks a host directory at the call, reads those files at attempt start, and skips empty directories. A missing path, a non-directory, no match, or a broken or cyclic symlink stops the run with exit code 2.
+`directory()` walks a host directory at the call, reads those files at trial start, and skips empty directories. A missing path, a non-directory, no match, or a broken or cyclic symlink stops the run with exit code 2.
 
 <Property name="path" type="string | URL" required>
   The host directory, relative to the calling file or absolute.
@@ -133,14 +133,14 @@ export const chatbot = defineEnvironment('chatbot', ({
 
 ## `skill.local()`
 
-A host directory with a `SKILL.md` file, or one whose immediate child directories have one. `name` defaults to the directory name and must be kebab-case; a missing `description` or a non-kebab-case name ends the attempt as an infrastructure error.
+A host directory with a `SKILL.md` file, or one whose immediate child directories have one. `name` defaults to the directory name and must be kebab-case; a missing `description` or a non-kebab-case name ends the trial as an infrastructure error.
 
 <Property name="path" type="string | URL" required>
-  The host directory, relative to the calling file or absolute. A missing path ends the attempt as an infrastructure error.
+  The host directory, relative to the calling file or absolute. A missing path ends the trial as an infrastructure error.
 </Property>
 
 <Property name="only" type="string[]" optional>
-  Names to keep. The default is every skill, and a missing name ends the attempt as an infrastructure error whose message lists the skills found.
+  Names to keep. The default is every skill, and a missing name ends the trial as an infrastructure error whose message lists the skills found.
 </Property>
 
 <Property name="exclude" type="string[]" optional>
@@ -193,7 +193,7 @@ One skills.sh skill. reeval clones the repository at `https://github.com/<owner>
 
 ## `skill.inline()`
 
-A skill written in the spec. A missing `description`, or a name other than kebab-case, ends the attempt as an infrastructure error, and `placement` matches `skill.local()`.
+A skill written in the spec. A missing `description`, or a name other than kebab-case, ends the trial as an infrastructure error, and `placement` matches `skill.local()`.
 
 <Property name="name" type="string" required>
   The skill name.
@@ -312,7 +312,7 @@ A named host variable for `env` or an MCP header. The record keeps the name and 
 </Property>
 
 <Property name="optional" type="boolean" optional>
-  `true` skips the entry when the host variable is unset, and the record says so. The default ends the attempt as an infrastructure error.
+  `true` skips the entry when the host variable is unset, and the record says so. The default ends the trial as an infrastructure error.
 </Property>
 
 <Property name="to" type="'agent' | 'checks'" optional>
@@ -324,7 +324,7 @@ A named host variable for `env` or an MCP header. The record keeps the name and 
 </Property>
 
 <Property name="in" type="Array<'header' | 'query' | 'body'>" optional>
-  Where the value is substituted, defaulting to `['header']`. `in` requires `hosts`, and whitespace or a line break in a header value ends the attempt as an infrastructure error.
+  Where the value is substituted, defaulting to `['header']`. `in` requires `hosts`, and whitespace or a line break in a header value ends the trial as an infrastructure error.
 </Property>
 
 ## `secret.template()`
@@ -332,7 +332,7 @@ A named host variable for `env` or an MCP header. The record keeps the name and 
 One MCP header built from host variables.
 
 <Property name="template" type="string" required>
-  A string of `${NAME}` host variables. An unset name ends the attempt as an infrastructure error, an `https` URL brokers the result to that host, and any other URL uses the host value.
+  A string of `${NAME}` host variables. An unset name ends the trial as an infrastructure error, an `https` URL brokers the result to that host, and any other URL uses the host value.
 </Property>
 
 ## `secret.hosts`
@@ -357,7 +357,7 @@ Host lists for `hosts` on `secret()` and `secret.fromEnv()`.
 
 ## `extend()`
 
-`extend()` is `extendEnvironment()` on a `defineEnvironment()` parent. `compare` runs the control and each variant as its own environment, so shared fields are an `extend()` chain. Merging is described under Environment fields.
+`extend()` is `extendEnvironment()` on a `defineEnvironment()` parent. `compare` runs the baseline and each variant as its own environment, so shared fields are an `extend()` chain. Merging is described under Environment fields.
 
 <Property name="name" type="string" required>
   The cell-key name. It starts with a letter or a digit, then letters, digits, `.`, `_`, `@`, `+`, or `-`, and any other name stops the run with exit code 2.

@@ -11,7 +11,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { Worker } from 'node:worker_threads'
 import type { PlannedItem } from '../src/engine/types.ts'
 import type { RunRecord } from '../src/history/types.ts'
-import { attemptKey } from '../src/ids.ts'
+import { trialKey } from '../src/ids.ts'
 import { replace, writeLiveProgress } from '../src/live.ts'
 import { listLive, stagingRoot } from '../src/studio/live.ts'
 import type { StudioSource } from '../src/studio/source.ts'
@@ -45,9 +45,9 @@ function planned(names: string[], runs = 1): PlannedItem[] {
       const cell = 'fake/default/fake'
       return {
         id,
-        key: attemptKey(id, cell, i + 1),
+        key: trialKey(id, cell, i + 1),
         file,
-        attempt: { name, n: i + 1, cell: { key: cell }, plan: {} },
+        trial: { name, n: i + 1, cell: { key: cell }, plan: {} },
       } as unknown as PlannedItem
     }),
   )
@@ -65,13 +65,13 @@ const readLive = (dir: string) =>
   JSON.parse(readFileSync(join(dir, LIVE_FILE), 'utf8')) as LiveProgress
 
 describe('the progress file', () => {
-  test('starts with every planned attempt queued, and counts each start and finish', async () => {
+  test('starts with every planned trial queued, and counts each start and finish', async () => {
     const dir = join(await temp(), 'staging', RUN)
     const items = planned(['one', 'two'], 2)
     const live = writeLiveProgress({ dir, runId: RUN, startedAt: new Date(0), planned: items })
     try {
       const first = readLive(dir)
-      assert.equal(first.schemaVersion, 1)
+      assert.equal(first.schemaVersion, 2)
       assert.equal(first.runId, RUN)
       assert.equal(first.startedAt, '1970-01-01T00:00:00.000Z')
       assert.equal(first.pid, process.pid)
@@ -87,7 +87,7 @@ describe('the progress file', () => {
         running: 0,
       })
       assert.deepEqual(
-        first.attempts.map((a) => [a.name, a.cell, a.n, a.status]),
+        first.trials.map((a) => [a.name, a.cell, a.n, a.status]),
         [
           ['one', 'fake/default/fake', 1, 'queued'],
           ['one', 'fake/default/fake', 2, 'queued'],
@@ -100,7 +100,7 @@ describe('the progress file', () => {
       live.start(b, Date.now())
       live.start(c, Date.now())
       assert.equal(readLive(dir).counts.running, 3)
-      assert.equal(readLive(dir).attempts[0]?.startedAt, '2026-09-27T18:00:01.000Z')
+      assert.equal(readLive(dir).trials[0]?.startedAt, '2026-09-27T18:00:01.000Z')
       live.end(result(a, 'passed', 'pass'))
       live.end(result(b, 'failed', 'fail'))
       live.end(result(c, 'failed', 'infra_error'))
@@ -115,7 +115,7 @@ describe('the progress file', () => {
         running: 0,
       })
       assert.deepEqual(
-        after.attempts.map((x) => [x.status, x.durationMs]),
+        after.trials.map((x) => [x.status, x.durationMs]),
         [
           ['pass', 1234],
           ['fail', 1234],
@@ -240,24 +240,24 @@ describe('the progress file', () => {
     assert.equal(readLive(dir).counts.running, 0, 'nothing is written once stopped')
   })
 
-  test('a planned attempt the plan skips starts skipped and counts as done', async () => {
+  test('a planned trial the plan skips starts skipped and counts as done', async () => {
     const dir = join(await temp(), RUN)
     const items = planned(['one', 'two'])
-    ;(items[1]?.attempt.plan as { skip?: string }).skip = 'no key'
+    ;(items[1]?.trial.plan as { skip?: string }).skip = 'no key'
     const live = writeLiveProgress({ dir, runId: RUN, startedAt: new Date(), planned: items })
     live.stop()
     assert.deepEqual(
-      readLive(dir).attempts.map((a) => a.status),
+      readLive(dir).trials.map((a) => a.status),
       ['queued', 'skipped'],
     )
     assert.equal(readLive(dir).counts.done, 1)
   })
 
-  test('an attempt a resume kept starts with its outcome, and its skip leaves it', async () => {
+  test('a trial a resume kept starts with its outcome, and its skip leaves it', async () => {
     const dir = join(await temp(), RUN)
     const items = planned(['one', 'two', 'three'])
     for (const item of items.slice(0, 2))
-      (item.attempt.plan as { skip?: string }).skip = 'already completed in this run'
+      (item.trial.plan as { skip?: string }).skip = 'already completed in this run'
     const [one, two] = items.map((i) => i.key) as [string, string]
     const live = writeLiveProgress({
       dir,
@@ -273,7 +273,7 @@ describe('the progress file', () => {
     live.stop()
     const file = readLive(dir)
     assert.deepEqual(
-      file.attempts.map((a) => [a.status, a.startedAt, a.durationMs]),
+      file.trials.map((a) => [a.status, a.startedAt, a.durationMs]),
       [
         ['pass', '2026-09-27T18:00:01.000Z', 900],
         ['infra_error', null, null],
@@ -293,7 +293,7 @@ describe('the progress file', () => {
 
 describe('reading a progress file', () => {
   const valid = (): Record<string, unknown> => ({
-    schemaVersion: 1,
+    schemaVersion: 2,
     runId: RUN,
     startedAt: '2026-09-27T18:00:00.000Z',
     pid: 1,
@@ -302,7 +302,7 @@ describe('reading a progress file', () => {
     phase: 'running',
     planned: 99,
     counts: { done: 99, passed: 99, failed: 0, errored: 0, skipped: 0, running: 0 },
-    attempts: [
+    trials: [
       {
         key: 'k',
         evalId: 'e',
@@ -317,7 +317,7 @@ describe('reading a progress file', () => {
     ],
   })
 
-  test('recomputes counts from the attempts, and ignores unknown fields', () => {
+  test('recomputes counts from the trials, and ignores unknown fields', () => {
     const read = readableLiveProgress({ ...valid(), extra: { from: 'a newer reeval' } })
     assert.ok(read)
     assert.equal(read.planned, 1)
@@ -325,18 +325,25 @@ describe('reading a progress file', () => {
     assert.equal(read.counts.passed, 1)
   })
 
+  test('reads a version 1 file, its attempts as trials', () => {
+    const { trials, ...rest } = valid()
+    const read = readableLiveProgress({ ...rest, schemaVersion: 1, attempts: trials })
+    assert.equal(read?.schemaVersion, 2)
+    assert.deepEqual(read?.trials, trials)
+  })
+
   test('anything it cannot read is null, never a throw', () => {
     const broken: unknown[] = [
       null,
       'live',
       [],
-      { ...valid(), schemaVersion: 2 },
+      { ...valid(), schemaVersion: 3 },
       { ...valid(), schemaVersion: undefined },
       { ...valid(), pid: 'one' },
       { ...valid(), phase: 'paused' },
-      { ...valid(), attempts: 'none' },
-      { ...valid(), attempts: [{ key: 'k' }] },
-      { ...valid(), attempts: [{ ...(valid().attempts as object[])[0], status: 'bored' }] },
+      { ...valid(), trials: 'none' },
+      { ...valid(), trials: [{ key: 'k' }] },
+      { ...valid(), trials: [{ ...(valid().trials as object[])[0], status: 'bored' }] },
       { ...valid(), startedAt: 7 },
     ]
     for (const b of broken) assert.equal(readableLiveProgress(b), null, JSON.stringify(b))
@@ -356,7 +363,7 @@ async function stagingProject(files: Record<string, string | LiveProgress>) {
 }
 
 const progress = (runId: string, patch: Partial<LiveProgress> = {}): LiveProgress => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   runId,
   startedAt: new Date(Date.now() - 5000).toISOString(),
   pid: process.pid,
@@ -365,9 +372,9 @@ const progress = (runId: string, patch: Partial<LiveProgress> = {}): LiveProgres
   phase: 'running',
   planned: 2,
   counts: { done: 1, passed: 1, failed: 0, errored: 0, skipped: 0, running: 1 },
-  attempts: [
+  trials: [
     {
-      key: attemptKey('one', 'fake/default/fake', 1),
+      key: trialKey('one', 'fake/default/fake', 1),
       evalId: 'one',
       name: 'one',
       file: 'evals/one.eval.ts',
@@ -378,7 +385,7 @@ const progress = (runId: string, patch: Partial<LiveProgress> = {}): LiveProgres
       durationMs: 2000,
     },
     {
-      key: attemptKey('one', 'fake/default/fake', 2),
+      key: trialKey('one', 'fake/default/fake', 2),
       evalId: 'one',
       name: 'one',
       file: 'evals/one.eval.ts',
@@ -453,7 +460,7 @@ describe('reeval run keeps its progress file', () => {
   const evalFile = `import assert from 'node:assert/strict'
 import { defineEval } from 'reeval'
 export default defineEval({
-  runs: 3,
+  trials: 3,
   async task(c) {
     await c.send('write hello.txt')
     assert.equal((await c.exec('test -f hello.txt')).exitCode, 0)
@@ -470,16 +477,16 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import assert from 'node:assert/strict'
 import { defineEval } from 'reeval'
 export default defineEval({
-  runs: 3,
+  trials: 3,
   async task(c) {
-    while (!existsSync(new URL(\`../gate-\${c.attempt.n}\`, import.meta.url))) await sleep(20)
+    while (!existsSync(new URL(\`../gate-\${c.trial.n}\`, import.meta.url))) await sleep(20)
     await c.send('write hello.txt')
     assert.equal((await c.exec('test -f hello.txt')).exitCode, 0)
   },
 })
 `,
     })
-    // Attempt n starts its turn once the test has seen n - 1 done, so no count goes unseen however
+    // Trial n starts its turn once the test has seen n - 1 done, so no count goes unseen however
     // slow the machine. The last one lasts only until the record replaces the file: the record
     // shows it.
     const r = await watchRun(p.dir, ['run', '--concurrency', '1'], {}, (done) =>
@@ -498,12 +505,12 @@ export default defineEval({
     assert.deepEqual(await listLive(source), [])
     const record = readFileSync(join(p.dir, '.reeval/runs', `${r.runId}.json`), 'utf8')
     assert.doesNotMatch(record, /"(queued|running)"/, 'nothing live reaches the record')
-    const outcomes = (JSON.parse(record) as RunRecord).evals[0]?.attempts.map((a) => a.outcome)
+    const outcomes = (JSON.parse(record) as RunRecord).evals[0]?.trials.map((a) => a.outcome)
     assert.deepEqual(outcomes, ['pass', 'pass', 'pass'])
   })
 
   test('a killed run is shown as stopped, with what it had finished', async () => {
-    // The second attempt parks in Node after its turn, so the kill lands while no shell or git
+    // The second trial parks in Node after its turn, so the kill lands while no shell or git
     // is running in the sandbox: on Windows, taskkill doesn't reach what MSYS starts. The worker
     // writes its pid, so the test ends only once the whole tree is gone.
     const p = await project('live-killed', {
@@ -512,11 +519,11 @@ export default defineEval({
 import { setTimeout as sleep } from 'node:timers/promises'
 import { defineEval } from 'reeval'
 export default defineEval({
-  runs: 20,
+  trials: 20,
   async task(c) {
     writeFileSync(new URL('../worker.pid', import.meta.url), String(process.pid))
     await c.send('write hello.txt')
-    if (c.attempt.n === 1) return
+    if (c.trial.n === 1) return
     writeFileSync(new URL('../parked', import.meta.url), '')
     await sleep(600_000, undefined, { signal: c.signal }).catch(() => {})
   },
@@ -560,7 +567,7 @@ export default defineEval({
     assert.equal(runs[0]?.counts.done, 1)
   })
 
-  test('a resume shows the attempts it kept with their outcome and trajectory', async () => {
+  test('a resume shows the trials it kept with their outcome and trajectory', async () => {
     const p = await project('live-resume', {
       'reeval.config.ts': fakeConfig({ harness: agent(0) }),
       'evals/kept-pass.eval.ts': `import assert from 'node:assert/strict'
@@ -585,7 +592,7 @@ export default defineEval({
 import { setTimeout as sleep } from 'node:timers/promises'
 import { defineEval } from 'reeval'
 export default defineEval({
-  runs: 2,
+  trials: 2,
   async task(c) {
     while (!existsSync(new URL('../gate', import.meta.url))) await sleep(20)
     await c.send('write hello.txt')
@@ -601,17 +608,17 @@ export default defineEval({
       encoding: 'utf8',
     })
     assert.equal(first.status, 1, first.stdout + first.stderr)
-    // Rewritten as a budget stop that never started the second `waits` attempt.
+    // Rewritten as a budget stop that never started the second `waits` trial.
     const { run } = readRun(p.dir)
     run.status = 'budget'
     const waits = run.evals.find((e) => e.id === 'waits')
     assert.ok(waits)
-    waits.attempts = waits.attempts.map((a) =>
+    waits.trials = waits.trials.map((a) =>
       a.n === 2 ? { ...a, outcome: 'skipped', error: null, files: {}, checks: [] } : a,
     )
     writeFileSync(join(p.dir, '.reeval/runs', `${run.runId}.json`), JSON.stringify(run))
     const was = (id: string, n = 1) =>
-      run.evals.find((e) => e.id === id)?.attempts.find((a) => a.n === n)
+      run.evals.find((e) => e.id === id)?.trials.find((a) => a.n === n)
     const _keptKey = was('kept-pass')?.key as string
     const keptFile = was('kept-pass')?.files.trajectory?.path as string
     const keptTrajectory = readFileSync(join(p.dir, '.reeval/runs', run.runId, keptFile), 'utf8')
@@ -631,8 +638,8 @@ export default defineEval({
     let live: LiveRun | undefined
     try {
       const deadline = Date.now() + 30_000
-      while (!live?.attempts.some((a) => a.status === 'running')) {
-        assert.ok(Date.now() < deadline, `the resume never started an attempt: ${output}`)
+      while (!live?.trials.some((a) => a.status === 'running')) {
+        assert.ok(Date.now() < deadline, `the resume never started a trial: ${output}`)
         await sleep(25)
         live = (await listLive(source))[0]
       }
@@ -641,7 +648,7 @@ export default defineEval({
     }
     assert.equal(await exited, 1, output)
 
-    const seen = (id: string, n = 1) => live?.attempts.find((a) => a.name === id && a.n === n)
+    const seen = (id: string, n = 1) => live?.trials.find((a) => a.name === id && a.n === n)
     for (const [id, n, status] of [
       ['kept-pass', 1, 'pass'],
       ['kept-fail', 1, 'fail'],
@@ -667,7 +674,7 @@ export default defineEval({
     const record = readRun(p.dir)
     assert.equal(record.run.runId, run.runId)
     assert.deepEqual(
-      record.run.evals.map((e) => [e.id, e.attempts.map((a) => a.outcome)]),
+      record.run.evals.map((e) => [e.id, e.trials.map((a) => a.outcome)]),
       [
         ['kept-fail', ['fail']],
         ['kept-pass', ['pass']],

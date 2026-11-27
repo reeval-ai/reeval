@@ -45,8 +45,8 @@ run.
 ## Collecting and running
 
 ```jsonc
-{"t":"collected","tests":[{"index":0,"name":"greets [cursor/-/docker#1]","groups":[],"mode":"run","attempt":{…}}],"harnesses":["cursor:composer-2.5"],"traits":[]}
-{"t":"request","id":"l1","limits":{"attempts":4},"rank":{"eval":"…","file":"…","order":0,"n":1,"cell":0}}
+{"t":"collected","tests":[{"index":0,"name":"greets [cursor/-/docker#1]","groups":[],"mode":"run","trial":{…}}],"harnesses":["cursor:composer-2.5"],"traits":[]}
+{"t":"request","id":"l1","limits":{"trials":4},"rank":{"eval":"…","file":"…","order":0,"n":1,"cell":0}}
 {"t":"grant","id":"l1"}
 {"t":"start","index":0,"at":1790000000000}
 {"t":"progress","index":0,"progress":{…}}
@@ -59,22 +59,22 @@ run.
   `collected.harnesses` lists the ids of the harnesses the file's evals run on before a
   profile's limit narrows them, those the run's tags leave out included, so the main process can
   refuse a `limit.harness` id no eval runs on. `collected.traits` lists the trait keys the
-  control environments of the evals the run's tags select define, so it can refuse a `--trait`
+  baseline environments of the evals the run's tags select define, so it can refuse a `--trait`
   or `limit.traits` key none defines.
-  Running, it collects again, asks for each selected attempt's lease with `request`, sends
+  Running, it collects again, asks for each selected trial's lease with `request`, sends
   `ready` once every one has asked (or finished without one), and runs each when it gets its
   `grant`.
-- `cancel` (main → worker) aborts every attempt. A worker whose channel closes cancels too, lets
-  its attempts clean up, and exits.
+- `cancel` (main → worker) aborts every trial. A worker whose channel closes cancels too, lets
+  its trials clean up, and exits.
 - `call` (worker → main) asks one of the run's services in the main process for something, by
   `service` name and a JSON `body`, numbered by `id`; `reply` answers it with a `body`, or an
-  `error` message. The `machines` service is the remote machine pool: an attempt leases a slot
-  on a machine with it, naming the attempt by its key, and releases the slot when it's done, so
-  the run's attempts in every file share one pool, and the main process knows each attempt's
+  `error` message. The `machines` service is the remote machine pool: a trial leases a slot
+  on a machine with it, naming the trial by its key, and releases the slot when it's done, so
+  the run's trials in every file share one pool, and the main process knows each trial's
   machine. When a worker exits, the main process tells each service, which frees what
   the worker still held.
-- `log` carries console output, by attempt `index` when an attempt wrote it; `debug` carries the
-  `-v` trace; `meta` a record written after the attempt's result (after a timeout or cancel).
+- `log` carries console output, by trial `index` when a trial wrote it; `debug` carries the
+  `-v` trace; `meta` a record written after the trial's result (after a timeout or cancel).
 
 ## Errors
 
@@ -85,7 +85,7 @@ run.
 
 A `SerializedError` is `name`, `message` and optionally `stack`, `expected`, `actual` and
 `diff` (for the diff printer), and `errors` (an AggregateError's). `load-error` fails the file's
-evals; `unhandled` fails the run; a failed attempt is a `result` with `state: "failed"`.
+evals; `unhandled` fails the run; a failed trial is a `result` with `state: "failed"`.
 
 ## The contract beside it
 
@@ -96,7 +96,7 @@ A tree's relative host paths resolve against the directory of the eval file bein
 rule TypeScript and `reeval.yaml` follow: a fake sandbox's `dir`, a `dockerfile` (which must be a
 file), and, in each environment layer's spec, host files in `files` and `rules`, a local skill's
 `path`, a local npm skill's `spec` and a local git workspace's `url`. That covers an eval's or
-group's `sandbox`, `environments`, `compare.control` and `compare.variants`. Absolute paths stay
+group's `sandbox`, `environments`, `compare.baseline` and `compare.variants`. Absolute paths stay
 as written, so a tree a TypeScript file declared, whose helpers already resolved its paths,
 declares the same again.
 
@@ -108,20 +108,20 @@ declares the same again.
 // sandbox.dockerfile in evaluate("greets"): /project/evals/images/Dockerfile doesn't exist. …
 ```
 
-The calls an eval's body makes on its attempt (`c.send`, `c.exec`, `c.serve`, `kill`,
+The calls an eval's body makes on its trial (`c.send`, `c.exec`, `c.serve`, `kill`,
 `c.capture`, `c.readFile`, `c.writeFile`, `c.decide` and `c.observe`)
-have their own schemas in `src/contract/attempt.ts`, with JSON Schemas in
-`schema/protocol/` (`attempt-request`, `attempt-reply`). Those calls run inside the worker today,
+have their own schemas in `src/contract/trial.ts`, with JSON Schemas in
+`schema/protocol/` (`trial-request`, `trial-reply`). Those calls run inside the worker today,
 so none of them crosses this channel; a runner in another language would send them, numbered by
-`id`, and read reeval's replies. Around them, reeval sends `attempt-start` (`c.attempt`, and the
-file and body to run) and, if the attempt is aborted, `attempt-abort` (as `c.signal` aborts, on
-a timeout or a canceled run); the runner answers with `attempt-done`, carrying what the body
-threw, if anything. Nothing starts with `attempt-start`: the sandbox and the agent session start
+`id`, and read reeval's replies. Around them, reeval sends `trial-start` (`c.trial`, and the
+file and body to run) and, if the trial is aborted, `trial-abort` (as `c.signal` aborts, on
+a timeout or a canceled run); the runner answers with `trial-done`, carrying what the body
+threw, if anything. Nothing starts with `trial-start`: the sandbox and the agent session start
 on the body's first call that needs them (`send`, `exec`, `readFile`, `writeFile`, `serve` or
 `capture`), so the body's own code runs first. Calls sent at once share that one start; if it
-fails, each of them gets an error reply and the attempt fails as an infra error. A background
+fails, each of them gets an error reply and the trial fails as an infra error. A background
 `exec` or a `serve` replies with a handle id, which `kill` and `capture` name.
-`test/conformance/context/` has whole attempts in these messages, held to the real code.
+`test/conformance/context/` has whole trials in these messages, held to the real code.
 
 ## Versions
 

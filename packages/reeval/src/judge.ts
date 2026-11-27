@@ -23,8 +23,8 @@ export const fakeJudge = ({
  * An analysis model for tests: `reeval explain` gets `output` (or `output(digest)`) back as the
  * model's structured answer, each pairwise question's pair gets `vote` (a fixed `'A'`, `'B'` or
  * `'tie'`, `{ winner, reason? }`, a function of the blinded pair, or `{ error }`), and each
- * question asked of one attempt gets `answer` (its text, `{ choice?, text? }`, a function of the
- * blinded attempt, or `{ error }`), through the same parsing and validation as a real one.
+ * question asked of one trial gets `answer` (its text, `{ choice?, text? }`, a function of the
+ * blinded trial, or `{ error }`), through the same parsing and validation as a real one.
  */
 export const fakeAnalysis = ({
   output,
@@ -40,8 +40,8 @@ export const fakeAnalysis = ({
 export { RECOMMENDED_JUDGE_MODEL } from './judge/index.ts'
 export type {
   AnalysisConfig,
-  BlindAttempt,
   BlindPair,
+  BlindTrial,
   ConfigJudgeOptions,
   FakeAnalysisModel,
   FakeAnswer,

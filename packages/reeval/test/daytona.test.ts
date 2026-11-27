@@ -1,5 +1,5 @@
 // daytona() without Docker or a key: preflight's check of the organization, a run's cleanup by
-// labels, the pool's starts and an attempt's lifecycle, all against the fake Daytona API
+// labels, the pool's starts and a trial's lifecycle, all against the fake Daytona API
 // (support/daytona.ts) through the real SDK.
 import assert from 'node:assert/strict'
 import { after, before, describe, test } from 'node:test'
@@ -159,7 +159,7 @@ describe("the pool's starts", () => {
     })
     assert.equal(made?.ttlMinutes, 30)
     const body = api.requests.findLast((q) => q.call === 'POST /sandbox')?.body
-    assert.equal(body?.autoStopInterval, 0, "Daytona's idle stop would cut an attempt off")
+    assert.equal(body?.autoStopInterval, 0, "Daytona's idle stop would cut a trial off")
     assert.equal(body?.autoDeleteInterval, 0, 'a stopped sandbox is deleted, not kept')
     assert.deepEqual(api.live(), [])
   })
@@ -262,14 +262,14 @@ describe('a cancel during the start', () => {
 describe("the organization's capacity", () => {
   test("is maxConcurrent's, and unknown without it", async () => {
     assert.equal(await daytonaCapacity(daytona()), null)
-    assert.deepEqual(await daytonaCapacity(daytona({ maxConcurrent: 5, attemptsPerMachine: 2 })), {
+    assert.deepEqual(await daytonaCapacity(daytona({ maxConcurrent: 5, trialsPerMachine: 2 })), {
       machines: 3,
-      attempts: 5,
+      trials: 5,
     })
   })
 })
 
-describe('an attempt on a sandbox it cannot reach', () => {
+describe('a trial on a sandbox it cannot reach', () => {
   const files = {
     'reeval.config.ts': `
 import { defineConfig } from 'reeval'

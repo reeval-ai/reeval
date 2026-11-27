@@ -1,8 +1,8 @@
-// A sandbox kind that runs each attempt on a machine of its own (a VM) reached over a transport,
+// A sandbox kind that runs each trial on a machine of its own (a VM) reached over a transport,
 // started through the shared sequence (start.ts). A provider like that writes a MachineProvider;
 // kindOf() derives the rest of its kinds entry; createProviders() names its prepare provider.
 import type { EgressCapabilities } from '@reeval/sandbox-docker'
-import type { ListenerSource } from '../attempt/serve.ts'
+import type { ListenerSource } from '../trial/serve.ts'
 import type {
   BoatSandboxDescriptor,
   CloudSandboxDescriptor,
@@ -43,21 +43,21 @@ export interface MachineProvider<D extends MachineDescriptor> extends SandboxHoo
   hostPaths: Readonly<Record<string, HostPath>>
   /** The most of its machines the host runs at once, and why. */
   hostLimit?: (sandbox: D) => { max: number; why: string }
-  /** Boots one machine for an attempt and starts it through `startSandbox`. */
+  /** Boots one machine for a trial and starts it through `startSandbox`. */
   create(sandbox: D, options: SandboxOptions): Promise<Sandbox>
   /** What a container on the machine widens, for the plan's warnings; nothing when unset. */
   privileges?(sandbox: D): SandboxPrivileges
-  /** Builds a plugin's `build` into the attempt's image on the machine; never when unset. */
+  /** Builds a plugin's `build` into the trial's image on the machine; never when unset. */
   pluginBuilds?: boolean
   /**
    * How many machines the run may have at once, when the provider says, and for a pooled one the
-   * attempts its pool runs at once, which is the run's default concurrency.
+   * trials its pool runs at once, which is the run's default concurrency.
    */
-  capacity?(sandbox: D): Promise<{ machines: number; attempts?: number } | null>
+  capacity?(sandbox: D): Promise<{ machines: number; trials?: number } | null>
   /** Removes the run's machines: for `sandboxes`, or wherever it can look without them. */
   cleanupRun(runId: string, sandboxes?: readonly D[]): Promise<void>
   /**
-   * Pools its machines in the run's main process (machine-service.ts): the attempts on sandboxes
+   * Pools its machines in the run's main process (machine-service.ts): the trials on sandboxes
    * with the same `key` share one pool, which `open` makes. The pools whose sandboxes have the
    * same `account` share its limits: the machines at once and the start rate. Without `account`,
    * each pool has limits of its own.
@@ -106,7 +106,7 @@ export function kindOf<D extends MachineDescriptor>(machine: MachineProvider<D>)
         return {
           cpus: machines,
           memoryBytes: machines * 1e9,
-          ...(free.attempts && { attempts: free.attempts }),
+          ...(free.trials && { trials: free.trials }),
         }
       },
     }),
@@ -115,7 +115,7 @@ export function kindOf<D extends MachineDescriptor>(machine: MachineProvider<D>)
     ...(machine.credentials && { credentials: machine.credentials }),
     ...(machine.doctor && { doctor: machine.doctor }),
     ...(machine.planWarnings && { planWarnings: machine.planWarnings }),
-    ...(machine.attemptCap && { attemptCap: machine.attemptCap }),
+    ...(machine.trialCap && { trialCap: machine.trialCap }),
     ...(machine.slotsPerMachine && { slotsPerMachine: machine.slotsPerMachine }),
     ...(machine.slotNetworks && { slotNetworks: machine.slotNetworks }),
     ...(machine.preparesImage && { preparesImage: machine.preparesImage }),

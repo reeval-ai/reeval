@@ -4,7 +4,7 @@ REEVAL v0.16.1
   ➜  Profile:   smoke
   ➜  Agent:     cursor:composer-2.5 (effort: none)
   ➜  Sandbox:   docker
-  ➜  Scope:     1 eval file · 1 eval · 4 cells · 4 attempts (budget: 15 ✓)
+  ➜  Scope:     1 eval file · 1 eval · 4 cells · 4 trials (budget: 15 ✓)
   ➜  Est. Time: ~3m 48s (concurrency: 8) · ~15m 10s (serial)
   ➜  Record:    .reeval/runs/20261029T144346Z_77bb468_elliot-hesp_72sn.json
 
@@ -15,8 +15,9 @@ REEVAL v0.16.1
               aren't comparable over time. Pin a tag or SHA (the resolved commit is recorded either
               way).
 
-  ℹ  Hint:    1 compare runs once per cell; below 4 runs a side its lift shows only a direction and
-              its effort can't be tested (profile smoke's limit.runs caps it; --runs 4 replaces it)
+  ℹ  Hint:    1 compare runs once per cell; below 4 trials a side its lift shows only a direction
+              and its effort can't be tested (profile smoke's limit.runs caps it; --trials 4
+              replaces it)
 
   ◆  Preparing 1 sandbox (docker)...
   ✓  docker ready 12s

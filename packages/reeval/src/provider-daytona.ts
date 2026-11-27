@@ -1,4 +1,4 @@
-// `reeval/provider/daytona`: Daytona sandboxes that run each attempt's sandbox. This module only
+// `reeval/provider/daytona`: Daytona sandboxes that run each trial's sandbox. This module only
 // describes them; Daytona's SDK (`@daytona/sdk`, an optional peer) loads in the worker that starts
 // one.
 import {
@@ -41,7 +41,7 @@ export function createDaytona(
 
 /**
  * Daytona sandboxes, on the organization whose key is in `DAYTONA_API_KEY`, as the config's or a
- * profile's `provider`. Each attempt runs in a Daytona sandbox built from its `docker()`
+ * profile's `provider`. Each trial runs in a Daytona sandbox built from its `docker()`
  * sandbox's image recipe, reeval's sandbox image without one; credentials stay on the host behind
  * the egress gateway. Needs `npm i @daytona/sdk` and `egress: 'allow-all'`.
  */

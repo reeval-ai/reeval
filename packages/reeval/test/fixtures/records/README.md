@@ -80,6 +80,7 @@ loading. The `reeval.config.ts` follows the config API like any other project.
 | `before-targets` | The corpus project's fake-harness runs from before `evals[].target` and `scores` on evals, cells and case cells (each eval's target, and its mean score, pass@k and pass^k), when evals set `gate` |
 | `with-graders` | The fake harness with code, built-in and judge graders, and the `report.json` built when it was recorded: `evals[].attempts[].grades` of each `kind`, grades that are booleans, numbers, strings and arrays, record-only grades (`score: null`), a judge's `judge.calls` across two models and a judge shown a case's reference (`fingerprint.reference`) |
 | `with-regrades` | A fake-harness run of one eval with code, judge and built-in graders (a record-only code grader among them), every attempt's artifacts kept, and a `reeval regrade` file in `<run>/regrades/` (`RegradeRecord`) from after they changed: the code grader recomputed, the judge's score map and a built-in's `required` re-scored, a new built-in computed and the removed grader kept; read with the regrade applied (`evals[].attempts[].regraded`, `regrades`) |
+| `before-trials` | The corpus project's fake-harness runs from before the rename of attempts to trials and of control to baseline (`evals[].attempts`, `plan.attempts`, a cell's `role: 'control'` and `controlRate`, run-record version 2, and the event stream's `attempt` header and `attempts` heartbeat) |
 
 What reads them:
 

@@ -1,10 +1,10 @@
-// A three-arm skill study shaped like the FirebaseUI one that motivated reeval's study analysis:
-// no skill (the control), a current skill that shows only email sign-in, and a new skill whose
+// A three-environment skill study shaped like the FirebaseUI one that motivated reeval's study analysis:
+// no skill (the baseline), a current skill that shows only email sign-in, and a new skill whose
 // reference documents the social button too. The fake agent reads what its skill points at,
 // digs in node_modules when nothing does, and writes social sign-in unless the current skill is
-// all it has. Per-call fake judges score from the diff: Social OAuth separates the arms,
+// all it has. Per-call fake judges score from the diff: Social OAuth separates the environments,
 // Anonymous upgrade and MFA fail everywhere (the prompt never asks for them), the rest pass.
-// Compare questions go to the first-shown attempt whenever the two arms wrote the same thing.
+// Compare questions go to the first-shown trial whenever the two environments wrote the same thing.
 
 const SKILLS = '~/.agents/skills'
 const email = `import { EmailSignInForm } from '@fui/react'
@@ -21,7 +21,7 @@ const b64 = (t: string) => Buffer.from(t).toString('base64')
 export type StudyOptions = {
   /** Gates the variants with `target: regression()`; a study reports only. */
   gated?: boolean
-  runs?: number
+  trials?: number
   /** `analysis` config body, after `model:`'s fake. */
   output?: string
   instructions?: string
@@ -93,7 +93,7 @@ const judgeOf = (has: RegExp | null) =>
   fakeJudge({ score: (s) => (has?.test(JSON.stringify(s)) ? 0.94 : 0.12) })
 export default defineEval({
   compare: {
-    control: noSkill,
+    baseline: noSkill,
     variants: [currentSkill${options.oneVariant ? '' : ', newSkill'}],
   },
   ${target}
@@ -105,7 +105,7 @@ export default defineEval({
       diff: true,
     },
   ],
-  runs: ${options.runs ?? 3},
+  trials: ${options.trials ?? 3},
   graders: RUBRIC.map(([name, q, has]) =>
     judge(q, { name: name.toLowerCase().replaceAll(' ', '-'), inputs: { diff: true }, model: judgeOf(has) }),
   ),

@@ -26,7 +26,7 @@ Every example takes the real agents in [`profiles.ts`](./profiles.ts) by name: `
 | [`with-multi-turn`](./with-multi-turn) | A session with a follow-up turn |
 | [`with-cases`](./with-cases) | One task over a list of cases |
 | [`with-skip`](./with-skip) | Evals sharing the config's options, and one skipped with a reason |
-| [`with-background-process`](./with-background-process) | A server started in the attempt and called over HTTP |
+| [`with-background-process`](./with-background-process) | A server started in the trial and called over HTTP |
 
 ## Judges
 
@@ -59,7 +59,7 @@ Every example takes the real agents in [`profiles.ts`](./profiles.ts) by name: `
 | [`with-skill-sources`](./with-skill-sources) | Skills from git, a registry, npm and inline |
 | [`with-rules`](./with-rules) | Project rules the agent should follow |
 | [`with-fixture`](./with-fixture) | Seeding the workspace from files in the example |
-| [`with-git-workspace`](./with-git-workspace) | Starting every attempt from a pinned repository |
+| [`with-git-workspace`](./with-git-workspace) | Starting every trial from a pinned repository |
 | [`with-setup`](./with-setup) | Setup steps that run before the agent starts |
 | [`with-extend-environment`](./with-extend-environment) | Layering one environment on another |
 | [`with-env`](./with-env) | Plain variables for the sandbox |
@@ -93,12 +93,12 @@ Every example takes the real agents in [`profiles.ts`](./profiles.ts) by name: `
 | Example | Shows |
 |---|---|
 | [`with-skill-lift`](./with-skill-lift) | Whether a skill helps |
-| [`with-compare-control`](./with-compare-control) | A compare that names its control |
+| [`with-compare-baseline`](./with-compare-baseline) | A compare that names its baseline |
 | [`with-min-lift`](./with-min-lift) | Failing a run when a variant doesn't clearly help |
 | [`with-two-variants`](./with-two-variants) | One convention handed over two ways |
 | [`with-rules-ab`](./with-rules-ab) | Which of two rules files works better |
-| [`with-compare-questions`](./with-compare-questions) | Asking a model which arm did better |
-| [`with-compare-agents`](./with-compare-agents) | A compare on one agent, a control on another |
+| [`with-compare-questions`](./with-compare-questions) | Asking a model which environment did better |
+| [`with-compare-agents`](./with-compare-agents) | A compare on one agent, a baseline on another |
 | [`with-case-lift`](./with-case-lift) | A lift pooled over an eval's cases |
 | [`with-effort`](./with-effort) | A skill's effect on effort |
 | [`with-skill-reads`](./with-skill-reads) | Whether the agent opened the skill's files |
@@ -120,7 +120,7 @@ Every example takes the real agents in [`profiles.ts`](./profiles.ts) by name: `
 | [`with-tags`](./with-tags) | Running a slice of your evals |
 | [`with-history`](./with-history) | Recording runs and comparing two |
 | [`with-github-pr-gate`](./with-github-pr-gate) | A pull request check that fails on a regression |
-| [`with-concurrency`](./with-concurrency) | Running attempts in parallel |
+| [`with-concurrency`](./with-concurrency) | Running trials in parallel |
 
 ## Results
 

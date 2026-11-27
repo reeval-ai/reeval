@@ -1,10 +1,10 @@
 import { readFile, stat } from 'node:fs/promises'
 import { join, posix } from 'node:path'
 import type {
-  AskedAttemptAnswer,
   AskedCall,
   AskedQuestion,
   AskedScreenshot,
+  AskedTrialAnswer,
   SettledQuestions,
 } from '../compare/questions.ts'
 import { UNRECORDED_QUESTION_STATE } from '../compare/state.ts'
@@ -19,7 +19,7 @@ import {
   resolvedEffortOf,
   servedEffortOf,
 } from '../harness/effort.ts'
-import { attemptId, attemptKey, evalSlug, recordFileName, sha256 } from '../ids.ts'
+import { evalSlug, recordFileName, sha256, trialId, trialKey } from '../ids.ts'
 import { DEFAULT_THRESHOLD, judgeModelName } from '../judge/index.ts'
 import { collapseDependencies, patchForJudge } from '../judge/patch.ts'
 import { mergeJudge } from '../judge/state-options.ts'
@@ -28,25 +28,23 @@ import {
   majorityOf,
   plannedSandboxes,
   profileJudge,
-  runsOf,
   sandboxId,
+  trialsOf,
 } from '../options.ts'
 import type { RunPlan } from '../plan.ts'
 import type { SandboxVersions } from '../preflight.ts'
 import { redactJsonText, redactSecrets, redactSplitSecrets } from '../redact.ts'
 import {
-  isCompletedAttempt,
-  isKeptAttempt,
+  isCompletedTrial,
+  isKeptTrial,
   type LeftOut,
-  previousAttempt,
+  previousTrial,
   readRetries,
 } from '../resume.ts'
 import { containsZero, liftInterval, round3 } from '../stats.ts'
 import { targetOfGates, thresholdOf } from '../target.ts'
 import { formatDuration } from '../text.ts'
 import type {
-  AttemptAnswer,
-  AttemptQuestionInput,
   Cell,
   CellGate,
   DecisionRecord,
@@ -69,6 +67,8 @@ import type {
   RunContext,
   Snapshot,
   TrajectoryEvent,
+  TrialAnswer,
+  TrialQuestionInput,
   WebEventType,
 } from '../types.ts'
 import { promptTokens, sumUsage } from '../usage.ts'
@@ -93,9 +93,6 @@ import { familiesOf, pooledPassRate } from './families.ts'
 import { mergeOutcome } from './outcome.ts'
 import { FINGERPRINT_SCOPE, judgeVersion, packageVersions, WORKTREE_PATCH_LIMIT } from './state.ts'
 import {
-  type AttemptFiles,
-  type AttemptRecord,
-  type AttemptRetry,
   type CellRecord,
   type ContextFile,
   type Cost,
@@ -115,6 +112,9 @@ import {
   SCHEMA_VERSION,
   type Stack,
   type SubagentRecord,
+  type TrialFiles,
+  type TrialRecord,
+  type TrialRetry,
   WORKSPACE_ARCHIVE,
   WORKSPACE_MANIFEST,
 } from './types.ts'
@@ -147,8 +147,8 @@ export function turnText(text: string): string {
 }
 
 /** Tokens across every turn that reported them. */
-function costOf(attempts: AttemptRecord[]): Cost {
-  const usage = sumUsage(attempts.map((a) => a.usage))
+function costOf(trials: TrialRecord[]): Cost {
+  const usage = sumUsage(trials.map((a) => a.usage))
   if (!usage) {
     return { inputTokens: null, outputTokens: null, usage: null, source: 'unreported' }
   }
@@ -171,16 +171,16 @@ export type AssembleInput = {
   startedAt: Date
   endedAt: Date
   interrupted: boolean
-  /** `budget.duration` stopped new attempts from starting. */
+  /** `budget.duration` stopped new trials from starting. */
   budgetReached: boolean
   plan: RunPlan
   author: string
-  /** A resumed interrupted/budget record, so completed attempts keep their evidence. */
+  /** A resumed interrupted/budget record, so completed trials keep their evidence. */
   previous?: RunRecord | null
   /** Artifact directory of `previous`, when it was moved aside into staging. */
   previousArtifacts?: string | null
   /**
-   * Attempts the run planned that a filtered resume left out: kept as they were, or as not run,
+   * Trials the run planned that a filtered resume left out: kept as they were, or as not run,
    * so a run with any not done stays incomplete.
    */
   leftOut?: readonly LeftOut[]
@@ -196,7 +196,7 @@ export type AssembleInput = {
   worktreePatch: Buffer | null
   lockfiles: RunRecord['dependencies']['lockfiles']
   runner: RunnerInfo
-  /** Each eval's pairwise answers by eval id, and each attempt's own answers by its key. */
+  /** Each eval's pairwise answers by eval id, and each trial's own answers by its key. */
   answers?: SettledQuestions
   invocation?: RunInvocation
   /**
@@ -249,7 +249,7 @@ const harnessModel = (h: HarnessDescriptor) => (h.kind === 'fake' ? null : (h.mo
 
 /**
  * The harness's part of a fingerprint: its descriptor, less the operational limits, and less the
- * fake harness's `failWith`, its stand-in for an outage, which a retry of the attempt outlives.
+ * fake harness's `failWith`, its stand-in for an outage, which a retry of the trial outlives.
  */
 export const harnessPart = (harness: HarnessDescriptor | undefined) => {
   if (!harness) return sha256('null')
@@ -263,8 +263,8 @@ export const harnessPart = (harness: HarnessDescriptor | undefined) => {
 export const fingerprintOf = (parts: FingerprintParts) => sha256(JSON.stringify(parts))
 
 /**
- * The score a `regression()` or `capability()` attempt passes at, as a fingerprint part: it decides
- * each attempt's outcome, which no gate re-scores. None at 1, so such a cell keeps its fingerprint;
+ * The score a `regression()` or `capability()` trial passes at, as a fingerprint part: it decides
+ * each trial's outcome, which no gate re-scores. None at 1, so such a cell keeps its fingerprint;
  * an older record's `metric` threshold is its gate's.
  */
 export const thresholdPart = (
@@ -327,18 +327,18 @@ export class Artifacts {
   }
 }
 
-/** A screenshot with its attempt's id resolved to the capture's path in the record. */
-function screenshotRef(s: AskedScreenshot, byId: Map<string, AttemptRecord>): QuestionScreenshot {
+/** A screenshot with its trial's id resolved to the capture's path in the record. */
+function screenshotRef(s: AskedScreenshot, byId: Map<string, TrialRecord>): QuestionScreenshot {
   if ('missing' in s) return s
-  const { attempt, ...shot } = s
-  const ref = byId.get(attempt)?.files.artifacts?.find((a) => a.name === s.name)
+  const { trial, ...shot } = s
+  const ref = byId.get(trial)?.files.artifacts?.find((a) => a.name === s.name)
   return ref ? { ...shot, path: ref.path } : shot
 }
 
-/** The answer, with what its model was sent saved as `questions/<n>.json` beside the eval's attempts. */
+/** The answer, with what its model was sent saved as `questions/<n>.json` beside the eval's trials. */
 function withInput(e: EvalEntry, { n, answer, calls }: AskedQuestion, out: Artifacts) {
   if (!calls.length) return answer
-  const byId = new Map(e.attempts.map((a) => [a.id, a]))
+  const byId = new Map(e.trials.map((a) => [a.id, a]))
   const call = ({ screenshots, ...rest }: AskedCall): QuestionCall => ({
     ...rest,
     ...(screenshots ? { screenshots: screenshots.map((s) => screenshotRef(s, byId)) } : {}),
@@ -353,17 +353,17 @@ function withInput(e: EvalEntry, { n, answer, calls }: AskedQuestion, out: Artif
   return { ...answer, input: out.json(`${e.slug}/questions/${n}.json`, doc) }
 }
 
-/** An attempt's own answer, with what its model was sent saved as `questions/<n>.json` in its directory. */
-function withAttemptInput(
+/** A trial's own answer, with what its model was sent saved as `questions/<n>.json` in its directory. */
+function withTrialInput(
   e: EvalEntry,
-  a: AttemptRecord,
-  { n, answer, call }: AskedAttemptAnswer,
+  a: TrialRecord,
+  { n, answer, call }: AskedTrialAnswer,
   out: Artifacts,
-): AttemptAnswer {
+): TrialAnswer {
   if (!call) return answer
   const { screenshots, ...rest } = call
   const byId = new Map([[a.id, a]])
-  const doc: AttemptQuestionInput = {
+  const doc: TrialQuestionInput = {
     question: answer.question,
     model: answer.model,
     stateOptions: answer.stateOptions,
@@ -455,7 +455,7 @@ export function trajectoryLines(record: EvalRecord): string {
   return `${lines.join('\n')}\n`
 }
 
-/** What the attempt's `c.decide()` calls used, apart from the agent's usage and cost. */
+/** What the trial's `c.decide()` calls used, apart from the agent's usage and cost. */
 function decisionUse(decisions: readonly DecisionRecord[]): DecisionUseSpend {
   const costs = decisions.flatMap((d) => (d.costUsd === undefined ? [] : [d.costUsd]))
   return {
@@ -482,7 +482,7 @@ function clipped(text: string): string {
 
 const TOOL_LIKE = new Set(['tool', 'file-edit', 'web-search', 'web-fetch'])
 
-/** The subagents each turn spawned, numbered across the attempt, with their events counted. */
+/** The subagents each turn spawned, numbered across the trial, with their events counted. */
 function subagentRecords(turns: EvalRecord['turns']): SubagentRecord[] {
   let n = 0
   return turns.flatMap((t, turn) =>
@@ -514,7 +514,7 @@ export function llmCalls(turns: EvalRecord['turns'], stepPerCall: boolean): numb
   return steps.some((n) => n > 0) ? steps.reduce((n, s) => n + s, 0) : null
 }
 
-function activity(record: EvalRecord, stepPerCall: boolean): AttemptRecord['activity'] {
+function activity(record: EvalRecord, stepPerCall: boolean): TrialRecord['activity'] {
   const events = record.turns.flatMap((t) => t.trajectory)
   const count = (type: string) => events.filter((e) => e.type === type).length
   const web = (type: WebEventType) => {
@@ -598,7 +598,7 @@ export function execLineOf(c: EvalRecord['checks'][number]): ExecLine {
 }
 
 /**
- * The attempt's kept workspace, its archive moved from its staging sidecar and its manifest added
+ * The trial's kept workspace, its archive moved from its staging sidecar and its manifest added
  * to `files`; none past the run's cap, or when the sidecar is gone.
  */
 export async function placeWorkspace(
@@ -606,7 +606,7 @@ export async function placeWorkspace(
   dir: string,
   out: Artifacts,
   stagingRecord: string | undefined,
-  files: AttemptFiles,
+  files: TrialFiles,
   runLimit = RUN_WORKSPACE_LIMIT,
 ): Promise<KeptWorkspace> {
   if (kept.skipped) return kept
@@ -639,7 +639,7 @@ export async function placeWorkspace(
 }
 
 /**
- * The attempt's observations as recorded: each value's sha256 of its JSON as finally masked, and
+ * The trial's observations as recorded: each value's sha256 of its JSON as finally masked, and
  * a large one's file moved from its staging sidecar to `observations/<n>.json`.
  */
 async function placeObservations(
@@ -681,7 +681,7 @@ export function historyPatch(patch: string): string {
 export function changedFiles(
   files: FileChange[],
   patch?: string | null,
-): AttemptRecord['changedFiles'] {
+): TrialRecord['changedFiles'] {
   const lines = new Map(
     (patch ? splitPatch(patch) : []).map((p) => [p.path, { added: p.added, removed: p.removed }]),
   )
@@ -708,10 +708,10 @@ function judgeInputs(record: EvalRecord, diff: string | null, diffPath: string) 
   })
 }
 
-/** What the run's attempts have in common, gathered while their records are read. */
+/** What the run's trials have in common, gathered while their records are read. */
 class Seen {
-  /** Each attempt's earlier infra errors, from staging's `retries.json`, by key. */
-  retries = new Map<string, AttemptRetry[]>()
+  /** Each trial's earlier infra errors, from staging's `retries.json`, by key. */
+  retries = new Map<string, TrialRetry[]>()
   readonly sources = new Map<string, EvalEntry['sources']>()
   readonly byEval = new Map<string, EvalEntry>()
   readonly contexts = new Map<string, ContextFile>()
@@ -725,7 +725,7 @@ class Seen {
   readonly resolvedHarnesses = new Map<string, Set<string>>()
   /** Every pair `where` left out of a pooled family, by family id, from its cases' plans. */
   readonly familyExcluded = new Map<string, ExcludedPair[]>()
-  /** Keys of the attempts kept from the previous record on resume. */
+  /** Keys of the trials kept from the previous record on resume. */
   readonly kept = new Set<string>()
   /** Registry digests found by the preflight, by image id. */
   readonly digests: Map<string, string[]>
@@ -747,8 +747,8 @@ class Seen {
       const key = `${record.environment.name}\0${record.environment.digest}`
       this.environments.set(key, record.environment)
     }
-    if (e.attempt) {
-      const h = e.attempt.harness
+    if (e.trial) {
+      const h = e.trial.harness
       this.harnesses.set(cell.harness, {
         id: cell.harness,
         kind: h.kind,
@@ -762,12 +762,12 @@ class Seen {
   }
 
   /**
-   * A kept attempt has no worker record left, so what `add` reads from one comes from the
+   * A kept trial has no worker record left, so what `add` reads from one comes from the
    * previous record instead: its image, environment, context files and resolved models.
    */
   addKept(
     previous: RunRecord,
-    kept: AttemptRecord,
+    kept: TrialRecord,
     cell: Cell,
     environmentDigest: string | null,
     planned: boolean,
@@ -808,10 +808,10 @@ class Seen {
         file: e.file,
         group: e.group,
         name: e.name,
-        tags: e.attempt?.tags ?? [],
-        ...(e.attempt?.plan.compare ? { compare: e.attempt.plan.compare } : {}),
-        ...(e.attempt?.family ? { family: familyOf(e.attempt.family) } : {}),
-        ...(e.attempt?.plan.excluded ? { excluded: e.attempt.plan.excluded } : {}),
+        tags: e.trial?.tags ?? [],
+        ...(e.trial?.plan.compare ? { compare: e.trial.plan.compare } : {}),
+        ...(e.trial?.family ? { family: familyOf(e.trial.family) } : {}),
+        ...(e.trial?.plan.excluded ? { excluded: e.trial.plan.excluded } : {}),
         fingerprint: '',
         sources,
         ...(from.source ? { source: from.source } : {}),
@@ -819,14 +819,14 @@ class Seen {
         outcome: 'skipped',
         todo: e.todo === true,
         ...(e.skip ? { skip: true as const } : {}),
-        ...(e.attempt?.target ? { target: e.attempt.target } : {}),
+        ...(e.trial?.target ? { target: e.trial.target } : {}),
         passRate: null,
         cells: [],
-        attempts: [],
+        trials: [],
       }
       this.byEval.set(e.id, entry)
     }
-    const familyExcluded = e.attempt?.plan.familyExcluded
+    const familyExcluded = e.trial?.plan.familyExcluded
     if (entry.family && familyExcluded) this.familyExcluded.set(entry.family.id, familyExcluded)
     return entry
   }
@@ -844,7 +844,7 @@ const UNKNOWN_CELL: Cell = {
   harness: 'unknown',
   environment: 'unknown',
   sandbox: 'unknown',
-  role: 'control',
+  role: 'baseline',
 }
 
 /** A cell known only by its key, `<harness>/<environment>/<sandbox>`. */
@@ -856,10 +856,10 @@ const cellOfKey = (key: string): Cell => ({
   sandbox: key.split('/')[2]?.replace(/#\d+$/, '') ?? 'unknown',
 })
 
-/** minLift per cell, kept aside while attempts are added; see `rollUp`. */
+/** minLift per cell, kept aside while trials are added; see `rollUp`. */
 const minLifts = new WeakMap<CellRecord, number>()
 
-/** Cells whose fingerprint came from an attempt that ran, not one that was skipped. */
+/** Cells whose fingerprint came from a trial that ran, not one that was skipped. */
 const measured = new WeakSet<CellRecord>()
 
 const EMPTY_PARTS: FingerprintParts = {
@@ -894,7 +894,7 @@ function cellOf(
       effort: harness ? (harnessEffort(harness) ?? null) : null,
       gate,
       overrides: [],
-      runs: 0,
+      trials: 0,
       pass: 0,
       fail: 0,
       infraError: 0,
@@ -930,10 +930,10 @@ async function copyRef(
   return out.add(ref.path, Buffer.from(bytes).toString('utf8'))
 }
 
-/** A completed attempt from a previous assemble of this runId, kept on resume. */
-async function addPreviousAttempt(
-  e: Pick<EngineEval, 'id' | 'key' | 'file' | 'group' | 'name' | 'attempt'>,
-  kept: AttemptRecord,
+/** A completed trial from a previous assemble of this runId, kept on resume. */
+async function addPreviousTrial(
+  e: Pick<EngineEval, 'id' | 'key' | 'file' | 'group' | 'name' | 'trial'>,
+  kept: TrialRecord,
   seen: Seen,
   out: Artifacts,
   judge: JudgeFingerprint,
@@ -943,7 +943,7 @@ async function addPreviousAttempt(
   const before = previous.evals.find((p) => p.id === e.id)
   const beforeCell = before?.cells.find((c) => c.key === kept.cell)
   const cell: Cell =
-    e.attempt?.cell ??
+    e.trial?.cell ??
     (beforeCell && {
       key: beforeCell.key,
       harness: beforeCell.harness,
@@ -954,14 +954,14 @@ async function addPreviousAttempt(
     }) ??
     cellOfKey(kept.cell)
   const sources = before?.sources ?? []
-  const { source, revision } = e.attempt ?? before ?? {}
+  const { source, revision } = e.trial ?? before ?? {}
   const stub: EngineEval = {
     id: e.id,
     key: e.key,
     file: e.file,
     group: e.group,
     name: e.name,
-    attempt: e.attempt,
+    trial: e.trial,
     state: 'skipped',
     durationMs: kept.durationMs,
     errors: [],
@@ -971,37 +971,37 @@ async function addPreviousAttempt(
     ...(before?.skip ? { skip: true as const } : {}),
   }
   seen.add(null, cell, stub)
-  seen.addKept(previous, kept, cell, beforeCell?.environmentDigest ?? null, e.attempt !== undefined)
+  seen.addKept(previous, kept, cell, beforeCell?.environmentDigest ?? null, e.trial !== undefined)
   const entry = seen.entry(stub, sources, { source, revision })
   // Unplanned this time, the case keeps the pairs `where` left it out of.
-  if (!e.attempt && !entry.excluded && before?.excluded) entry.excluded = before.excluded
+  if (!e.trial && !entry.excluded && before?.excluded) entry.excluded = before.excluded
   if (!entry.target && before?.target) entry.target = before.target
   const created = !entry.cells.some((c) => c.key === cell.key)
   const cellRecord = cellOf(
     entry,
     cell,
-    e.attempt?.gate ?? beforeCell?.gate ?? 'all',
-    e.attempt?.harness,
-    e.attempt?.gateway,
-    e.attempt ? e.attempt.bestOf : beforeCell?.bestOf,
+    e.trial?.gate ?? beforeCell?.gate ?? 'all',
+    e.trial?.harness,
+    e.trial?.gateway,
+    e.trial ? e.trial.bestOf : beforeCell?.bestOf,
   )
-  if (created && beforeCell && !e.attempt) {
+  if (created && beforeCell && !e.trial) {
     cellRecord.harnessKind = beforeCell.harnessKind
     cellRecord.model = beforeCell.model
     cellRecord.effort = beforeCell.effort
     if (beforeCell.gateway !== undefined) cellRecord.gateway = beforeCell.gateway
   }
-  // Planned, the eval's own options decide; only an unplanned kept attempt reads the old gate.
-  const minLift = e.attempt
-    ? e.attempt.minLift
+  // Planned, the eval's own options decide; only an unplanned kept trial reads the old gate.
+  const minLift = e.trial
+    ? e.trial.minLift
     : (beforeCell?.lift?.minLift ??
       previous.families
         ?.find((f) => f.id === before?.family?.id)
         ?.lifts.find((l) => l.variant === kept.cell)?.minLift)
   if (minLift !== undefined) minLifts.set(cellRecord, minLift)
-  const files: AttemptFiles = {}
+  const files: TrialFiles = {}
   for (const [name, ref] of Object.entries(kept.files) as Array<
-    [keyof AttemptFiles, AttemptFiles[keyof AttemptFiles]]
+    [keyof TrialFiles, TrialFiles[keyof TrialFiles]]
   >) {
     if (!ref) continue
     if (Array.isArray(ref)) {
@@ -1055,7 +1055,7 @@ async function addPreviousAttempt(
         out,
       )
     : []
-  entry.attempts.push({
+  entry.trials.push({
     ...rest,
     seq: null,
     files,
@@ -1074,13 +1074,13 @@ async function addPreviousAttempt(
   } else {
     const parts: FingerprintParts = {
       sources: sourcesPart(source, revision, sources),
-      harness: harnessPart(e.attempt?.harness),
+      harness: harnessPart(e.trial?.harness),
       environment: cellRecord.environmentDigest,
       image: kept.imageId,
       agentCli: null,
       judge,
       context: sha256(JSON.stringify(kept.context)),
-      ...gatewayPart(e.attempt?.gateway),
+      ...gatewayPart(e.trial?.gateway),
       ...gatePart(cellRecord.gate),
       ...thresholdPart(entry.target),
     }
@@ -1089,11 +1089,11 @@ async function addPreviousAttempt(
   }
 }
 
-/** The earlier infra errors of an attempt that ran again, less the try its record still is. */
+/** The earlier infra errors of a trial that ran again, less the try its record still is. */
 function retriesOf(
-  retries: AttemptRetry[] | undefined,
+  retries: TrialRetry[] | undefined,
   record: EvalRecord | null,
-): Pick<AttemptRecord, 'retries'> {
+): Pick<TrialRecord, 'retries'> {
   const earlier = (retries ?? []).filter(
     (r) =>
       !(
@@ -1105,8 +1105,8 @@ function retriesOf(
   return earlier.length ? { retries: earlier } : {}
 }
 
-/** Reads one attempt's worker record, files its artifacts and adds it to its eval and cell. */
-async function addAttempt(
+/** Reads one trial's worker record, files its artifacts and adds it to its eval and cell. */
+async function addTrial(
   e: EngineEval,
   ctx: RunContext,
   seen: Seen,
@@ -1116,22 +1116,22 @@ async function addAttempt(
   previousArtifacts?: string | null,
   unplanned?: { cell: Cell; n: number },
 ): Promise<void> {
-  const cell = e.attempt?.cell ?? unplanned?.cell ?? UNKNOWN_CELL
-  const n = e.attempt?.n ?? unplanned?.n ?? 1
-  const kept = previousAttempt(previous, e.key)
+  const cell = e.trial?.cell ?? unplanned?.cell ?? UNKNOWN_CELL
+  const n = e.trial?.n ?? unplanned?.n ?? 1
+  const kept = previousTrial(previous, e.key)
   const record = await readRecord(join(ctx.stagingDir, 'evals', recordFileName(e.key)))
   // A resume or retry that ran an infra error again, then died before it assembled, left the
   // newer outcome in staging.
   const rerun =
-    kept?.outcome === 'infra_error' && !!record && isKeptAttempt(record.outcome, record.error)
+    kept?.outcome === 'infra_error' && !!record && isKeptTrial(record.outcome, record.error)
   if (
     previous &&
     e.state === 'skipped' &&
     kept &&
     !rerun &&
-    isCompletedAttempt(kept.outcome, kept.error)
+    isCompletedTrial(kept.outcome, kept.error)
   ) {
-    await addPreviousAttempt(e, kept, seen, out, judge, previous, previousArtifacts)
+    await addPreviousTrial(e, kept, seen, out, judge, previous, previousArtifacts)
     return
   }
   const { outcome, error } = mergeOutcome(e, record)
@@ -1139,22 +1139,22 @@ async function addAttempt(
     seen.sources.set(e.file, await evalFile(ctx.config.root, e.file))
   }
   const sources = seen.sources.get(e.file) ?? []
-  const source = e.attempt?.source
-  const revision = e.attempt?.revision
+  const source = e.trial?.source
+  const revision = e.trial?.revision
   const context = record?.context ?? []
   seen.add(record, cell, e)
   const entry = seen.entry(e, sources, { source, revision })
-  // An attempt that ran now saw the files as they are; a kept one may have created the entry.
+  // A trial that ran now saw the files as they are; a kept one may have created the entry.
   if (record) entry.sources = sources
   const cellRecord = cellOf(
     entry,
     cell,
-    e.attempt?.gate ?? 'all',
-    e.attempt?.harness,
-    e.attempt?.gateway,
-    e.attempt?.bestOf,
+    e.trial?.gate ?? 'all',
+    e.trial?.harness,
+    e.trial?.gateway,
+    e.trial?.bestOf,
   )
-  if (e.attempt?.minLift !== undefined) minLifts.set(cellRecord, e.attempt.minLift)
+  if (e.trial?.minLift !== undefined) minLifts.set(cellRecord, e.trial.minLift)
   if (record?.environment?.overrides.length && cellRecord.overrides.length === 0) {
     cellRecord.overrides = [...record.environment.overrides]
   }
@@ -1162,28 +1162,28 @@ async function addAttempt(
   if (environment && environment.name !== NO_ENVIRONMENT) {
     cellRecord.environmentDigest = environment.digest
   }
-  // Skipped attempts never ran, so they have no environment or image to fingerprint.
+  // Skipped trials never ran, so they have no environment or image to fingerprint.
   if (!cellRecord.fingerprint || record) {
     if (record) measured.add(cellRecord)
     const parts: FingerprintParts = {
       sources: sourcesPart(source, revision, sources),
-      harness: harnessPart(e.attempt?.harness),
+      harness: harnessPart(e.trial?.harness),
       environment: environment?.digest ?? null,
       image: record?.image?.id ?? record?.vmImage?.digest ?? record?.sandboxBase?.key ?? null,
       agentCli: record?.image?.agentCli ?? null,
       judge,
       context: sha256(JSON.stringify(context)),
-      ...gatewayPart(e.attempt?.gateway),
+      ...gatewayPart(e.trial?.gateway),
       ...gatePart(cellRecord.gate),
-      ...thresholdPart(e.attempt?.target),
+      ...thresholdPart(e.trial?.target),
     }
     cellRecord.fingerprintParts = parts
     cellRecord.fingerprint = fingerprintOf(parts)
   }
-  const kind = e.attempt?.harness.kind
-  entry.attempts.push({
-    key: attemptKey(entry.key, cell.key, n),
-    id: attemptId(cell.key, n),
+  const kind = e.trial?.harness.kind
+  entry.trials.push({
+    key: trialKey(entry.key, cell.key, n),
+    id: trialId(cell.key, n),
     cell: cell.key,
     n,
     seq: null,
@@ -1200,7 +1200,7 @@ async function addAttempt(
     ...(record?.upstreams?.length ? { upstreams: record.upstreams } : {}),
     ...(record?.reportedCostUsd !== undefined ? { reportedCostUsd: record.reportedCostUsd } : {}),
     ...(record?.secretWarnings?.length ? { secretWarnings: record.secretWarnings } : {}),
-    effort: e.attempt ? (harnessEffort(e.attempt.harness) ?? null) : null,
+    effort: e.trial ? (harnessEffort(e.trial.harness) ?? null) : null,
     servedEffort:
       servedEffortOf([
         ...(record?.servedModels ?? []),
@@ -1211,7 +1211,7 @@ async function addAttempt(
     ...(record?.turnStatusRead !== undefined ? { turnStatusRead: record.turnStatusRead } : {}),
     durationMs: e.durationMs,
     ...retriesOf(seen.retries.get(e.key), record),
-    ...(await attemptEvidence(
+    ...(await trialEvidence(
       record,
       `${entry.slug}/${evalSlug(cell.key)}/${n}`,
       out,
@@ -1225,18 +1225,16 @@ async function addAttempt(
 const fileOf = (s: Snapshot) => (s.form === 'tar.gz' ? `${s.name}.tar.gz` : s.name)
 
 /**
- * The run's secret warnings: its attempts', each with its attempt's key; nothing when there's
+ * The run's secret warnings: its trials', each with its trial's key; nothing when there's
  * none.
  */
-function secretWarningsOf(attempts: readonly AttemptRecord[]): Pick<RunRecord, 'secretWarnings'> {
-  const all = attempts.flatMap((a) =>
-    (a.secretWarnings ?? []).map((w) => ({ ...w, attemptId: a.key })),
-  )
+function secretWarningsOf(trials: readonly TrialRecord[]): Pick<RunRecord, 'secretWarnings'> {
+  const all = trials.flatMap((a) => (a.secretWarnings ?? []).map((w) => ({ ...w, trialId: a.key })))
   return all.length ? { secretWarnings: all } : {}
 }
 
 /**
- * The attempt's snapshots with their paths in the run's directory, each moved there from where
+ * The trial's snapshots with their paths in the run's directory, each moved there from where
  * `place` says it waits; one whose files are gone (a resumed run's, from a run that kept none)
  * is dropped.
  */
@@ -1259,7 +1257,7 @@ async function placeSnapshots(
 }
 
 /** Turns, timings, activity, verdicts, checks and changed files, with their artifact files. */
-async function attemptEvidence(
+async function trialEvidence(
   record: EvalRecord | null,
   dir: string,
   out: Artifacts,
@@ -1267,7 +1265,7 @@ async function attemptEvidence(
   stepPerCall: boolean,
 ): Promise<
   Pick<
-    AttemptRecord,
+    TrialRecord,
     | 'turns'
     | 'usage'
     | 'timings'
@@ -1283,7 +1281,7 @@ async function attemptEvidence(
     | 'files'
   >
 > {
-  const files: AttemptFiles = {}
+  const files: TrialFiles = {}
   if (record?.setup?.length) {
     const log = record.setup
       .map(
@@ -1315,7 +1313,7 @@ async function attemptEvidence(
       )
       let capture = art.capture
       if (capture) {
-        // The staged `page` is relative to the attempt: placed again here, or dropped with its file.
+        // The staged `page` is relative to the trial: placed again here, or dropped with its file.
         const { page: _staged, ...meta } = capture
         capture =
           page === null
@@ -1450,21 +1448,21 @@ async function attemptEvidence(
   }
 }
 
-/** Lift of a variant cell over the control on the same harness and sandbox, with its interval. */
-function liftOf(control: CellRecord, variant: CellRecord, pooled: boolean): Lift | undefined {
-  if (control.passRate === null || variant.passRate === null) return undefined
+/** Lift of a variant cell over the baseline on the same harness and sandbox, with its interval. */
+function liftOf(baseline: CellRecord, variant: CellRecord, pooled: boolean): Lift | undefined {
+  if (baseline.passRate === null || variant.passRate === null) return undefined
   // A pooled family's minLift gates its pooled lift (`familiesOf`), not each case's.
   const minLift = pooled ? undefined : minLifts.get(variant)
-  const c = { pass: control.pass, counted: control.pass + control.fail }
+  const c = { pass: baseline.pass, counted: baseline.pass + baseline.fail }
   const v = { pass: variant.pass, counted: variant.pass + variant.fail }
   const scored = (cell: CellRecord, n: number) => (cell.scores?.meanScore ?? 0) * n
   const { points, low, high } = liftInterval(
     { pass: scored(variant, v.counted), n: v.counted },
-    { pass: scored(control, c.counted), n: c.counted },
+    { pass: scored(baseline, c.counted), n: c.counted },
   )
   return {
-    vs: control.key,
-    control: c,
+    vs: baseline.key,
+    baseline: c,
     variant: v,
     points: round3(points),
     interval: { lo: round3(low), hi: round3(high), level: 0.95, method: 'newcombe-wilson' },
@@ -1474,15 +1472,15 @@ function liftOf(control: CellRecord, variant: CellRecord, pooled: boolean): Lift
 }
 
 /**
- * Marks a best-of cell's attempts past its majority's first: `added` for one that ran, `skipped`
+ * Marks a best-of cell's trials past its majority's first: `added` for one that ran, `skipped`
  * for one the majority before it left unrun.
  */
-function markBestOf(cell: CellRecord, attempts: AttemptRecord[]): void {
+function markBestOf(cell: CellRecord, trials: TrialRecord[]): void {
   if (cell.bestOf === undefined) return
   const majority = majorityOf(cell.bestOf)
   let pass = 0
   let fail = 0
-  for (const a of attempts.filter((x) => x.cell === cell.key).sort((x, y) => x.n - y.n)) {
+  for (const a of trials.filter((x) => x.cell === cell.key).sort((x, y) => x.n - y.n)) {
     if (a.n > majority) {
       if (a.outcome !== 'skipped') a.bestOf = 'added'
       else if (pass >= majority || fail >= majority) a.bestOf = 'skipped'
@@ -1495,20 +1493,20 @@ function markBestOf(cell: CellRecord, attempts: AttemptRecord[]): void {
 /** A case of an eval with several cases, which pools its gates over them. */
 const pooled = (entry: EvalEntry) => (entry.family?.cases ?? 0) >= 2
 
-/** Per-cell and per-eval counts, pass rates, lift, outcomes and fingerprints, once every attempt is in. */
+/** Per-cell and per-eval counts, pass rates, lift, outcomes and fingerprints, once every trial is in. */
 function rollUp(evals: EvalEntry[]): void {
   for (const entry of evals) {
     for (const c of entry.cells) {
-      markBestOf(c, entry.attempts)
-      const attempts = entry.attempts.filter((a) => a.cell === c.key)
-      const outcomes = attempts.map((a) => a.outcome)
-      c.runs = outcomes.length
+      markBestOf(c, entry.trials)
+      const trials = entry.trials.filter((a) => a.cell === c.key)
+      const outcomes = trials.map((a) => a.outcome)
+      c.trials = outcomes.length
       c.pass = outcomes.filter((o) => o === 'pass').length
       c.fail = outcomes.filter((o) => o === 'fail').length
       c.infraError = outcomes.filter((o) => o === 'infra_error').length
       c.skipped = outcomes.filter((o) => o === 'skipped').length
       c.passRate = passRateOf(outcomes)
-      c.scores = scoresOf(attempts)
+      c.scores = scoresOf(trials)
       c.outcome = cellOutcome(
         outcomes,
         c.gate,
@@ -1518,11 +1516,11 @@ function rollUp(evals: EvalEntry[]): void {
     checkTallies(entry)
     for (const c of entry.cells) {
       if (c.role !== 'variant') continue
-      const control = entry.cells.find(
-        (x) => x.role === 'control' && x.harness === c.harness && x.sandbox === c.sandbox,
+      const baseline = entry.cells.find(
+        (x) => x.role === 'baseline' && x.harness === c.harness && x.sandbox === c.sandbox,
       )
-      if (control) discrimination(control, c)
-      const lift = control && liftOf(control, c, pooled(entry))
+      if (baseline) discrimination(baseline, c)
+      const lift = baseline && liftOf(baseline, c, pooled(entry))
       if (!lift) continue
       c.lift = lift
       if (lift.minLift !== undefined && lift.interval.lo < lift.minLift && c.outcome === 'pass') {
@@ -1537,9 +1535,7 @@ function rollUp(evals: EvalEntry[]): void {
       entry.verdict = 'family'
     } else delete entry.verdict
     const gated = new Set(entry.cells.filter((c) => c.gate !== 'none').map((c) => c.key))
-    entry.passRate = passRateOf(
-      entry.attempts.filter((a) => gated.has(a.cell)).map((a) => a.outcome),
-    )
+    entry.passRate = passRateOf(entry.trials.filter((a) => gated.has(a.cell)).map((a) => a.outcome))
     entry.scores = meanScores(targetCells(entry.cells).map((c) => c.scores))
     entry.target ??= targetOfGates(entry.cells.map((c) => c.gate))
     entry.fingerprint = sha256(
@@ -1547,7 +1543,7 @@ function rollUp(evals: EvalEntry[]): void {
     )
     for (const c of entry.cells) {
       const seen = new Map<string, { sha256: string; at?: string }>()
-      for (const a of entry.attempts.filter((x) => x.cell === c.key)) {
+      for (const a of entry.trials.filter((x) => x.cell === c.key)) {
         const prompt = a.turns[0]?.prompt
         if (!prompt) continue
         const digest = sha256(prompt)
@@ -1558,20 +1554,20 @@ function rollUp(evals: EvalEntry[]): void {
   }
 }
 
-/** The run's tallies over its unfolded evals' attempts. */
+/** The run's tallies over its unfolded evals' trials. */
 function summaryOf(evals: EvalEntry[]): RunSummary {
-  const attempts = evals.flatMap((e) => e.attempts)
-  const count = (o: Outcome) => attempts.filter((a) => a.outcome === o).length
-  const ungatedOf = (a: AttemptRecord) => {
-    const e = evals.find((x) => x.attempts.includes(a))
+  const trials = evals.flatMap((e) => e.trials)
+  const count = (o: Outcome) => trials.filter((a) => a.outcome === o).length
+  const ungatedOf = (a: TrialRecord) => {
+    const e = evals.find((x) => x.trials.includes(a))
     return e?.cells.find((c) => c.key === a.cell)?.gate === 'none'
   }
-  const notGated = attempts.filter((a) => ungatedOf(a) && a.outcome === 'fail').length
-  const gatedPass = attempts.filter((a) => !ungatedOf(a) && a.outcome === 'pass').length
-  const gatedFail = attempts.filter((a) => !ungatedOf(a) && a.outcome === 'fail').length
-  const ungatedPass = attempts.filter((a) => ungatedOf(a) && a.outcome === 'pass').length
-  const ungatedFail = attempts.filter((a) => ungatedOf(a) && a.outcome === 'fail').length
-  const reclassified = attempts.filter(
+  const notGated = trials.filter((a) => ungatedOf(a) && a.outcome === 'fail').length
+  const gatedPass = trials.filter((a) => !ungatedOf(a) && a.outcome === 'pass').length
+  const gatedFail = trials.filter((a) => !ungatedOf(a) && a.outcome === 'fail').length
+  const ungatedPass = trials.filter((a) => ungatedOf(a) && a.outcome === 'pass').length
+  const ungatedFail = trials.filter((a) => ungatedOf(a) && a.outcome === 'fail').length
+  const reclassified = trials.filter(
     (a) =>
       a.outcome === 'infra_error' &&
       (a.turnStatusRead === false ||
@@ -1579,7 +1575,7 @@ function summaryOf(evals: EvalEntry[]): RunSummary {
   ).length
   return {
     evals: evals.length,
-    attempts: attempts.length,
+    trials: trials.length,
     pass: count('pass'),
     fail: count('fail'),
     notGated,
@@ -1593,8 +1589,8 @@ function summaryOf(evals: EvalEntry[]): RunSummary {
 }
 
 /**
- * A recorded run with its attempts' outcomes and scores changed, rolled up again: its cells,
- * lifts, evals, families and summary, as assembly would have from those attempts.
+ * A recorded run with its trials' outcomes and scores changed, rolled up again: its cells,
+ * lifts, evals, families and summary, as assembly would have from those trials.
  */
 export function rerollRecord(record: RunRecord): RunRecord {
   const unfolded = unfoldCases(record)
@@ -1621,11 +1617,11 @@ export function rerollRecord(record: RunRecord): RunRecord {
   })
 }
 
-/** Start order across the run, by when each attempt's worker began it. */
+/** Start order across the run, by when each trial's worker began it. */
 function sequence(evals: EvalEntry[]): void {
   const started = evals
-    .flatMap((e) => e.attempts)
-    .filter((a): a is AttemptRecord & { startedAt: string } => a.startedAt !== null)
+    .flatMap((e) => e.trials)
+    .filter((a): a is TrialRecord & { startedAt: string } => a.startedAt !== null)
     .sort((a, b) =>
       a.startedAt < b.startedAt ? -1 : a.startedAt > b.startedAt ? 1 : a.key < b.key ? -1 : 1,
     )
@@ -1761,7 +1757,7 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
       sandbox: withoutCaps(config.sandbox),
       environment:
         config.environments.length > 1 ? config.environments : (config.environments[0] ?? null),
-      runs: config.runs,
+      trials: config.trials,
       env: config.env,
       judge: withoutCaps(config.judge),
       timeoutMs: config.timeoutMs,
@@ -1771,32 +1767,32 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
   seen.retries = readRetries(ctx.stagingDir)
   const { part: judge } = judgePart(config, profile, input.reeval, input.enginePackages)
   for (const e of engine.evals)
-    await addAttempt(e, ctx, seen, out, judge, input.previous, input.previousArtifacts)
+    await addTrial(e, ctx, seen, out, judge, input.previous, input.previousArtifacts)
   if (input.previous) {
     const have = new Set(
-      [...seen.byEval.values()].flatMap((entry) => entry.attempts.map((a) => a.key)),
+      [...seen.byEval.values()].flatMap((entry) => entry.trials.map((a) => a.key)),
     )
     for (const entry of input.previous.evals) {
-      for (const a of entry.attempts) {
-        if (have.has(a.key) || !isCompletedAttempt(a.outcome, a.error)) continue
+      for (const a of entry.trials) {
+        if (have.has(a.key) || !isCompletedTrial(a.outcome, a.error)) continue
         const stub: EngineEval = {
           id: entry.id,
           key: a.key,
           file: entry.file,
           group: entry.group,
           name: entry.name,
-          attempt: undefined,
+          trial: undefined,
           state: 'skipped',
           durationMs: a.durationMs,
           errors: [],
           formattedErrors: [],
           meta: undefined,
         }
-        await addPreviousAttempt(stub, a, seen, out, judge, input.previous, input.previousArtifacts)
+        await addPreviousTrial(stub, a, seen, out, judge, input.previous, input.previousArtifacts)
       }
     }
   }
-  const added = new Set([...seen.byEval.values()].flatMap((e) => e.attempts.map((a) => a.key)))
+  const added = new Set([...seen.byEval.values()].flatMap((e) => e.trials.map((a) => a.key)))
   for (const l of input.leftOut ?? []) {
     if (added.has(l.key)) continue
     const [, ...names] = l.evalId.split(' › ')
@@ -1806,18 +1802,18 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
       file: l.file,
       group: names.slice(0, -1),
       name: l.name,
-      attempt: undefined,
+      trial: undefined,
       state: 'skipped',
       durationMs: 0,
       errors: [],
       formattedErrors: [],
       meta: undefined,
     }
-    const was = previousAttempt(input.previous, l.key)
+    const was = previousTrial(input.previous, l.key)
     if (input.previous && was) {
-      await addPreviousAttempt(stub, was, seen, out, judge, input.previous, input.previousArtifacts)
+      await addPreviousTrial(stub, was, seen, out, judge, input.previous, input.previousArtifacts)
     } else {
-      await addAttempt(stub, ctx, seen, out, judge, null, null, { cell: cellOfKey(l.cell), n: l.n })
+      await addTrial(stub, ctx, seen, out, judge, null, null, { cell: cellOfKey(l.cell), n: l.n })
     }
   }
   const evals = [...seen.byEval.values()]
@@ -1836,8 +1832,8 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
   for (const e of evals) {
     const asked = input.answers?.evals.get(e.id)
     if (asked?.length) e.answers = asked.map((q) => withInput(e, q, out))
-    else if (e.attempts.length && e.attempts.every((a) => seen.kept.has(a.key))) {
-      // Every attempt is the previous record's, so its pairwise answers still describe them.
+    else if (e.trials.length && e.trials.every((a) => seen.kept.has(a.key))) {
+      // Every trial is the previous record's, so its pairwise answers still describe them.
       const before = input.previous?.evals.find((p) => p.id === e.id)?.answers ?? []
       const answers = []
       for (const q of before) {
@@ -1847,13 +1843,13 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
       }
       if (answers.length) e.answers = answers
     }
-    for (const a of e.attempts) {
-      const own = input.answers?.attempts.get(a.key)
-      if (own?.length) a.answers = own.map((q) => withAttemptInput(e, a, q, out))
+    for (const a of e.trials) {
+      const own = input.answers?.trials.get(a.key)
+      if (own?.length) a.answers = own.map((q) => withTrialInput(e, a, q, out))
     }
   }
 
-  const attempts = evals.flatMap((e) => e.attempts)
+  const trials = evals.flatMap((e) => e.trials)
   const retried = input.retry && input.previous ? input.previous : null
   const stack = stackOf(input, seen, judgeModel)
   const ids = (list: HarnessDescriptor | HarnessDescriptor[] | undefined) =>
@@ -1896,7 +1892,7 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
     ...(spans && { spans }),
     runner: input.runner,
     dependencies: retried ? retried.dependencies : { lockfiles: input.lockfiles },
-    // The images, harnesses and context a retried attempt saw are its cell's, which the retry
+    // The images, harnesses and context a retried trial saw are its cell's, which the retry
     // refuses to change; what ran them is the run's.
     stack: retried?.stack
       ? {
@@ -1924,7 +1920,7 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
               sandbox:
                 (profile.defaults.environments || profile.defaults.sandbox) &&
                 sandboxId(profileSandbox(config, profile.defaults)),
-              ...(profile.defaults.runs !== undefined ? runsOf(profile.defaults.runs) : {}),
+              ...(profile.defaults.trials !== undefined ? trialsOf(profile.defaults.trials) : {}),
               timeout: profile.defaults.timeout,
               env: profile.defaults.env && Object.keys(profile.defaults.env).sort(),
             }),
@@ -1938,7 +1934,7 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
       : {
           evals: input.plan.evals,
           cells: input.plan.cells,
-          attempts: input.plan.attempts,
+          trials: input.plan.trials,
           estimateMs: Math.round(input.plan.estimateMs),
           sandboxWarnings: input.plan.sandboxWarnings,
         },
@@ -1946,20 +1942,20 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
     config: {
       sandbox: plannedSandboxes(input.plan.sandboxes, profileSandbox(config, profile?.defaults)),
       environment: config.environments.map((e) => e.name).join(', ') || null,
-      ...(config.runs !== undefined ? runsOf(config.runs) : { runs: 1 }),
+      ...(config.trials !== undefined ? trialsOf(config.trials) : { trials: 1 }),
       judgeModel,
       threshold: DEFAULT_THRESHOLD,
       timeoutMs: config.timeoutMs,
       concurrency: input.ctx.concurrency,
       configHash,
     },
-    cost: costOf(attempts),
+    cost: costOf(trials),
     artifacts: 'all',
     redaction: { version: 1 },
     summary: summaryOf(evals),
     evals,
     ...(families.length ? { families } : {}),
-    ...secretWarningsOf(attempts),
+    ...secretWarningsOf(trials),
     ...(engine.unhandledErrors.length
       ? { errors: engine.unhandledErrors.map((e) => redactSecrets(e)) }
       : {}),
@@ -1969,19 +1965,19 @@ export async function assembleRun(input: AssembleInput): Promise<AssembledRun> {
   return { record: final, artifacts: out.files, moves: out.moves, copies: out.copies }
 }
 
-/** Each attempt's trajectory in the config's `exports` formats, beside it. */
+/** Each trial's trajectory in the config's `exports` formats, beside it. */
 function writeExports(run: RunRecord, formats: ExportFormat[], out: Artifacts): void {
   if (!formats.length) return
-  for (const attempt of run.evals.flatMap((e) => e.attempts)) {
-    const path = attempt.files.trajectory?.path
+  for (const trial of run.evals.flatMap((e) => e.trials)) {
+    const path = trial.files.trajectory?.path
     const bytes = path && out.files.get(path)
     if (!bytes) continue
     const lines = parseTrajectory(Buffer.from(bytes).toString('utf8'))
     for (const format of formats) {
       const { file, render } = EXPORTERS[format]
-      attempt.files[format] = out.add(
+      trial.files[format] = out.add(
         posix.join(posix.dirname(path), file),
-        render(run, attempt, lines),
+        render(run, trial, lines),
       )
     }
   }

@@ -24,12 +24,12 @@ export type CliInvocation = {
   unhandledErrors: string[]
 }
 
-export type ReportAttempt = {
+export type ReportTrial = {
   key: string
   outcome: string
   error: { kind: string; message: string } | null
   turnErrors: string[]
-  /** The debug files kept for the attempt, relative to its `.reeval/debug` directory. */
+  /** The debug files kept for the trial, relative to its `.reeval/debug` directory. */
   debugFiles: string[]
   /** The last lines of its debug.log. */
   debugLog: string[]
@@ -69,8 +69,8 @@ export type ReportBundle = {
     outcome: string
     summary: Record<string, number>
     stack: unknown
-    failures: ReportAttempt[]
-    /** More failing attempts than the report inlines. */
+    failures: ReportTrial[]
+    /** More failing trials than the report inlines. */
     moreFailures: number
   } | null
   runError: string | null

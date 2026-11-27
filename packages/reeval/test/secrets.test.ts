@@ -8,9 +8,9 @@ import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { describe, test } from 'node:test'
 import { docker, type Substitution } from '@reeval/sandbox-docker'
-import { recordFailure, stagedRecordJson, turnErrors } from '../src/attempt/record.ts'
-import { type Attempt, type AttemptSpec, createAttempt } from '../src/attempt/state.ts'
-import { AttemptDebug, withDebug } from '../src/debug/attempt.ts'
+import { TrialDebug, withDebug } from '../src/debug/trial.ts'
+import { recordFailure, stagedRecordJson, turnErrors } from '../src/trial/record.ts'
+import { createTrial, type Trial, type TrialSpec } from '../src/trial/state.ts'
 import '../src/debug/docker.ts'
 import { cursorMcpServers } from '@reeval/agents'
 import { type BrokeredSecret, resolveEnvironment } from '../src/environment/resolve.ts'
@@ -25,7 +25,7 @@ import { createFakeHarness } from '../src/harness/fake.ts'
 import { capText, OUTPUT_CAP, rawLines, turnError, turnText } from '../src/history/assemble.ts'
 import { findingLines, findingSummary, scanText } from '../src/history/secret-scan.ts'
 import { trajectoryForJudge } from '../src/judge/trajectory.ts'
-import type { PlannedAttempt } from '../src/options.ts'
+import type { PlannedTrial } from '../src/options.ts'
 import {
   brokeredIn,
   plainEnvError,
@@ -178,7 +178,7 @@ describe('resolving brokered secrets', () => {
     ])
   })
 
-  test('a value with a line break in it fails the attempt when it would go in a header', async () => {
+  test('a value with a line break in it fails the trial when it would go in a header', async () => {
     process.env.REEVAL_UNIT_WRAPPED = 'AQ.abc\n   │ def'
     try {
       await assert.rejects(
@@ -220,7 +220,7 @@ describe('resolving brokered secrets', () => {
     assert.equal(JSON.stringify(r.record).includes('API_KEY'), true)
   })
 
-  test('each attempt gets a fresh placeholder, and the digest stays the same', async () => {
+  test('each trial gets a fresh placeholder, and the digest stays the same', async () => {
     const input: EnvironmentInput = ({ secret }) => ({
       env: { API_KEY: secret.fromEnv('REEVAL_UNIT_BROKERED', { hosts: ['api.example.com'] }) },
     })
@@ -438,8 +438,8 @@ describe('resolving brokered secrets', () => {
     assert.notEqual(mixed.digest, everywhere.digest)
   })
 
-  test("the attempt's env lists a plain var a header's host variable shares a name with", async () => {
-    const p = await project('secrets-attempt-env', {
+  test("the trial's env lists a plain var a header's host variable shares a name with", async () => {
+    const p = await project('secrets-trial-env', {
       'reeval.config.ts': fakeConfig(),
       'evals/a.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 const env = defineEnvironment('shared-name', ({ secret, mcp }) => ({
@@ -647,8 +647,8 @@ describe('unbrokered secrets', () => {
     assert.deepEqual(unbrokeredSecrets({}, env.layers), [
       { label: 'mcp.local.headers.auth', from: 'LOCAL_TOKEN' },
     ])
-    const attempt = { sandbox: { kind: 'docker' }, environment: applied(env) } as PlannedAttempt
-    assert.deepEqual(brokeredIn({}, attempt), ['mcp.remote.headers.auth → auth.example.com'])
+    const trial = { sandbox: { kind: 'docker' }, environment: applied(env) } as PlannedTrial
+    assert.deepEqual(brokeredIn({}, trial), ['mcp.remote.headers.auth → auth.example.com'])
   })
 
   test('a later layer that brokers a variable leaves nothing unbrokered', () => {
@@ -690,8 +690,8 @@ describe('unbrokered secrets', () => {
         }),
       },
     }))
-    const attempt = { environment: applied(env) } as PlannedAttempt
-    assert.deepEqual(secretVarsIn({}, attempt), ['ACME_USER', 'ACME_PASS'])
+    const trial = { environment: applied(env) } as PlannedTrial
+    assert.deepEqual(secretVarsIn({}, trial), ['ACME_USER', 'ACME_PASS'])
     const https = defineEnvironment('e', ({ secret, mcp }) => ({
       mcp: {
         remote: mcp.http('https://mcp.example.com', {
@@ -701,7 +701,7 @@ describe('unbrokered secrets', () => {
       },
     }))
     const on = (kind: 'fake' | 'docker') =>
-      ({ sandbox: { kind }, environment: applied(https) }) as PlannedAttempt
+      ({ sandbox: { kind }, environment: applied(https) }) as PlannedTrial
     assert.deepEqual(brokeredIn({}, on('docker')), ['mcp.remote.headers.auth → mcp.example.com'])
     assert.deepEqual(brokeredIn({}, on('fake')), [])
     assert.deepEqual(unbrokeredSecrets({}, env.layers), [
@@ -710,12 +710,12 @@ describe('unbrokered secrets', () => {
     ])
   })
 
-  test('only Docker attempts count', () => {
+  test('only Docker trials count', () => {
     const env = defineEnvironment('e', ({ secret }) => ({ env: { PLAIN: secret() } }))
-    const attempt = (kind: 'fake' | 'docker') =>
-      ({ sandbox: { kind }, environment: applied(env) }) as PlannedAttempt
-    assert.deepEqual(unbrokered({}, [attempt('fake')]), [])
-    assert.deepEqual(unbrokered({}, [attempt('docker'), attempt('docker')]), [
+    const trial = (kind: 'fake' | 'docker') =>
+      ({ sandbox: { kind }, environment: applied(env) }) as PlannedTrial
+    assert.deepEqual(unbrokered({}, [trial('fake')]), [])
+    assert.deepEqual(unbrokered({}, [trial('docker'), trial('docker')]), [
       { label: 'PLAIN', from: 'PLAIN' },
     ])
   })
@@ -1347,7 +1347,7 @@ describe('redacting a secret split across stream parts', () => {
     const before = process.env.ANTHROPIC_API_KEY
     process.env.ANTHROPIC_API_KEY = key
     try {
-      const debug = new AttemptDebug({ dir, verbosity: 0, traceLimit: 1024 * 1024 })
+      const debug = new TrialDebug({ dir, verbosity: 0, traceLimit: 1024 * 1024 })
       for (const line of textParts(reply)) debug.trace('harness', 'stream', JSON.parse(line), false)
       await debug.finish(true)
       const trace = readFileSync(join(dir, 'trace.ndjson'), 'utf8').trim().split('\n').slice(1)
@@ -1950,7 +1950,7 @@ describe('masking before shortening', () => {
         record: { error: null, judgements: [], outcome: 'pass' },
         signal: new AbortController().signal,
         judgeThrown: new Set(),
-      } as unknown as Attempt
+      } as unknown as Trial
       recordFailure(a, new Error(message), false)
       assert.match(a.record.error?.message ?? '', /characters cut/)
       assert.match(a.record.error?.message ?? '', /password=\[RED/)
@@ -1972,7 +1972,7 @@ describe('masking before shortening', () => {
     'an oversized trace entry is masked before its head is kept',
     withSecret(async () => {
       const dir = tempDir('trace-head')
-      const debug = new AttemptDebug({ dir, verbosity: 0, traceLimit: 1024 * 1024 })
+      const debug = new TrialDebug({ dir, verbosity: 0, traceLimit: 1024 * 1024 })
       // The entry's head is the first 64 KB of `{"text":"…"}`: the secret starts 4 characters before it ends.
       const text = `${'x'.repeat(64 * 1024 - 23)} password=${secret} ${'y'.repeat(300 * 1024)}`
       debug.trace('harness', 'big', { text }, false)
@@ -1985,7 +1985,7 @@ describe('masking before shortening', () => {
   )
 
   test(
-    "a docker command's output is masked before the attempt's trace clips it",
+    "a docker command's output is masked before the trial's trace clips it",
     withSecret(async () => {
       // A `docker` on the PATH whose stdout puts the secret across the trace's 4096-character clip.
       const bin = tempDir('trace-docker')
@@ -1998,7 +1998,7 @@ describe('masking before shortening', () => {
       writeFileSync(join(bin, 'docker.cmd'), '@node "%~dp0docker.js" %*\r\n')
       const dir = tempDir('trace-docker-debug')
       const shown: string[] = []
-      const debug = new AttemptDebug({
+      const debug = new TrialDebug({
         dir,
         verbosity: 2,
         traceLimit: 1024 * 1024,
@@ -2202,11 +2202,11 @@ test("a fake agent's failed bootstrap quotes its output's end masked before it's
   })
 })
 
-test("an attempt's progress leaves it masked, but its kind: a check's command, a warning", () => {
+test("a trial's progress leaves it masked, but its kind: a check's command, a warning", () => {
   const token = 'ghp_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8'
   const sent: unknown[] = []
-  const a = createAttempt(
-    {} as AttemptSpec,
+  const a = createTrial(
+    {} as TrialSpec,
     new AbortController().signal,
     (p) => sent.push(p),
     () => Promise.reject(new Error('not started')),

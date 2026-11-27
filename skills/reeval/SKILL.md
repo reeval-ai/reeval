@@ -28,16 +28,16 @@ compare a skill, fix a config, read a failure. Read a reference file when the ta
 | [references/config.md](references/config.md) | Harness factories and their keys, `effort`, judge models, `reeval.yaml`, path rules, where the sandbox comes from, imports, the options cascade |
 | [references/evals.md](references/evals.md) | `cases` and `where`, `target`, `toStayWithin`, `c.serve`, `c.writeFile` hidden tests, the judge's inputs, the judge's input size, judge errors, every matcher |
 | [references/capture.md](references/capture.md) | Web UIs: `c.capture()` screenshots, `instructions` journeys, `artifacts` on judges and questions |
-| [references/compare.md](references/compare.md) | `compare` beyond the example below: the control, gates, lift and effort, labeled checks, `questions`, `skill_files` |
+| [references/compare.md](references/compare.md) | `compare` beyond the example below: the baseline, gates, lift and effort, labeled checks, `questions`, `skill_files` |
 | [references/environments.md](references/environments.md) | Environments: skills, files, rules, MCP servers, `git()` workspaces, `directory()`, Docker sandboxes, secrets, egress |
 | [references/cli.md](references/cli.md) | The CLI beyond `run`: `query` views, `explain`, `show`, `compare`, `record`, `studio`, `mcp`, filters, exit codes |
 | [references/mistakes.md](references/mistakes.md) | An error message from reeval you need to map to its fix (the full table) |
 | [../eval-rubric/SKILL.md](../eval-rubric/SKILL.md) | A `Worth knowing:` list after a run, or reviewing an eval's name, prompts and judge questions: one section per remark kind, with its fix |
 
-Use reeval's terms in code and messages: eval (`defineEval`), attempt (one run of a cell;
-`runs: n`), harness (`cursor()`, …), cell (harness × environment × sandbox), control and variant,
-lift (variant mean score − control mean score, 95% interval), target, graders and judge, trajectory, effort
-(measured tool calls, agent time, tokens). Not "trial" or "baseline/treatment";
+Use reeval's terms in code and messages: eval (`defineEval`), trial (one run of a cell;
+`trials: n`), harness (`cursor()`, …), cell (harness × environment × sandbox), baseline and variant,
+lift (variant mean score − baseline mean score, 95% interval), target, graders and judge, trajectory, effort
+(measured tool calls, agent time, tokens). Not "attempt" or "control/treatment";
 [references/vocabulary.md](references/vocabulary.md) maps other frameworks' words to these.
 
 ## Workflow
@@ -67,7 +67,7 @@ npx reeval run
    exits 2 before asking; `--force` replaces only `reeval.config.ts`. Otherwise it only adds:
    it merges into `package.json` and `.gitignore` and skips any other file that exists. Or write
    `reeval.config.ts` and `evals/**/*.eval.ts` (the default `include`) yourself.
-3. `npx reeval run --dry-run` prints the plan (evals, cells, attempts, time and a cost range)
+3. `npx reeval run --dry-run` prints the plan (evals, cells, trials, time and a cost range)
    without running anything and needs no credentials or Docker. `--dry-run --json` for a program
    to read.
 4. For real agents, and before any `tart()` run (a run never pulls its macOS image; `tart()`
@@ -79,12 +79,12 @@ npx reeval run
    `npx reeval run`. Exit 0 means no eval missed a blocking target. `npx reeval run --json` prints the
    results as one JSON document on stdout (each check `ran` or `not run`, each variant's
    `effect`), with the progress on stderr.
-5. Read failures in the summary, then `.reeval/runs/<run>/summary.md` and each attempt's directory
+5. Read failures in the summary, then `.reeval/runs/<run>/summary.md` and each trial's directory
    (`trajectory.jsonl`, `diff.patch`, `checks/<n>.log`, `judge-input.json`, `setup.log`).
-   `npx reeval run -v` prints a timestamped trace per attempt; `.reeval/debug/` keeps it.
-   Each attempt's whole final workspace is in its directory there, under `snapshots/final/`, to
+   `npx reeval run -v` prints a timestamped trace per trial; `.reeval/debug/` keeps it.
+   Each trial's whole final workspace is in its directory there, under `snapshots/final/`, to
    read or run what the agent built.
-   `npx reeval query "SELECT … FROM failing_attempts"` names each failed attempt's first failed
+   `npx reeval query "SELECT … FROM failing_trials"` names each failed trial's first failed
    check (more views in [references/cli.md](references/cli.md)).
 
 Always rerun `--dry-run` after editing: config mistakes are exit-2 usage errors with a precise
@@ -101,8 +101,8 @@ export default defineConfig({
   agents: cursor({ model: 'composer-2.5' }), // model required; CURSOR_API_KEY
   // no default judge model; pin versions
   judge: { model: 'typesafe-ai/jev-1.14.0', threshold: 0.8 },
-  // runs: attempts per cell; unset, 1, or 4 for a compare with variants
-  timeout: '15m',                             // per attempt
+  // trials per cell; unset, 1, or 4 for a compare with variants
+  timeout: '15m',                             // per trial
 })
 ```
 
@@ -128,14 +128,14 @@ export default defineConfig({
   (the built-in graders and `judge`), `/sandbox`
   (`docker`, `fakeSandbox`), `/judge` (`fakeJudge`, `RECOMMENDED_JUDGE_MODEL`). There is no `test`, `describe`, `baseline`, `secret` or `skill` export.
 - `defineConfig` and each eval's `defineEval` take the same options (`agents`, `sandbox`,
-  `environment`, `env`, `judge`, `runs`, `target`, `timeout`, `tags`, …); profile `defaults` apply
+  `environment`, `env`, `judge`, `trials`, `target`, `timeout`, `tags`, …); profile `defaults` apply
   first unless the eval sets `pin`. Options are plain objects, never functions. Unknown
-  keys are errors with a hint (`repeat` → "Did you mean runs?"), and type errors in a
+  keys are errors with a hint (`repeat` → "Did you mean trials?"), and type errors in a
   `defineConfig` object.
-- `runs: { bestOf: 5 }` (odd, 3 or more) stops each cell once attempts that reach the target's
-  threshold, or those that don't, have a majority (3 to 5 attempts) and gates on it. Use it to settle a flaky pass/fail for less than a
-  fixed count; not on an eval with `compare` (refused: lift needs equal attempts), and a cell
-  only reaches `flaky_cells`' 6-attempt `flaky` in one run from `bestOf: 7`.
+- `trials: { bestOf: 5 }` (odd, 3 or more) stops each cell once trials that reach the target's
+  threshold, or those that don't, have a majority (3 to 5 trials) and gates on it. Use it to settle a flaky pass/fail for less than a
+  fixed count; not on an eval with `compare` (refused: lift needs equal trials), and a cell
+  only reaches `flaky_cells`' 6-trial `flaky` in one run from `bestOf: 7`.
 - An eval's fingerprint reads its own body, options, case and `revision`, not
   helpers, constants outside the body or fixtures. After changing one of those in a way that
   changes what the eval measures, bump `revision` (`{ revision: 2 }` on the eval)
@@ -221,7 +221,7 @@ export default defineEval({
   `{ trajectory: 'tools' }`. `turns` only selects; details in
   [references/evals.md](references/evals.md). Prefer deterministic checks for what can be checked; use the judge for quality, with plain
   yes/no questions that don't name one specific way of doing it.
-- A judge grader whose provider fails after its retries, or that times out, ends the attempt
+- A judge grader whose provider fails after its retries, or that times out, ends the trial
   `infra_error`, which `--retry-errors` runs again; one the model refuses, or answers malformed,
   scores 0 with its `error`, and the other graders still run.
 - Make the eval trustworthy. Before a real run, swap in the fake harness, and only the harness,
@@ -249,13 +249,13 @@ export default defineEval({
   Guard files with `notInDiff(globs)`. Gitignored files don't appear in the diff, so use
   `hasFile()` to check them. Name a grader with its `name` option:
   `hasFile('greet.js', /export/, { name: 'exports greet' })`.
-- The task fails the attempt when it throws: a plain `assert` or an `EvalError` ends it there.
-  Thrown errors (the body's own, a dead sandbox, a timeout) end the attempt.
+- The task fails the trial when it throws: a plain `assert` or an `EvalError` ends it there.
+  Thrown errors (the body's own, a dead sandbox, a timeout) end the trial.
 
 ## Environments and compare
 
 An environment is what the agent runs *in*: skills, files, rules, MCP servers, env vars, setup
-steps and the workspace's starting code. `compare` runs the same eval in a control and each
+steps and the workspace's starting code. `compare` runs the same eval in a baseline and each
 variant and reports lift.
 
 ```ts
@@ -270,7 +270,7 @@ const houseStyle = plain.extendEnvironment('house-style', ({ skill }) => ({
 }))
 
 export default defineEval({
-  compare: { control: plain, variants: [houseStyle] },
+  compare: { baseline: plain, variants: [houseStyle] },
   graders: [succeeded('greets Ada')],
   task: async (c) => {
     await c.send('Create greet.js exporting greet(name) in our house style.')
@@ -285,34 +285,34 @@ export default defineEval({
   `mcp: { docs: mcp.stdio('npx', ['-y', '@acme/docs-mcp@1.0.0']) }`,
   `setup: [{ run: 'npm ci', timeout: '5m' }]`. More in
   [references/environments.md](references/environments.md).
-- Attempts = evals × agents × (1 control + variants) × runs. The example is 1 eval, 2 cells
-  (`<harness>/plain/<sandbox>` control, `<harness>/house-style/<sandbox>` variant), 8 attempts:
-  without `runs`, a compare runs 4 a cell, the fewest whose lift often holds (with `cases`, once a
-  case: the lift pairs cases). A `runs` below 4 shows
-  only the direction, with a `too-few-tries` remark; `runs: 1` at any level or a profile's `limit.runs: 1` keeps a smoke run cheap.
+- Trials = evals × agents × (1 baseline + variants) × trials per cell. The example is 1 eval, 2 cells
+  (`<harness>/plain/<sandbox>` baseline, `<harness>/house-style/<sandbox>` variant), 8 trials:
+  without `trials`, a compare runs 4 a cell, the fewest whose lift often holds (with `cases`, once a
+  case: the lift pairs cases). A `trials` below 4 shows
+  only the direction, with a `too-few-trials` remark; `trials: 1` at any level or a profile's `limit.trials: 1` keeps a smoke run cheap.
 - Each variant runs as that environment on its own; `compare` does not layer, inherit or
-  extend. Share setup with `parent.extendEnvironment(name, spec)` before `compare`. `control` is
-  required, and `environments` beside `compare` is an error: the control goes in `compare`.
-- Only variant cells gate; a control's misses don't fail the run. Below four tries a
+  extend. Share setup with `parent.extendEnvironment(name, spec)` before `compare`. `baseline` is
+  required, and `environments` beside `compare` is an error: the baseline goes in `compare`.
+- Only variant cells gate; a baseline's misses don't fail the run. Below four trials a
   side each variant's effect is only a direction; from four, the block adds an effort table
-  (median tools, time, tokens per arm), which often shows a skill's effect first. In a compare,
+  (median tools, time, tokens per environment), which often shows a skill's effect first. In a compare,
   keep independent requirements as separate graders, not an `EvalError` thrown from the task, so each gets a score.
 - `questions: [{ question: 'How did the agent pick its greeting?', trajectory: true }]` beside
-  `compare` asks a model about each attempt as it ends (`choices: ['yes', 'no']` for a pick); an
+  `compare` asks a model about each trial as it ends (`choices: ['yes', 'no']` for a pick); an
   entry with `across: 'environment'` (and, say, `diff: true`) asks which side did better, pair by
   pair, after the run. Each entry turns on at least one input, as on `judge()`, except `contents`. Questions
   never gate and need a language model. Details, gates,
-  `minLift` and `reeval query skill_files` (which skill files each attempt opened) are in
+  `minLift` and `reeval query skill_files` (which skill files each trial opened) are in
   [references/compare.md](references/compare.md).
 
 ## CLI
 
 ```text
-reeval run [filter...]   --dry-run [--json] --runs <n> --tag <t> --trait <k=v> --profile <p>
+reeval run [filter...]   --dry-run [--json] --trials <n> --tag <t> --trait <k=v> --profile <p>
                          --config <path> --record --ui plain -v
 reeval show [run]        reeval history         reeval compare [base] [head]
 reeval query lift        reeval query effort
-reeval query "SELECT … FROM failing_attempts"
+reeval query "SELECT … FROM failing_trials"
 reeval explain           reeval studio          reeval image build      reeval doctor
 ```
 
@@ -333,10 +333,10 @@ remark's whole sentence); `-v` expands every eval. Then the tally
 (`Done in 12s · 3 evals · 1 on target · 1 below · 1 report only`; an `error:` outside any eval, such as a stray rejection in an eval file, is
 `1 run error` and fails the run; an eval with the default `target: capability()` is `report only`, never on
 target or below, so read its mean and rows for how it went). `Worth knowing:` under an eval names what about it needs work
-(a flaky check, too few tries, a slow MCP server), with the line to fix, from fixed rules with no
+(a flaky check, too few trials, a slow MCP server), with the line to fix, from fixed rules with no
 model; they never change a verdict or the exit code, and go in `remarks.json` beside the run. The
 eval rubric ([../eval-rubric/SKILL.md](../eval-rubric/SKILL.md)) explains each kind. `summary.md`
-and `reeval show` print the full result blocks, a table per arm and check.
+and `reeval show` print the full result blocks, a table per environment and check.
 
 Every command uses the nearest `reeval.config.*` (or `reeval.yaml`) in the current directory or
 above, or `--config <path>`. Runs land in `.reeval/runs/`. All views, `explain` and the MCP
@@ -347,9 +347,9 @@ server: [references/cli.md](references/cli.md).
 | Mistake | Fix |
 |---|---|
 | `compare` in `reeval.config.ts` | Put it on the eval's `defineEval` |
-| `environments: [a, b]` to measure b, or `compare: [b]` | `compare: { control: a, variants: [b] }` |
-| `compare: { baseline: a, … }` | `compare: { control: a, … }` |
-| `repeat: 3` / `times` | `runs: 3` |
+| `environments: [a, b]` to measure b, or `compare: [b]` | `compare: { baseline: a, variants: [b] }` |
+| `compare: { baseline: a, … }` | `compare: { baseline: a, … }` |
+| `repeat: 3` / `times` | `trials: 3` |
 | Judge model `'gemini-3.8-flash'` | `'google/gemini-3.8-flash'` |
 | `cursor()` with `fakeSandbox()` | Use `fakeAgent()` or `docker()` |
 | Test file named `*.test.ts` | `*.eval.ts` under `evals/` |

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { reclassifyTurnErrors } from '../src/attempt/record.ts'
-import type { Attempt } from '../src/attempt/state.ts'
+import { reclassifyTurnErrors } from '../src/trial/record.ts'
+import type { Trial } from '../src/trial/state.ts'
 import { isLockfile } from '../src/view/patch.ts'
 import { turnErrorKind } from '../src/view/turn-error.ts'
 
@@ -33,7 +33,7 @@ test('reclassifyTurnErrors moves unhandled turn errors to infra_error', () => {
   const a = {
     turnStatusRead: false,
     record,
-  } as unknown as Attempt
+  } as unknown as Trial
   reclassifyTurnErrors(a)
   assert.equal(record.outcome, 'infra_error')
   assert.equal(record.turnStatusRead, false)
@@ -56,7 +56,7 @@ test('reclassifyTurnErrors keeps counted outcomes when status was read', () => {
   const a = {
     turnStatusRead: true,
     record,
-  } as unknown as Attempt
+  } as unknown as Trial
   reclassifyTurnErrors(a)
   assert.equal(record.outcome, 'pass')
   assert.equal(record.turnStatusRead, true)

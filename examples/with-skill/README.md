@@ -25,7 +25,7 @@ where it reads skills.
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** after a run, `skill_reads` says which skill each attempt opened, where it was
+**What to look at:** after a run, `skill_reads` says which skill each trial opened, where it was
 placed and how often it was read:
 
 ```bash

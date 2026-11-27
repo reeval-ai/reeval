@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import { callAnalysisModel, type ResolvedAnalysisModel } from '../src/analysis/model.ts'
-import type { PairAttempt } from '../src/compare/pairs.ts'
+import type { PairTrial } from '../src/compare/pairs.ts'
 import { answerQuestion } from '../src/compare/questions.ts'
 import { decideWithModel } from '../src/judge/model.ts'
 
@@ -52,9 +52,9 @@ describe('sampling parameters on anthropic/* models', () => {
   })
 
   test('compare questions', async () => {
-    const side = (arm: string): PairAttempt => ({
+    const side = (environment: string): PairTrial => ({
       harness: 'cursor:composer-2.5',
-      arm,
+      environment,
       run: 1,
       diff: '',
       checksPassed: true,

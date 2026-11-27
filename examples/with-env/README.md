@@ -24,7 +24,7 @@ Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../p
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** `pnpm eval -v` traces each attempt. Its `env` lines name the variables the
+**What to look at:** `pnpm eval -v` traces each trial. Its `env` lines name the variables the
 sandbox got (never their values) and the one the child overrides:
 
 ```text

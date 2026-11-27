@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { shellQuote } from '@reeval/sandbox-docker/process'
 import { globFilter } from '../environment.ts'
 import { canonicalJson } from '../eval-source.ts'
-import type { StoredAttempt } from '../history/stored-attempt.ts'
+import type { StoredTrial } from '../history/stored-trial.ts'
 import { sha256 } from '../ids.ts'
 import type { DraftSource } from '../judge/draft.ts'
 import type { Sandbox } from '../sandbox/types.ts'
@@ -12,12 +12,12 @@ import type { GradeJudge } from './judge.ts'
 import type { SandboxStarter } from './sandbox.ts'
 import type { GraderContext, GraderData, GraderSandbox, GraderTurn } from './types.ts'
 
-/** What an attempt's graders read: its case and turns, and what it left. */
+/** What a trial's graders read: its case and turns, and what it left. */
 export type GradeInputs = {
   case: Case
   turns: readonly GraderTurn[]
-  stored: StoredAttempt
-  /** The skills the attempt's environment placed, by name. */
+  stored: StoredTrial
+  /** The skills the trial's environment placed, by name. */
   skills: readonly string[]
   /** Starts a grader's `env` sandbox; a grader with `env` errors without it. */
   sandboxes?: SandboxStarter
@@ -103,14 +103,14 @@ export async function copyFiles(
   if (!workspace) {
     if (!run.files.some((p) => !p.startsWith('!'))) return []
     throw new GradeError(
-      `the attempt kept no workspace, so ${who(run)} has no files to copy into its sandbox`,
+      `the trial kept no workspace, so ${who(run)} has no files to copy into its sandbox`,
     )
   }
   const entries = workspace.manifest.files.filter((f) => f.target === undefined && mayRead(f.path))
   const files = await Promise.all(
     entries.map(async (f) => ({ path: f.path, content: await workspace.readFile(f.path) })),
   )
-  const { writeFiles } = await import('../attempt/session.ts')
+  const { writeFiles } = await import('../trial/session.ts')
   await writeFiles(
     box,
     files.flatMap((f) => (f.content ? [{ path: f.path, content: f.content }] : [])),
@@ -160,7 +160,7 @@ export function graderContext(
     if (!found) {
       if (options?.optional) return undefined
       throw new GradeError(
-        `the attempt made no c.observe("${name}", …). Pass { optional: true } to read it as undefined.`,
+        `the trial made no c.observe("${name}", …). Pass { optional: true } to read it as undefined.`,
       )
     }
     observations.set(name, { name, sha256: found.sha256 ?? sha256(JSON.stringify(found.value)) })
@@ -176,7 +176,7 @@ export function graderContext(
     async artifact(name) {
       const ref = stored.artifacts.find((a) => a.name === name)
       const png = ref && (await stored.readArtifact(name))
-      if (!ref || !png) throw new GradeError(`the attempt has no capture named "${name}"`)
+      if (!ref || !png) throw new GradeError(`the trial has no capture named "${name}"`)
       artifacts.set(name, { name, sha256: ref.sha256 })
       return { name, png, ...(ref.capture ? { capture: ref.capture } : {}) }
     },
@@ -188,12 +188,12 @@ export function graderContext(
         )
       }
       if (!stored.workspace) {
-        throw new GradeError(`the attempt kept no workspace, so ${path} can't be read`)
+        throw new GradeError(`the trial kept no workspace, so ${path} can't be read`)
       }
       const entry = stored.workspace.manifest.files.find((f) => f.path === path)
       const bytes = await stored.workspace.readFile(path)
       if (!entry || bytes === null) {
-        throw new MissingFileError(`the attempt's workspace has no file ${path}`)
+        throw new MissingFileError(`the trial's workspace has no file ${path}`)
       }
       files.set(path, { path, sha256: entry.sha256 ?? sha256(bytes) })
       return bytes.toString('utf8')

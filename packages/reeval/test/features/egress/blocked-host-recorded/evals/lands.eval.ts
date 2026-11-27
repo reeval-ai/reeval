@@ -1,7 +1,7 @@
 import { defineEval } from 'reeval'
 import { agentPrinted, listed } from './env.ts'
 
-// An unlisted host gets a refusal that says why, and the attempt goes on to its checks.
+// An unlisted host gets a refusal that says why, and the trial goes on to its checks.
 export default defineEval({
   environment: listed,
   graders: [

@@ -2,7 +2,7 @@ import { defineEval } from 'reeval'
 import { observed } from 'reeval/graders'
 
 export default defineEval({
-  runs: 4,
+  trials: 4,
   graders: [observed<string | null>('report', (text) => text === 'ok\n')],
   task: async (c) => {
     await c.send('Write build.js, which writes "ok" to dist/report.txt.')

@@ -1,4 +1,4 @@
-// An attempt's resources: the readings the sandbox's script prints, what they add up to, and the
+// A trial's resources: the readings the sandbox's script prints, what they add up to, and the
 // script itself run on this machine as a VM's would be.
 import assert from 'node:assert/strict'
 import { execFile, spawn } from 'node:child_process'
@@ -89,7 +89,7 @@ describe('resources', () => {
   })
 
   test('the average is never above the peak, however close the last reading comes', () => {
-    // Three seconds at 2.2 cores, then a fifth of a second at 2.3 as the attempt ends.
+    // Three seconds at 2.2 cores, then a fifth of a second at 2.3 as the trial ends.
     const readings = [0, 1, 2, 3].map((s) => at(s, s * 2_200_000))
     readings.push(at(3.21, 6_600_000 + 483_000))
     const u = summarize('container', { sandbox: 'docker' }, containerLimits, readings, {
@@ -192,7 +192,7 @@ describe('resources', () => {
     )
     assert.equal(
       runResourcesLine([one, one, undefined]),
-      'docker 2 vCPU 4.0 GiB: 2 attempts · CPU 2.0 s (avg 0.50, peak 0.50 cores) · memory peak 300 MiB',
+      'docker 2 vCPU 4.0 GiB: 2 trials · CPU 2.0 s (avg 0.50, peak 0.50 cores) · memory peak 300 MiB',
     )
     assert.equal(runResourcesLine([undefined]), null)
   })
@@ -243,7 +243,7 @@ describe('resources', () => {
     })
   })
 
-  test('the last reading waits for a sampler that starts after the attempt ended', {
+  test('the last reading waits for a sampler that starts after the trial ended', {
     skip: process.platform !== 'linux' && 'reads /proc',
   }, async (t) => {
     const calls = { kill: 0, run: 0 }

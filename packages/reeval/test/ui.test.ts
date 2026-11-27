@@ -6,10 +6,10 @@ import { dirname, join } from 'node:path'
 import { describe, test } from 'node:test'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { attach } from '../src/attach.ts'
-import { ATTEMPTS_HEARTBEAT_RANGE, EventStreamError, openEventStream } from '../src/events.ts'
+import { EventStreamError, openEventStream, TRIALS_HEARTBEAT_RANGE } from '../src/events.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { writeLiveProgress } from '../src/live.ts'
-import type { AttemptMeta } from '../src/types.ts'
+import type { TrialMeta } from '../src/types.ts'
 import { AgentRenderer } from '../src/ui/agent.ts'
 import { type ColorDepth, colors, stripAnsi } from '../src/ui/colors.ts'
 import type { EvalResult, Progress, ReevalEvent, RunHeader } from '../src/ui/events.ts'
@@ -34,7 +34,7 @@ const DEFAULT_FILE = 'evals/adds-a-default-name-in-a-follow-up-turn.eval.ts'
 
 const CELL = 'cursor:composer-2.5/-/docker'
 const keyOf = (id: string) => `${id} # ${CELL}#1`
-const attempt = (name: string, group: string[]): AttemptMeta => ({
+const trial = (name: string, group: string[]): TrialMeta => ({
   name,
   groups: group,
   tags: [],
@@ -43,14 +43,14 @@ const attempt = (name: string, group: string[]): AttemptMeta => ({
     harness: 'cursor:composer-2.5',
     environment: '-',
     sandbox: 'docker',
-    role: 'control',
+    role: 'baseline',
   },
   n: 1,
   label: '',
   harness: { kind: 'cursor', model: 'composer-2.5' },
   sandbox: { kind: 'docker' },
   gate: 'all',
-  plan: { harnesses: 1, variants: null, runs: 1, attempts: 1, notes: [], warnings: [] },
+  plan: { harnesses: 1, variants: null, trials: 1, totalTrials: 1, notes: [], warnings: [] },
 })
 
 const progress = (id: string, at: number, p: Omit<Progress, 'at'>): ReevalEvent =>
@@ -62,7 +62,7 @@ const greetResult: EvalResult = {
   file: GREET_FILE,
   group: [],
   name: GREET,
-  attempt: attempt(GREET, []),
+  trial: trial(GREET, []),
   state: 'passed',
   durationMs: 192_000,
   errors: [],
@@ -93,7 +93,7 @@ const defaultResult: EvalResult = {
   file: DEFAULT_FILE,
   group: [],
   name: DEFAULT,
-  attempt: attempt(DEFAULT, []),
+  trial: trial(DEFAULT, []),
   state: 'failed',
   durationMs: 363_000,
   errors: ['expected 1 to be 2 // Object.is equality'],
@@ -115,7 +115,7 @@ const record: RunRecord = {
   families: [],
 }
 
-/** Two attempts running at once, interleaved as they'd arrive with two workers. */
+/** Two trials running at once, interleaved as they'd arrive with two workers. */
 const interleaved: ReevalEvent[] = [
   {
     type: 'run-start',
@@ -141,13 +141,13 @@ const interleaved: ReevalEvent[] = [
       { id: DEFAULT, key: keyOf(DEFAULT), group: [], name: defaultResult.name, skipped: false },
     ],
   },
-  { type: 'eval-start', at: s(0), id: GREET, key: keyOf(GREET), attempt: greetResult.attempt },
+  { type: 'eval-start', at: s(0), id: GREET, key: keyOf(GREET), trial: greetResult.trial },
   {
     type: 'eval-start',
     at: s(1),
     id: DEFAULT,
     key: keyOf(DEFAULT),
-    attempt: defaultResult.attempt,
+    trial: defaultResult.trial,
   },
   progress(GREET, s(1), { kind: 'sandbox' }),
   progress(DEFAULT, s(2), { kind: 'sandbox' }),
@@ -261,23 +261,23 @@ function render(
 const lines = (...l: string[]) => `${l.join('\n')}\n`
 
 const LIST = [
-  ['✓ writes greet.js              mean 100% · 1/1 run at 100%            regression(1)'],
+  ['✓ writes greet.js              mean 100% · 1/1 trial at 100%            regression(1)'],
   [
-    '✗ greets in French             mean 0% · 0/1 run at 100%              regression(1)',
+    '✗ greets in French             mean 0% · 0/1 trial at 100%              regression(1)',
     '#1  0%  "french greeting" failed',
     '  expected command to succeed, exit code 1',
   ],
   [
-    '✗ explains why greet.js fails  mean 50% · 1/2 runs at 100%, worst 0%  regression(1)',
+    '✗ explains why greet.js fails  mean 50% · 1/2 trials at 100%, worst 0%  regression(1)',
     '#2  0%  "names the root cause" failed',
     "  expected 'Docker is down' to contain 'null'",
   ],
   [
-    '✗ reads the fixture repo       mean 0% · 0/1 run at 100%              regression(1)',
+    '✗ reads the fixture repo       mean 0% · 0/1 trial at 100%              regression(1)',
     '#1  0%  the fixture repo is missing',
   ],
   [
-    '· starts its sandbox           infra error                            regression(1)',
+    '· starts its sandbox           infra error                              regression(1)',
     '#1  infra error  the fake sandbox fell over',
   ],
   ['– greets in Welsh              skipped'],
@@ -310,11 +310,11 @@ const withLongMessage = JSON.parse(
 ) as ReevalEvent[]
 
 describe('plain renderer', () => {
-  test('grouped: start lines stream, each attempt prints as one block when it ends', () => {
+  test('grouped: start lines stream, each trial prints as one block when it ends', () => {
     assert.equal(
       render(interleaved, options()),
       lines(
-        "  ◆  Running; each attempt's logs print as it ends...",
+        "  ◆  Running; each trial's logs print as it ends...",
         '',
         '… 2 running after 1m 00s: [creates#1 cursor] agent turn 1 1m 00s, [adds#1 cursor] agent turn 1 59s',
         '… 2 running after 2m 00s: [creates#1 cursor] agent turn 1 2m 00s, [adds#1 cursor] agent turn 1 1m 59s',
@@ -354,7 +354,7 @@ describe('plain renderer', () => {
           ? e
           : {
               ...e,
-              attempts: e.attempts.map((a) => ({
+              trials: e.trials.map((a) => ({
                 ...a,
                 upstreams: [
                   { provider: 'Anthropic', calls: 2 },
@@ -379,7 +379,7 @@ describe('plain renderer', () => {
     const out = render(events, options()).split('\n')
     const row = out.findIndex((l) => l.startsWith('├─ ✓ writes greet.js'))
     assert.deepEqual(out.slice(row, row + 2), [
-      '├─ ✓ writes greet.js              mean 100% · 1/1 run at 100%            regression(1)',
+      '├─ ✓ writes greet.js              mean 100% · 1/1 trial at 100%            regression(1)',
       '│    Worth knowing: served by Anthropic 2 · Amazon Bedrock 1; judge served by Google 1',
     ])
   })
@@ -406,7 +406,7 @@ describe('plain renderer', () => {
     ])
   })
 
-  test('GitHub Actions: passing attempts collapse into groups, failures stay open and annotate', () => {
+  test('GitHub Actions: passing trials collapse into groups, failures stay open and annotate', () => {
     const out = render(interleaved, options({ githubActions: true, logPrefix: 'none' }))
     const block = out.slice(out.indexOf('::group::'), out.indexOf('\n', out.indexOf('::error')) + 1)
     assert.equal(
@@ -475,10 +475,10 @@ describe('plain renderer', () => {
       '::error file=evals/adds-a-default-name-in-a-follow-up-turn.eval.ts,line=33,title=adds-a-default-name-in-a-follow-up-turn%3A tests pass::tests pass: expected command to succeed, exit code 1',
       out[at + 5],
     ])
-    assert.doesNotMatch(out[at + 5] ?? '', /^::error/, 'one annotation per check, not the attempt')
+    assert.doesNotMatch(out[at + 5] ?? '', /^::error/, 'one annotation per check, not the trial')
   })
 
-  test("the attempt's own error is annotated too when it isn't one of its failed checks", () => {
+  test("the trial's own error is annotated too when it isn't one of its failed checks", () => {
     const long = `expected ${'x'.repeat(600)} to be 2`
     const thrown: EvalResult = {
       ...defaultResult,
@@ -515,7 +515,7 @@ describe('plain renderer', () => {
     }
     for (const [result, annotations, listed] of [
       [thrown, 2, 1],
-      // The failed check is the error itself, so it prints once, as the attempt's failure.
+      // The failed check is the error itself, so it prints once, as the trial's failure.
       [clipped, 1, 1],
     ] as const) {
       const events = interleaved.map((e) =>
@@ -527,7 +527,7 @@ describe('plain renderer', () => {
     }
   })
 
-  test('errors-only prints detail for failing attempts only', () => {
+  test('errors-only prints detail for failing trials only', () => {
     const out = render(interleaved, options({ outputLogs: 'errors-only', logOrder: 'stream' }))
     assert.doesNotMatch(out, /\[creates#1 cursor\] {2}\+/)
     assert.match(out, /\[adds#1 cursor\] {2}\+1:09 stdout \| seeding greet\.js/)
@@ -545,7 +545,7 @@ describe('plain renderer', () => {
     assert.doesNotMatch(out, /running after/)
   })
 
-  test('no line says how an attempt ended; with --output-logs none, nothing prints per attempt', () => {
+  test('no line says how a trial ended; with --output-logs none, nothing prints per trial', () => {
     for (const logOrder of ['stream', 'grouped'] as const) {
       const out = render(interleaved, options({ logOrder, outputLogs: 'none', heartbeatMs: 0 }))
       assert.equal(out, lines('  ◆  Running...', ...RESULT))
@@ -553,7 +553,7 @@ describe('plain renderer', () => {
     assert.doesNotMatch(render(interleaved, options({ logOrder: 'stream' })), / [✓✗] evals\//)
   })
 
-  test('with no attempt logs, a pipe gets a progress line on the heartbeat and the list at the end', () => {
+  test('with no trial logs, a pipe gets a progress line on the heartbeat and the list at the end', () => {
     const out = render(interleaved, options({ outputLogs: 'none' })).split('\n')
     assert.deepEqual(
       out.filter((line) => line.startsWith('…')),
@@ -572,15 +572,15 @@ describe('plain renderer', () => {
   test('on a terminal: one status line under the logs, rewritten in place, cleared before the result', () => {
     const out = render(interleaved, options({ statusLine: true, outputLogs: 'none' }))
     const clear = '\r\x1b[2K'
-    assert.ok(out.includes(`${clear}2 evals · 0/2 tries`), out)
-    assert.ok(out.includes(`${clear}2 evals · 1/2 tries`), out)
+    assert.ok(out.includes(`${clear}2 evals · 0/2 trials`), out)
+    assert.ok(out.includes(`${clear}2 evals · 1/2 trials`), out)
     assert.ok(
-      out.includes(`  ◆  Running...\n\n${clear}2 evals · 0/2 tries`) ||
-        out.includes(`  ◆  Running...\n\n${clear}1 eval · 0/1 tries`),
+      out.includes(`  ◆  Running...\n\n${clear}2 evals · 0/2 trials`) ||
+        out.includes(`  ◆  Running...\n\n${clear}1 eval · 0/1 trials`),
       out,
     )
     assert.ok(
-      out.includes(`${clear}2 evals · 2/2 tries${clear}evals/results.eval.ts`),
+      out.includes(`${clear}2 evals · 2/2 trials${clear}evals/results.eval.ts`),
       'no second gap above the list',
     )
     assert.doesNotMatch(out, /running after/)
@@ -588,7 +588,7 @@ describe('plain renderer', () => {
     const logs = render(interleaved, options({ statusLine: true, logOrder: 'stream' }))
     assert.ok(
       logs.includes(
-        `${clear}[adds#1 cursor]  +1:09 stdout | seeding greet.js\n2 evals · 0/2 tries`,
+        `${clear}[adds#1 cursor]  +1:09 stdout | seeding greet.js\n2 evals · 0/2 trials`,
       ),
       'a log line prints above the status line, which is drawn again under it',
     )
@@ -629,7 +629,7 @@ test('browser-download names the binary, version, size and cache', () => {
         },
       ],
     },
-    { type: 'eval-start', at: s(0), id: GREET, key: keyOf(GREET), attempt: greetResult.attempt },
+    { type: 'eval-start', at: s(0), id: GREET, key: keyOf(GREET), trial: greetResult.trial },
     progress(GREET, s(1), download),
   ]
   const plain = render(events, options({ logOrder: 'stream' }))
@@ -649,7 +649,7 @@ test('browser-download names the binary, version, size and cache', () => {
   )
 })
 
-test("a gateway warning prints as it happens, in the plain and agent output, on the attempt's line", () => {
+test("a gateway warning prints as it happens, in the plain and agent output, on the trial's line", () => {
   const text =
     "the egress gateway refused POST https://api.openai.com/v1/alpha/search: it carries OPENAI_API_KEY's placeholder and isn't one of the endpoints reeval brokers it for"
   const events: ReevalEvent[] = [
@@ -677,14 +677,14 @@ test("a gateway warning prints as it happens, in the plain and agent output, on 
         },
       ],
     },
-    { type: 'eval-start', at: s(0), id: GREET, key: keyOf(GREET), attempt: greetResult.attempt },
+    { type: 'eval-start', at: s(0), id: GREET, key: keyOf(GREET), trial: greetResult.trial },
     progress(GREET, s(1), { kind: 'turn-start', turn: 1 }),
     progress(GREET, s(2), { kind: 'warning', text }),
   ]
   const warned = /\] {2}\+0:02 warning: the egress gateway refused POST https:\/\/api\.openai/
   const plain = render(events, options({ logOrder: 'stream' }))
   assert.match(plain, warned)
-  // Grouped with errors-only, the attempt's block prints only if it fails; the warning doesn't wait.
+  // Grouped with errors-only, the trial's block prints only if it fails; the warning doesn't wait.
   const grouped = render(events, options({ logOrder: 'grouped', outputLogs: 'errors-only' }))
   assert.match(grouped, warned)
   assert.doesNotMatch(grouped, /turn 1 started/, 'the rest of the block is held')
@@ -701,7 +701,7 @@ test("a gateway warning prints as it happens, in the plain and agent output, on 
   assert.equal(phaseOf({ at: s(2), kind: 'warning', text }), 'running')
 })
 
-test("an attempt's failure in a line: the message without a plain Error's class, the judge's verdict, or canceled", () => {
+test("a trial's failure in a line: the message without a plain Error's class, the judge's verdict, or canceled", () => {
   assert.equal(failureReason(defaultResult), 'expected 1 to be 2 // Object.is equality')
   assert.equal(
     failureReason({
@@ -769,9 +769,9 @@ const header: RunHeader = {
   evals: 1,
   skipped: 0,
   cells: 4,
-  attempts: 4,
+  trials: 4,
   fewest: 4,
-  budget: { attempts: 15 },
+  budget: { trials: 15 },
   estimateMs: 910_000,
   concurrency: 8,
   record: '.reeval/runs/20261029T144346Z_77bb468_elliot-hesp_72sn.json',
@@ -780,7 +780,7 @@ const header: RunHeader = {
 const unpinned = (repo: string) =>
   `skill.git(github:firebase/${repo}) uses no ref (the default branch): results aren't comparable over time. Pin a tag or SHA (the resolved commit is recorded either way).`
 
-const PLAN_LINE = `plan  run ${header.runId} · profile smoke (--profile) · 1 eval · 4 cells · 4 attempts · effort none · ~15m 10s serial (~3m 48s at concurrency 8) · budget 15 attempts ✓`
+const PLAN_LINE = `plan  run ${header.runId} · profile smoke (--profile) · 1 eval · 4 cells · 4 trials · effort none · ~15m 10s serial (~3m 48s at concurrency 8) · budget 15 trials ✓`
 
 const planEvent = (over: Partial<Extract<ReevalEvent, { type: 'plan' }>> = {}): ReevalEvent => ({
   type: 'plan',
@@ -790,7 +790,7 @@ const planEvent = (over: Partial<Extract<ReevalEvent, { type: 'plan' }>> = {}): 
   details: [],
   warnings: [unpinned('agent-skills'), unpinned('firebaseui-web')],
   hints: [
-    "1 compare runs once per cell; below 4 runs a side its lift shows only a direction and its effort can't be tested (profile smoke's limit.runs caps it; --runs 4 replaces it)",
+    "1 compare runs once per cell; below 4 trials a side its lift shows only a direction and its effort can't be tested (profile smoke's limit.runs caps it; --trials 4 replaces it)",
   ],
   ...over,
 })
@@ -897,8 +897,8 @@ describe('run header', () => {
       judges: ['typesafe-ai/jev-1.14.0'],
       skipped: 1,
       fewest: 3,
-      attempts: 20,
-      budget: { attempts: 15, duration: '30m' },
+      trials: 20,
+      budget: { trials: 15, duration: '30m' },
     }
     const out = draw(
       [
@@ -933,13 +933,13 @@ describe('run header', () => {
       for (const line of shown(columns)) assert.doesNotMatch(line, /^\s*·/, line)
   })
 
-  test("the last line says how the attempts' logs will print", () => {
+  test("the last line says how the trials' logs will print", () => {
     const last = (output: OutputOptions) =>
       stripAnsi(draw(prepared.slice(2), output, 80)).split('\n')[0]
     assert.equal(last(rich), '  ◆  Streaming logs...')
     assert.equal(
       last({ ...rich, outputLogs: 'errors-only' }),
-      '  ◆  Running; logs print for failed attempts only...',
+      '  ◆  Running; logs print for failed trials only...',
     )
     assert.equal(last({ ...rich, outputLogs: 'none' }), '  ◆  Running...')
   })
@@ -966,7 +966,7 @@ describe('agent renderer', () => {
     assert.ok(!text.includes('\x1b['))
   })
 
-  test('prints nothing per attempt, then the result without color', () => {
+  test('prints nothing per trial, then the result without color', () => {
     let text = ''
     const renderer = new AgentRenderer({
       out: { write: (chunk: string) => (text += chunk) },
@@ -1117,7 +1117,7 @@ describe('interactive renderer', () => {
         mountList: () => ({ waitUntilExit: async () => {}, unmount: () => {} }),
       }) as never
     const suggestion =
-      'The greet.js check passes on every run, so it tells the arms apart on nothing.'
+      'The greet.js check passes on every run, so it tells the environments apart on nothing.'
     const remarks: RunRemarks = {
       kind: 'reeval-remarks',
       schemaVersion: 1,
@@ -1192,7 +1192,7 @@ describe('output mode', () => {
     )
   })
 
-  test('interactive: the browsable list only with a status line, a terminal on stdin and no attempt logs', () => {
+  test('interactive: the browsable list only with a status line, a terminal on stdin and no trial logs', () => {
     const interactive = (env: NodeJS.ProcessEnv, stdinTTY: boolean, flags = {}) =>
       resolveOutput({ flags, env, isTTY: true, stdinTTY }).interactive
     assert.equal(interactive({}, true), true)
@@ -1264,9 +1264,9 @@ describe('output mode', () => {
     assert.equal(resolve({}, true, 'codex').heartbeatMs, 0)
   })
 
-  test('an attempts heartbeat is 0 or from 1s to 10m, and refuses anything else', () => {
+  test('a trials heartbeat is 0 or from 1s to 10m, and refuses anything else', () => {
     const parse = (value: string | undefined) =>
-      parseHeartbeat('REEVAL_EVENTS_HEARTBEAT', value, 30_000, ATTEMPTS_HEARTBEAT_RANGE)
+      parseHeartbeat('REEVAL_EVENTS_HEARTBEAT', value, 30_000, TRIALS_HEARTBEAT_RANGE)
     assert.equal(parse(undefined), 30_000)
     assert.equal(parse('0'), 0)
     assert.equal(parse('1s'), 1000)
@@ -1312,7 +1312,7 @@ test('ui/ never imports Vitest', () => {
 
 test('progress counts against the planned total while later files are still to be collected', () => {
   const planned = planEvent({
-    header: { ...header, evals: 4, attempts: 4 },
+    header: { ...header, evals: 4, trials: 4 },
     warnings: [],
     hints: [],
   })
@@ -1323,8 +1323,8 @@ test('progress counts against the planned total while later files are still to b
   assert.equal(beats[0], '… 0 of 4 evals done (1m 00s)')
   assert.equal(beats.at(-1), '… 1 of 4 evals done (6m 00s)')
   const status = render(events, options({ statusLine: true, outputLogs: 'none' }))
-  assert.ok(status.includes('\r\x1b[2K4 evals · 0/4 tries'), status)
-  assert.doesNotMatch(status, /2 evals · \d\/2 tries/)
+  assert.ok(status.includes('\r\x1b[2K4 evals · 0/4 trials'), status)
+  assert.doesNotMatch(status, /2 evals · \d\/2 trials/)
 })
 
 test('the interactive list counts against the planned total too', async () => {
@@ -1346,7 +1346,7 @@ test('the interactive list counts against the planned total too', async () => {
     }),
   })
   const planned = planEvent({
-    header: { ...header, evals: 4, attempts: 4 },
+    header: { ...header, evals: 4, trials: 4 },
     warnings: [],
     hints: [],
   })
@@ -1416,7 +1416,7 @@ test('a list closed mid-burst, as attach does when a resume follows, leaves the 
   assert.ok(store?.get().files.some((f) => f.rows.length > 0))
 })
 
-test("nothing the interactive list draws shows a secret: an eval's name, an attempt's error", async () => {
+test("nothing the interactive list draws shows a secret: an eval's name, a trial's error", async () => {
   const token = 'ghp_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8'
   const written: string[] = []
   const stdout = Object.assign(new EventEmitter(), {
@@ -1466,7 +1466,7 @@ test("nothing the interactive list draws shows a secret: an eval's name, an atte
     key: keyOf(GREET),
     name,
     group: [],
-    attempt: attempt(name, []),
+    trial: trial(name, []),
     errors: [`push refused for ${token}`],
     formattedErrors: [],
     meta: { outcome: 'infra_error', errorKind: 'timeout', judgements: [], recordPath: '' },
@@ -1485,8 +1485,8 @@ test("nothing the interactive list draws shows a secret: an eval's name, an atte
           { id: DEFAULT, key: keyOf(DEFAULT), group: [], name: 'still going', skipped: false },
         ],
       },
-      { type: 'eval-start', at: s(0), id: GREET, key: keyOf(GREET), attempt: failed.attempt },
-      { type: 'eval-start', at: s(0), id: DEFAULT, key: keyOf(DEFAULT), attempt: second.attempt },
+      { type: 'eval-start', at: s(0), id: GREET, key: keyOf(GREET), trial: failed.trial },
+      { type: 'eval-start', at: s(0), id: DEFAULT, key: keyOf(DEFAULT), trial: second.trial },
       { type: 'eval-end', at: s(5), result: failed },
     ] as ReevalEvent[]) {
       renderer.onEvent(e)

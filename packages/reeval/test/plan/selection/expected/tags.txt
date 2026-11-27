@@ -1,8 +1,8 @@
-no profile · 2 evals · 2 cells · 3 attempts
-case [slow]      fake/-/docker  control  gated any  ×2  2 cases
+no profile · 2 evals · 2 cells · 3 trials
+case [slow]      fake/-/docker  baseline  gated any  ×2  2 cases
                  case 1         fake/-/docker ×1
                  case 2         fake/-/docker ×1
-slow/big [slow]  fake/-/docker  control  gated any  ×1
+slow/big [slow]  fake/-/docker  baseline  gated any  ×1
 excluded: —
 image docker · cursor · 2 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

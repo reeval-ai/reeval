@@ -9,7 +9,7 @@ const fakeFile = (path: string) =>
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  // A scripted agent that copies ./fake-agent's files into the workspace, so both arms pass.
+  // A scripted agent that copies ./fake-agent's files into the workspace, so both environments pass.
   // Its one shell step looks for the skill and, without it, spends a second as an agent would
   // exploring, so the effort table has a difference to show without keys or Docker.
   agents: fakeAgent({

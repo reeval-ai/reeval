@@ -20,7 +20,7 @@ import {
 } from '../src/cost.ts'
 import { UsageError } from '../src/errors.ts'
 import { priceRecord } from '../src/history/cost.ts'
-import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
+import type { RunRecord, TrialRecord } from '../src/history/types.ts'
 import { loadPrices, modelLimits, type Price, type Prices } from '../src/prices.ts'
 import type { Cell } from '../src/types.ts'
 import { tokenUsage } from '../src/usage.ts'
@@ -43,7 +43,7 @@ const cell = (harness: string): Cell => ({
   harness,
   environment: '-',
   sandbox: 'docker',
-  role: 'control',
+  role: 'baseline',
 })
 
 describe('priceFor', () => {
@@ -132,7 +132,7 @@ describe('priceFor', () => {
     assert.deepEqual(cost.usd, { low: 0.303, high: 2.02 })
   })
 
-  test('a typical attempt writes the cache, priced at its cache-write rate', () => {
+  test('a typical trial writes the cache, priced at its cache-write rate', () => {
     const cost = planCost(
       [
         {
@@ -158,7 +158,7 @@ describe('priceFor', () => {
           {
             id: 'e',
             cells: [{ key: cell(harness).key, harness, model }],
-            attempts: [
+            trials: [
               {
                 key,
                 cell: cell(harness).key,
@@ -189,8 +189,8 @@ describe('priceFor', () => {
     test('each recorded model call is priced at the long-prompt tier its prompt reaches', () => {
       const call = { input: 250_000, cacheRead: 0, cacheWrite: 0, output: 0, reasoning: null }
       const record = past('a')
-      const attempt = record.evals[0]?.attempts[0] as AttemptRecord
-      attempt.turns = [{ callUsage: [call, call, call, call] }] as AttemptRecord['turns']
+      const trial = record.evals[0]?.trials[0] as TrialRecord
+      trial.turns = [{ callUsage: [call, call, call, call] }] as TrialRecord['turns']
       const tiers = { 'my-model': [{ size: 200_000, price: [2, 2, 2, 2] as Price }] }
       assert.deepEqual(plan([record], { ...listed, tiers }).usd, { low: 1.6, high: 2.5 })
       const own = { ...listed, tiers, overlay: { 'my-model': [1, 1, 1, 1] as Price } }
@@ -206,10 +206,10 @@ describe('priceFor', () => {
       assert.equal(cost.cells[0]?.basis, 'history')
       assert.deepEqual(cost.usd, { low: 1.6, high: 2.5 })
       assert.deepEqual(cost.unpriced, [])
-      assert.equal(cost.recordedAttempts, 2)
+      assert.equal(cost.recordedTrials, 2)
       assert.match(
         costLine(cost) ?? '',
-        /from 2 past runs \(2 past attempts at their recorded cost\)/,
+        /from 2 past runs \(2 past trials at their recorded cost\)/,
       )
       assert.deepEqual(plan([past('a', [2, 'reported'])], listed).usd, { low: 1.6, high: 2.5 })
     })
@@ -217,23 +217,23 @@ describe('priceFor', () => {
     test("an estimated cost gives way to today's list price, and stands in only without one", () => {
       const repriced = plan([past('a', [3, 'estimated'])], listed)
       assert.deepEqual(repriced.usd, { low: 0.8, high: 1.25 })
-      assert.equal(repriced.recordedAttempts, 0)
+      assert.equal(repriced.recordedTrials, 0)
       const kept = plan([past('a', [3, 'estimated'])])
       assert.deepEqual(kept.usd, { low: 2.4, high: 3.75 })
-      assert.equal(kept.recordedAttempts, 1)
+      assert.equal(kept.recordedTrials, 1)
     })
 
     test("another model's recorded cost is not this one's", () => {
       const swapped = [past('a', [0.1, 'reported'], 'old-model')]
       assert.deepEqual(plan(swapped, listed).usd, { low: 0.8, high: 1.25 })
-      assert.equal(plan(swapped, listed).recordedAttempts, 0)
+      assert.equal(plan(swapped, listed).recordedTrials, 0)
       assert.equal(plan(swapped).usd, null)
     })
 
     test("one sample it can't price leaves the cell without dollars; without prices, tokens only", () => {
       const partly = plan([past('a', [2, 'reported']), past('b')])
       assert.equal(partly.usd, null)
-      assert.equal(partly.recordedAttempts, 0)
+      assert.equal(partly.recordedTrials, 0)
       assert.deepEqual(partly.unpriced, [
         { model: 'my-model', tokens: { low: 800_000, high: 1_250_000 } },
       ])
@@ -243,7 +243,7 @@ describe('priceFor', () => {
       })
       const off = plan([past('a', [2, 'reported'])], { table: null, why: 'REEVAL_PRICES=none' })
       assert.equal(off.usd, null)
-      assert.equal(off.recordedAttempts, 0)
+      assert.equal(off.recordedTrials, 0)
     })
   })
 
@@ -293,10 +293,10 @@ describe('costLine', () => {
     agent: { tokens: { low: 1_000_000, high: 8_000_000 }, usd: { low: 1, high: 3.8 } },
     judge: { tokens: { low: 0, high: 1_000_000 }, usd: { low: 0, high: 0.2 } },
     unpricedTokens: { low: 0, high: 0 },
-    attempts: { history: 0, typical: 6, free: 0 },
+    trials: { history: 0, typical: 6, free: 0 },
     pastRuns: 0,
-    pastAttempts: 0,
-    recordedAttempts: 0,
+    pastTrials: 0,
+    recordedTrials: 0,
     unpriced: [],
     prices: { modelsDev: { fetchedAt: '2026-10-23T00:00:00Z', stale: false }, file: null },
     cells: [],
@@ -308,20 +308,20 @@ describe('costLine', () => {
       'cost  estimated $1.00–4.00 at models.dev list prices, judge included · no history, rough',
     )
     assert.equal(
-      costLine({ ...base, attempts: { ...base.attempts, history: 6, typical: 0 }, pastRuns: 12 }),
+      costLine({ ...base, trials: { ...base.trials, history: 6, typical: 0 }, pastRuns: 12 }),
       'cost  estimated $1.00–4.00 at models.dev list prices, judge included · from 12 past runs',
     )
     assert.equal(
       costLine({
         ...base,
-        attempts: { ...base.attempts, history: 2, typical: 4 },
+        trials: { ...base.trials, history: 2, typical: 4 },
         pastRuns: 1,
         prices: {
           modelsDev: { stale: true, fetchedAt: '2026-10-20T08:00:00Z', why: 'unreachable' },
           file: null,
         },
       }),
-      'cost  estimated $1.00–4.00 at models.dev list prices of 2026-10-20 (offline), judge included · 2 of 6 attempts from 1 past run, the rest rough',
+      'cost  estimated $1.00–4.00 at models.dev list prices of 2026-10-20 (offline), judge included · 2 of 6 trials from 1 past run, the rest rough',
     )
     assert.equal(
       costLine({
@@ -347,7 +347,7 @@ describe('costLine', () => {
           cell: 'cursor:composer-2.5/-/docker',
           model: 'composer-2.5',
           judgeModel: 'google/gemini-3.8-flash',
-          attempts: 1,
+          trials: 1,
           basis: 'typical' as const,
           samples: 0,
           agent: { tokens: { low: 300_000, high: 2_100_000 }, usd: null },
@@ -394,7 +394,7 @@ describe('costLine', () => {
         ...base,
         tokens: { low: 0, high: 0 },
         usd: null,
-        attempts: { history: 0, typical: 0, free: 4 },
+        trials: { history: 0, typical: 0, free: 4 },
       }),
       null,
     )
@@ -826,13 +826,13 @@ describe('record costs', () => {
     modelsDev: { fetchedAt: '2026-11-05T09:00:00Z', stale: false },
   })
   const turn = (model: string | null, extra: object = {}) => ({ usage, model, ...extra })
-  const record = (attempts: object[], judgements: object[] = []) =>
+  const record = (trials: object[], judgements: object[] = []) =>
     ({
       cost: { inputTokens: null, outputTokens: null, usage: null, source: 'unreported' },
       evals: [
         {
           cells: [{ key: 'a', model: 'claude-sonnet-5' }],
-          attempts: attempts.map((a) => ({ cell: 'a', usage, judgements, ...a })),
+          trials: trials.map((a) => ({ cell: 'a', usage, judgements, ...a })),
         },
       ],
     }) as unknown as RunRecord
@@ -845,7 +845,7 @@ describe('record costs', () => {
       ]),
       pricer,
     )
-    const [reported, estimated] = run.evals[0]?.attempts ?? []
+    const [reported, estimated] = run.evals[0]?.trials ?? []
     assert.deepEqual(reported?.cost, { usd: 1, basis: 'reported', source: 'pi' })
     assert.deepEqual(
       estimated?.turns.map((t) => t.cost),
@@ -871,7 +871,7 @@ describe('record costs', () => {
       record([{ turns: [turn('composer-2.5')] }, { turns: [turn('claude-sonnet-5')] }]),
       pricer,
     )
-    const [unknown] = run.evals[0]?.attempts ?? []
+    const [unknown] = run.evals[0]?.trials ?? []
     assert.equal(unknown?.turns[0]?.cost, undefined)
     assert.equal(unknown?.cost, undefined)
     assert.deepEqual(run.cost.agentUsd, {
@@ -884,14 +884,14 @@ describe('record costs', () => {
       record([{ turns: [turn('composer-2.5'), turn('claude-sonnet-5')] }]),
       pricer,
     )
-    assert.equal(partly.evals[0]?.attempts[0]?.cost, undefined, 'a partly priced attempt has none')
+    assert.equal(partly.evals[0]?.trials[0]?.cost, undefined, 'a partly priced trial has none')
     assert.equal(
       priceRecord(record([{ turns: [turn('claude-sonnet-5')] }]), null).cost.agentUsd,
       undefined,
     )
   })
 
-  test("OpenRouter's billed cost is the attempt's and the judge call's", () => {
+  test("OpenRouter's billed cost is the trial's and the judge call's", () => {
     const run = priceRecord(
       record(
         [{ turns: [turn('claude-sonnet-5')], reportedCostUsd: 0.5 }],
@@ -903,10 +903,10 @@ describe('record costs', () => {
       ),
       pricer,
     )
-    const attempt = run.evals[0]?.attempts[0]
-    assert.deepEqual(attempt?.cost, { usd: 0.5, basis: 'reported', source: 'openrouter' })
+    const trial = run.evals[0]?.trials[0]
+    assert.deepEqual(trial?.cost, { usd: 0.5, basis: 'reported', source: 'openrouter' })
     assert.deepEqual(
-      attempt?.judgements.map((j) => j.cost),
+      trial?.judgements.map((j) => j.cost),
       [
         { usd: 0.01, basis: 'reported', source: 'openrouter' },
         { usd: 0.0074, basis: 'estimated', source: 'models.dev 2026-11-05' },
@@ -934,7 +934,7 @@ describe('record costs', () => {
       pricer,
     )
     assert.deepEqual(
-      run.evals[0]?.attempts[0]?.grades?.[0]?.judge?.calls?.map((c) => c.cost),
+      run.evals[0]?.trials[0]?.grades?.[0]?.judge?.calls?.map((c) => c.cost),
       [
         { usd: 0.01, basis: 'reported', source: 'openrouter' },
         { usd: 0.0074, basis: 'estimated', source: 'models.dev 2026-11-05' },
@@ -955,10 +955,10 @@ describe('record costs', () => {
       ),
       pricer,
     )
-    const attempt = run.evals[0]?.attempts[0]
+    const trial = run.evals[0]?.trials[0]
     const estimated = { usd: 0.0074, basis: 'estimated', source: 'models.dev 2026-11-05' }
-    assert.deepEqual(attempt?.cost, estimated)
-    assert.deepEqual(attempt?.judgements[0]?.cost, estimated)
+    assert.deepEqual(trial?.cost, estimated)
+    assert.deepEqual(trial?.judgements[0]?.cost, estimated)
   })
 
   test('a model call over its long-prompt threshold is priced at that tier, the rest at the base', () => {
@@ -979,7 +979,7 @@ describe('record costs', () => {
         evals: [
           {
             cells: [{ key: 'a', model: 'claude-haiku-5-5' }],
-            attempts: [
+            trials: [
               {
                 cell: 'a',
                 usage: sum,
@@ -995,14 +995,14 @@ describe('record costs', () => {
       } as unknown as RunRecord,
       tiered,
     )
-    const attempt = run.evals[0]?.attempts[0]
+    const trial = run.evals[0]?.trials[0]
     // The flat $0.0024504, plus the long call's $0.006876 at the tier less its $0.0013752 at the base.
     assert.deepEqual(
-      attempt?.turns.map((t) => t.cost?.usd),
+      trial?.turns.map((t) => t.cost?.usd),
       [0.007951, 0.00245],
       'a turn without its calls is priced flat',
     )
-    assert.equal(attempt?.judgements[0]?.cost?.usd, 0.006876, 'a judge call is one request')
+    assert.equal(trial?.judgements[0]?.cost?.usd, 0.006876, 'a judge call is one request')
   })
 
   test('formats dollars to two significant figures under $1 and says what was estimated', () => {
@@ -1017,7 +1017,7 @@ describe('record costs', () => {
   })
 
   test("Claude Code's running session total becomes each turn's own cost", () => {
-    // A real two-turn Claude Code attempt on claude-sonnet-5: each turn's delta is exactly its own
+    // A real two-turn Claude Code trial on claude-sonnet-5: each turn's delta is exactly its own
     // tokens at that model's list price.
     const sonnet: Price = [2, 0.2, 2.5, 10]
     const finishes = readFileSync(

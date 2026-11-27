@@ -1,6 +1,6 @@
 {
   "harness": "fx",
-  "attempts": [
+  "trials": [
     {
       "eval": "audit",
       "turns": [

@@ -5,12 +5,12 @@
 import type { ReevalEvent } from '../ui/events.ts'
 import { fillDefaults, MIGRATIONS, NewerSchemaError, SCHEMA_VERSIONS } from './record.ts'
 
-export const EVENTS_SCHEMA_VERSION = 2
+export const EVENTS_SCHEMA_VERSION = 3
 
 /** The first line a `reeval run` writes to the stream: what the renderers need to draw it. */
 export type RunEventsHeader = {
   type: 'header'
-  schemaVersion: 2
+  schemaVersion: 3
   /** The reeval that wrote the stream. */
   reeval: string
   runId: string
@@ -19,7 +19,7 @@ export type RunEventsHeader = {
   /** The `reeval run` process and its host, so a reader can tell a run that died. */
   pid: number
   host: string
-  /** The config's first harness kind, which names attempts' axes on detail lines. */
+  /** The config's first harness kind, which names trials' axes on detail lines. */
   harness: string
   /** `-v` (1) or `-vv` (2): how debug lines' times read; 0 without either. */
   verbosity: 0 | 1 | 2
@@ -29,10 +29,10 @@ export type RunEventsHeader = {
    */
   heartbeatMs?: number
   /**
-   * How often the run writes a heartbeat with `attempts` while its eval files run, so a reader can
+   * How often the run writes a heartbeat with `trials` while its eval files run, so a reader can
    * treat a gap past it as a stall. Absent when it writes none.
    */
-  attemptsHeartbeatMs?: number
+  trialsHeartbeatMs?: number
   /**
    * The `reeval run`'s current directory from its project root, as a `/` path (`''` when it ran in
    * the root). The paths the run prints are from that directory, so a reader turns them into the
@@ -48,9 +48,9 @@ export type RunEventsExit = {
   code: number
 }
 
-/** An attempt in progress, as a heartbeat names it. */
-export type HeartbeatAttempt = {
-  /** The attempt's key, as its events name it. */
+/** A trial in progress, as a heartbeat names it. */
+export type HeartbeatTrial = {
+  /** The trial's key, as its events name it. */
   key: string
   /** The id of the pooled machine it holds a slot on, once it has one; absent otherwise. */
   machine?: string
@@ -58,7 +58,7 @@ export type HeartbeatAttempt = {
 
 /**
  * Written while the stream is otherwise quiet, so a reader can tell a run that's still going from
- * one that stalled or was lost, and, with `attempts`, every `attemptsHeartbeatMs` while the run's
+ * one that stalled or was lost, and, with `trials`, every `trialsHeartbeatMs` while the run's
  * eval files run: once as they start, then on that interval, and once more with `done` as the
  * last of them ends. Streams from before it have none.
  */
@@ -66,25 +66,27 @@ export type RunEventsHeartbeat = {
   type: 'heartbeat'
   at: number
   /**
-   * The attempts in progress, in the order they started: each started (its lease granted, its
+   * The trials in progress, in the order they started: each started (its lease granted, its
    * sandbox setup, turns and judging under way) and not yet ended, in a worker process that hasn't
    * exited. Absent from the heartbeats a quiet stream gets.
    */
-  attempts?: HeartbeatAttempt[]
+  trials?: HeartbeatTrial[]
   /**
    * The ids of every pooled machine the run holds, idle ones included, from each one's start until
-   * it's removed. With `attempts`.
+   * it's removed. With `trials`.
    */
   machines?: string[]
-  /** The eval files have ended: `attempts` is empty, and no later line lists any. */
+  /** The eval files have ended: `trials` is empty, and no later line lists any. */
   done?: true
 }
 
 /** One line of a run's event stream. */
 export type RunEventLine = RunEventsHeader | ReevalEvent | RunEventsHeartbeat | RunEventsExit
 
-/** Migrates a line of an older stream. Only the header carries a version, so it runs on every line. */
-const fromVersion1 = MIGRATIONS['run-events']?.[1] as (line: RunEventLine) => RunEventLine
+/** Migrates a line of an older stream. Only the header carries a version, so each runs on every line. */
+const migrations = Object.values(MIGRATIONS['run-events'] ?? {}) as Array<
+  (line: RunEventLine) => RunEventLine
+>
 
 /**
  * A stream line as `reeval attach` reads it. A header from a newer reeval throws a
@@ -98,5 +100,8 @@ export function readableEventLine(line: RunEventLine): RunEventLine {
       throw new NewerSchemaError(`run ${line.runId}'s event stream`, line.schemaVersion, newest)
     }
   }
-  return fillDefaults('run-events', fromVersion1(line))
+  return fillDefaults(
+    'run-events',
+    migrations.reduce((l, migrate) => migrate(l), line),
+  )
 }

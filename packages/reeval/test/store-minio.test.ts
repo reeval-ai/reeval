@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { after, before, describe, test } from 'node:test'
-import { readKeptFiles } from '../src/history/stored-attempt.ts'
+import { readKeptFiles } from '../src/history/stored-trial.ts'
 import type { RunRecord } from '../src/history/types.ts'
 import { sha256 } from '../src/ids.ts'
 import { resolveHistory } from '../src/store/resolve.ts'
@@ -269,9 +269,9 @@ describe('a kept workspace on MinIO', { skip }, () => {
       'evals/.history',
     )
     const record = JSON.parse(readFileSync(join(history.dir, `${runId}.json`), 'utf8')) as RunRecord
-    const attempt = record.evals[0]?.attempts[0]
-    const ref = attempt?.files.workspace
-    assert.ok(attempt && ref, JSON.stringify(attempt?.workspace))
+    const trial = record.evals[0]?.trials[0]
+    const ref = trial?.files.workspace
+    assert.ok(trial && ref, JSON.stringify(trial?.workspace))
     assert.ok(ref.bytes > 8 * 2 ** 20, `${ref.bytes} bytes, over one part`)
     const month = `${runId.slice(0, 4)}-${runId.slice(4, 6)}`
     assert.deepEqual(await s3.keys(`ws/workspaces/${month}/${runId}/`), [
@@ -283,7 +283,7 @@ describe('a kept workspace on MinIO', { skip }, () => {
     const saved = { ...process.env }
     Object.assign(process.env, keyEnv(s3))
     try {
-      const files = await readKeptFiles(runDir, attempt, { fetch: fetchWorkspace(history, runId) })
+      const files = await readKeptFiles(runDir, trial, { fetch: fetchWorkspace(history, runId) })
       // Masking may shorten a secret-looking run of the random text, so its length is a floor.
       const blob = await files?.readFile('blob.txt')
       assert.ok((blob?.length ?? 0) > BLOB_BYTES, `blob.txt: ${blob?.length} bytes`)

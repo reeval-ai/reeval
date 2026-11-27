@@ -7,7 +7,7 @@ const withBrand = site.extendEnvironment('brand', ({ skill }) => ({
 }))
 
 export default defineEval({
-  compare: { control: site, variants: [withBrand] },
+  compare: { baseline: site, variants: [withBrand] },
   questions: [
     {
       question: 'Which Sign up button is blue with white text and rounded corners?',

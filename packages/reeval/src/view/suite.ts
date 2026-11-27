@@ -5,7 +5,6 @@
 
 import { unfoldCases } from '../history/cases.ts'
 import type {
-  AttemptRecord,
   CellRecord,
   CheckTally,
   EvalEntry,
@@ -13,23 +12,24 @@ import type {
   FamilyRecord,
   FamilyVerdict,
   RunRecord,
+  TrialRecord,
   UpstreamCount,
 } from '../history/types.ts'
-import { COMPARE_RUNS } from '../stats.ts'
+import { COMPARE_TRIALS } from '../stats.ts'
 import { blocks, DEFAULT_TARGET } from '../target.ts'
-import type { AttemptFailure, ErrorKind, Outcome, RecordedTarget } from '../types.ts'
+import type { ErrorKind, Outcome, RecordedTarget, TrialFailure } from '../types.ts'
 import { cellEffort } from './effort.ts'
 import { caseLabel } from './family.ts'
 import { targetCells } from './gate.ts'
 import { checksByLabel, checkTries, labeledJudgments } from './judgments.ts'
 import { cellMeasures, familyMeasures, type Measure } from './measures.ts'
-import { attemptAnswerRows, notRunYet, runOutcome } from './model.ts'
+import { notRunYet, runOutcome, trialAnswerRows } from './model.ts'
 import { type ObservedTally, observedTallies } from './observations.ts'
 
 /**
  * A variant against its baseline: the direction of their observed pass rates, at any number of
  * runs. Whether it holds is the interval's to say (`CellResult.interval`), and the
- * `too-few-tries` remark says how many runs would settle it.
+ * `too-few-trials` remark says how many runs would settle it.
  */
 export type Effect = 'better' | 'worse' | 'same'
 
@@ -39,7 +39,7 @@ export type Effect = 'better' | 'worse' | 'same'
  */
 export type Across = 'none' | 'change' | 'harness' | 'both'
 
-export { COMPARE_RUNS }
+export { COMPARE_TRIALS }
 
 /**
  * One finished run's facts. Every node has a `path`, a stable id that remarks cite it by.
@@ -62,12 +62,12 @@ export type SuiteResult = {
   status: RunRecord['status']
   /**
    * The run's outcome, which `reeval run`'s exit code is read from: `fail` on any error outside
-   * an attempt, and `skipped` on an interrupted run. `reeval run --json` gives a resume that its
-   * filters left `interrupted` the outcome of the attempts it ran, as its exit code.
+   * a trial, and `skipped` on an interrupted run. `reeval run --json` gives a resume that its
+   * filters left `interrupted` the outcome of the trials it ran, as its exit code.
    */
   outcome: Outcome
   /**
-   * Errors outside any attempt: an eval file that didn't load, a rejection or throw no attempt
+   * Errors outside any trial: an eval file that didn't load, a rejection or throw no trial
    * awaited, a worker that died. Any one fails the run.
    */
   errors: string[]
@@ -81,7 +81,7 @@ export type SuiteResult = {
 
 /**
  * `onTarget` and `below` count the evals whose target blocks, `reportOnly` those whose target
- * doesn't; an eval that didn't count an attempt is an infra error, canceled or skipped instead.
+ * doesn't; an eval that didn't count a trial is an infra error, canceled or skipped instead.
  */
 export type SuiteTally = {
   errors: number
@@ -96,7 +96,7 @@ export type SuiteTally = {
 
 /**
  * An eval's or a family case's outcome: the record's, except `canceled` where its only failed
- * gated attempts are ones the run's interrupt canceled, since the agent didn't fail those.
+ * gated trials are ones the run's interrupt canceled, since the agent didn't fail those.
  */
 export type ResultOutcome = Outcome | 'canceled'
 
@@ -132,32 +132,32 @@ export type EvalResult = {
   outcome: ResultOutcome
   cells: CellResult[] | null
   cases: CaseResult[] | null
-  /** A family's variants against their control, pooled over the cases; null on a single eval. */
-  pooled: PooledArm[] | null
+  /** A family's variants against their baseline, pooled over the cases; null on a single eval. */
+  pooled: PooledEnvironment[] | null
   /** A family's `{ passRate }` cells, each gated on its rate over the cases; null on a single eval. */
   rates: PooledRate[] | null
   /**
-   * Its questions' answers: the pairwise ones, then those asked of each attempt. On a family,
+   * Its questions' answers: the pairwise ones, then those asked of each trial. On a family,
    * each question asked of any case, in first-asked order, summed over the cases that answered it.
    */
-  questions: Array<QuestionResult | AttemptQuestionResult>
-  /** Each name its attempts observed with `c.observe`, tallied per cell; with cases, over every case. */
+  questions: Array<QuestionResult | TrialQuestionResult>
+  /** Each name its trials observed with `c.observe`, tallied per cell; with cases, over every case. */
   observations: ObservedTally[]
   /** What decides `outcome`. */
   target: RecordedTarget
   /** Whether a miss of its target fails the run. */
   blocking: boolean
   /**
-   * The mean score over its target's cells' counted attempts (with cases, the mean of the cases');
+   * The mean score over its target's cells' counted trials (with cases, the mean of the cases');
    * null when none counted.
    */
   meanScore: number | null
-  /** Its target's cells' attempts (the variants on a compare, else every cell), case by case. */
-  scored: ScoredAttempt[]
+  /** Its target's cells' trials (the variants on a compare, else every cell), case by case. */
+  scored: ScoredTrial[]
 }
 
-/** One attempt of an eval's target cells, with what cost it points. */
-export type ScoredAttempt = {
+/** One trial of an eval's target cells, with what cost it points. */
+export type ScoredTrial = {
   /** Its case's key; null on an eval without `cases`. */
   case: string | null
   cell: string
@@ -170,7 +170,7 @@ export type ScoredAttempt = {
   /** The checks it failed, each with its message and where its `expect` is. */
   failedChecks: Array<{ label: string; message: string | null; at: string | null }>
   /** What the task threw. */
-  failure: AttemptFailure | null
+  failure: TrialFailure | null
   /**
    * The error it ended on, when nothing else says why: a timeout, a cancel, an infra error, or a
    * failure no check recorded. Null when the task threw (`failure`) or a check failed.
@@ -198,16 +198,16 @@ export type QuestionResult = {
   error: string | null
 }
 
-/** A question asked of each attempt on its own: what each one answered. Never gates. */
-export type AttemptQuestionResult = {
-  kind: 'attempts'
+/** A question asked of each trial on its own: what each one answered. Never gates. */
+export type TrialQuestionResult = {
+  kind: 'trials'
   question: string
-  /** Attempts it was asked of, failed calls included. */
+  /** Trials it was asked of, failed calls included. */
   asked: number
-  /** How many attempts picked each choice, in the question's order; null on a free-text question. */
+  /** How many trials picked each choice, in the question's order; null on a free-text question. */
   choices: Array<{ choice: string; n: number }> | null
-  /** Each attempt's answer, in attempt order; failed calls left out. */
-  answers: Array<{ attempt: string; choice: string | null; text: string }>
+  /** Each trial's answer, in trial order; failed calls left out. */
+  answers: Array<{ trial: string; choice: string | null; text: string }>
   /** Calls that failed, and the first one's error. */
   failed: number
   error: string | null
@@ -236,72 +236,72 @@ export type CellResult = {
   /** `-` when no environment is set. */
   environment: string
   sandbox: string
-  /** The variant's name; null on a control. */
+  /** The variant's name; null on a baseline. */
   variant: string | null
-  /** The control of an eval that has variants: the arm the variants are measured against. */
+  /** The baseline of an eval that has variants: the environment the variants are measured against. */
   baseline: boolean
-  /** On a variant, its control cell's key; else null. */
+  /** On a variant, its baseline cell's key; else null. */
   vs: string | null
   /** The cell's place in the eval's cells. */
   order: number
   /** Its failures fail the eval (its gate isn't `'none'`). */
   gated: boolean
   outcome: Outcome
-  /** Every attempt: `passed + failed + infraError + skipped`. */
-  attempts: number
+  /** Every trial: `passed + failed + infraError + skipped`. */
+  trials: number
   passed: number
   failed: number
   /** Infrastructure errors, which are neither passes nor fails. */
   infraError: number
   skipped: number
-  /** Set by `runs: { bestOf }`: the cell stopped once a majority of this many attempts agreed. */
+  /** Set by `trials: { bestOf }`: the cell stopped once a majority of this many trials agreed. */
   bestOf?: number
-  /** Of `skipped`, the attempts a best-of cell's majority left unrun. */
+  /** Of `skipped`, the trials a best-of cell's majority left unrun. */
   notNeeded?: number
   fingerprint: string
   /** The skill sources and files the cell's environment placed, as written. */
   context: string[]
   /**
-   * Every check the eval's attempts recorded (on a family, any case's). A cell with no counted
-   * attempt (every one an infra error or skipped) lists each as `not run`.
+   * Every check the eval's trials recorded (on a family, any case's). A cell with no counted
+   * trial (every one an infra error or skipped) lists each as `not run`.
    */
   checks: CheckResult[]
-  /** On a variant, the direction of its pass rate against its baseline's; null on a control or with nothing counted on a side. */
+  /** On a variant, the direction of its pass rate against its baseline's; null on a baseline or with nothing counted on a side. */
   effect: Effect | null
   /** The stored 95% interval on the variant's difference from its baseline. Not for display. */
   interval: Interval | null
   /** On a variant, the compare's `minLift`, a fraction like the interval; null without one. */
   minLift: number | null
-  /** Medians over the counted attempts; null below `COMPARE_RUNS` of them. */
+  /** Medians over the counted trials; null below `COMPARE_TRIALS` of them. */
   effort: EffortCounters | null
-  /** On a variant, every measure against its baseline (`cellMeasures`); null on a control. */
+  /** On a variant, every measure against its baseline (`cellMeasures`); null on a baseline. */
   measures: Measure[] | null
-  /** Why attempts failed or errored where no check says: a timeout, an infra error, a throw. */
+  /** Why trials failed or errored where no check says: a timeout, an infra error, a throw. */
   errors: CellError[]
   /**
-   * Where each failed attempt's final snapshot is, from the project's root
+   * Where each failed trial's final snapshot is, from the project's root
    * (`.reeval/runs/<run>/…/snapshots/final`); absent when none has one.
    */
   snapshots?: string[]
-  /** Web searches and fetches per counted attempt; null where the harness can't report them. */
+  /** Web searches and fetches per counted trial; null where the harness can't report them. */
   searches: Array<number | null>
   fetches: Array<number | null>
   /**
    * The upstream providers a gateway (OpenRouter) said served the cell's agent calls, with how
-   * many, summed over its attempts in first-seen order; absent when it named none.
+   * many, summed over its trials in first-seen order; absent when it named none.
    */
   upstreams?: UpstreamCount[]
   /** The same for the cell's judge calls; absent when the gateway named none. */
   judgeUpstreams?: UpstreamCount[]
   /**
-   * Each `c.capture()` in its attempts whose page had page errors, with the `.capture.json` that
+   * Each `c.capture()` in its trials whose page had page errors, with the `.capture.json` that
    * lists them (`.reeval/runs/<run>/…/artifacts/<name>.capture.json`); absent when none had any.
    */
   pageErrors?: Array<{ capture: string; errors: number; file: string }>
   /**
-   * Why an attempt's final workspace wasn't kept (over its size cap, or an error), or which files
+   * Why a trial's final workspace wasn't kept (over its size cap, or an error), or which files
    * it was kept without because the secret scan found something in them; absent when every
-   * attempt kept it whole or none kept one.
+   * trial kept it whole or none kept one.
    */
   workspaceNotes?: string[]
 }
@@ -313,9 +313,9 @@ function tallyUpstreams(counts: Iterable<UpstreamCount>): UpstreamCount[] {
   return [...by].map(([provider, calls]) => ({ provider, calls }))
 }
 
-/** A cell's attempts the run's interrupt canceled: recorded as fails, but not the agent's. */
+/** A cell's trials the run's interrupt canceled: recorded as fails, but not the agent's. */
 export const canceledOf = (cell: CellResult) =>
-  cell.errors.filter((err) => err.kind === 'aborted').reduce((n, err) => n + err.attempts, 0)
+  cell.errors.filter((err) => err.kind === 'aborted').reduce((n, err) => n + err.trials, 0)
 
 /** A cell's counted tries: its passes and fails, less the ones the interrupt canceled. */
 export const countedOf = (cell: CellResult) =>
@@ -324,18 +324,18 @@ export const countedOf = (cell: CellResult) =>
 export type CheckResult = {
   path: string
   label: string
-  /** First-seen order across the eval's attempts. */
+  /** First-seen order across the eval's trials. */
   order: number
   outcome: CheckOutcome
   /**
    * On a variant, this check against the baseline's (null when either side never answered it);
-   * null on a control or without one.
+   * null on a baseline or without one.
    */
   effect: Effect | null
   /** Set when the check is a judge verdict. */
   judge: JudgeResult | null
   /**
-   * A `toSucceed` check whose `c.exec` had `retries` and needed them: on one counted attempt how
+   * A `toSucceed` check whose `c.exec` had `retries` and needed them: on one counted trial how
    * it ended (`passed on try 2 of 3`, `failed all 3 tries`), on several how many retried. Unset
    * when none did.
    */
@@ -343,8 +343,8 @@ export type CheckResult = {
 }
 
 /**
- * `not run`: no counted attempt reached the check, because an `expect.require` before it failed or
- * none counted. That is not a failure, and is never `0 of N`. `ran`: counts over the counted attempts that
+ * `not run`: no counted trial reached the check, because an `expect.require` before it failed or
+ * none counted. That is not a failure, and is never `0 of N`. `ran`: counts over the counted trials that
  * reached it (`errored` ones couldn't answer), with `notRun` for those that didn't, and the
  * first failure's message and `path:line`.
  */
@@ -361,21 +361,21 @@ export type CheckOutcome =
     }
 
 /**
- * One distinct error over a cell's attempts: its kind (`turn` for a turn the harness ended with
+ * One distinct error over a cell's trials: its kind (`turn` for a turn the harness ended with
  * an error), its message's first line, and how often.
  */
 export type CellError = {
   kind: ErrorKind | 'turn'
   message: string
-  attempts: number
-  /** What the task threw, for a throw: its first attempt's, the message being its reason. */
-  failure?: Omit<AttemptFailure, 'kind' | 'reason'>
+  trials: number
+  /** What the task threw, for a throw: its first trial's, the message being its reason. */
+  failure?: Omit<TrialFailure, 'kind' | 'reason'>
 }
 
 export type JudgeResult = {
   question: string
   threshold: number
-  /** One per counted attempt that judged it. */
+  /** One per counted trial that judged it. */
   scores: number[]
 }
 
@@ -384,21 +384,21 @@ type Interval = { low: number; high: number }
 /** A null counter is one the harness didn't record; a recorded zero stays zero. */
 export type EffortCounters = {
   tools: number | null
-  /** Median model calls; omitted when no attempt counted them (`activity.llmCalls`). */
+  /** Median model calls; omitted when no trial counted them (`activity.llmCalls`). */
   llmCalls?: number
   agentMs: number | null
   tokens: number | null
-  /** Median time waiting on background jobs; omitted when no attempt recorded where its time went. */
+  /** Median time waiting on background jobs; omitted when no trial recorded where its time went. */
   waitingMs?: number
 }
 
-export type PooledArm = {
+export type PooledEnvironment = {
   path: string
   /** The variant cell's key, the same in every case. */
   key: string
   vs: string
   effect: Effect
-  /** Cases with counted attempts on both sides. */
+  /** Cases with counted trials on both sides. */
   pairs: number
   interval: Interval
   /** The pooled lift's verdict: `insufficient` below `PAIRED_MIN` discordant pairs or cases. */
@@ -422,20 +422,20 @@ export type PooledRate = {
 
 type Side = { pass: number; counted: number }
 
-/** The direction of `variant`'s pass rate against `control`'s; null when a side counted none. */
-export function effectOf(variant: Side, control: Side): Effect | null {
-  if (variant.counted === 0 || control.counted === 0) return null
-  const v = variant.pass * control.counted
-  const c = control.pass * variant.counted
+/** The direction of `variant`'s pass rate against `baseline`'s; null when a side counted none. */
+export function effectOf(variant: Side, baseline: Side): Effect | null {
+  if (variant.counted === 0 || baseline.counted === 0) return null
+  const v = variant.pass * baseline.counted
+  const c = baseline.pass * variant.counted
   return v > c ? 'better' : v < c ? 'worse' : 'same'
 }
 
-/** A check's passes over the attempts that answered it; `notRun` and `error` aren't counted. */
+/** A check's passes over the trials that answered it; `notRun` and `error` aren't counted. */
 const checkSide = (t: CheckTally): Side => ({ pass: t.pass, counted: t.pass + t.fail })
 
 /** The check's direction on the variant against the baseline; null when a side never answered it. */
-export const checkEffect = (variant: CheckTally, control: CheckTally): Effect | null =>
-  effectOf(checkSide(variant), checkSide(control))
+export const checkEffect = (variant: CheckTally, baseline: CheckTally): Effect | null =>
+  effectOf(checkSide(variant), checkSide(baseline))
 
 /** One path segment: `%`, `/` and `+` percent-encoded, so segments split back unambiguously. */
 export const factSegment = (s: string) =>
@@ -444,7 +444,7 @@ export const factSegment = (s: string) =>
 const cellSegment = (c: Pick<CellRecord, 'harness' | 'environment' | 'sandbox'>) =>
   [c.harness, c.environment, c.sandbox].map(factSegment).join('+')
 
-const counted = (a: Pick<AttemptRecord, 'outcome'>) => a.outcome === 'pass' || a.outcome === 'fail'
+const counted = (a: Pick<TrialRecord, 'outcome'>) => a.outcome === 'pass' || a.outcome === 'fail'
 
 export function evalAcross(
   cells: readonly Pick<CellRecord, 'harness' | 'environment' | 'role'>[],
@@ -466,22 +466,22 @@ function contextOf(record: RunRecord, cell: CellRecord): string[] {
   ]
 }
 
-/** The control a variant is measured against: its lift's, else the control on its harness and sandbox. */
+/** The baseline a variant is measured against: its lift's, else the baseline on its harness and sandbox. */
 function baselineOf(e: EvalEntry, cell: CellRecord): CellRecord | undefined {
   if (cell.role !== 'variant') return undefined
   const vs = cell.lift?.vs
   return vs
     ? e.cells.find((c) => c.key === vs)
     : e.cells.find(
-        (c) => c.role === 'control' && c.harness === cell.harness && c.sandbox === cell.sandbox,
+        (c) => c.role === 'baseline' && c.harness === cell.harness && c.sandbox === cell.sandbox,
       )
 }
 
-/** Every check label the attempts recorded, in first-seen order: the eval's declared checks. */
+/** Every check label the trials recorded, in first-seen order: the eval's declared checks. */
 function declaredChecks(entries: readonly EvalEntry[]): string[] {
   return [
     ...new Set(
-      entries.flatMap((e) => e.attempts.flatMap((a) => (a.assertions ?? []).map((x) => x.label))),
+      entries.flatMap((e) => e.trials.flatMap((a) => (a.assertions ?? []).map((x) => x.label))),
     ),
   ]
 }
@@ -493,8 +493,8 @@ function checksOf(
   base: string,
   declared: readonly string[],
 ): CheckResult[] {
-  const attempts = e.attempts.filter((a) => a.cell === cell.key && counted(a))
-  // The record tallies checks over counted attempts only, so a cell with none has no tallies.
+  const trials = e.trials.filter((a) => a.cell === cell.key && counted(a))
+  // The record tallies checks over counted trials only, so a cell with none has no tallies.
   const tallies =
     cell.checks ??
     declared.map((label) => ({
@@ -507,14 +507,14 @@ function checksOf(
     }))
   return tallies.map((k, order) => {
     const ran = k.pass + k.fail + k.error
-    const answered = attempts
+    const answered = trials
       .flatMap((a) => a.assertions ?? [])
       .filter((x) => x.label === k.label && x.message)
     const shown =
       answered.find((x) => x.status === 'fail') ?? answered.find((x) => x.status === 'error')
     const assertion = shown?.message ?? null
-    // A baseline with no counted attempt records no checks: it never ran this one.
-    const control = baseline
+    // A baseline with no counted trial records no checks: it never ran this one.
+    const baselineCheck = baseline
       ? (baseline.checks?.find((x) => x.label === k.label) ?? {
           pass: 0,
           fail: 0,
@@ -523,22 +523,22 @@ function checksOf(
           notApplicable: 0,
         })
       : undefined
-    const judged = attempts.flatMap((a) =>
+    const judged = trials.flatMap((a) =>
       labeledJudgments(a)
         .filter((j) => j.check === k.label)
         .map((j) => j.judgment),
     )
     const first = judged[0]
-    const notes = attempts.flatMap((a) => {
+    const notes = trials.flatMap((a) => {
       const check = checksByLabel(a).get(k.label)
       const note = check && checkTries(check)
       return note ? [note] : []
     })
     const retried =
-      attempts.length === 1
+      trials.length === 1
         ? notes[0]
         : notes.length
-          ? `retried in ${notes.length} of ${attempts.length} attempts`
+          ? `retried in ${notes.length} of ${trials.length} trials`
           : undefined
     return {
       path: `${base}/checks/${factSegment(k.label)}`,
@@ -556,7 +556,7 @@ function checksOf(
               assertion,
               at: shown?.at ?? null,
             },
-      effect: control ? checkEffect(k, control) : null,
+      effect: baselineCheck ? checkEffect(k, baselineCheck) : null,
       judge: first
         ? {
             question: first.question,
@@ -587,26 +587,26 @@ export function messageLine(text: string): string {
  * A task failure's one line: its reason, after its class for an error other than an `EvalError`,
  * a plain `Error` or an `AssertionError` (`TypeError: x is not a function`, `KeyError: 'missing'`).
  */
-export const failureHeadline = (f: Pick<AttemptFailure, 'reason' | 'name'>) =>
+export const failureHeadline = (f: Pick<TrialFailure, 'reason' | 'name'>) =>
   f.name && !/^(Assertion)?Error$/.test(f.name) ? `${f.name}: ${f.reason}` : f.reason
 
 /**
- * The errors of a cell's failed and infra-error attempts that no failed check explains: every
- * timeout, infra error and abort, and an assertion or judge error on an attempt whose recorded
+ * The errors of a cell's failed and infra-error trials that no failed check explains: every
+ * timeout, infra error and abort, and an assertion or judge error on a trial whose recorded
  * checks all passed (a throw in the eval's body), plus each turn's error, which is often why.
  */
 function errorsOf(e: EvalEntry, cell: CellRecord): CellError[] {
   const out: CellError[] = []
-  const add = (kind: CellError['kind'], text: string, failure?: AttemptFailure) => {
+  const add = (kind: CellError['kind'], text: string, failure?: TrialFailure) => {
     const message = messageLine(text)
     const same = out.find((x) => x.kind === kind && x.message === message)
-    if (same) same.attempts++
+    if (same) same.trials++
     else if (failure) {
       const { kind: _, reason: __, ...rest } = failure
-      out.push({ kind, message, attempts: 1, failure: rest })
-    } else out.push({ kind, message, attempts: 1 })
+      out.push({ kind, message, trials: 1, failure: rest })
+    } else out.push({ kind, message, trials: 1 })
   }
-  for (const a of e.attempts) {
+  for (const a of e.trials) {
     if (a.cell !== cell.key) continue
     if (a.outcome !== 'fail' && a.outcome !== 'infra_error') continue
     for (const turn of a.turns ?? []) if (turn.error) add('turn', turn.error)
@@ -619,7 +619,7 @@ function errorsOf(e: EvalEntry, cell: CellRecord): CellError[] {
   return out
 }
 
-function questionsOf(e: EvalEntry): Array<QuestionResult | AttemptQuestionResult> {
+function questionsOf(e: EvalEntry): Array<QuestionResult | TrialQuestionResult> {
   const pairs = (e.answers ?? []).map(
     (a): QuestionResult => ({
       kind: 'pairs',
@@ -629,16 +629,16 @@ function questionsOf(e: EvalEntry): Array<QuestionResult | AttemptQuestionResult
       error: a.error ?? null,
     }),
   )
-  const each = attemptAnswerRows(e).map((row): AttemptQuestionResult => {
+  const each = trialAnswerRows(e).map((row): TrialQuestionResult => {
     const failed = row.answers.filter((a) => a.error !== null)
     return {
-      kind: 'attempts',
+      kind: 'trials',
       question: row.question,
       asked: row.answers.length,
       choices: row.choices,
       answers: row.answers
         .filter((a) => a.error === null)
-        .map((a) => ({ attempt: a.attempt, choice: a.choice, text: a.text })),
+        .map((a) => ({ trial: a.trial, choice: a.choice, text: a.text })),
       failed: failed.length,
       error: failed[0]?.error ?? null,
     }
@@ -648,7 +648,7 @@ function questionsOf(e: EvalEntry): Array<QuestionResult | AttemptQuestionResult
 
 function effortOf(e: EvalEntry, cell: CellRecord): EffortCounters | null {
   const effort = cellEffort(e, cell.key)
-  if (!effort || effort.n < COMPARE_RUNS) return null
+  if (!effort || effort.n < COMPARE_TRIALS) return null
   return {
     tools: effort.tools.median,
     ...(effort.llmCalls ? { llmCalls: effort.llmCalls.median } : {}),
@@ -660,7 +660,7 @@ function effortOf(e: EvalEntry, cell: CellRecord): EffortCounters | null {
 
 /** A variant's direction against its baseline; null without one, or with nothing counted on a side. */
 function cellEffect(cell: CellRecord, baseline: CellRecord | undefined): Effect | null {
-  if (cell.lift) return effectOf(cell.lift.variant, cell.lift.control)
+  if (cell.lift) return effectOf(cell.lift.variant, cell.lift.baseline)
   if (!baseline) return null
   return effectOf(
     { pass: cell.pass, counted: cell.pass + cell.fail },
@@ -678,8 +678,8 @@ function cellsOf(
   return e.cells.map((cell, order) => {
     const path = `${parent}/${cellSegment(cell)}`
     const baseline = baselineOf(e, cell)
-    const attempts = e.attempts.filter((a) => a.cell === cell.key && counted(a))
-    const ran = e.attempts.filter((a) => a.cell === cell.key)
+    const trials = e.trials.filter((a) => a.cell === cell.key && counted(a))
+    const ran = e.trials.filter((a) => a.cell === cell.key)
     const upstreams = tallyUpstreams(ran.flatMap((a) => a.upstreams ?? []))
     const judgeUpstreams = tallyUpstreams(
       ran.flatMap((a) =>
@@ -728,12 +728,12 @@ function cellsOf(
       environment: cell.environment,
       sandbox: cell.sandbox,
       variant: cell.variant ?? null,
-      baseline: hasVariants && cell.role === 'control',
+      baseline: hasVariants && cell.role === 'baseline',
       vs: baseline?.key ?? null,
       order,
       gated: cell.gate !== 'none',
       outcome: cell.outcome,
-      attempts: cell.runs,
+      trials: cell.trials,
       passed: cell.pass,
       failed: cell.fail,
       infraError: cell.infraError,
@@ -755,8 +755,8 @@ function cellsOf(
         cell.role === 'variant' && baseline ? cellMeasures(e, cell.key, baseline.key) : null,
       errors: errorsOf(e, cell),
       ...(snapshots.length ? { snapshots } : {}),
-      searches: attempts.map((a) => a.activity.webSearches),
-      fetches: attempts.map((a) => a.activity.webFetches),
+      searches: trials.map((a) => a.activity.webSearches),
+      fetches: trials.map((a) => a.activity.webFetches),
       ...(upstreams.length ? { upstreams } : {}),
       ...(judgeUpstreams.length ? { judgeUpstreams } : {}),
       ...(pageErrors.length ? { pageErrors } : {}),
@@ -766,8 +766,8 @@ function cellsOf(
 }
 
 function pooledEffect(lift: FamilyLift): Effect {
-  if (lift.variantRate === lift.controlRate) return 'same'
-  return lift.variantRate > lift.controlRate ? 'better' : 'worse'
+  if (lift.variantRate === lift.baselineRate) return 'same'
+  return lift.variantRate > lift.baselineRate ? 'better' : 'worse'
 }
 
 /** Fail beats infra error, which beats canceled, which beats pass; skipped only when every one was. */
@@ -779,8 +779,8 @@ function worst(outcomes: ResultOutcome[]): ResultOutcome {
   return 'pass'
 }
 
-/** The scored graders an attempt lost points on: a score under 1, or an error. */
-function lostOf(a: AttemptRecord): LostGrade[] {
+/** The scored graders a trial lost points on: a score under 1, or an error. */
+function lostOf(a: TrialRecord): LostGrade[] {
   return (a.grades ?? []).flatMap((g) =>
     g.weight > 0 && (g.error !== undefined || (g.score !== null && g.score < 1))
       ? [
@@ -796,16 +796,16 @@ function lostOf(a: AttemptRecord): LostGrade[] {
   )
 }
 
-/** The eval's target and its target cells' attempts, from its folded entry. */
+/** The eval's target and its target cells' trials, from its folded entry. */
 function targetOf(
   e: EvalEntry | undefined,
 ): Pick<EvalResult, 'target' | 'blocking' | 'meanScore' | 'scored'> {
   const target = e?.target ?? DEFAULT_TARGET
   const cells = new Set(targetCells(e?.cells ?? []).map((c) => c.key))
   const order = new Map((e?.cases ?? []).map((k, i) => [k.key, i]))
-  const scored = (e?.attempts ?? [])
+  const scored = (e?.trials ?? [])
     .filter((a) => cells.has(a.cell) && a.outcome !== 'skipped')
-    .map((a): ScoredAttempt => {
+    .map((a): ScoredTrial => {
       const failedChecks = (a.assertions ?? [])
         .filter((x) => x.status === 'fail' || x.status === 'error')
         .map((x) => ({
@@ -843,11 +843,11 @@ function targetOf(
   }
 }
 
-/** The record's outcome, or `canceled` when every gated attempt that failed was canceled. */
+/** The record's outcome, or `canceled` when every gated trial that failed was canceled. */
 function outcomeOf(e: EvalEntry): ResultOutcome {
   if (e.outcome !== 'fail') return e.outcome
   const gated = new Set(e.cells.filter((c) => c.gate !== 'none').map((c) => c.key))
-  const failed = e.attempts.filter((a) => a.outcome === 'fail' && gated.has(a.cell))
+  const failed = e.trials.filter((a) => a.outcome === 'fail' && gated.has(a.cell))
   return failed.length && failed.every((a) => a.error?.kind === 'aborted') ? 'canceled' : 'fail'
 }
 
@@ -856,10 +856,8 @@ const caseVerdict = (e: EvalEntry): ResultOutcome =>
   e.verdict === 'family' && e.outcome === 'fail' ? 'pass' : outcomeOf(e)
 
 /** Each question any case asked, in first-asked order, with its votes or answers summed over the cases. */
-function familyQuestions(
-  cases: readonly EvalEntry[],
-): Array<QuestionResult | AttemptQuestionResult> {
-  const out = new Map<string, QuestionResult | AttemptQuestionResult>()
+function familyQuestions(cases: readonly EvalEntry[]): Array<QuestionResult | TrialQuestionResult> {
+  const out = new Map<string, QuestionResult | TrialQuestionResult>()
   for (const q of cases.flatMap(questionsOf)) {
     const key = `${q.kind}\0${q.question}`
     const have = out.get(key)
@@ -877,7 +875,7 @@ function familyQuestions(
       continue
     }
     have.error ??= q.error
-    if (have.kind === 'attempts' && q.kind === 'attempts') {
+    if (have.kind === 'trials' && q.kind === 'trials') {
       have.asked += q.asked
       have.failed += q.failed
       have.answers.push(...q.answers)
@@ -964,7 +962,7 @@ function familyResult(
         : [],
     ),
     questions: familyQuestions(sorted),
-    observations: observedTallies(sorted.flatMap((k) => k.attempts)),
+    observations: observedTallies(sorted.flatMap((k) => k.trials)),
     ...targetOf(folded),
   }
 }
@@ -988,7 +986,7 @@ function evalResult(record: RunRecord, e: EvalEntry, order: number): EvalResult 
     pooled: null,
     rates: null,
     questions: questionsOf(e),
-    observations: observedTallies(e.attempts),
+    observations: observedTallies(e.trials),
     ...targetOf(e),
   }
 }

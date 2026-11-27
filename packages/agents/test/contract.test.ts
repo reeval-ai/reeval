@@ -157,12 +157,12 @@ const skip = dockerSkip()
 const TURNS = Object.keys(PROMPTS).length
 
 /**
- * Reserves the row's turns in the CI job's ledger of real attempts (`REEVAL_REAL_LEDGER`, one
+ * Reserves the row's turns in the CI job's ledger of real trials (`REEVAL_REAL_LEDGER`, one
  * number per line), failing before anything starts when they'd take the job over
- * `REEVAL_REAL_ATTEMPT_BUDGET`. Unset, no cap.
+ * `REEVAL_REAL_TRIAL_BUDGET`. Unset, no cap.
  */
 function reserve(row: Row): void {
-  const budget = Number(process.env.REEVAL_REAL_ATTEMPT_BUDGET)
+  const budget = Number(process.env.REEVAL_REAL_TRIAL_BUDGET)
   const ledger = process.env.REEVAL_REAL_LEDGER
   if (!budget || !ledger) return
   const spent = existsSync(ledger)
@@ -173,7 +173,7 @@ function reserve(row: Row): void {
     : 0
   if (spent + TURNS > budget) {
     throw new Error(
-      `the core contract on ${row.id} would start ${TURNS} real turns, over the job's budget of ${budget} (${spent} reserved): raise contract.yml's REEVAL_REAL_ATTEMPT_BUDGET if the suite grew on purpose`,
+      `the core contract on ${row.id} would start ${TURNS} real turns, over the job's budget of ${budget} (${spent} reserved): raise contract.yml's REEVAL_REAL_TRIAL_BUDGET if the suite grew on purpose`,
     )
   }
   appendFileSync(ledger, `${TURNS} core contract ${row.id}\n`)

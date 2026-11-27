@@ -1,13 +1,13 @@
 ---
-title: "Debug a failing attempt"
-description: "Find why a failed attempt did what it did."
+title: "Debug a failing trial"
+description: "Find why a failed trial did what it did."
 ---
 
-When an attempt fails, read the phase trace and the trajectory to see what the harness did.
+When a trial fails, read the phase trace and the trajectory to see what the harness did.
 
 ## Print the trace
 
-The `-v` flag prints each attempt's phase trace as the attempt runs. The phase on a line is `plan`, `image`, `container`, `env`, `broker`, `harness`, `check`, `judge`, `gateway`, or `teardown`. With `-v`, a passing attempt prints its detail lines.
+The `-v` flag prints each trial's phase trace as the trial runs. The phase on a line is `plan`, `image`, `container`, `env`, `broker`, `harness`, `check`, `judge`, `gateway`, or `teardown`. With `-v`, a passing trial prints its detail lines.
 
 Print the phase trace for the run.
 
@@ -15,7 +15,7 @@ Print the phase trace for the run.
 npx reeval run -v
 ```
 
-Each line starts with the attempt's tag. This trace follows the evaluation in [Evaluate](/evaluations/evaluate), from the pinned checkout to the hidden test:
+Each line starts with the trial's tag. This trace follows the evaluation in [Evaluate](/evaluations/evaluate), from the pinned checkout to the hidden test:
 
 ```text
 [adds#1 fake] 15:04:40 env       workspace github:sindresorhus/camelcase#v10.0.0 at 328428291b2f (92160 bytes of tar, with a .git) in 25ms
@@ -28,7 +28,7 @@ Each line starts with the attempt's tag. This trace follows the evaluation in [E
 
 This trace comes from the example's scripted agent, so its tag reads `fake`. For a runnable project, see [`with-existing-codebase`](https://github.com/reeval-ai/reeval/tree/main/examples/with-existing-codebase).
 
-After the attempt's tag, a failed command assertion has this shape.
+After the trial's tag, a failed command assertion has this shape.
 
 ```text
 12:50:01 check     $ test -f src/user.test.ts → exit 1 · 4ms
@@ -48,11 +48,11 @@ For more information about every `reeval run` flag, see [reeval run](/reference/
 
 ## Open the debug directory
 
-The `.reeval/debug` directory holds one directory per run. Each attempt writes its own files there, so a run with no attempt writes no directory. Git ignores it with the rest of the `.reeval/` directory.
+The `.reeval/debug` directory holds one directory per run. Each trial writes its own files there, so a run with no trial writes no directory. Git ignores it with the rest of the `.reeval/` directory.
 
 Each run keeps the newest debug directories, set by [`debug.keep`](/reference/options#debug), and [`reeval clean`](/reference/cli#reeval-clean) removes the rest.
 
-Attempt files sit at the `.reeval/debug/<run id>/<evaluation>/<cell>/<n>/` path. The evaluation and cell names are slugs, each with a short hash.
+Trial files sit at the `.reeval/debug/<run id>/<evaluation>/<cell>/<n>/` path. The evaluation and cell names are slugs, each with a short hash.
 
 Open the `debug.log` file for that trace. Each line has a full timestamp.
 
@@ -60,13 +60,13 @@ Open the `debug.log` file for that trace. Each line has a full timestamp.
 2026-09-26T12:50:01.234Z check     $ test -f src/user.test.ts → exit 1 · 4ms
 ```
 
-The `requests.ndjson` file records one JSON object for each request the egress gateway handles. reeval writes the `trace.ndjson` file for a failing attempt and for every attempt with `-vv`. The first line of the `trace.ndjson` file counts entries the buffer dropped. To cap that file, set [`debug.traceBufferMb`](/reference/options#debug).
+The `requests.ndjson` file records one JSON object for each request the egress gateway handles. reeval writes the `trace.ndjson` file for a failing trial and for every trial with `-vv`. The first line of the `trace.ndjson` file counts entries the buffer dropped. To cap that file, set [`debug.traceBufferMb`](/reference/options#debug).
 
 For more information, see [the studio's **Debug** tab](/results/inspection/studio).
 
 ## Read a trajectory
 
-The `trajectory.jsonl` file lists every message and tool call of an attempt, in order. reeval writes that file for an attempt with a turn, at the `.reeval/runs/<run id>/<evaluation>/<cell>/<n>/trajectory.jsonl` path.
+The `trajectory.jsonl` file lists every message and tool call of a trial, in order. reeval writes that file for a trial with a turn, at the `.reeval/runs/<run id>/<evaluation>/<cell>/<n>/trajectory.jsonl` path.
 
 Each line is one JSON object. A turn starts with a `prompt` line, continues with that turn's events, and ends with a `turn-end` line carrying `status` and `durationMs`. A tool line names the tool and includes the input and the output. The `trajectory.jsonl` file keeps the final message whole.
 
@@ -86,11 +86,11 @@ To also write the `trajectory.raw.jsonl` file in that directory, one stream part
 
 ## Read the workspace and artifacts
 
-The workspace goes when the sandbox stops. reeval keeps what the agent left in it in the attempt's `.reeval/runs/<run id>/<evaluation>/<cell>/<n>/` directory:
+The workspace goes when the sandbox stops. reeval keeps what the agent left in it in the trial's `.reeval/runs/<run id>/<evaluation>/<cell>/<n>/` directory:
 
 | File | Holds |
 | :--- | :--- |
-| `diff.patch` | The workspace diff, from the snapshot after setup to the end of the attempt |
+| `diff.patch` | The workspace diff, from the snapshot after setup to the end of the trial |
 | `artifacts/<name>.png` | Screenshots from `c.capture()` |
 | `judge-input.json` | What each `c.judge()` call of an older reeval received |
 
@@ -100,7 +100,7 @@ The workspace goes when the sandbox stops. reeval keeps what the agent left in i
 npx reeval show <run-id> --trace
 ```
 
-This writes the run's timeline to `.reeval/traces/<run id>.json`. Open it at [ui.perfetto.dev](https://ui.perfetto.dev) with **Open trace file**. Each lane holds attempts that ran one after another, with each attempt's setup, turns, tool calls, checks and judge. For more information about the tracks, see [`reeval show`](/reference/cli#reeval-show).
+This writes the run's timeline to `.reeval/traces/<run id>.json`. Open it at [ui.perfetto.dev](https://ui.perfetto.dev) with **Open trace file**. Each lane holds trials that ran one after another, with each trial's setup, turns, tool calls, checks and judge. For more information about the tracks, see [`reeval show`](/reference/cli#reeval-show).
 
 ## Reference
 

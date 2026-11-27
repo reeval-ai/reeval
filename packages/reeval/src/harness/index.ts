@@ -4,7 +4,7 @@ import { layoutOf } from './agents.ts'
 import { createFakeHarness } from './fake.ts'
 import type { Harness } from './types.ts'
 
-/** The attempt's harness, for the sandbox it runs in; an agent the sandbox can't run is an infra error. */
+/** The trial's harness, for the sandbox it runs in; an agent the sandbox can't run is an infra error. */
 export async function createHarness(
   descriptor: HarnessDescriptor,
   sandbox: SandboxDescriptor,

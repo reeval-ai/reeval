@@ -3,7 +3,7 @@ import { AgentError } from '@reeval/agents'
 import type { EgressTraffic, NetworkPolicy, Substitution } from '@reeval/sandbox-docker'
 import type { SecretWarning } from '../history/types.ts'
 import type { ModelCall } from '../model-calls.ts'
-import type { AttemptImage, ExecResult } from '../types.ts'
+import type { ExecResult, TrialImage } from '../types.ts'
 import type { BuiltPlugin } from './prepare.ts'
 import type { ResourceMeter } from './resources.ts'
 
@@ -34,7 +34,7 @@ export interface Sandbox {
   /** With the Docker egress gateway: the brokered secrets it swaps in from now on. */
   setSubstitutions?(subs: readonly Substitution[]): Promise<void>
   /**
-   * Starts the attempt's next phase (`setup`, then `agent`) under `policy`, which the sandbox
+   * Starts the trial's next phase (`setup`, then `agent`) under `policy`, which the sandbox
    * enforces from now on; `direct` keeps its own network for traffic that ignores the proxy.
    */
   setEgress?(o: { policy: NetworkPolicy; direct: boolean; phase: 'setup' | 'agent' }): Promise<void>
@@ -72,12 +72,12 @@ export interface Sandbox {
    */
   oomKills?(): Promise<{ kills: number; limit: string; swap: string | null } | null>
   /**
-   * Starts reading what the sandbox gives the attempt and what it uses; unset where nothing
+   * Starts reading what the sandbox gives the trial and what it uses; unset where nothing
    * can be read, such as the fake sandbox on the host.
    */
   meter?(): ResourceMeter
   /** The image the sandbox prepared on its machine as it started, where preflight prepared none. */
-  readonly image?: AttemptImage
+  readonly image?: TrialImage
   /** The plugin builds that image has, each built in a layer of its own. */
   readonly builtPlugins?: readonly BuiltPlugin[]
   /** Idempotent, never throws. */
@@ -100,7 +100,7 @@ export class InfraError extends AgentError {
 }
 
 /**
- * The machine service ended the run: it starts no more machines for it, so an attempt waiting
+ * The machine service ended the run: it starts no more machines for it, so a trial waiting
  * for one stops as a canceled run's does, rather than failing.
  */
 export class RunStopped extends Error {
@@ -108,8 +108,8 @@ export class RunStopped extends Error {
 }
 
 /**
- * The machine service took a reused machine back at the boundary before its next attempt (the run
- * holds more machines than it may now), so the attempt gets another, and nothing failed.
+ * The machine service took a reused machine back at the boundary before its next trial (the run
+ * holds more machines than it may now), so the trial gets another, and nothing failed.
  */
 export class MachineReclaimed extends Error {
   override name = 'MachineReclaimed'

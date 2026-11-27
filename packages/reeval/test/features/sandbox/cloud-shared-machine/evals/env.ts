@@ -2,7 +2,7 @@ import { defineEnvironment, type Turn } from 'reeval'
 import { cloud } from 'reeval/internal/vm'
 
 export const vm = defineEnvironment('vm', {
-  sandbox: cloud({ attemptsPerMachine: 2, maxConcurrent: 2 }),
+  sandbox: cloud({ trialsPerMachine: 2, maxConcurrent: 2 }),
   egress: 'allow-all',
 })
 

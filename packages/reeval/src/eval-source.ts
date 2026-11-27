@@ -1,6 +1,6 @@
 // What an eval's `sources` fingerprint part covers, the same in every language: the eval's own
 // body (its function's source text), its declared options and its enclosing groups' (`tags`,
-// `runs`, `timeout`, `revision` and `target` aside), a case's data, and its
+// `trials`, `timeout`, `revision` and `target` aside), a case's data, and its
 // `revision`. Nothing else in the file is read: helpers, constants outside the body, fixtures and
 // data it reads are the author's to mark by bumping `revision`. Packages are covered by the recorded lockfiles.
 import { readFile } from 'node:fs/promises'
@@ -21,14 +21,14 @@ import type {
 } from './types.ts'
 
 /**
- * Kept out of the options hash: `tags` (selection), `runs` and `timeout` (how much and how long,
- * not what an attempt measures), `revision`'s own part, the target, which compare reads as a
- * policy change, and `snapshot`, what reeval keeps after the attempt.
+ * Kept out of the options hash: `tags` (selection), `trials` and `timeout` (how much and how long,
+ * not what a trial measures), `revision`'s own part, the target, which compare reads as a
+ * policy change, and `snapshot`, what reeval keeps after the trial.
  */
-const UNHASHED = new Set(['tags', 'runs', 'timeout', 'revision', 'target', 'snapshot'])
+const UNHASHED = new Set(['tags', 'trials', 'timeout', 'revision', 'target', 'snapshot'])
 
 /**
- * The `sources` fingerprint part. An attempt without a source (one kept from a record that had
+ * The `sources` fingerprint part. A trial without a source (one kept from a record that had
  * none, or one that never ran) hashes its eval file instead.
  */
 export function sourcesPart(
@@ -103,8 +103,7 @@ export async function evalFile(
  * One level's options with each harness, sandbox, environment and judge model by its id rather
  * than its object: the cell's other fingerprint parts already cover what they hold, and their
  * objects carry host paths and functions. Some keys hash under older names (`harness` for
- * `agents`, `environment`, `compare.baseline` for `compare.control`), so records that hashed
- * them stay comparable.
+ * `agents`, `environment`), so records that hashed them stay comparable.
  */
 function canonicalOptions(options: EvalOptions): Record<string, unknown> {
   const out: Record<string, unknown> = {}
@@ -123,12 +122,11 @@ function canonicalOptions(options: EvalOptions): Record<string, unknown> {
   return out
 }
 
-/** `compare` with `control` hashed as `baseline` and `agents` as `harness`. */
+/** `compare` with `agents` hashed as `harness`. */
 function compareForm(compare: Record<string, unknown>): Record<string, unknown> {
-  const { control, agents, ...rest } = compare
+  const { agents, ...rest } = compare
   return {
     ...rest,
-    ...(control !== undefined ? { baseline: control } : {}),
     ...(agents !== undefined
       ? { harness: Array.isArray(agents) ? agents.map(harnessForm) : agents }
       : {}),

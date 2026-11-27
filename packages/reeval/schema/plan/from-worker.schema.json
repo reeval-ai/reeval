@@ -32,7 +32,7 @@
           "const": "antigravity"
         },
         "maxConcurrent": {
-          "description": "The most Antigravity attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most Antigravity trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -41,250 +41,12 @@
           "minLength": 1
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         }
       },
       "required": ["kind", "model"],
       "additionalProperties": false
-    },
-    "AttemptMeta": {
-      "description": "Set when an attempt is registered, so the reporter has it even for skipped attempts.",
-      "type": "object",
-      "properties": {
-        "bestOf": {
-          "description": "Set by `runs: { bestOf }`: past the majority's first attempts, this one runs only when the cell's earlier attempts haven't reached a majority.",
-          "type": "number"
-        },
-        "brokered": {
-          "description": "The secrets this attempt brokers, as `NAME → host, host`.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "cell": {
-          "$ref": "#/$defs/Cell"
-        },
-        "egress": {
-          "$ref": "#/$defs/PlannedEgress"
-        },
-        "family": {
-          "description": "Set when the eval is a case of an eval with `cases`.",
-          "$ref": "#/$defs/FamilyMeta"
-        },
-        "files": {
-          "description": "The paths its environment's `files` write, layered and sorted; unset when there are none.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "gate": {
-          "description": "How its cell's attempts decide the cell's outcome; `'none'` when they don't fail the run.",
-          "$ref": "#/$defs/CellGate"
-        },
-        "gateway": {
-          "description": "The gateway its harness resolved to; unset when no config, profile or pin names one.",
-          "$ref": "#/$defs/ResolvedGateway"
-        },
-        "graderSandboxes": {
-          "description": "The sandboxes its graders' `env` start once its task returns, whose images preflight prepares.",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "grader": {
-                "type": "string"
-              },
-              "sandbox": {
-                "$ref": "#/$defs/SandboxDescriptor"
-              }
-            },
-            "required": ["grader", "sandbox"]
-          }
-        },
-        "groups": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "harness": {
-          "$ref": "#/$defs/HarnessDescriptor"
-        },
-        "inputs": {
-          "description": "The host files it reads, by absolute path: what its file's load read, then what its environment and sandbox name. Set only when the run context asks for `inputs`.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/LocalInput"
-          }
-        },
-        "judge": {
-          "description": "Its judge's `'provider/model'`, as the config, profile, groups and eval set it, and the gateway its calls go through, so the run checks the judge's key before any attempt starts. Unset for a fake judge, a model object, or none.",
-          "type": "object",
-          "properties": {
-            "gateway": {
-              "enum": ["direct", "openrouter", "vercel", "vertex"]
-            },
-            "model": {
-              "type": "string"
-            }
-          },
-          "required": ["model"]
-        },
-        "label": {
-          "description": "The harness, then the role (with `compare`), plus `#n` when it has several runs.",
-          "type": "string"
-        },
-        "minLift": {
-          "description": "Set on variant attempts whose compare has a `minLift`.",
-          "type": "number"
-        },
-        "n": {
-          "type": "number"
-        },
-        "name": {
-          "type": "string"
-        },
-        "plan": {
-          "$ref": "#/$defs/EvalPlan"
-        },
-        "pluginBuilds": {
-          "description": "Its environment's plugins with a `build`, layered, which preflight builds into its image.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/PluginSource"
-          }
-        },
-        "plugins": {
-          "description": "Its environment's plugins, layered: a local one's name and parts, else its source.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "revision": {
-          "description": "The eval's `revision`, as the cascade resolved it; unset when no level sets one.",
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string"
-            }
-          ]
-        },
-        "sandbox": {
-          "$ref": "#/$defs/SandboxDescriptor"
-        },
-        "secretVars": {
-          "description": "The host variables its secrets read, by name: the CLI's own process masks their values on screen, since the attempt's worker is the only other process that knows them.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "setBy": {
-          "description": "The levels that set its sandbox and harness: `reeval.config.ts`, `profiles.pr.defaults`, `group(\"net\")` or `evaluate(\"x\")`; with `pluginBuilds`, the environment its plugin builds come from (`environment review in evals/review.eval.ts`).",
-          "type": "object",
-          "properties": {
-            "harness": {
-              "type": "string"
-            },
-            "pluginBuilds": {
-              "type": "string"
-            },
-            "sandbox": {
-              "type": "string"
-            }
-          },
-          "required": ["harness", "sandbox"]
-        },
-        "skip": {
-          "description": "Why this attempt does not run, e.g. it already completed in a resumed run.",
-          "type": "string"
-        },
-        "source": {
-          "description": "Hashes of the eval's own source: what the `sources` fingerprint part covers but `revision`.",
-          "$ref": "#/$defs/EvalSource"
-        },
-        "tags": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "target": {
-          "description": "The eval's target, which its attempts pass at the threshold of; unset in records from before targets.",
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "blocking": {
-                  "description": "Whether a miss fails the run.",
-                  "type": "boolean"
-                },
-                "kind": {
-                  "const": "capability"
-                },
-                "threshold": {
-                  "description": "The score, from 0 to 1, one attempt must reach.",
-                  "type": "number"
-                }
-              },
-              "required": ["blocking", "kind", "threshold"]
-            },
-            {
-              "type": "object",
-              "properties": {
-                "kind": {
-                  "const": "metric"
-                },
-                "threshold": {
-                  "description": "The mean score, from 0 to 1, the attempts had to reach; unset only reported.",
-                  "type": "number"
-                }
-              },
-              "required": ["kind"]
-            },
-            {
-              "type": "object",
-              "properties": {
-                "kind": {
-                  "const": "regression"
-                },
-                "threshold": {
-                  "description": "The score, from 0 to 1, every attempt must reach.",
-                  "type": "number"
-                }
-              },
-              "required": ["kind", "threshold"]
-            }
-          ]
-        },
-        "workspace": {
-          "description": "The git repository its workspace starts as, which the CLI fetches before any attempt.",
-          "$ref": "#/$defs/GitWorkspace"
-        }
-      },
-      "required": [
-        "brokered",
-        "cell",
-        "egress",
-        "gate",
-        "groups",
-        "harness",
-        "label",
-        "n",
-        "name",
-        "plan",
-        "sandbox",
-        "secretVars",
-        "setBy",
-        "source",
-        "tags"
-      ]
     },
     "BoatApiKey": {
       "description": "The host variable holding a Boat API key, made by `secret.fromEnv`.",
@@ -319,12 +81,6 @@
           "required": ["from", "kind"],
           "additionalProperties": false
         },
-        "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, each in a container of its own with its own workspace, home, network and egress gateway. Default 1.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8
-        },
         "dockerfile": {
           "description": "A Dockerfile, absolute or relative to the directory of the file it's written in, built from its directory with `REEVAL_BASE` set to reeval's sandbox image.",
           "type": "string",
@@ -341,7 +97,7 @@
           "pattern": "\\S"
         },
         "image": {
-          "description": "An image that already has the harness baked in, pulled from its registry on a build VM. Preflight builds the image (reeval's for the harness, with none of `image`, `from`, `dockerfile` or `install`) once into a Boat saved snapshot, and each attempt runs in a container of it on a VM started from the snapshot.",
+          "description": "An image that already has the harness baked in, pulled from its registry on a build VM. Preflight builds the image (reeval's for the harness, with none of `image`, `from`, `dockerfile` or `install`) once into a Boat saved snapshot, and each trial runs in a container of it on a VM started from the snapshot.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -358,7 +114,7 @@
           "const": "boat"
         },
         "maxConcurrent": {
-          "description": "The most attempts on Boat at once, across the run: machines times `attemptsPerMachine`.",
+          "description": "The most trials on Boat at once, across the run: machines times `trialsPerMachine`.",
           "type": "integer",
           "minimum": 1,
           "maximum": 9007199254740991
@@ -370,8 +126,14 @@
           "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         },
         "reuse": {
-          "description": "A machine takes another of the run's attempts once one ends, in a new container, instead of being deleted. Default false, one attempt per slot.",
+          "description": "A machine takes another of the run's trials once one ends, in a new container, instead of being deleted. Default false, one trial per slot.",
           "type": "boolean"
+        },
+        "trialsPerMachine": {
+          "description": "The trials one machine runs at once, each in a container of its own with its own workspace, home, network and egress gateway. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
         },
         "type": {
           "description": "The machine size. Default `small`.",
@@ -391,7 +153,7 @@
           "type": "boolean"
         },
         "model": {
-          "description": "Vision model for `instructions`. Cascades like `question`. Default is `analysis.model`, else the attempt's judge model, whichever is first a language model; never Jev.",
+          "description": "Vision model for `instructions`. Cascades like `question`. Default is `analysis.model`, else the trial's judge model, whichever is first a language model; never Jev.",
           "type": "string",
           "format": "includes",
           "pattern": "\\/"
@@ -436,7 +198,7 @@
       "additionalProperties": false
     },
     "Cell": {
-      "description": "A cell of an evaluation combines a harness, an environment (`-` when none is set), and that environment's sandbox id. With `compare`, the control is `compare.control` and each variant is that environment on its own, including its sandbox.",
+      "description": "A cell of an evaluation combines a harness, an environment (`-` when none is set), and that environment's sandbox id. With `compare`, the baseline is `compare.baseline` and each variant is that environment on its own, including its sandbox.",
       "type": "object",
       "properties": {
         "environment": {
@@ -452,7 +214,7 @@
           "type": "string"
         },
         "role": {
-          "description": "`variant` on a compare's variant cell, else `control`: the compare's control, or any cell of an eval without `compare`, each environment of an `environments` grid included. A variant's lift is against the `control` cell on its harness and sandbox.",
+          "description": "`variant` on a compare's variant cell, else `baseline`: the compare's baseline, or any cell of an eval without `compare`, each environment of an `environments` grid included. A variant's lift is against the `baseline` cell on its harness and sandbox.",
           "$ref": "#/$defs/CellRole"
         },
         "sandbox": {
@@ -486,7 +248,7 @@
       "required": ["environment", "harness", "key", "role", "sandbox"]
     },
     "CellGate": {
-      "description": "A cell's gate: `'all'` when every counted attempt must pass, `'any'` when one must, `{ passRate }` when its pass share must reach that (a `runs: { bestOf }` cell; in an older record, its mean score), or `'none'` when its failures don't decide the eval (a compare's control, or in an older record a cell whose target couldn't block). Whether a failed cell fails the run is its target's.",
+      "description": "A cell's gate: `'all'` when every counted trial must pass, `'any'` when one must, `{ passRate }` when its pass share must reach that (a `trials: { bestOf }` cell; in an older record, its mean score), or `'none'` when its failures don't decide the eval (a compare's baseline, or in an older record a cell whose target couldn't block). Whether a failed cell fails the run is its target's.",
       "anyOf": [
         {
           "enum": ["all", "any", "none"]
@@ -503,7 +265,7 @@
       ]
     },
     "CellRole": {
-      "enum": ["control", "variant"]
+      "enum": ["baseline", "variant"]
     },
     "ClaudeCodeHarnessDescriptor": {
       "description": "Claude Code through `@ai-sdk/harness-claude-code`, made by `claudeCode()`.",
@@ -542,7 +304,7 @@
           "const": "claude-code"
         },
         "maxConcurrent": {
-          "description": "The most Claude Code attempts at once, across the run, e.g. for the account's rate limits.",
+          "description": "The most Claude Code trials at once, across the run, e.g. for the account's rate limits.",
           "type": "number"
         },
         "model": {
@@ -551,7 +313,7 @@
           "minLength": 1
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         },
         "systemPrompt": {
@@ -573,17 +335,11 @@
       "additionalProperties": false
     },
     "CloudSandboxDescriptor": {
-      "description": "A VM per attempt from reeval's own VM service, made by `cloud()` from `reeval/internal/vm`.",
+      "description": "A VM per trial from reeval's own VM service, made by `cloud()` from `reeval/internal/vm`.",
       "type": "object",
       "properties": {
-        "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, each in a container of its own, as `boat({ attemptsPerMachine })` does. Default 1.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8
-        },
         "capabilities": {
-          "description": "Linux capabilities the attempt's container adds back, as `docker({ capabilities })` does.",
+          "description": "Linux capabilities the trial's container adds back, as `docker({ capabilities })` does.",
           "type": "array",
           "items": {
             "type": "string",
@@ -591,7 +347,7 @@
           }
         },
         "cpus": {
-          "description": "CPUs the attempt's container may use; the VM's share per slot when unset.",
+          "description": "CPUs the trial's container may use; the VM's share per slot when unset.",
           "type": "number",
           "exclusiveMinimum": 0
         },
@@ -611,7 +367,7 @@
           "pattern": "\\S"
         },
         "image": {
-          "description": "An image that already has the harness baked in, pulled from its registry. With any of `image`, `from`, `dockerfile` or `install`, each attempt runs in a container of the recipe's image, which each VM pulls or builds as `docker()` does locally as its first attempt starts: without `reuse`, that's every attempt.",
+          "description": "An image that already has the harness baked in, pulled from its registry. With any of `image`, `from`, `dockerfile` or `install`, each trial runs in a container of the recipe's image, which each VM pulls or builds as `docker()` does locally as its first trial starts: without `reuse`, that's every trial.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -628,11 +384,11 @@
           "const": "cloud"
         },
         "maxConcurrent": {
-          "description": "The most attempts on cloud VMs at once, across the run: machines times `attemptsPerMachine`.",
+          "description": "The most trials on cloud VMs at once, across the run: machines times `trialsPerMachine`.",
           "type": "number"
         },
         "memory": {
-          "description": "The attempt's container's memory, as `docker({ memory })` sets it; the VM's share per slot when unset. More than that share fails the attempt.",
+          "description": "The trial's container's memory, as `docker({ memory })` sets it; the VM's share per slot when unset. More than that share fails the trial.",
           "anyOf": [
             {
               "type": "string",
@@ -646,17 +402,17 @@
           ]
         },
         "pids": {
-          "description": "Processes and threads at once in the attempt's container. Default 1024.",
+          "description": "Processes and threads at once in the trial's container. Default 1024.",
           "type": "integer",
           "exclusiveMinimum": 0,
           "maximum": 9007199254740991
         },
         "reuse": {
-          "description": "A machine takes another of the run's attempts once one ends, instead of being deleted, as `boat({ reuse })` does. Default false, one attempt per slot.",
+          "description": "A machine takes another of the run's trials once one ends, instead of being deleted, as `boat({ reuse })` does. Default false, one trial per slot.",
           "type": "boolean"
         },
         "root": {
-          "description": "Run the agent, setup steps and checks as root in the attempt's container, as `docker({ root })` does.",
+          "description": "Run the agent, setup steps and checks as root in the trial's container, as `docker({ root })` does.",
           "type": "boolean"
         },
         "size": {
@@ -677,6 +433,12 @@
               "maximum": 9007199254740991
             }
           ]
+        },
+        "trialsPerMachine": {
+          "description": "The trials one machine runs at once, each in a container of its own, as `boat({ trialsPerMachine })` does. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
         }
       },
       "required": ["kind"],
@@ -710,7 +472,7 @@
           "const": "codex"
         },
         "maxConcurrent": {
-          "description": "The most Codex attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most Codex trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -719,7 +481,7 @@
           "pattern": "^[\\w.-]+$"
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         },
         "systemPrompt": {
@@ -759,7 +521,7 @@
           "const": "cursor"
         },
         "maxConcurrent": {
-          "description": "The most Cursor attempts at once, across the run, e.g. for the account's rate limits.",
+          "description": "The most Cursor trials at once, across the run, e.g. for the account's rate limits.",
           "type": "number"
         },
         "model": {
@@ -778,7 +540,7 @@
           }
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         }
       },
@@ -818,12 +580,6 @@
           "required": ["from", "kind"],
           "additionalProperties": false
         },
-        "attemptsPerMachine": {
-          "description": "The attempts one machine runs at once, each as a user of its own with its own home (which each sees at `/home/reeval`), workspace and egress gateway. Default 1. A harness whose bridge takes a fixed port in the machine (Claude Code, OpenCode, Goose, fx, Grok Build) runs one per machine.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8
-        },
         "dockerfile": {
           "description": "A Dockerfile, absolute or relative to the directory of the file it's written in, that Daytona builds from its directory into a snapshot. `FROM ${REEVAL_BASE}` starts it from reeval's sandbox image; any other base must be Debian or Ubuntu based, and gets Node and the harness baked on top.",
           "type": "string",
@@ -857,7 +613,7 @@
           "const": "daytona"
         },
         "maxConcurrent": {
-          "description": "The most attempts on Daytona at once, across the run: machines times `attemptsPerMachine`.",
+          "description": "The most trials on Daytona at once, across the run: machines times `trialsPerMachine`.",
           "type": "integer",
           "minimum": 1,
           "maximum": 9007199254740991
@@ -869,13 +625,19 @@
           "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         },
         "reuse": {
-          "description": "A machine takes another of the run's attempts once one ends, instead of being deleted: its user's processes, cron jobs and files are removed and its home put back as the snapshot had it. Default false, one attempt per slot.",
+          "description": "A machine takes another of the run's trials once one ends, instead of being deleted: its user's processes, cron jobs and files are removed and its home put back as the snapshot had it. Default false, one trial per slot.",
           "type": "boolean"
         },
         "size": {
           "description": "The sandbox size. Default `medium`.",
           "type": "string",
           "enum": ["small", "medium", "large"]
+        },
+        "trialsPerMachine": {
+          "description": "The trials one machine runs at once, each as a user of its own with its own home (which each sees at `/home/reeval`), workspace and egress gateway. Default 1. A harness whose bridge takes a fixed port in the machine (Claude Code, OpenCode, Goose, fx, Grok Build) runs one per machine.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
         }
       },
       "required": ["apiKey", "kind", "prefix"],
@@ -1040,7 +802,7 @@
       ]
     },
     "EgressPolicy": {
-      "description": "Where the sandbox may connect: any host over HTTP(S) through the egress gateway (`'proxy'`, the default), anywhere including raw TCP and UDP around the gateway (`'allow-all'`), nowhere (`'deny-all'`), or only the listed hosts (`'*.example.com'` matches subdomains). Under a restricted policy the harness's own hosts, brokered secrets' `hosts` and MCP servers' hosts are allowed too; any other request gets a refusal, and the attempt goes on.",
+      "description": "Where the sandbox may connect: any host over HTTP(S) through the egress gateway (`'proxy'`, the default), anywhere including raw TCP and UDP around the gateway (`'allow-all'`), nowhere (`'deny-all'`), or only the listed hosts (`'*.example.com'` matches subdomains). Under a restricted policy the harness's own hosts, brokered secrets' `hosts` and MCP servers' hosts are allowed too; any other request gets a refusal, and the trial goes on.",
       "anyOf": [
         {
           "type": "string",
@@ -1071,15 +833,15 @@
       ]
     },
     "EvalCompareMeta": {
-      "description": "Which environment ran as the control, so the studio can show it.",
+      "description": "Which environment ran as the baseline, so the studio can show it.",
       "type": "object",
       "properties": {
         "baseline": {
-          "description": "The control's environment name.",
+          "description": "The baseline's environment name.",
           "type": "string"
         },
         "from": {
-          "description": "Not written, since a compare names its control. A record that has it ran the eval's cascaded environment (`'environment'`) or an empty one named `baseline` (`'empty'`) as the control.",
+          "description": "Not written, since a compare names its baseline. A record that has it ran the eval's cascaded environment (`'environment'`) or an empty one named `baseline` (`'empty'`) as the baseline.",
           "enum": ["empty", "environment"]
         }
       },
@@ -1143,7 +905,7 @@
               "type": "string"
             },
             "turn": {
-              "description": "How many turns the attempt had sent when the task threw: 0 before the first.",
+              "description": "How many turns the trial had sent when the task threw: 0 before the first.",
               "type": "number"
             }
           },
@@ -1208,15 +970,12 @@
       "description": "How an eval was sized for the plan: what it asked for, and what a profile changed.",
       "type": "object",
       "properties": {
-        "attempts": {
-          "type": "number"
-        },
         "bestOf": {
-          "description": "Set by `runs: { bestOf }`: each cell stops once a majority of this many attempts agree.",
+          "description": "Set by `trials: { bestOf }`: each cell stops once a majority of this many trials agree.",
           "type": "number"
         },
         "brokered": {
-          "description": "Secrets any of its attempts brokers, as `NAME → host, host`.",
+          "description": "Secrets any of its trials brokers, as `NAME → host, host`.",
           "type": "array",
           "items": {
             "type": "string"
@@ -1231,7 +990,7 @@
           "$ref": "#/$defs/EvalCompareMeta"
         },
         "egress": {
-          "description": "Each distinct egress policy its attempts run under, by environment and harness.",
+          "description": "Each distinct egress policy its trials run under, by environment and harness.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/PlanEgress"
@@ -1285,15 +1044,11 @@
           }
         },
         "questions": {
-          "description": "The eval's questions, answered after its attempts; unset without any, or when a profile dropped them all.",
+          "description": "The eval's questions, answered after its trials; unset without any, or when a profile dropped them all.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/PlannedQuestion"
           }
-        },
-        "runs": {
-          "description": "Attempts per cell; with `bestOf`, the most a cell runs.",
-          "type": "number"
         },
         "sandboxWarnings": {
           "description": "Its sandbox runs as root, with capabilities added back or with host devices; empty for a skipped eval.",
@@ -1320,7 +1075,7 @@
                   "const": "capability"
                 },
                 "threshold": {
-                  "description": "The score, from 0 to 1, one attempt must reach.",
+                  "description": "The score, from 0 to 1, one trial must reach.",
                   "type": "number"
                 }
               },
@@ -1333,7 +1088,7 @@
                   "const": "metric"
                 },
                 "threshold": {
-                  "description": "The mean score, from 0 to 1, the attempts had to reach; unset only reported.",
+                  "description": "The mean score, from 0 to 1, the trials had to reach; unset only reported.",
                   "type": "number"
                 }
               },
@@ -1346,7 +1101,7 @@
                   "const": "regression"
                 },
                 "threshold": {
-                  "description": "The score, from 0 to 1, every attempt must reach.",
+                  "description": "The score, from 0 to 1, every trial must reach.",
                   "type": "number"
                 }
               },
@@ -1354,12 +1109,19 @@
             }
           ]
         },
+        "totalTrials": {
+          "type": "number"
+        },
         "traitExcluded": {
           "description": "The environments `--trait` or a profile's `limit.traits` left out; unset when none.",
           "type": "array",
           "items": {
             "type": "string"
           }
+        },
+        "trials": {
+          "description": "Trials per cell; with `bestOf`, the most a cell runs.",
+          "type": "number"
         },
         "variants": {
           "description": "Variants run, of those the eval compares; null without `compare`.",
@@ -1389,7 +1151,7 @@
           }
         },
         "workspaces": {
-          "description": "Each distinct git workspace its attempts start from, as `repo#ref:path`.",
+          "description": "Each distinct git workspace its trials start from, as `repo#ref:path`.",
           "type": "array",
           "items": {
             "type": "string"
@@ -1397,13 +1159,13 @@
         }
       },
       "required": [
-        "attempts",
         "brokered",
         "egress",
         "harnesses",
         "notes",
-        "runs",
         "sandboxWarnings",
+        "totalTrials",
+        "trials",
         "variants",
         "warnings",
         "workspaces"
@@ -1451,7 +1213,7 @@
       "type": "object",
       "properties": {
         "bootstrap": {
-          "description": "A shell command the fake agent runs as its session starts, once per sandbox, as a real adapter's bootstrap installs its CLI: `tart()` bakes it into the image it clones, as it does a real harness's, so an attempt there finds it done.",
+          "description": "A shell command the fake agent runs as its session starts, once per sandbox, as a real adapter's bootstrap installs its CLI: `tart()` bakes it into the image it clones, as it does a real harness's, so a trial there finds it done.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -1490,7 +1252,7 @@
           }
         },
         "flakeRate": {
-          "description": "Chance (0–1) that an attempt writes no files and says so, for flaky pass rates.",
+          "description": "Chance (0–1) that a trial writes no files and says so, for flaky pass rates.",
           "type": "number"
         },
         "gateway": {
@@ -1526,7 +1288,7 @@
           ]
         },
         "maxConcurrent": {
-          "description": "The most attempts on this harness kind at once, across the run.",
+          "description": "The most trials on this harness kind at once, across the run.",
           "type": "number"
         },
         "reasoning": {
@@ -1548,7 +1310,7 @@
           "type": "string"
         },
         "startHangs": {
-          "description": "The first this many session starts of an attempt never become ready, even when aborted (`true`: every one).",
+          "description": "The first this many session starts of a trial never become ready, even when aborted (`true`: every one).",
           "anyOf": [
             {
               "type": "number"
@@ -1560,7 +1322,7 @@
           ]
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         },
         "subagents": {
@@ -1655,7 +1417,7 @@
           }
         },
         "turnMs": {
-          "description": "Each turn's recorded agent time, exactly, whatever the wall clock says: a test can compare agent time without scheduling jitter, which four runs a side can tell apart.",
+          "description": "Each turn's recorded agent time, exactly, whatever the wall clock says: a test can compare agent time without scheduling jitter, which four trials a side can tell apart.",
           "type": "number",
           "minimum": 0
         },
@@ -1724,7 +1486,7 @@
           "const": "fake"
         },
         "maxConcurrent": {
-          "description": "The most attempts on this sandbox kind at once, across the run.",
+          "description": "The most trials on this sandbox kind at once, across the run.",
           "type": "number"
         }
       },
@@ -1732,7 +1494,7 @@
       "additionalProperties": false
     },
     "FakeScriptStep": {
-      "description": "One action of a scripted fake agent. `exec` is reported as a `shell` tool call whose output is the command's stdout, `write` as file edits, and `reply` is the turn's final message. `mcp` (`'<server>/<tool>'`) starts the environment's stdio MCP server in the sandbox, as an agent would, and calls the tool with no arguments; it's reported as `mcp__<server>__<tool>`. `error` ends the turn there with status `error` and that message, as a provider error would; one worded as a provider's credit, quota or rate limit makes the attempt an infra error. `refuseKey` ends it as the model API rejecting the key in that variable would, which makes the attempt an infra error.",
+      "description": "One action of a scripted fake agent. `exec` is reported as a `shell` tool call whose output is the command's stdout, `write` as file edits, and `reply` is the turn's final message. `mcp` (`'<server>/<tool>'`) starts the environment's stdio MCP server in the sandbox, as an agent would, and calls the tool with no arguments; it's reported as `mcp__<server>__<tool>`. `error` ends the turn there with status `error` and that message, as a provider error would; one worded as a provider's credit, quota or rate limit makes the trial an infra error. `refuseKey` ends it as the model API rejecting the key in that variable would, which makes the trial an infra error.",
       "anyOf": [
         {
           "type": "object",
@@ -2082,7 +1844,7 @@
           "const": "fx"
         },
         "maxConcurrent": {
-          "description": "The most fx attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most fx trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -2091,7 +1853,7 @@
           "minLength": 1
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         }
       },
@@ -2169,7 +1931,7 @@
           "const": "goose"
         },
         "maxConcurrent": {
-          "description": "The most Goose attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most Goose trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -2178,7 +1940,7 @@
           "pattern": "^[\\w.-]+\\/[\\w.-]+$"
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         }
       },
@@ -2213,7 +1975,7 @@
           "const": "grok-build"
         },
         "maxConcurrent": {
-          "description": "The most Grok Build attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most Grok Build trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -2222,7 +1984,7 @@
           "pattern": "^[\\w.-]+$"
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         }
       },
@@ -2230,7 +1992,7 @@
       "additionalProperties": false
     },
     "HarnessDescriptor": {
-      "description": "The agent an attempt runs: a real harness, or the fake one.",
+      "description": "The agent a trial runs: a real harness, or the fake one.",
       "oneOf": [
         {
           "$ref": "#/$defs/FakeHarnessDescriptor"
@@ -2409,7 +2171,7 @@
           "const": "opencode"
         },
         "maxConcurrent": {
-          "description": "The most OpenCode attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most OpenCode trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -2418,7 +2180,7 @@
           "minLength": 1
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         },
         "systemPrompt": {
@@ -2481,7 +2243,7 @@
           "const": "pi"
         },
         "maxConcurrent": {
-          "description": "The most pi attempts at once, across the run, e.g. for the key's rate limits.",
+          "description": "The most pi trials at once, across the run, e.g. for the key's rate limits.",
           "type": "number"
         },
         "model": {
@@ -2490,7 +2252,7 @@
           "pattern": "^[\\w.-]+\\/\\S+$"
         },
         "startTimeout": {
-          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the attempt is an infra error, after one retry; default 90s.",
+          "description": "How long the harness's session may take to become ready (its bootstrap and first session) before the trial is an infra error, after one retry; default 90s.",
           "$ref": "#/$defs/Duration"
         },
         "systemPrompt": {
@@ -2535,7 +2297,7 @@
       "required": ["auto", "environment", "harness", "policy"]
     },
     "PlannedEgress": {
-      "description": "An attempt's egress: the agent phase's policy (the harness's start, its turns and the checks), and `setup`'s when the setup phase (files and setup steps) runs under another.",
+      "description": "A trial's egress: the agent phase's policy (the harness's start, its turns and the checks), and `setup`'s when the setup phase (files and setup steps) runs under another.",
       "type": "object",
       "properties": {
         "auto": {
@@ -2593,11 +2355,11 @@
       "required": ["auto", "policy"]
     },
     "PlannedQuestion": {
-      "description": "A question as planned: its text, the model it names itself, if any, the factors it varies when it's pairwise, its choices, and the inputs it's shown of each attempt.",
+      "description": "A question as planned: its text, the model it names itself, if any, the factors it varies when it's pairwise, its choices, and the inputs it's shown of each trial.",
       "type": "object",
       "properties": {
         "across": {
-          "description": "Set on a pairwise question; unset, it's asked of each attempt.",
+          "description": "Set on a pairwise question; unset, it's asked of each trial.",
           "anyOf": [
             {
               "enum": ["agent", "environment"]
@@ -3387,7 +3149,7 @@
           "type": "boolean"
         },
         "task": {
-          "description": "The prompts the attempt was sent, once for both sides when they match.",
+          "description": "The prompts the trial was sent, once for both sides when they match.",
           "type": "boolean"
         },
         "trajectory": {
@@ -3412,7 +3174,7 @@
       "required": []
     },
     "Rank": {
-      "description": "Where an attempt sits in the run, for ordering. Requests without one are served first come.",
+      "description": "Where a trial sits in the run, for ordering. Requests without one are served first come.",
       "type": "object",
       "properties": {
         "cell": {
@@ -3420,7 +3182,7 @@
           "type": "number"
         },
         "eval": {
-          "description": "The eval's id. Attempts of the same eval and run number start together.",
+          "description": "The eval's id. Trials of the same eval and run number start together.",
           "type": "string"
         },
         "file": {
@@ -3463,7 +3225,7 @@
       "required": ["name", "skipped"]
     },
     "SandboxDescriptor": {
-      "description": "Where an attempt runs: its declared sandbox, or the one `place()` made of it on the run's provider.",
+      "description": "Where a trial runs: its declared sandbox, or the one `place()` made of it on the run's provider.",
       "anyOf": [
         {
           "$ref": "#/$defs/FakeSandboxDescriptor"
@@ -3613,7 +3375,7 @@
       ]
     },
     "TartSandboxDescriptor": {
-      "description": "A macOS VM on this Mac, cloned from `image` for each attempt by Tart, made by `tart()`.",
+      "description": "A macOS VM on this Mac, cloned from `image` for each trial by Tart, made by `tart()`.",
       "type": "object",
       "properties": {
         "cpus": {
@@ -3665,7 +3427,7 @@
           "pattern": "\\S"
         },
         "image": {
-          "description": "The VM each attempt clones: an OCI image such as `ghcr.io/cirruslabs/macos-sequoia-base:latest`, or a local VM's name. Tart must have it before the run: `reeval image build` (or `tart pull`) pulls it, and `reeval run` refuses one `tart list` doesn't show.",
+          "description": "The VM each trial clones: an OCI image such as `ghcr.io/cirruslabs/macos-sequoia-base:latest`, or a local VM's name. Tart must have it before the run: `reeval image build` (or `tart pull`) pulls it, and `reeval run` refuses one `tart list` doesn't show.",
           "type": "string",
           "pattern": "^\\S+$"
         },
@@ -3727,6 +3489,244 @@
       },
       "required": []
     },
+    "TrialMeta": {
+      "description": "Set when a trial is registered, so the reporter has it even for skipped trials.",
+      "type": "object",
+      "properties": {
+        "bestOf": {
+          "description": "Set by `trials: { bestOf }`: past the majority's first trials, this one runs only when the cell's earlier trials haven't reached a majority.",
+          "type": "number"
+        },
+        "brokered": {
+          "description": "The secrets this trial brokers, as `NAME → host, host`.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cell": {
+          "$ref": "#/$defs/Cell"
+        },
+        "egress": {
+          "$ref": "#/$defs/PlannedEgress"
+        },
+        "family": {
+          "description": "Set when the eval is a case of an eval with `cases`.",
+          "$ref": "#/$defs/FamilyMeta"
+        },
+        "files": {
+          "description": "The paths its environment's `files` write, layered and sorted; unset when there are none.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "gate": {
+          "description": "How its cell's trials decide the cell's outcome; `'none'` when they don't fail the run.",
+          "$ref": "#/$defs/CellGate"
+        },
+        "gateway": {
+          "description": "The gateway its harness resolved to; unset when no config, profile or pin names one.",
+          "$ref": "#/$defs/ResolvedGateway"
+        },
+        "graderSandboxes": {
+          "description": "The sandboxes its graders' `env` start once its task returns, whose images preflight prepares.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "grader": {
+                "type": "string"
+              },
+              "sandbox": {
+                "$ref": "#/$defs/SandboxDescriptor"
+              }
+            },
+            "required": ["grader", "sandbox"]
+          }
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "harness": {
+          "$ref": "#/$defs/HarnessDescriptor"
+        },
+        "inputs": {
+          "description": "The host files it reads, by absolute path: what its file's load read, then what its environment and sandbox name. Set only when the run context asks for `inputs`.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LocalInput"
+          }
+        },
+        "judge": {
+          "description": "Its judge's `'provider/model'`, as the config, profile, groups and eval set it, and the gateway its calls go through, so the run checks the judge's key before any trial starts. Unset for a fake judge, a model object, or none.",
+          "type": "object",
+          "properties": {
+            "gateway": {
+              "enum": ["direct", "openrouter", "vercel", "vertex"]
+            },
+            "model": {
+              "type": "string"
+            }
+          },
+          "required": ["model"]
+        },
+        "label": {
+          "description": "The harness, then the role (with `compare`), plus `#n` when it has several runs.",
+          "type": "string"
+        },
+        "minLift": {
+          "description": "Set on variant trials whose compare has a `minLift`.",
+          "type": "number"
+        },
+        "n": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "plan": {
+          "$ref": "#/$defs/EvalPlan"
+        },
+        "pluginBuilds": {
+          "description": "Its environment's plugins with a `build`, layered, which preflight builds into its image.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginSource"
+          }
+        },
+        "plugins": {
+          "description": "Its environment's plugins, layered: a local one's name and parts, else its source.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "revision": {
+          "description": "The eval's `revision`, as the cascade resolved it; unset when no level sets one.",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "sandbox": {
+          "$ref": "#/$defs/SandboxDescriptor"
+        },
+        "secretVars": {
+          "description": "The host variables its secrets read, by name: the CLI's own process masks their values on screen, since the trial's worker is the only other process that knows them.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "setBy": {
+          "description": "The levels that set its sandbox and harness: `reeval.config.ts`, `profiles.pr.defaults`, `group(\"net\")` or `evaluate(\"x\")`; with `pluginBuilds`, the environment its plugin builds come from (`environment review in evals/review.eval.ts`).",
+          "type": "object",
+          "properties": {
+            "harness": {
+              "type": "string"
+            },
+            "pluginBuilds": {
+              "type": "string"
+            },
+            "sandbox": {
+              "type": "string"
+            }
+          },
+          "required": ["harness", "sandbox"]
+        },
+        "skip": {
+          "description": "Why this trial does not run, e.g. it already completed in a resumed run.",
+          "type": "string"
+        },
+        "source": {
+          "description": "Hashes of the eval's own source: what the `sources` fingerprint part covers but `revision`.",
+          "$ref": "#/$defs/EvalSource"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "target": {
+          "description": "The eval's target, which its trials pass at the threshold of; unset in records from before targets.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "blocking": {
+                  "description": "Whether a miss fails the run.",
+                  "type": "boolean"
+                },
+                "kind": {
+                  "const": "capability"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, one trial must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["blocking", "kind", "threshold"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "metric"
+                },
+                "threshold": {
+                  "description": "The mean score, from 0 to 1, the trials had to reach; unset only reported.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "regression"
+                },
+                "threshold": {
+                  "description": "The score, from 0 to 1, every trial must reach.",
+                  "type": "number"
+                }
+              },
+              "required": ["kind", "threshold"]
+            }
+          ]
+        },
+        "workspace": {
+          "description": "The git repository its workspace starts as, which the CLI fetches before any trial.",
+          "$ref": "#/$defs/GitWorkspace"
+        }
+      },
+      "required": [
+        "brokered",
+        "cell",
+        "egress",
+        "gate",
+        "groups",
+        "harness",
+        "label",
+        "n",
+        "name",
+        "plan",
+        "sandbox",
+        "secretVars",
+        "setBy",
+        "source",
+        "tags"
+      ]
+    },
     "TurnStatus": {
       "enum": ["aborted", "completed", "error"]
     },
@@ -3755,9 +3755,6 @@
       "description": "What one registered test looks like to the main process.",
       "type": "object",
       "properties": {
-        "attempt": {
-          "$ref": "#/$defs/AttemptMeta"
-        },
         "groups": {
           "type": "array",
           "items": {
@@ -3772,6 +3769,9 @@
         },
         "name": {
           "type": "string"
+        },
+        "trial": {
+          "$ref": "#/$defs/TrialMeta"
         }
       },
       "required": ["groups", "index", "mode", "name"]

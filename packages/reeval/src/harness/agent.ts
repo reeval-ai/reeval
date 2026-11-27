@@ -74,7 +74,7 @@ export function harnessSpec(descriptor: AgentHarnessDescriptor): HarnessSpec {
 }
 
 /**
- * Where the descriptor's gateway sends its model calls. On Vertex, the attempt's `vertex()`
+ * Where the descriptor's gateway sends its model calls. On Vertex, the trial's `vertex()`
  * settings, the service account written beside the workspace, and the placeholder the gateway
  * swaps for the minted token.
  */
@@ -102,7 +102,7 @@ async function adapterFetch(descriptor: AgentHarnessDescriptor): Promise<{ fetch
   return (await import('./cursor-catalog.ts')).cursorFetch()
 }
 
-/** The descriptor's adapter as an attempt builds it, for a check that reads its configuration. */
+/** The descriptor's adapter as a trial builds it, for a check that reads its configuration. */
 export async function harnessAdapter(
   descriptor: AgentHarnessDescriptor,
   input: AdapterInput & {

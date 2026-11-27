@@ -1,8 +1,8 @@
 # with-compare-agents
 
-**Shows:** a compare on one agent while another runs only the control. The eval runs on Claude
+**Shows:** a compare on one agent while another runs only the baseline. The eval runs on Claude
 Code and Codex, and `compare.harnesses` runs the `jsdoc` skill's variant on Claude Code alone. A
-question with `across: 'agent'`, in `questions` beside `compare`, pairs Claude Code's attempts
+question with `across: 'agent'`, in `questions` beside `compare`, pairs Claude Code's trials
 with Codex's in the same environment, so you read the two agents side by side.
 
 **Needs:** `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` in `.env.local`, Docker, and
@@ -24,20 +24,20 @@ profile's: `--profile <name>` changes the judge, not the agents.
 one profile you need.
 
 **What to look at:** the plan, `pnpm eval --dry-run`, which needs no keys or Docker. It has three
-cells, not four: Codex runs the control alone. The compare sets no `runs`, so each cell runs four
-times, the graders score each attempt, and the question pairs Claude Code's attempts with
+cells, not four: Codex runs the baseline alone. The compare sets no `trials`, so each cell runs four
+times, the graders score each trial, and the question pairs Claude Code's trials with
 Codex's run by run:
 
 ```text
-eval                 agents  variants  runs  attempts  target         notes
-with-compare-agents  2       1         4     12        capability(1)  runs 4 (compare default)
+eval                 agents  variants  trials  total  target         notes
+with-compare-agents  2       1         4       12     capability(1)  trials 4 (compare default)
   grader 1/2  succeeded:node --test · built-in · weight 1
   grader 2/2  has-file:src/math.js · built-in · weight 1
   question 1/1  Which multiply() is easier to read? · after the run · shows diff · agent · 4 pairs · anthropic/claude-sonnet-5
 ```
 
 `pnpm reeval run --dry-run --json` lists the cells: `claude-code:claude-sonnet-5/math/docker`
-(the control), `claude-code:claude-sonnet-5/jsdoc/docker` (the variant) and
+(the baseline), `claude-code:claude-sonnet-5/jsdoc/docker` (the variant) and
 `codex:gpt-5.6-luna/math/docker`. The default target, `capability()`, only reports.
 
 | File | What it is |
@@ -48,4 +48,4 @@ with-compare-agents  2       1         4     12        capability(1)  runs 4 (co
 | [`reeval.config.ts`](./reeval.config.ts) | The question's model, and the profiles from `../profiles.ts` |
 
 The [Options](../../docs/reference/options.mdx) reference page covers `compare.harnesses` and
-`questions`' `across`, and the [Ask questions across attempts](../../docs/evaluations/grading/questions.mdx) page covers pairing.
+`questions`' `across`, and the [Ask questions across trials](../../docs/evaluations/grading/questions.mdx) page covers pairing.

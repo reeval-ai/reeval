@@ -39,11 +39,11 @@ REEVAL v0.31.0  dry run
   ➜  Run:       20261126T080338Z_…
   ➜  Agent:     fake
   ➜  Sandbox:   fake
-  ➜  Scope:     1 eval file · 1 eval · 1 cell · 2 attempts
+  ➜  Scope:     1 eval file · 1 eval · 1 cell · 2 trials
   ➜  Est. Time: ~207ms (concurrency: 4) · ~413ms (serial)
 
-eval           agents  variants  runs  attempts  target         notes
-with-profiles  1       —         2     2         capability(1)
+eval           agents  variants  trials  total  target         notes
+with-profiles  1       —         2       2      capability(1)
   grader 1/2  has-file:src/math.js · built-in · weight 1
   grader 2/2  succeeded:node --test · built-in · weight 1
 
@@ -53,11 +53,11 @@ REEVAL v0.31.0  dry run
   ➜  Profile:   pr (auto: CI is set)
   ➜  Agent:     fake
   ➜  Sandbox:   fake
-  ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 attempt (budget: 10 ✓)
+  ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 trial (budget: 10 ✓)
   ➜  Est. Time: ~207ms (serial)
 
-eval           agents  variants  runs  attempts  target         notes
-with-profiles  1       —         1     1         capability(1)  runs 2 → 1 (profile pr)
+eval           agents  variants  trials  total  target         notes
+with-profiles  1       —         1       1      capability(1)  trials 2 → 1 (profile pr)
   grader 1/2  has-file:src/math.js · built-in · weight 1
   grader 2/2  succeeded:node --test · built-in · weight 1
 
@@ -67,11 +67,11 @@ REEVAL v0.31.0  dry run
   ➜  Profile:   nightly
   ➜  Agent:     fake
   ➜  Sandbox:   fake
-  ➜  Scope:     1 eval file · 1 eval · 1 cell · 4 attempts (budget: 2h)
+  ➜  Scope:     1 eval file · 1 eval · 1 cell · 4 trials (budget: 2h)
   ➜  Est. Time: ~207ms (concurrency: 4) · ~826ms (serial)
 
-eval           agents  variants  runs  attempts  target         notes
-with-profiles  1       —         4     4         capability(1)
+eval           agents  variants  trials  total  target         notes
+with-profiles  1       —         4       4      capability(1)
   grader 1/2  has-file:src/math.js · built-in · weight 1
   grader 2/2  succeeded:node --test · built-in · weight 1
 ```
@@ -80,7 +80,7 @@ The `Profile:` line says which profile applied and why, and the notes say what i
 
 | File | What it is |
 |---|---|
-| [`with-profiles.eval.ts`](./with-profiles.eval.ts) | The eval: one prompt, two graders, no `runs` of its own |
+| [`with-profiles.eval.ts`](./with-profiles.eval.ts) | The eval: one prompt, two graders, no `trials` of its own |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent, `pr` and `nightly`, and the real agents from `../profiles.ts` |

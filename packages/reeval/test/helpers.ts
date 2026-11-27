@@ -19,7 +19,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { killTree, windowsSpawn } from '@reeval/sandbox-docker/process'
-import type { AttemptRecord, EvalEntry, RunRecord, Stack } from '../src/history/types.ts'
+import type { EvalEntry, RunRecord, Stack, TrialRecord } from '../src/history/types.ts'
 
 export const pkgRoot = fileURLToPath(new URL('..', import.meta.url))
 const cli = join(pkgRoot, 'dist/cli.js')
@@ -216,13 +216,13 @@ export function runCli(
       kill = setTimeout(() => killTree(pid), opts.graceMs ?? 20_000)
     }
     const onAbort = () => stop('the test was canceled (it timed out, or a sibling failed)')
-    const arm = () => {
+    const environment = () => {
       clearTimeout(idle)
       if (stopped === null) {
         idle = setTimeout(() => stop(`it produced no output for ${timeoutMs}ms`), timeoutMs)
       }
     }
-    arm()
+    environment()
     if (opts.deadlineMs !== undefined) {
       const ms = opts.deadlineMs
       deadline = setTimeout(() => stop(`it was still running after ${ms}ms`), ms)
@@ -234,12 +234,12 @@ export function runCli(
     child.stderr.setEncoding('utf8')
     child.stdout.on('data', (d) => {
       stdout += d
-      arm()
+      environment()
       if (watching && child.pid) watching = !opts.onOutput?.(stdout, child.pid)
     })
     child.stderr.on('data', (d) => {
       stderr += d
-      arm()
+      environment()
     })
     child.on('error', (error) => {
       clear()
@@ -259,9 +259,9 @@ export function runCli(
 }
 
 export type EvalView = EvalEntry & {
-  error: AttemptRecord['error']
-  trial: AttemptRecord
-  /** The first attempt's image, from `stack.images`. */
+  error: TrialRecord['error']
+  trial: TrialRecord
+  /** The first trial's image, from `stack.images`. */
   image: Stack['images'][number] | null
   /** A file of the run's artifact directory, by path inside it. */
   read(path: string): string
@@ -288,7 +288,7 @@ export function readRun(
   const dir = join(folder, run.runId)
   const read = (path: string) => readFileSync(join(dir, path), 'utf8')
   const evals = run.evals.map((e) => {
-    const trial = e.attempts[0] as AttemptRecord
+    const trial = e.trials[0] as TrialRecord
     const image = run.stack.images.find((i) => i.id === trial.imageId) ?? null
     return { ...e, error: trial.error, trial, image, read }
   })
@@ -296,7 +296,7 @@ export function readRun(
 }
 
 /**
- * The run's one attempt was an infra error because the API rejected `credential` on turn 1, with
+ * The run's one trial was an infra error because the API rejected `credential` on turn 1, with
  * every check the eval ran after catching it passing. Returns the turn's error events.
  */
 export function assertKeyRejected(

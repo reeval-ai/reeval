@@ -1,14 +1,14 @@
-no profile · 5 evals · 10 cells · 20–28 attempts · budget attempts 20 ✗
-best-of-3        a/-/docker  control  gated passRate 0.5  best of 3
-                 b/-/docker  control  gated passRate 0.5  best of 3
-best-of-5-gated  a/-/docker  control  gated passRate 0.5  best of 5  target regression(1)
-                 b/-/docker  control  gated passRate 0.5  best of 5
-fixed            a/-/docker  control  gated any           ×1
-                 b/-/docker  control  gated any           ×1
-inherits-it      a/-/docker  control  gated passRate 0.5  best of 3
-                 b/-/docker  control  gated passRate 0.5  best of 3
-runs-2           a/-/docker  control  gated any           ×2
-                 b/-/docker  control  gated any           ×2
+no profile · 5 evals · 10 cells · 20–28 trials · budget trials 20 ✗
+best-of-3        a/-/docker  baseline  gated passRate 0.5  best of 3
+                 b/-/docker  baseline  gated passRate 0.5  best of 3
+best-of-5-gated  a/-/docker  baseline  gated passRate 0.5  best of 5  target regression(1)
+                 b/-/docker  baseline  gated passRate 0.5  best of 5
+fixed            a/-/docker  baseline  gated any           ×1
+                 b/-/docker  baseline  gated any           ×1
+inherits-it      a/-/docker  baseline  gated passRate 0.5  best of 3
+                 b/-/docker  baseline  gated passRate 0.5  best of 3
+trials-2         a/-/docker  baseline  gated any           ×2
+                 b/-/docker  baseline  gated any           ×2
 excluded: —
 image docker · cursor · 5 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

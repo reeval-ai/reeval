@@ -1,8 +1,8 @@
 # with-skip
 
-**Shows:** three evals, one file each, sharing the options in `reeval.config.ts` (`timeout`, `runs`
+**Shows:** three evals, one file each, sharing the options in `reeval.config.ts` (`timeout`, `trials`
 and `target`) and the environment in `environments.ts`, each graded by one `observed` grader.
-`adds-subtract` overrides `runs` and adds a tag of its own, and `adds-divide` sets `skip` with a
+`adds-subtract` overrides `trials` and adds a tag of its own, and `adds-divide` sets `skip` with a
 reason, so it stays declared but unrun.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -25,14 +25,14 @@ Code, and `--profile <name>` on any other agent in [`examples/profiles.ts`](../p
 one profile you need.
 
 **What to look at:** the plan, from `pnpm reeval run --dry-run`. Each eval's id is its file's name.
-`adds-multiply` takes the config's two runs, `adds-subtract` its own one, and `adds-divide` plans
-no attempts, with its reason in the notes:
+`adds-multiply` takes the config's two trials, `adds-subtract` its own one, and `adds-divide` plans
+no trials, with its reason in the notes:
 
 ```text
-eval           agents  variants  runs  attempts  target         notes
-adds-divide    0       —         2     0         capability(1)  skipped: divide by zero isn't specified yet
-adds-multiply  1       —         2     2         capability(1)
-adds-subtract  1       —         1     1         capability(1)
+eval           agents  variants  trials  total  target         notes
+adds-divide    0       —         2       0      capability(1)  skipped: divide by zero isn't specified yet
+adds-multiply  1       —         2       2      capability(1)
+adds-subtract  1       —         1       1      capability(1)
 ```
 
 The default target, `capability()`, passes a cell when one of its runs passes and only reports;
@@ -45,10 +45,10 @@ adds-divide.eval.ts
   – adds-divide  skipped
 
 adds-multiply.eval.ts
-  · adds-multiply  mean 100% · 2/2 runs at 100% (pass@2)  capability(1)
+  · adds-multiply  mean 100% · 2/2 trials at 100% (pass@2)  capability(1)
 
 adds-subtract.eval.ts
-  · adds-subtract  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
+  · adds-subtract  mean 100% · 1/1 trial at 100% (pass@1)  capability(1)
 
 Done in 2s · 3 evals · 2 report only · 1 skipped
 ```
@@ -56,7 +56,7 @@ Done in 2s · 3 evals · 2 report only · 1 skipped
 | File | What it is |
 |---|---|
 | [`adds-multiply.eval.ts`](./adds-multiply.eval.ts) | An eval on the config's options |
-| [`adds-subtract.eval.ts`](./adds-subtract.eval.ts) | An eval with its own `runs` and a `smoke` tag |
+| [`adds-subtract.eval.ts`](./adds-subtract.eval.ts) | An eval with its own `trials` and a `smoke` tag |
 | [`adds-divide.eval.ts`](./adds-divide.eval.ts) | An eval with `skip` and its reason |
 | [`environments.ts`](./environments.ts) | The `math` environment the three share |
 | [`checks/call.mjs`](./checks/call.mjs) | Prints a `src/math.js` function's result; placed in the sandbox's home, outside the workspace |

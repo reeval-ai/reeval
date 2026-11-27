@@ -9,11 +9,11 @@ const rootCause = defineGrader('names-the-root-cause', {
 })
 
 export default defineEval({
-  runs: 2,
+  trials: 2,
   target: regression(0.8),
   graders: [writesGreet, rootCause, namesTheCause],
   task: async (c) => {
     await c.send('Why does greet.js fail?')
-    c.observe('answer', c.attempt.n === 1 ? 'the name is null' : 'Docker is down')
+    c.observe('answer', c.trial.n === 1 ? 'the name is null' : 'Docker is down')
   },
 })

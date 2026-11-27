@@ -5,13 +5,11 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
-import { reclassifyTimeout, recordFailure } from '../src/attempt/record.ts'
-import type { Attempt } from '../src/attempt/state.ts'
 import {
   acrossOf,
   checksHeld,
   headToHeadLines,
-  type PairAttempt,
+  type PairTrial,
   pairsOf,
   pairTallies,
   ratesOf,
@@ -26,9 +24,11 @@ import {
   blindInput,
   blindPair,
   questionRequest,
-  stagedAttempt,
+  stagedTrial,
 } from '../src/compare/questions.ts'
 import { resolveQuestionState } from '../src/compare/state.ts'
+import { reclassifyTimeout, recordFailure } from '../src/trial/record.ts'
+import type { Trial } from '../src/trial/state.ts'
 
 const TASK_AND_DIFF = resolveQuestionState({ task: true, diff: true })
 
@@ -67,25 +67,25 @@ import {
 } from '../src/stats.ts'
 import { blocks, capability, regression, targetGate, targetOfGates } from '../src/target.ts'
 import type { BlindPair, EvalRecord, FakeAnalysisModel, Outcome } from '../src/types.ts'
-import { EFFORT_MIN_RUNS, effortVerdict } from '../src/view/effort.ts'
+import { EFFORT_MIN_TRIALS, effortVerdict } from '../src/view/effort.ts'
 import { cellOutcome, rescore, scoresOf } from '../src/view/gate.ts'
 import {
   E2E_ARMS,
   e2ePairSides,
   newlineVote,
   REAL_HARNESSES,
-  realAttempts,
+  realTrials,
 } from './support/real-runs.ts'
 
 const near = (actual: number, expected: number, what: string) =>
   assert.ok(Math.abs(actual - expected) < 5e-4, `${what}: ${actual} is not ${expected}`)
 
-/** One family case: variant passes, variant counted, control passes, control counted. */
+/** One family case: variant passes, variant counted, baseline passes, baseline counted. */
 type FamilyCase = [number, number, number, number]
 
-/** The pooled lift of variant cell `v` over control `c` across `cases`. */
+/** The pooled lift of variant cell `v` over baseline `c` across `cases`. */
 function familyLift(cases: FamilyCase[]): FamilyLift {
-  const attempts = (cell: string, pass: number, counted: number) =>
+  const trials = (cell: string, pass: number, counted: number) =>
     Array.from({ length: counted }, (_, i) => ({
       cell,
       outcome: i < pass ? 'pass' : 'fail',
@@ -100,9 +100,9 @@ function familyLift(cases: FamilyCase[]): FamilyLift {
         family: { id: 'family', name: 'family', case: i, cases: cases.length },
         cells: [
           { key: 'v', role: 'variant', harness: 'cursor', sandbox: 'docker' },
-          { key: 'c', role: 'control', harness: 'cursor', sandbox: 'docker' },
+          { key: 'c', role: 'baseline', harness: 'cursor', sandbox: 'docker' },
         ],
-        attempts: [...attempts('v', vPass, vCounted), ...attempts('c', cPass, cCounted)],
+        trials: [...trials('v', vPass, vCounted), ...trials('c', cPass, cCounted)],
       }) as unknown as EvalEntry,
   )
   const [family] = familiesOf(evals, () => undefined)
@@ -128,7 +128,7 @@ describe('Wilson interval for one pass rate', () => {
     })
   }
 
-  test('no attempts says nothing: [0, 1]', () => {
+  test('no trials says nothing: [0, 1]', () => {
     assert.deepEqual(wilson(0, 0), { low: 0, high: 1 })
   })
 })
@@ -175,12 +175,12 @@ describe("paired lift over a pooled family's cases", () => {
     [18, 12, 2, 18, 0.0562, 0.329],
     [30, 0, 0, 24, -0.0358, 0.0358],
   ]
-  for (const [both, variantOnly, controlOnly, neither, low, high] of cases) {
-    test(`Newcombe method 10: ${both}, ${variantOnly}, ${controlOnly}, ${neither} is [${low}, ${high}]`, () => {
-      const i = pairedLiftInterval({ both, variantOnly, controlOnly, neither })
+  for (const [both, variantOnly, baselineOnly, neither, low, high] of cases) {
+    test(`Newcombe method 10: ${both}, ${variantOnly}, ${baselineOnly}, ${neither} is [${low}, ${high}]`, () => {
+      const i = pairedLiftInterval({ both, variantOnly, baselineOnly, neither })
       near(
         i.points,
-        (variantOnly - controlOnly) / (both + variantOnly + controlOnly + neither),
+        (variantOnly - baselineOnly) / (both + variantOnly + baselineOnly + neither),
         'points',
       )
       near(i.low, low, 'low')
@@ -189,7 +189,7 @@ describe("paired lift over a pooled family's cases", () => {
   }
 
   test('the paired interval is narrower than the independent one on the same rates', () => {
-    const paired = pairedLiftInterval({ both: 20, variantOnly: 12, controlOnly: 2, neither: 16 })
+    const paired = pairedLiftInterval({ both: 20, variantOnly: 12, baselineOnly: 2, neither: 16 })
     const independent = liftInterval({ pass: 32, n: 50 }, { pass: 22, n: 50 })
     assert.ok(paired.high - paired.low < independent.high - independent.low)
   })
@@ -224,7 +224,7 @@ describe("paired lift over a pooled family's cases", () => {
   })
 
   test('a family interval rounded to end at 0 is within noise', () => {
-    // Eight cases at one attempt a side: the variant wins one, the control six, one both fail.
+    // Eight cases at one trial a side: the variant wins one, the baseline six, one both fail.
     const family = familyLift([
       [1, 1, 0, 1],
       ...Array.from({ length: 6 }, (): FamilyCase => [0, 1, 1, 1]),
@@ -282,7 +282,7 @@ describe("paired lift over a pooled family's cases", () => {
     // Thirteen cases: seven use the same tool calls on both sides, six use one fewer on the
     // variant. The median difference is 0; the six non-zero differences all say fewer.
     const evals = Array.from({ length: 13 }, (_, i) => {
-      const attempt = (cell: string, tools: number) => ({
+      const trial = (cell: string, tools: number) => ({
         cell,
         outcome: 'pass',
         activity: { tools, fileEdits: 0 },
@@ -294,9 +294,9 @@ describe("paired lift over a pooled family's cases", () => {
         family: { id: 'family', name: 'family', case: i, cases: 13 },
         cells: [
           { key: 'v', role: 'variant', harness: 'cursor', sandbox: 'docker' },
-          { key: 'c', role: 'control', harness: 'cursor', sandbox: 'docker' },
+          { key: 'c', role: 'baseline', harness: 'cursor', sandbox: 'docker' },
         ],
-        attempts: [attempt('v', i < 6 ? 2 : 3), attempt('c', 3)],
+        trials: [trial('v', i < 6 ? 2 : 3), trial('c', 3)],
       } as unknown as EvalEntry
     })
     const tools = familiesOf(evals, () => undefined)[0]?.lifts[0]?.effort.tools
@@ -338,11 +338,11 @@ describe('a small sample, and the runs that settle one', () => {
 describe('the effort verdict', () => {
   test('its direction is the rank test’s, even when the medians are equal', () => {
     const variant = [0, 0, 0, 0, 1, 1, 1, 1, 1, 1]
-    const control = [1, 1, 1, 1, 1, 1, 100, 100, 100, 100]
-    const fewer = effortVerdict(variant, control)
+    const baseline = [1, 1, 1, 1, 1, 1, 100, 100, 100, 100]
+    const fewer = effortVerdict(variant, baseline)
     assert.equal(fewer.verdict, 'fewer')
     assert.ok((fewer.p ?? 1) < 0.05, `p ${fewer.p}`)
-    assert.equal(effortVerdict(control, variant).verdict, 'more')
+    assert.equal(effortVerdict(baseline, variant).verdict, 'more')
     assert.equal(effortVerdict([1, 1, 1, 2, 2], [1, 1, 2, 2, 2]).verdict, 'noise')
   })
 
@@ -361,7 +361,7 @@ describe('the effort verdict', () => {
     const four = effortVerdict([1, 2, 3, 4], [5, 6, 7, 8])
     assert.equal(four.verdict, 'fewer')
     assert.ok(Math.abs((four.p ?? 1) - 2 / 70) < 1e-9, 'untied 4 vs 4 is 2/70')
-    assert.equal(EFFORT_MIN_RUNS, 4)
+    assert.equal(EFFORT_MIN_TRIALS, 4)
   })
 })
 
@@ -378,7 +378,7 @@ describe('mergeOutcome and abort classification', () => {
     )
   })
 
-  test('a skipped attempt keeps a staged pass, so a resume does not turn it into skipped', () => {
+  test('a skipped trial keeps a staged pass, so a resume does not turn it into skipped', () => {
     const record = {
       outcome: 'pass',
       error: null,
@@ -424,22 +424,22 @@ describe('mergeOutcome and abort classification', () => {
   })
 
   test('recordFailure classifies an abort by TimeoutError, not the message', () => {
-    const attempt = (signal: AbortSignal) =>
+    const trial = (signal: AbortSignal) =>
       ({
         record: { error: null, judgements: [], outcome: 'pass' },
         signal,
         judgeThrown: new Set(),
-      }) as unknown as Attempt
+      }) as unknown as Trial
 
     const timeout = new AbortController()
     timeout.abort(new TimeoutError('Eval timed out after 1s'))
-    const timedOut = attempt(timeout.signal)
+    const timedOut = trial(timeout.signal)
     recordFailure(timedOut, new Error('ignored'), false, [])
     assert.deepEqual(timedOut.record.error, { kind: 'timeout', message: 'The eval timed out' })
 
     const cancel = new AbortController()
     cancel.abort(Object.assign(new Error('The run was canceled'), { name: 'AbortError' }))
-    const canceled = attempt(cancel.signal)
+    const canceled = trial(cancel.signal)
     recordFailure(canceled, new Error('ignored'), false, [])
     assert.deepEqual(canceled.record.error, {
       kind: 'aborted',
@@ -448,20 +448,20 @@ describe('mergeOutcome and abort classification', () => {
 
     const setup = new AbortController()
     setup.abort(new Error('setup step 1/1 "sleep" timed out after 1s'))
-    const other = attempt(setup.signal)
+    const other = trial(setup.signal)
     recordFailure(other, new Error('setup timed out'), false, [])
     assert.deepEqual(other.record.error, { kind: 'aborted', message: 'The run was canceled' })
   })
 
   test("a timeout while the provider failed every model call of the turn is the provider's", () => {
     const timeout = { kind: 'timeout', message: 'The eval timed out' }
-    const attempt = (statuses: (number | null)[], before = 1) =>
+    const trial = (statuses: (number | null)[], before = 1) =>
       ({
         record: { error: { ...timeout }, judgements: [], outcome: 'fail' },
         turnCalls: { turn: 1, before },
         sandbox: { modelCalls: () => statuses.map((status) => ({ status })) },
-      }) as unknown as Attempt
-    const outage = attempt([200, 429, 503, null, 429])
+      }) as unknown as Trial
+    const outage = trial([200, 429, 503, null, 429])
     reclassifyTimeout(outage)
     assert.equal(outage.record.outcome, 'infra_error')
     assert.deepEqual(outage.record.error, {
@@ -471,7 +471,7 @@ describe('mergeOutcome and abort classification', () => {
       turn: { index: 1, kind: 'transport' },
       provider: { cause: 'rate_limit', status: 429 },
     })
-    const fivexx = attempt([200, 500])
+    const fivexx = trial([200, 500])
     reclassifyTimeout(fivexx)
     assert.equal(fivexx.record.error?.kind, 'infra')
     assert.equal(fivexx.record.error?.provider, undefined, 'a 500 names no stop')
@@ -482,15 +482,15 @@ describe('mergeOutcome and abort classification', () => {
       [[200, 401, 401], 'nor is a refused key'],
       [[500], 'the failed call was an earlier turn'],
     ] as const) {
-      const a = attempt([...statuses])
+      const a = trial([...statuses])
       reclassifyTimeout(a)
       assert.deepEqual(a.record.error, timeout, why)
       assert.equal(a.record.outcome, 'fail', why)
     }
-    const between = { ...attempt([500, 500], 0), turnCalls: undefined } as unknown as Attempt
+    const between = { ...trial([500, 500], 0), turnCalls: undefined } as unknown as Trial
     reclassifyTimeout(between)
     assert.deepEqual(between.record.error, timeout, 'no turn cut off')
-    const failed = attempt([200, 500])
+    const failed = trial([200, 500])
     failed.record.error = { kind: 'assertion', message: 'expected' }
     reclassifyTimeout(failed)
     assert.equal(failed.record.error.kind, 'assertion', 'only a timeout')
@@ -542,9 +542,9 @@ describe('targets', () => {
   })
 
   test('a rate gate reads the mean score where the cell has one', () => {
-    assert.equal(cellOutcome(runs('ppppp'), { passRate: 0.8 }, 0.7), 'fail', 'every attempt passed')
+    assert.equal(cellOutcome(runs('ppppp'), { passRate: 0.8 }, 0.7), 'fail', 'every trial passed')
     assert.equal(cellOutcome(runs('pfff'), { passRate: 0.5 }, 0.6), 'pass', 'partial scores')
-    assert.equal(cellOutcome(runs('ppppf'), 'all', 0.5), 'fail', "'all' counts attempts")
+    assert.equal(cellOutcome(runs('ppppf'), 'all', 0.5), 'fail', "'all' counts trials")
   })
 
   test("a record from before targets reads its target from its cells' gates", () => {
@@ -566,7 +566,7 @@ describe('targets', () => {
     assert.equal(blocks({ kind: 'metric' }), false)
   })
 
-  test('scores: the mean, pass@k and pass^k over the counted attempts', () => {
+  test('scores: the mean, pass@k and pass^k over the counted trials', () => {
     const at = (outcome: Outcome, score?: number) => ({
       outcome,
       ...(score !== undefined ? { score } : {}),
@@ -687,11 +687,11 @@ describe("an eval's source", () => {
 
   test('the options hash leaves out tags, runs, timeout, revision and target, and reads harnesses and sandboxes by id', () => {
     const base = optionsHash([{ pin: ['agents'] }])
-    const unhashed = { tags: ['slow'], runs: 5, timeout: '2m', revision: 3, target: regression() }
+    const unhashed = { tags: ['slow'], trials: 5, timeout: '2m', revision: 3, target: regression() }
     assert.equal(optionsHash([{ pin: ['agents'], ...unhashed }]), base)
     assert.equal(optionsHash([{}, { pin: ['agents'] }]), base, 'an option-less group adds nothing')
-    assert.equal(optionsHash([{ runs: 2 }, { pin: ['agents'] }]), base, "a group's runs too")
-    assert.notEqual(optionsHash([{ pin: ['runs'] }]), base, 'twin: another option changes it')
+    assert.equal(optionsHash([{ trials: 2 }, { pin: ['agents'] }]), base, "a group's runs too")
+    assert.notEqual(optionsHash([{ pin: ['trials'] }]), base, 'twin: another option changes it')
     assert.notEqual(
       optionsHash([{ pin: ['agents'] }, { pin: ['agents'] }]),
       base,
@@ -800,17 +800,22 @@ describe('CI pull request provenance', () => {
 })
 
 describe('compare question pairs', () => {
-  const side = (harness: string, arm: string, run: number, checksPassed = true): PairAttempt => ({
+  const side = (
+    harness: string,
+    environment: string,
+    run: number,
+    checksPassed = true,
+  ): PairTrial => ({
     harness,
-    arm,
+    environment,
     run,
-    diff: `diff --git a/${harness}-${arm}-${run}.txt b/${harness}-${arm}-${run}.txt\n+${harness}\n`,
+    diff: `diff --git a/${harness}-${environment}-${run}.txt b/${harness}-${environment}-${run}.txt\n+${harness}\n`,
     checksPassed,
     turns: [{ prompt: 'Write the file.', text: `Done on ${harness}.` }],
   })
-  const matrix = (harnesses: string[], arms: string[], runs: number) =>
+  const matrix = (harnesses: string[], environments: string[], runs: number) =>
     harnesses.flatMap((h) =>
-      arms.flatMap((a) => Array.from({ length: runs }, (_, i) => side(h, a, i + 1))),
+      environments.flatMap((a) => Array.from({ length: runs }, (_, i) => side(h, a, i + 1))),
     )
   const fake = (vote: FakeAnalysisModel['vote']): FakeAnalysisModel => ({
     kind: 'fake-analysis',
@@ -826,24 +831,28 @@ describe('compare question pairs', () => {
       state: { task: true, diff: true },
     })
 
-  test('4 harnesses × 2 arms × N runs is 4N within pairs and 6N across pairs', () => {
+  test('4 harnesses × 2 environments × N runs is 4N within pairs and 6N across pairs', () => {
     for (const n of [1, 3]) {
       const pairs = pairsOf(matrix(['h1', 'h2', 'h3', 'h4'], ['sdk', 'ui'], n))
       assert.equal(pairs.filter((p) => p.cut === 'within').length, 4 * n)
-      assert.equal(pairs.filter((p) => p.cut === 'across').length, 6 * n * 2, 'six per arm per run')
+      assert.equal(
+        pairs.filter((p) => p.cut === 'across').length,
+        6 * n * 2,
+        'six per environment per run',
+      )
       for (const p of pairs) {
         assert.equal(p.a.run, p.b.run, 'a pair is one run')
         if (p.cut === 'within') assert.equal(p.a.harness, p.b.harness)
-        else assert.equal(p.a.arm, p.b.arm)
+        else assert.equal(p.a.environment, p.b.environment)
       }
     }
   })
 
   test('acrossOf: environment keeps environment pairs; agent keeps harness pairs', () => {
-    const attempts = matrix(['h1', 'h2', 'h3', 'h4'], ['sdk', 'ui'], 2)
-    const environment = pairsOf(attempts, acrossOf('environment'))
-    const harness = pairsOf(attempts, acrossOf('agent'))
-    const both = pairsOf(attempts, acrossOf())
+    const trials = matrix(['h1', 'h2', 'h3', 'h4'], ['sdk', 'ui'], 2)
+    const environment = pairsOf(trials, acrossOf('environment'))
+    const harness = pairsOf(trials, acrossOf('agent'))
+    const both = pairsOf(trials, acrossOf())
     assert.equal(environment.length, 8)
     assert.ok(environment.every((p) => p.cut === 'within'))
     assert.equal(harness.length, 24)
@@ -852,24 +861,24 @@ describe('compare question pairs', () => {
       both.map((p) => p.cut),
       [...environment, ...harness].map((p) => p.cut),
     )
-    assert.equal(pairsOf(attempts).length, both.length)
+    assert.equal(pairsOf(trials).length, both.length)
   })
 
-  test('the control arm is a within a harness, whichever attempt came first', () => {
+  test('the baseline environment is a within a harness, whichever trial came first', () => {
     const [pair] = pairsOf([
       side('h', 'variant', 1),
-      { ...side('h', 'baseline', 1), control: true },
+      { ...side('h', 'baseline', 1), baseline: true },
     ])
-    assert.deepEqual([pair?.a.arm, pair?.b.arm], ['baseline', 'variant'])
+    assert.deepEqual([pair?.a.environment, pair?.b.environment], ['baseline', 'variant'])
   })
 
-  test('an attempt that failed its checks is in no pair', () => {
-    const attempts = matrix(['h1', 'h2'], ['sdk', 'ui'], 2)
-    const failed = attempts.find((a) => a.harness === 'h2' && a.arm === 'ui' && a.run === 2)
+  test('a trial that failed its checks is in no pair', () => {
+    const trials = matrix(['h1', 'h2'], ['sdk', 'ui'], 2)
+    const failed = trials.find((a) => a.harness === 'h2' && a.environment === 'ui' && a.run === 2)
     if (failed) failed.checksPassed = false
-    const pairs = pairsOf(attempts)
+    const pairs = pairsOf(trials)
     assert.ok(!pairs.some((p) => p.a === failed || p.b === failed))
-    // Without it, h2's run-2 arms and run 2's ui harnesses have no pair; the rest stand.
+    // Without it, h2's run-2 environments and run 2's ui harnesses have no pair; the rest stand.
     assert.equal(pairs.filter((p) => p.cut === 'within').length, 3)
     assert.equal(pairs.filter((p) => p.cut === 'across').length, 3)
   })
@@ -906,13 +915,13 @@ describe('compare question pairs', () => {
         (v) =>
           v.cut === pair.cut &&
           v.run === pair.run &&
-          (pair.cut === 'within' ? v.harness === pair.harness : v.arm === pair.arm),
+          (pair.cut === 'within' ? v.harness === pair.harness : v.environment === pair.environment),
       )
       assert.deepEqual(
         votes.map((v) => [v.swapped, v.winner]),
         [
-          [false, pair.cut === 'within' ? pair.a.arm : pair.a.harness],
-          [true, pair.cut === 'within' ? pair.b.arm : pair.b.harness],
+          [false, pair.cut === 'within' ? pair.a.environment : pair.a.harness],
+          [true, pair.cut === 'within' ? pair.b.environment : pair.b.harness],
         ],
         'always picking the first slot picks each side once',
       )
@@ -927,8 +936,11 @@ describe('compare question pairs', () => {
     }
   })
 
-  test('the labels and prompt name no arm or harness', () => {
-    const [pair] = pairsOf([side('secret-harness', 'arm-x', 1), side('secret-harness', 'arm-y', 1)])
+  test('the labels and prompt name no environment or harness', () => {
+    const [pair] = pairsOf([
+      side('secret-harness', 'environment-x', 1),
+      side('secret-harness', 'environment-y', 1),
+    ])
     assert.ok(pair)
     const blind = blindPair(
       'Which?',
@@ -937,15 +949,22 @@ describe('compare question pairs', () => {
       20_000,
       { state: TASK_AND_DIFF },
     )
-    for (const name of ['secret-harness', 'arm-x', 'arm-y', 'run 1', 'baseline', 'variant']) {
+    for (const name of [
+      'secret-harness',
+      'environment-x',
+      'environment-y',
+      'run 1',
+      'baseline',
+      'variant',
+    ]) {
       assert.ok(!blind.prompt.includes(name), `${name} is not in the prompt`)
     }
-    assert.match(blind.prompt, /<attempt label="A">\n<diff>\n\+one\n\n<\/diff>\n<\/attempt>/)
+    assert.match(blind.prompt, /<trial label="A">\n<diff>\n\+one\n\n<\/diff>\n<\/trial>/)
     assert.match(blind.prompt, /<task>\nWrite the file\.\n<\/task>/)
   })
 
   test('each side shows only the inputs the question turns on', () => {
-    const [pair] = pairsOf([side('h', 'arm-x', 1), side('h', 'arm-y', 1)])
+    const [pair] = pairsOf([side('h', 'environment-x', 1), side('h', 'environment-y', 1)])
     assert.ok(pair)
     const two = {
       ...pair,
@@ -1006,14 +1025,14 @@ describe('compare question pairs', () => {
     const png = (n: number) => new Uint8Array([0x89, 0x50, 0x4e, 0x47, n])
     const [pair] = pairsOf([
       {
-        ...side('h', 'arm-x', 1),
+        ...side('h', 'environment-x', 1),
         diff: '+one\n',
-        captures: [{ name: 'home-of-arm-x', data: png(1) }],
+        captures: [{ name: 'home-of-environment-x', data: png(1) }],
       },
       {
-        ...side('h', 'arm-y', 1),
+        ...side('h', 'environment-y', 1),
         diff: '+two\n',
-        captures: [{ name: 'home-of-arm-y', data: png(2) }],
+        captures: [{ name: 'home-of-environment-y', data: png(2) }],
       },
     ])
     assert.ok(pair)
@@ -1022,19 +1041,24 @@ describe('compare question pairs', () => {
       artifacts: true,
     })
     assert.deepEqual(both.a.artifacts, [
-      { label: 'Attempt A, screenshot 1 of 1', mediaType: 'image/png', bytes: 5 },
+      { label: 'Trial A, screenshot 1 of 1', mediaType: 'image/png', bytes: 5 },
     ])
-    for (const name of ['home-of-arm-x', 'home-of-arm-y', 'arm-x', 'arm-y']) {
+    for (const name of [
+      'home-of-environment-x',
+      'home-of-environment-y',
+      'environment-x',
+      'environment-y',
+    ]) {
       assert.ok(!both.prompt.includes(name), `${name} is not in the prompt`)
     }
     const named = blindPair('Which?', pair, true, 20_000, {
       state: TASK_AND_DIFF,
-      artifacts: ['home-of-arm-x'],
+      artifacts: ['home-of-environment-x'],
     })
     assert.deepEqual(named.b.artifacts, [
-      { label: 'Attempt B, screenshot 1 of 1', mediaType: 'image/png', bytes: 5 },
+      { label: 'Trial B, screenshot 1 of 1', mediaType: 'image/png', bytes: 5 },
     ])
-    assert.deepEqual(named.a.artifacts, [{ label: 'Attempt A, screenshot 1 of 1', missing: true }])
+    assert.deepEqual(named.a.artifacts, [{ label: 'Trial A, screenshot 1 of 1', missing: true }])
     const request = questionRequest(
       blindInput('Which?', pair, true, 20_000, { state: TASK_AND_DIFF, artifacts: true }),
     )
@@ -1043,7 +1067,7 @@ describe('compare question pairs', () => {
       request.messages[0]?.content.map((part) =>
         part.type === 'file' ? [...(part.data as Uint8Array)].at(-1) : part.text.split('\n')[0],
       ),
-      ['Question: Which?', 'Attempt A, screenshot 1 of 1', 2, 'Attempt B, screenshot 1 of 1', 1],
+      ['Question: Which?', 'Trial A, screenshot 1 of 1', 2, 'Trial B, screenshot 1 of 1', 1],
       "the prompt, then each side's screenshot after its label, in the order shown",
     )
     assert.match(request.system, /screenshots of its work/)
@@ -1060,14 +1084,14 @@ describe('compare question pairs', () => {
       maxInputTokens: 20_000,
       maxOutputTokens: 100,
       state: { task: true },
-      artifacts: ['home-of-arm-x'],
+      artifacts: ['home-of-environment-x'],
     })
-    assert.deepEqual(answer.artifacts, ['home-of-arm-x'])
+    assert.deepEqual(answer.artifacts, ['home-of-environment-x'])
     assert.deepEqual(
       answer.votes.map((v) => v.artifacts),
       [
-        { a: ['home-of-arm-x'], b: [] },
-        { a: ['home-of-arm-x'], b: [] },
+        { a: ['home-of-environment-x'], b: [] },
+        { a: ['home-of-environment-x'], b: [] },
       ],
       'names per named side, whichever order was shown',
     )
@@ -1082,7 +1106,7 @@ describe('compare question pairs', () => {
     })
     assert.equal(
       missing.error,
-      'question "Which page is clearer?" checks names a command no paired attempt ran: "npm tset"',
+      'question "Which page is clearer?" checks names a command no paired trial ran: "npm tset"',
     )
     assert.deepEqual(missing.votes, [])
   })
@@ -1106,14 +1130,17 @@ describe('compare question pairs', () => {
     ])
   })
 
-  // Ben's UX question over three arms and three runs: his record's pooled line read no-skill 9/12,
+  // Ben's UX question over three environments and three runs: his record's pooled line read no-skill 9/12,
   // current-skill 2/12, new-skill 7/12 and "0 ties", while 4 of the 9 pairs were decided by
-  // which attempt was shown first.
+  // which trial was shown first.
   test("head to head: a pair whose two orders disagree is a split, not a win each (Ben's UX votes)", () => {
-    const arms = ['no-skill', 'current-skill', 'new-skill']
+    const environments = ['no-skill', 'current-skill', 'new-skill']
     const pairs = pairsOf(
-      arms.flatMap((arm) =>
-        [1, 2, 3].map((run) => ({ ...side('cursor', arm, run), control: arm === 'no-skill' })),
+      environments.flatMap((environment) =>
+        [1, 2, 3].map((run) => ({
+          ...side('cursor', environment, run),
+          baseline: environment === 'no-skill',
+        })),
       ),
     )
     // [unswapped pick, swapped pick] per pair and run, in pairsOf's order.
@@ -1135,7 +1162,10 @@ describe('compare question pairs', () => {
       ],
     }
     const votes = pairs.flatMap((pair) => {
-      const [x, y] = picks[`${pair.a.arm} ${pair.b.arm}`]?.[pair.run - 1] ?? ['A', 'A']
+      const [x, y] = picks[`${pair.a.environment} ${pair.b.environment}`]?.[pair.run - 1] ?? [
+        'A',
+        'A',
+      ]
       return [voteOf('UX', pair, false, x), voteOf('UX', pair, true, y)]
     })
     assert.deepEqual(
@@ -1160,7 +1190,7 @@ describe('compare question pairs', () => {
     )
   })
 
-  test('canary: two arms get no head-to-head line, and orders that agree split nothing', () => {
+  test('canary: two environments get no head-to-head line, and orders that agree split nothing', () => {
     const pairs = pairsOf(matrix(['h'], ['sdk', 'ui'], 2))
     const votes = pairs.flatMap((pair) => [
       voteOf('q', pair, false, 'B'),
@@ -1211,12 +1241,12 @@ describe('compare question pairs', () => {
     })
   })
 
-  test("a staged attempt's checks held when it passed, or failed on a judge only", () => {
+  test("a staged trial's checks held when it passed, or failed on a judge only", () => {
     const e = (state: EngineEval['state']) =>
       ({
         state,
         errors: [],
-        attempt: { cell: { key: 'h/sdk/fake', harness: 'h', environment: 'sdk' }, n: 2 },
+        trial: { cell: { key: 'h/sdk/fake', harness: 'h', environment: 'sdk' }, n: 2 },
       }) as unknown as EngineEval
     const record = (kind?: 'judge' | 'assertion') =>
       ({
@@ -1225,18 +1255,18 @@ describe('compare question pairs', () => {
         turns: [{ prompt: 'go' }],
         checks: [],
       }) as unknown as EvalRecord
-    assert.equal(stagedAttempt(e('passed'), record())?.checksPassed, true)
-    assert.equal(stagedAttempt(e('failed'), record('judge'))?.checksPassed, true)
-    assert.equal(stagedAttempt(e('failed'), record('assertion'))?.checksPassed, false)
-    assert.equal(stagedAttempt(e('skipped'), null)?.checksPassed, false)
-    assert.deepEqual(stagedAttempt(e('passed'), record()), {
+    assert.equal(stagedTrial(e('passed'), record())?.checksPassed, true)
+    assert.equal(stagedTrial(e('failed'), record('judge'))?.checksPassed, true)
+    assert.equal(stagedTrial(e('failed'), record('assertion'))?.checksPassed, false)
+    assert.equal(stagedTrial(e('skipped'), null)?.checksPassed, false)
+    assert.deepEqual(stagedTrial(e('passed'), record()), {
       harness: 'h',
-      arm: 'sdk',
+      environment: 'sdk',
       run: 2,
       diff: '+x\n',
       files: [],
       checksPassed: true,
-      control: false,
+      baseline: false,
       turns: [{ prompt: 'go', text: undefined, trajectory: undefined }],
       checks: [],
       id: 'h/sdk/fake#2',
@@ -1244,12 +1274,12 @@ describe('compare question pairs', () => {
     })
   })
 
-  test('a passed attempt whose turn crashed is an infra_error: no checks held, no questions', () => {
+  test('a passed trial whose turn crashed is an infra_error: no checks held, no questions', () => {
     const e = (state: EngineEval['state']) =>
       ({
         state,
         errors: [],
-        attempt: { cell: { key: 'h/sdk/fake', harness: 'h', environment: 'sdk' }, n: 1 },
+        trial: { cell: { key: 'h/sdk/fake', harness: 'h', environment: 'sdk' }, n: 1 },
       }) as unknown as EngineEval
     const record = (outcome: EvalRecord['outcome'], kind?: 'infra' | 'judge') =>
       ({
@@ -1259,7 +1289,7 @@ describe('compare question pairs', () => {
         turns: [{ prompt: 'go' }],
         checks: [],
       }) as unknown as EvalRecord
-    assert.equal(stagedAttempt(e('passed'), record('infra_error', 'infra'))?.checksPassed, false)
+    assert.equal(stagedTrial(e('passed'), record('infra_error', 'infra'))?.checksPassed, false)
     assert.equal(answerable(e('passed'), record('infra_error', 'infra')), false)
     assert.equal(answerable(e('failed'), record('infra_error', 'infra')), false)
     assert.equal(answerable(e('passed'), record('pass')), true)
@@ -1269,28 +1299,30 @@ describe('compare question pairs', () => {
 })
 
 // The nightly contract's e2e runs: one eval, recorded twice on each of Cursor, Claude Code and
-// Codex. Their two runs stand in for two arms, so the real diffs give within and across pairs.
+// Codex. Their two runs stand in for two environments, so the real diffs give within and across pairs.
 describe('compare questions over real-harness runs (real-e2e-pairs)', () => {
-  const attempts = realAttempts('real-e2e-pairs')
-  const arms = [...E2E_ARMS]
+  const trials = realTrials('real-e2e-pairs')
+  const environments = [...E2E_ARMS]
   const sides = e2ePairSides()
   const pairs = pairsOf(sides)
 
   test('within: each harness’s two runs; across: the three harnesses per run', () => {
     assert.ok(
       sides.every((s) => s.checksPassed),
-      'every e2e attempt passed',
+      'every e2e trial passed',
     )
     assert.deepEqual(
-      pairs.filter((p) => p.cut === 'within').map((p) => [p.harness, p.a.arm, p.b.arm]),
+      pairs
+        .filter((p) => p.cut === 'within')
+        .map((p) => [p.harness, p.a.environment, p.b.environment]),
       REAL_HARNESSES.map((h) => [h, 'first-run', 'second-run']),
     )
     assert.deepEqual(
-      pairs.filter((p) => p.cut === 'across').map((p) => [p.arm, p.a.harness, p.b.harness]),
-      arms.flatMap((arm) => [
-        [arm, 'cursor', 'claude-code'],
-        [arm, 'cursor', 'codex'],
-        [arm, 'claude-code', 'codex'],
+      pairs.filter((p) => p.cut === 'across').map((p) => [p.environment, p.a.harness, p.b.harness]),
+      environments.flatMap((environment) => [
+        [environment, 'cursor', 'claude-code'],
+        [environment, 'cursor', 'codex'],
+        [environment, 'claude-code', 'codex'],
       ]),
     )
   })
@@ -1318,8 +1350,8 @@ describe('compare questions over real-harness runs (real-e2e-pairs)', () => {
       'composer',
       'haiku',
       'gpt-',
-      ...arms,
-      ...new Set(attempts.map((a) => a.runId)),
+      ...environments,
+      ...new Set(trials.map((a) => a.runId)),
     ]
     for (const [i, pair] of pairs.entries()) {
       const [first, second] = [seen[i * 2], seen[i * 2 + 1]] as [BlindPair, BlindPair]

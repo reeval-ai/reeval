@@ -12,7 +12,7 @@ const detailedRules = math.extendEnvironment('detailed-rules', ({ file }) => ({
 }))
 
 export default defineEval({
-  compare: { control: shortRules, variants: [detailedRules] },
+  compare: { baseline: shortRules, variants: [detailedRules] },
   graders: [succeeded('node --test'), hasFile('CHANGELOG.md', /## Unreleased\s+- feat: /)],
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js.')

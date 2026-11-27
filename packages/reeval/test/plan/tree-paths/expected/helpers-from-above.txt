@@ -1,5 +1,5 @@
-no profile · 1 evals · 2 cells · 8 attempts
-a-compare  fake/built/docker:docker  control      ungated    ×4  runs 4 (compare default)
+no profile · 1 evals · 2 cells · 8 trials
+a-compare  fake/built/docker:docker  baseline     ungated    ×4  trials 4 (compare default)
            fake/own/docker:images    variant own  gated any  ×4
 excluded: —
 image docker:docker · cursor · 1 evals

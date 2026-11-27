@@ -55,9 +55,9 @@ await c.exec(`curl -fsS --retry 10 --retry-connrefused ${url}`, {
 
 ## Capture a page
 
-`c.capture` takes a `ServeHandle` or a port and opens a path on it in a headless browser on the host through a tunnel to the sandbox. It waits until the server answers, then saves the image at the `artifacts/<name>.png` path in the attempt record. The sandbox image needs no browser, because reeval downloads one into its cache on the first capture.
+`c.capture` takes a `ServeHandle` or a port and opens a path on it in a headless browser on the host through a tunnel to the sandbox. It waits until the server answers, then saves the image at the `artifacts/<name>.png` path in the trial record. The sandbox image needs no browser, because reeval downloads one into its cache on the first capture.
 
-`path` defaults to `/`. `name` defaults to the path, so `/login` saves `login.png`, and a name can't repeat in one attempt. `wait` defaults to `'load'`; use `'idle'` to wait until at most two requests are in flight for 500 ms, or `{ ms: 500 }` to wait a fixed time.
+`path` defaults to `/`. `name` defaults to the path, so `/login` saves `login.png`, and a name can't repeat in one trial. `wait` defaults to `'load'`; use `'idle'` to wait until at most two requests are in flight for 500 ms, or `{ ms: 500 }` to wait a fixed time.
 
 In the `evals/sign-in.eval.ts` file, name a second capture:
 
@@ -85,7 +85,7 @@ judge('Does the error page keep both fields and show one error message?', {
 
 For more information about the judge and its model, see [Judgments](/evaluations/grading/judgments).
 
-In a comparison, a question shows each side's own capture when its `artifacts` names the captures, or is `true`, so the model sees the control's page beside the variant's. For more information about pairwise questions, see [Ask questions across attempts](/evaluations/grading/questions).
+In a comparison, a question shows each side's own capture when its `artifacts` names the captures, or is `true`, so the model sees the baseline's page beside the variant's. For more information about pairwise questions, see [Ask questions across trials](/evaluations/grading/questions).
 
 ## Set the viewport and browser
 
@@ -99,4 +99,4 @@ The viewport defaults to 1280×720. In the `evals/sign-in.eval.ts` file, set the
 
 ## Reference
 
-For more information about every argument `c.serve` takes, see [`c.serve`](/reference/attempt-context#cserve). For more information about every capture field, see [`c.capture`](/reference/attempt-context#ccapture). For runnable projects, see [`with-capture`](https://github.com/reeval-ai/reeval/tree/main/examples/with-capture) and [`with-capture-journey`](https://github.com/reeval-ai/reeval/tree/main/examples/with-capture-journey).
+For more information about every argument `c.serve` takes, see [`c.serve`](/reference/trial-context#cserve). For more information about every capture field, see [`c.capture`](/reference/trial-context#ccapture). For runnable projects, see [`with-capture`](https://github.com/reeval-ai/reeval/tree/main/examples/with-capture) and [`with-capture-journey`](https://github.com/reeval-ai/reeval/tree/main/examples/with-capture-journey).

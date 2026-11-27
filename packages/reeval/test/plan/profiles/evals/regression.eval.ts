@@ -4,8 +4,8 @@ const plain = defineEnvironment('plain', {})
 const skilled = defineEnvironment('skilled', { env: { MODE: 'x' } })
 
 export default defineEval({
-  compare: { control: plain, variants: [skilled] },
-  runs: 2,
-  pin: ['compare', 'runs'],
+  compare: { baseline: plain, variants: [skilled] },
+  trials: 2,
+  pin: ['compare', 'trials'],
   task: async () => {},
 })

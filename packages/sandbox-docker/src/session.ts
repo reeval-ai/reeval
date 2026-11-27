@@ -222,7 +222,7 @@ export type DockerSession = HarnessV1NetworkSandboxSession & {
   /** With the gateway: the hosts the sandbox contacted and was refused so far. */
   traffic?(): EgressTraffic
   /**
-   * With the gateway: starts the attempt's next phase under `policy`, tagging later traffic with
+   * With the gateway: starts the trial's next phase under `policy`, tagging later traffic with
    * `phase` and closing open tunnels it refuses. `direct` says whether the container keeps its
    * networks, which `allow-all` and `proxy` both leave to it.
    */

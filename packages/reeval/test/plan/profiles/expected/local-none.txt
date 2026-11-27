@@ -1,10 +1,10 @@
-no profile · 5 evals · 7 cells · 17 attempts
-hint: 1 compare runs 2 times per cell; below 4 runs a side its lift shows only a direction and its effort can't be tested (runs: 4)
-compared             a/plain/fake    control          ungated    ×4  runs 4 (compare default)
+no profile · 5 evals · 7 cells · 17 trials
+hint: 1 compare runs 2 times per cell; below 4 trials a side its lift shows only a direction and its effort can't be tested (trials: 4)
+compared             a/plain/fake    baseline         ungated    ×4  trials 4 (compare default)
                      a/skilled/fake  variant skilled  gated any  ×4
-own-agent            b/-/fake        control          gated any  ×1
-plain                a/-/fake        control          gated any  ×3
-regression           a/plain/fake    control          ungated    ×2
+own-agent            b/-/fake        baseline         gated any  ×1
+plain                a/-/fake        baseline         gated any  ×3
+regression           a/plain/fake    baseline         ungated    ×2
                      a/skilled/fake  variant skilled  gated any  ×2
-slow [nightly-only]  a/-/fake        control          gated any  ×1
+slow [nightly-only]  a/-/fake        baseline         gated any  ×1
 excluded: —

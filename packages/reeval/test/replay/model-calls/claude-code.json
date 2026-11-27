@@ -1,6 +1,6 @@
 {
   "harness": "claude-code",
-  "attempts": [
+  "trials": [
     {
       "eval": "audit",
       "turns": [

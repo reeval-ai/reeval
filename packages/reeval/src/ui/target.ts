@@ -3,12 +3,12 @@
 // below their targets. Plain text; `layout.ts` and `status.ts` paint and place it.
 
 import { plural } from '../text.ts'
-import type { AttemptFailure } from '../types.ts'
+import type { TrialFailure } from '../types.ts'
 import { scorePercent } from '../view/report/format.ts'
 import {
   type EvalResult,
   failureHeadline,
-  type ScoredAttempt,
+  type ScoredTrial,
   type SuiteTally,
 } from '../view/suite.ts'
 
@@ -18,10 +18,10 @@ export const location = (at: string) => at.replace(/^source:/, '').replace(/#L(\
 /** `67%`: rounded, but a score under `threshold` or under 1 never reads as reaching it. */
 export const percent = scorePercent
 
-/** A case row's score against the threshold each attempt meets, so a row under it never reads as reaching it. */
+/** A case row's score against the threshold each trial meets, so a row under it never reads as reaching it. */
 export const rowPercent = (e: EvalResult, score: number) => percent(score, e.target.threshold)
 
-const counts = (a: ScoredAttempt) => a.score !== null
+const counts = (a: ScoredTrial) => a.score !== null
 
 /** `✓` and `✗` for a blocking target's pass and miss, `–` for one that didn't run, else a neutral `·`. */
 export const MARK = { pass: '✓', fail: '✗', report: '·', infra: '·', skipped: '–' } as const
@@ -31,14 +31,14 @@ export const expands = (e: EvalResult, verbose: boolean) =>
   e.scored.length > 0 &&
   (verbose || (e.outcome !== 'pass' && e.outcome !== 'skipped') || e.scored.some((a) => a.failure))
 
-/** One case (an attempt, on an eval without cases) and what cost it points. */
+/** One case (a trial, on an eval without cases) and what cost it points. */
 export type CaseRow = {
   /**
-   * `#npm`, or `#2` for an attempt of an eval without cases, then the cell after ` · ` when the
-   * target has several (the cell alone for one attempt of each).
+   * `#npm`, or `#2` for a trial of an eval without cases, then the cell after ` · ` when the
+   * target has several (the cell alone for one trial of each).
    */
   label: string
-  /** The case's mean score; null when no attempt of it counted. */
+  /** The case's mean score; null when no trial of it counted. */
   score: number | null
   /** In place of a score when none counted: `infra error`, `canceled`. */
   status: string
@@ -48,7 +48,7 @@ export type CaseRow = {
    */
   text: string
   /** What the task threw, for the lines under the row. */
-  failure: AttemptFailure | null
+  failure: TrialFailure | null
   /**
    * Each failed check's message, when checks are what cost it: `label` names the check when it
    * failed beside others, and `at` is where its `expect` is (`source:evals/a.eval.ts#L12`).
@@ -58,7 +58,7 @@ export type CaseRow = {
 
 export type CheckMessage = { label: string | null; message: string; at: string | null }
 
-const ERROR_WORD: Record<NonNullable<ScoredAttempt['error']>['kind'], string> = {
+const ERROR_WORD: Record<NonNullable<ScoredTrial['error']>['kind'], string> = {
   assertion: 'error',
   judge: 'judge error',
   timeout: 'timed out',
@@ -67,44 +67,46 @@ const ERROR_WORD: Record<NonNullable<ScoredAttempt['error']>['kind'], string> = 
 }
 
 /**
- * A grader's mean over the attempts, an attempt that didn't lose points on it counting 1: `tests
+ * A grader's mean over the trials, a trial that didn't lose points on it counting 1: `tests
  * 50%`, or `judge "Explains retries" 40%` for a judge.
  */
-function graderText(group: ScoredAttempt[], threshold: number | undefined): string[] {
-  const runs = group.filter(counts)
-  const names = [...new Set(runs.flatMap((a) => a.lost.map((g) => g.grader)))]
+function graderText(group: ScoredTrial[], threshold: number | undefined): string[] {
+  const counted = group.filter(counts)
+  const names = [...new Set(counted.flatMap((a) => a.lost.map((g) => g.grader)))]
   return names.map((name) => {
-    const own = runs.map((a) => a.lost.find((g) => g.grader === name))
+    const own = counted.map((a) => a.lost.find((g) => g.grader === name))
     const shown = own.some((g) => g?.kind === 'judge')
       ? `judge "${name.replace(/^judge:/, '')}"`
       : name
     const errored = own.find((g) => g?.error)
     if (errored && own.every((g) => g?.error)) return `${shown} errored`
-    const mean = own.reduce((s, g) => s + (g ? g.score : 1), 0) / runs.length
+    const mean = own.reduce((s, g) => s + (g ? g.score : 1), 0) / counted.length
     return `${shown} ${percent(mean, threshold)}${own.some((g) => g?.required) ? ' (required)' : ''}`
   })
 }
 
-function rowOf(label: string, group: ScoredAttempt[], threshold: number | undefined): CaseRow {
-  const runs = group.filter(counts)
-  const score = runs.length ? runs.reduce((s, a) => s + (a.score ?? 0), 0) / runs.length : null
+function rowOf(label: string, group: ScoredTrial[], threshold: number | undefined): CaseRow {
+  const counted = group.filter(counts)
+  const score = counted.length
+    ? counted.reduce((s, a) => s + (a.score ?? 0), 0) / counted.length
+    : null
   const thrown = group.filter((a) => a.failure)
   const errored = group.find((a) => a.error)
   const status = score === null && errored?.error ? ERROR_WORD[errored.error.kind] : ''
-  const several = (n: number) => (group.length > 1 ? ` (${n} of ${group.length} runs)` : '')
+  const several = (n: number) => (group.length > 1 ? ` (${n} of ${group.length} trials)` : '')
   const failure = thrown[0]?.failure ?? null
   if (failure) {
     const text = `${failureHeadline(failure)}${several(thrown.length)}`
     return { label, score, status, text, failure, checks: [] }
   }
-  const checks = [...new Set(runs.flatMap((a) => a.failedChecks.map((k) => k.label)))]
+  const checks = [...new Set(counted.flatMap((a) => a.failedChecks.map((k) => k.label)))]
   const text = [...graderText(group, threshold), ...checks.map((k) => `"${k}" failed`)].join(', ')
   if (errored?.error && (status || !text)) {
     const { kind, message } = errored.error
     const text = `${status || kind === 'assertion' ? '' : `${ERROR_WORD[kind]}: `}${message}`
     return { label, score, status, text, failure: null, checks: [] }
   }
-  const failed = runs.flatMap((a) => a.failedChecks)
+  const failed = counted.flatMap((a) => a.failedChecks)
   const messages = checks.flatMap((name): CheckMessage[] => {
     const k = failed.find((f) => f.label === name && f.message)
     if (!k?.message) return []
@@ -115,12 +117,12 @@ function rowOf(label: string, group: ScoredAttempt[], threshold: number | undefi
   return { label, score, status, text, failure: null, checks: messages }
 }
 
-/** The cases a stopped run never reached, as `#key`: they have no attempt to score. */
+/** The cases a stopped run never reached, as `#key`: they have no trial to score. */
 export const notRunCases = (e: EvalResult): string[] =>
   (e.cases ?? []).filter((k) => k.notRun).map((k) => `#${k.label}`)
 
-/** `1–3, 5`: run numbers with their runs of consecutive numbers as ranges. */
-function runRanges(ns: number[]): string {
+/** `1–3, 5`: trial numbers with their runs of consecutive numbers as ranges. */
+function trialRanges(ns: number[]): string {
   const sorted = [...new Set(ns)].sort((a, b) => a - b)
   const out: string[] = []
   for (let i = 0; i < sorted.length; ) {
@@ -133,8 +135,8 @@ function runRanges(ns: number[]): string {
 }
 
 /**
- * A row per case, or per attempt without cases, with the cell when the target has several: every
- * one with `all`, else those under 100% or with no score. Attempts without cases that read alike
+ * A row per case, or per trial without cases, with the cell when the target has several: every
+ * one with `all`, else those under 100% or with no score. Trials without cases that read alike
  * (the same cell, score and why) share one row, `#1–4`.
  */
 export function caseRows(
@@ -143,7 +145,7 @@ export function caseRows(
   all: boolean,
 ): CaseRow[] {
   const cells = new Set(e.scored.map((a) => a.cell)).size > 1
-  const groups = new Map<string, ScoredAttempt[]>()
+  const groups = new Map<string, ScoredTrial[]>()
   for (const a of e.scored) {
     const key = a.case === null ? `${a.cell}\0${a.n}` : `${a.case}\0${a.cell}`
     groups.set(key, [...(groups.get(key) ?? []), a])
@@ -170,7 +172,7 @@ export function caseRows(
   return rows
     .map(({ row, cell, key, ns }) => {
       const several = e.scored.some((a) => a.n > 1)
-      const id = ns ? (several || !cells ? `#${runRanges(ns)}` : '') : `#${key}`
+      const id = ns ? (several || !cells ? `#${trialRanges(ns)}` : '') : `#${key}`
       const label = [id, cells ? cellLabel(cell) : ''].filter(Boolean).join(' · ')
       return { ...row, label }
     })
@@ -193,7 +195,7 @@ export const STACK_FRAMES = 5
  * What the task threw, under its reason: an `EvalError`'s meta as `key: value`, the turn it threw
  * after, and its stack's frames in the project.
  */
-export function failureFacts(f: AttemptFailure): {
+export function failureFacts(f: TrialFailure): {
   meta: string[]
   turn: string
   frames: string[]

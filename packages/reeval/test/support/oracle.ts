@@ -5,13 +5,13 @@ import type { CliRun } from '../helpers.ts'
 
 export type EvalExpectation = {
   outcome: Outcome
-  /** Every attempt id, exactly: an eval that silently didn't register or run fails this. */
-  attempts: string[]
-  /** For a failing eval: why the failing attempts failed. */
+  /** Every trial id, exactly: an eval that silently didn't register or run fails this. */
+  trials: string[]
+  /** For a failing eval: why the failing trials failed. */
   error?: { kind: ErrorKind; message: RegExp }
   /**
-   * Attempt ids that must pass with no error. With `error` set, every other attempt must match
-   * it. A compare canary fails on the variant and leaves the ungated control clean.
+   * Trial ids that must pass with no error. With `error` set, every other trial must match
+   * it. A compare canary fails on the variant and leaves the ungated baseline clean.
    */
   clean?: string[]
 }
@@ -24,7 +24,7 @@ export type RunExpectation = {
 
 /**
  * The outside check on a run, independent of what its evals assert: the exit code, which evals
- * ran, every attempt id and outcome, and for failures the error kind and message. A canary's
+ * ran, every trial id and outcome, and for failures the error kind and message. A canary's
  * expectation is `fail` with kind `assertion`, which proves the fixture's check can fail.
  */
 export function expectRun(cli: CliRun, run: RunRecord, expected: RunExpectation): void {
@@ -37,15 +37,15 @@ export function expectRun(cli: CliRun, run: RunRecord, expected: RunExpectation)
   )
   for (const e of run.evals) {
     const want = expected.evals[e.name] as EvalExpectation
-    const attempts = e.attempts.map((a) => ({ id: a.id, outcome: a.outcome, error: a.error }))
-    const detail = `${e.name}: ${JSON.stringify(attempts, null, 2)}\n${output}`
+    const trials = e.trials.map((a) => ({ id: a.id, outcome: a.outcome, error: a.error }))
+    const detail = `${e.name}: ${JSON.stringify(trials, null, 2)}\n${output}`
     assert.equal(e.outcome, want.outcome, detail)
     assert.deepEqual(
-      e.attempts.map((a) => a.id),
-      want.attempts,
+      e.trials.map((a) => a.id),
+      want.trials,
       detail,
     )
-    for (const a of e.attempts) {
+    for (const a of e.trials) {
       if (!want.error || want.clean?.includes(a.id)) {
         assert.equal(a.error, null, detail)
         continue

@@ -4,41 +4,6 @@
   "title": "RegradeRecord",
   "$ref": "#/$defs/RegradeRecord",
   "$defs": {
-    "AttemptError": {
-      "description": "Why an attempt failed; `prepare` when its sandbox couldn't be prepared, `resource` when it ran out of one, `provider` when the model provider stopped a turn.",
-      "type": "object",
-      "properties": {
-        "kind": {
-          "$ref": "#/$defs/ErrorKind"
-        },
-        "message": {
-          "type": "string"
-        },
-        "prepare": {
-          "$ref": "#/$defs/PrepareFailureRecord"
-        },
-        "provider": {
-          "$ref": "#/$defs/ProviderStopRecord"
-        },
-        "resource": {
-          "$ref": "#/$defs/ResourceFailureRecord"
-        },
-        "turn": {
-          "description": "Set when an unhandled mid-turn error was reclassified as infra: the turn index and whether it looked like a config refusal or a transport failure.",
-          "type": "object",
-          "properties": {
-            "index": {
-              "type": "number"
-            },
-            "kind": {
-              "enum": ["config", "transport"]
-            }
-          },
-          "required": ["index", "kind"]
-        }
-      },
-      "required": ["kind", "message"]
-    },
     "CostUsd": {
       "description": "A dollar figure and where it came from.",
       "type": "object",
@@ -62,7 +27,7 @@
       "enum": ["aborted", "assertion", "infra", "judge", "timeout"]
     },
     "GradeFingerprint": {
-      "description": "What makes two grades of the same attempt comparable: equal digests, the same grade.",
+      "description": "What makes two grades of the same trial comparable: equal digests, the same grade.",
       "type": "object",
       "properties": {
         "code": {
@@ -97,7 +62,7 @@
       "required": ["code", "digest"]
     },
     "GradeReads": {
-      "description": "The attempt's observations, captures and kept files a grader read, by content hash.",
+      "description": "The trial's observations, captures and kept files a grader read, by content hash.",
       "type": "object",
       "properties": {
         "artifacts": {
@@ -149,7 +114,7 @@
       "required": []
     },
     "GradeRecord": {
-      "description": "One grader's result on an attempt, from a grader in the eval's `graders`.",
+      "description": "One grader's result on a trial, from a grader in the eval's `graders`.",
       "type": "object",
       "properties": {
         "durationMs": {
@@ -213,11 +178,11 @@
           "enum": ["builtin", "code", "judge"]
         },
         "reads": {
-          "description": "What the grader read from the attempt, by content hash, in first-read order.",
+          "description": "What the grader read from the trial, by content hash, in first-read order.",
           "$ref": "#/$defs/GradeReads"
         },
         "required": {
-          "description": "Whether a score under 1 (or an error) makes the attempt's score 0.",
+          "description": "Whether a score under 1 (or an error) makes the trial's score 0.",
           "type": "boolean"
         },
         "score": {
@@ -236,7 +201,7 @@
           "type": "string"
         },
         "weight": {
-          "description": "Its share of the attempt's score; 0 records only.",
+          "description": "Its share of the trial's score; 0 records only.",
           "type": "number"
         }
       },
@@ -382,7 +347,7 @@
       "required": ["delayMs", "error"]
     },
     "PrepareFailureRecord": {
-      "description": "The sandbox an attempt needed that couldn't be prepared before the run, on each attempt that needed it: its provider's stage (Docker's `image`, `from`, `dockerfile`, `harness` or `install`, or `workspace` for a git workspace, whose `ref` is `repo#ref:path`), what was being made, the class (`config`, `transient` after the retries, or `resource`), a named cause (`enospc`, `oom`), the build log, and the levels that set it.",
+      "description": "The sandbox a trial needed that couldn't be prepared before the run, on each trial that needed it: its provider's stage (Docker's `image`, `from`, `dockerfile`, `harness` or `install`, or `workspace` for a git workspace, whose `ref` is `repo#ref:path`), what was being made, the class (`config`, `transient` after the retries, or `resource`), a named cause (`enospc`, `oom`), the build log, and the levels that set it.",
       "type": "object",
       "properties": {
         "cause": {
@@ -431,7 +396,7 @@
       "required": ["cause", "class", "log", "ref", "setBy", "stage"]
     },
     "ProviderStopRecord": {
-      "description": "The model provider ended a turn, not the agent: out of credit, over its quota, rate limited or overloaded, with the HTTP status of the last model call the egress gateway brokered when that call failed (`null` when it didn't, as in a stream that failed inside an HTTP 200, or none was). The attempt is then an infra error, so `--retry-errors` runs it again.",
+      "description": "The model provider ended a turn, not the agent: out of credit, over its quota, rate limited or overloaded, with the HTTP status of the last model call the egress gateway brokered when that call failed (`null` when it didn't, as in a stream that failed inside an HTTP 200, or none was). The trial is then an infra error, so `--retry-errors` runs it again.",
       "type": "object",
       "properties": {
         "cause": {
@@ -451,7 +416,7 @@
       "required": ["cause", "status"]
     },
     "RegradeAction": {
-      "description": "What a regrade did with one grader on one attempt: `kept` it (unchanged, or not selected), `rescored` its stored grade (its score, weight or required changed), `recomputed` it (its fingerprint changed: `changed` names the parts), ran a `new` grader, left one the eval no longer has (`not-found`), kept one whose inputs the run didn't keep (`inputs-missing`, with `reason`) or kept one whose grade couldn't be had (`failed`: a judge that errored, a grader sandbox that didn't start, a timeout or an interrupt, with the error as `reason`). A code grader's own throw is `recomputed`, its grade holding the error and scoring 0 as a run's does.",
+      "description": "What a regrade did with one grader on one trial: `kept` it (unchanged, or not selected), `rescored` its stored grade (its score, weight or required changed), `recomputed` it (its fingerprint changed: `changed` names the parts), ran a `new` grader, left one the eval no longer has (`not-found`), kept one whose inputs the run didn't keep (`inputs-missing`, with `reason`) or kept one whose grade couldn't be had (`failed`: a judge that errored, a grader sandbox that didn't start, a timeout or an interrupt, with the error as `reason`). A code grader's own throw is `recomputed`, its grade holding the error and scoring 0 as a run's does.",
       "type": "object",
       "properties": {
         "action": {
@@ -472,8 +437,8 @@
       },
       "required": ["action", "grader"]
     },
-    "RegradedAttempt": {
-      "description": "One attempt as a regrade left it.",
+    "RegradedTrial": {
+      "description": "One trial as a regrade left it.",
       "type": "object",
       "properties": {
         "actions": {
@@ -487,7 +452,7 @@
           "description": "Why it fails now: its score under the run's target; null when it passes.",
           "anyOf": [
             {
-              "$ref": "#/$defs/AttemptError"
+              "$ref": "#/$defs/TrialError"
             },
             {
               "type": "null"
@@ -502,7 +467,7 @@
           }
         },
         "key": {
-          "description": "The attempt's `key` in the run record.",
+          "description": "The trial's `key` in the run record.",
           "type": "string"
         },
         "outcome": {
@@ -515,17 +480,11 @@
       "required": ["actions", "error", "grades", "key", "outcome", "score"]
     },
     "RegradeRecord": {
-      "description": "What one `reeval regrade` changed in one run: the attempts whose grades it changed, each with its new grades, score and outcome, which readers put in place of the recorded ones. The record itself is never rewritten.",
+      "description": "What one `reeval regrade` changed in one run: the trials whose grades it changed, each with its new grades, score and outcome, which readers put in place of the recorded ones. The record itself is never rewritten.",
       "type": "object",
       "properties": {
         "at": {
           "type": "string"
-        },
-        "attempts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/RegradedAttempt"
-          }
         },
         "git": {
           "description": "The commit the graders were read at; null outside a git repository.",
@@ -570,13 +529,19 @@
           "type": "string"
         },
         "schemaVersion": {
-          "const": 1
+          "const": 2
+        },
+        "trials": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RegradedTrial"
+          }
         }
       },
-      "required": ["at", "attempts", "git", "id", "kind", "reeval", "regradeOf", "schemaVersion"]
+      "required": ["at", "git", "id", "kind", "reeval", "regradeOf", "schemaVersion", "trials"]
     },
     "ResourceFailureRecord": {
-      "description": "The sandbox ran out of a resource during the attempt: `oom` is the kernel killing `kills` processes at its memory limit. The attempt is then an infra error, whatever its checks said.",
+      "description": "The sandbox ran out of a resource during the trial: `oom` is the kernel killing `kills` processes at its memory limit. The trial is then an infra error, whatever its checks said.",
       "type": "object",
       "properties": {
         "cause": {
@@ -616,7 +581,42 @@
         }
       },
       "required": ["cacheRead", "cacheWrite", "input", "output", "reasoning"]
+    },
+    "TrialError": {
+      "description": "Why a trial failed; `prepare` when its sandbox couldn't be prepared, `resource` when it ran out of one, `provider` when the model provider stopped a turn.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ErrorKind"
+        },
+        "message": {
+          "type": "string"
+        },
+        "prepare": {
+          "$ref": "#/$defs/PrepareFailureRecord"
+        },
+        "provider": {
+          "$ref": "#/$defs/ProviderStopRecord"
+        },
+        "resource": {
+          "$ref": "#/$defs/ResourceFailureRecord"
+        },
+        "turn": {
+          "description": "Set when an unhandled mid-turn error was reclassified as infra: the turn index and whether it looked like a config refusal or a transport failure.",
+          "type": "object",
+          "properties": {
+            "index": {
+              "type": "number"
+            },
+            "kind": {
+              "enum": ["config", "transport"]
+            }
+          },
+          "required": ["index", "kind"]
+        }
+      },
+      "required": ["kind", "message"]
     }
   },
-  "x-schemaVersion": 1
+  "x-schemaVersion": 2
 }

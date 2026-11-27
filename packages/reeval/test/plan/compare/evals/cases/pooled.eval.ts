@@ -3,7 +3,7 @@ import { base, skilled } from '../envs.ts'
 
 export default defineEval({
   cases: [{ key: 'ada' }, { key: 'grace' }, { key: 'linus' }],
-  compare: { control: base, variants: [skilled], minLift: 0.2 },
+  compare: { baseline: base, variants: [skilled], minLift: 0.2 },
   target: regression(),
   task: async () => {},
 })

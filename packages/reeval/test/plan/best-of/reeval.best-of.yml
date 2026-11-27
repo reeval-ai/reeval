@@ -1,6 +1,6 @@
-# runs: { bestOf } as data.
+# trials: { bestOf } as data.
 agents: { kind: fake, id: a }
-runs: { bestOf: 5 }
+trials: { bestOf: 5 }
 profiles:
   pr:
-    limit: { runs: 3 }
+    limit: { trials: 3 }

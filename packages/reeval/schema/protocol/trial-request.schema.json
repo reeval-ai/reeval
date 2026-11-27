@@ -1,0 +1,606 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Generated from TrialRequest in src/contract/trial.ts by `pnpm schema:update`; don't edit. A call an eval's body makes on its trial, as a runner in another language sends it.",
+  "title": "TrialRequest",
+  "$ref": "#/$defs/TrialRequest",
+  "$defs": {
+    "CaptureCallData": {
+      "description": "`c.capture()`'s camera and path as data. Default `path` is `/`; default `name` is derived from the path. A test's `fakeInstructions` journey is TypeScript-only.",
+      "type": "object",
+      "properties": {
+        "instructions": {
+          "description": "Journey: goal strings and `{ wait }` beats, run by the vision model.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CaptureInstruction"
+          }
+        },
+        "model": {
+          "description": "Overrides cascaded `capture.model` for this call.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The `artifacts/<name>.png` file name: 1 to 100 of `a-z`, `0-9`, `_` and `-`, starting with a letter or digit. Unique within the trial.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,99}$"
+        },
+        "path": {
+          "type": "string"
+        },
+        "timeout": {
+          "$ref": "#/$defs/Duration"
+        },
+        "viewport": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CaptureWindow"
+            },
+            {
+              "type": "string",
+              "const": "full-page"
+            }
+          ]
+        },
+        "wait": {
+          "description": "Look-ready once, before the first model shot or the saved PNG. Default `'load'`.",
+          "$ref": "#/$defs/Wait"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CaptureInstruction": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "wait": {
+              "$ref": "#/$defs/Wait"
+            }
+          },
+          "required": ["wait"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CaptureWait": {
+      "description": "Chromium look-ready events. `'load'` is `window` load (`Page.loadEventFired`). `'idle'` is `Page.lifecycleEvent` `networkAlmostIdle`.",
+      "type": "string",
+      "enum": ["load", "idle"]
+    },
+    "CaptureWindow": {
+      "description": "Live tab size for `c.capture()`. Default 1280×720 when the call and cascade omit `viewport`.",
+      "type": "object",
+      "properties": {
+        "height": {
+          "description": "In CSS pixels.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "width": {
+          "description": "In CSS pixels.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": ["height", "width"],
+      "additionalProperties": false
+    },
+    "DecideStatePart": {
+      "description": "One part of the state a decision model is shown.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "const": "text"
+            }
+          },
+          "required": ["text", "type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "json"
+            },
+            "value": {
+              "$ref": "#/$defs/JSONValue"
+            }
+          },
+          "required": ["type", "value"],
+          "additionalProperties": false
+        },
+        {
+          "description": "A capture's PNG as an image file part, as `c.part(capture)` gives it.",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "type": {
+              "type": "string",
+              "const": "capture"
+            }
+          },
+          "required": ["name", "type"],
+          "additionalProperties": false
+        },
+        {
+          "description": "The judge's inputs as one JSON part, masked as a judge's are, as `c.state(inputs)` gives them.",
+          "type": "object",
+          "properties": {
+            "contents": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "\\S"
+              }
+            },
+            "diff": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  }
+                }
+              ]
+            },
+            "observations": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  }
+                }
+              ]
+            },
+            "on": {
+              "description": "The turn `output`, `diff` and `trajectory` read instead of the latest.",
+              "type": "object",
+              "properties": {
+                "turn": {
+                  "description": "The turn's index, from 0.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["turn"],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "boolean"
+            },
+            "trajectory": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": ["tools", "full"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "agent": {
+                      "type": "boolean"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "enum": ["tools", "full"]
+                    },
+                    "subagents": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "inputs"
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Duration": {
+      "description": "More than zero and at most 596h: `90s`, `15m`, `1h`, or a number of milliseconds.",
+      "anyOf": [
+        {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 2147483647
+        },
+        {
+          "type": "string",
+          "pattern": "^(?=.*[1-9])\\d+(\\.\\d+)?(ms|s|m|h)$"
+        }
+      ]
+    },
+    "ExecEnv": {
+      "description": "Variables `c.exec` sets for one command, over the environment's own. A value whose name looks like a secret's (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `CREDENTIAL`) is masked in everything reeval writes, as a host variable's is. The host value of a secret the environment brokers goes in as its placeholder, which the gateway swaps back on that secret's hosts.",
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "JSONValue": {
+      "description": "Any JSON value.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONValue"
+          }
+        }
+      ]
+    },
+    "TrialCall": {
+      "description": "One call an eval's body makes on its trial. The sandbox and the agent session start on the first call that needs them; there's no call to start them.",
+      "oneOf": [
+        {
+          "description": "`c.send(prompt)`: the next turn of the agent session. Replies with a turn.",
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "send"
+            },
+            "prompt": {
+              "description": "The turn's prompt.",
+              "type": "string"
+            }
+          },
+          "required": ["op", "prompt"],
+          "additionalProperties": false
+        },
+        {
+          "description": "`c.exec(command, { background?, env?, label?, retries?, interval? })`: a command in the sandbox. Replies with its exit code and output (the last try, with `retries`), or with a handle when it runs in the background.",
+          "type": "object",
+          "properties": {
+            "background": {
+              "description": "Leave it running and reply with its handle, not its output.",
+              "type": "boolean"
+            },
+            "command": {
+              "description": "A shell command, run in the workspace.",
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "env": {
+              "$ref": "#/$defs/ExecEnv"
+            },
+            "interval": {
+              "description": "Milliseconds to wait before each extra try. Default 1000.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            "label": {
+              "description": "A name kept with its result, for a grader to find it by.",
+              "type": "string",
+              "minLength": 1
+            },
+            "op": {
+              "type": "string",
+              "const": "exec"
+            },
+            "retries": {
+              "description": "Extra tries after a non-zero exit, a whole number from 0. Default 0.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["command", "op"],
+          "additionalProperties": false
+        },
+        {
+          "description": "`c.serve(command, port?)`: a background process, once it listens, and its port.",
+          "type": "object",
+          "properties": {
+            "command": {
+              "description": "A shell command; `PORT` is set to the port.",
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "op": {
+              "type": "string",
+              "const": "serve"
+            },
+            "port": {
+              "description": "The container port. Omit it and reeval allocates one.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            }
+          },
+          "required": ["command", "op"],
+          "additionalProperties": false
+        },
+        {
+          "description": "`handle.kill()`: stops a background process. Killing one that's gone is fine.",
+          "type": "object",
+          "properties": {
+            "handle": {
+              "description": "A background process, as an exec or serve reply named it.",
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "op": {
+              "type": "string",
+              "const": "kill"
+            }
+          },
+          "required": ["handle", "op"],
+          "additionalProperties": false
+        },
+        {
+          "description": "`c.capture(target, options)`: screenshots a path on a tunneled sandbox port and writes `artifacts/<name>.png`. Replies with the capture.",
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "capture"
+            },
+            "options": {
+              "$ref": "#/$defs/CaptureCallData"
+            },
+            "target": {
+              "description": "A container port, or a serve handle by its id.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "port": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535
+                    }
+                  },
+                  "required": ["port"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "handle": {
+                      "description": "A background process, as an exec or serve reply named it.",
+                      "type": "string",
+                      "pattern": "\\S"
+                    }
+                  },
+                  "required": ["handle"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "required": ["op", "target"],
+          "additionalProperties": false
+        },
+        {
+          "description": "`c.readFile(path)`. Replies with its contents, or null when there is no such file.",
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "readFile"
+            },
+            "path": {
+              "description": "Workspace-relative, or `~/` for the home directory.",
+              "type": "string",
+              "pattern": "\\S"
+            }
+          },
+          "required": ["op", "path"],
+          "additionalProperties": false
+        },
+        {
+          "description": "`c.writeFile(path, contents)`, creating its directories.",
+          "type": "object",
+          "properties": {
+            "contents": {
+              "description": "The file's contents, in `encoding`.",
+              "type": "string"
+            },
+            "encoding": {
+              "description": "How `contents` is encoded; base64 carries bytes. Default `utf8`.",
+              "type": "string",
+              "enum": ["utf8", "base64"]
+            },
+            "op": {
+              "type": "string",
+              "const": "writeFile"
+            },
+            "path": {
+              "description": "Workspace-relative, or `~/` for the home directory.",
+              "type": "string",
+              "pattern": "\\S"
+            }
+          },
+          "required": ["contents", "op", "path"],
+          "additionalProperties": false
+        },
+        {
+          "description": "`c.observe(name, value)`: records a fact about the trial that never affects its outcome. A name observed again keeps the last value. Fails after the body's `done`.",
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "What the value is of, e.g. `installed`.",
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:/-]{1,64}$"
+            },
+            "op": {
+              "type": "string",
+              "const": "observe"
+            },
+            "value": {
+              "description": "Any JSON, nested at most 64 levels deep.",
+              "$ref": "#/$defs/JSONValue"
+            }
+          },
+          "required": ["name", "op", "value"],
+          "additionalProperties": false
+        },
+        {
+          "description": "`c.decide(call)`. Replies with its result. A provider failure fails the call and the trial, as an infrastructure error.",
+          "type": "object",
+          "properties": {
+            "model": {
+              "description": "`'provider/model'`. Default `decide.model`, then `analysis.model`.",
+              "type": "string",
+              "pattern": "\\/"
+            },
+            "op": {
+              "type": "string",
+              "const": "decide"
+            },
+            "providerOptions": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/JSONValue"
+                }
+              }
+            },
+            "questions": {
+              "description": "The questions by id, as the AI SDK's `experimental_decide` takes them.",
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/JSONValue"
+              }
+            },
+            "state": {
+              "description": "What the model decides about: a string, a JSON object or parts.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/$defs/JSONValue"
+                  }
+                },
+                {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/DecideStatePart"
+                  }
+                }
+              ]
+            }
+          },
+          "required": ["op", "questions", "state"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "TrialRequest": {
+      "description": "A call, numbered so its reply can find it.",
+      "type": "object",
+      "properties": {
+        "call": {
+          "$ref": "#/$defs/TrialCall"
+        },
+        "id": {
+          "description": "Pairs a reply with its request.",
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": ["call", "id"],
+      "additionalProperties": false
+    },
+    "Wait": {
+      "description": "Same shape at top-level `wait` and `{ wait }` between instructions.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaptureWait"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ms": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 2147483647
+            }
+          },
+          "required": ["ms"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

@@ -1,9 +1,9 @@
-profile pr (auto: CI is set) · 3 evals (1 skipped) · 4 cells · 6 attempts · budget attempts 5 ✗
+profile pr (auto: CI is set) · 3 evals (1 skipped) · 4 cells · 6 trials · budget trials 5 ✗
 hint: 3 evals can't fail CI (compared, plain, regression): their targets only report; set target: regression() (or capability(1, { blocking: true })) in the eval or the config to fail on a miss
-hint: 1 compare runs 2 times per cell; below 4 runs a side its lift shows only a direction and its effort can't be tested (runs: 4)
-compared    a/plain/fake    control          gated any  ×1  compare off (profile pr)
+hint: 1 compare runs 2 times per cell; below 4 trials a side its lift shows only a direction and its effort can't be tested (trials: 4)
+compared    a/plain/fake    baseline         gated any  ×1  compare off (profile pr)
 own-agent   skipped: no agent left: profile pr allows a
-plain       a/-/fake        control          gated any  ×1  runs 3 → 1 (profile pr)
-regression  a/plain/fake    control          ungated    ×2  pinned: compare, runs
+plain       a/-/fake        baseline         gated any  ×1  trials 3 → 1 (profile pr)
+regression  a/plain/fake    baseline         ungated    ×2  pinned: compare, trials
             a/skilled/fake  variant skilled  gated any  ×2
 excluded: —

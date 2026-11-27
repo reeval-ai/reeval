@@ -19,14 +19,14 @@ export default defineConfig({
     text: 'I added multiply(a, b) to src/math.js and a test for it.',
   }),
   sandbox: fakeSandbox(),
-  runs: 2,
+  trials: 2,
   // `pr` is picked whenever CI is set; `nightly` only with --profile nightly.
   defaultProfile: { ci: 'pr' },
   // The real agents: `--profile claude-code`, or any other in ../profiles.ts. An example's own
   // profiles go beside them.
   profiles: {
     ...profiles,
-    pr: { limit: { runs: 1 }, budget: { attempts: 10 } },
-    nightly: { defaults: { runs: 4 }, record: 'always', budget: { duration: '2h' } },
+    pr: { limit: { trials: 1 }, budget: { trials: 10 } },
+    nightly: { defaults: { trials: 4 }, record: 'always', budget: { duration: '2h' } },
   },
 })

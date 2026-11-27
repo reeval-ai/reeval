@@ -1,14 +1,14 @@
-profile locked (--profile) · 10 evals · 10 cells · 10 attempts
-a-group-replaces-the-environment-too             fake/closed/docker      control  gated any  ×1  egress {"allow":["group.example.com"]}
-a-phase-on-the-eval-replaces-only-that-phase     fake/phased/docker      control  gated any  ×1  egress.setup "allow-all" · egress {"allow":["eval.example.com"]}
-a-plain-policy-on-the-eval-replaces-both-phases  fake/phased/docker      control  gated any  ×1  egress "deny-all"
-an-environment-replaces-it                       fake/closed/docker      control  gated any  ×1  egress "deny-all"
-an-extend-child-replaces-its-parent              fake/reopened/docker    control  gated any  ×1  egress "allow-all"
-an-unset-phase-keeps-the-config-policy           fake/setup-only/docker  control  gated any  ×1  egress.setup "allow-all" · egress "deny-all"
-equal-phases-are-one-policy                      fake/same/docker        control  gated any  ×1  egress "deny-all"
-the-config-policy                                fake/-/docker           control  gated any  ×1  egress "deny-all"
-the-default-list-spreads                         fake/installs/docker    control  gated any  ×1  egress {"allow":["registry.npmjs.org","registry.yarnpkg.com","github.com","*.github.com","*.githubusercontent.com","pypi.org","files.pythonhosted.org","api.example.com"]}
-the-eval-replaces-the-environment                fake/closed/docker      control  gated any  ×1  egress {"allow":["eval.example.com"]}
+profile locked (--profile) · 10 evals · 10 cells · 10 trials
+a-group-replaces-the-environment-too             fake/closed/docker      baseline  gated any  ×1  egress {"allow":["group.example.com"]}
+a-phase-on-the-eval-replaces-only-that-phase     fake/phased/docker      baseline  gated any  ×1  egress.setup "allow-all" · egress {"allow":["eval.example.com"]}
+a-plain-policy-on-the-eval-replaces-both-phases  fake/phased/docker      baseline  gated any  ×1  egress "deny-all"
+an-environment-replaces-it                       fake/closed/docker      baseline  gated any  ×1  egress "deny-all"
+an-extend-child-replaces-its-parent              fake/reopened/docker    baseline  gated any  ×1  egress "allow-all"
+an-unset-phase-keeps-the-config-policy           fake/setup-only/docker  baseline  gated any  ×1  egress.setup "allow-all" · egress "deny-all"
+equal-phases-are-one-policy                      fake/same/docker        baseline  gated any  ×1  egress "deny-all"
+the-config-policy                                fake/-/docker           baseline  gated any  ×1  egress "deny-all"
+the-default-list-spreads                         fake/installs/docker    baseline  gated any  ×1  egress {"allow":["registry.npmjs.org","registry.yarnpkg.com","github.com","*.github.com","*.githubusercontent.com","pypi.org","files.pythonhosted.org","api.example.com"]}
+the-eval-replaces-the-environment                fake/closed/docker      baseline  gated any  ×1  egress {"allow":["eval.example.com"]}
 excluded: —
 image docker · cursor · 10 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

@@ -4,7 +4,7 @@
 import { z } from 'zod'
 import { UsageError } from '../errors.ts'
 import type { CloudMachineSize, CloudSandboxDescriptor } from '../types.ts'
-import { BOAT_ATTEMPTS_PER_MACHINE_MAX } from './boat.ts'
+import { BOAT_TRIALS_PER_MACHINE_MAX } from './boat.ts'
 import { containerFieldMessage, containerFields } from './container.ts'
 import {
   installMessage,
@@ -17,10 +17,10 @@ import { type Assert, closest, got, type Issue, nonEmpty, refusal, type Same } f
 
 export const CLOUD_SIZES = ['small', 'medium', 'large', 'xlarge'] as const
 /** Slot `n` listens on the gateway's port plus `n`, and a small VM has 2 vCPUs. */
-export const CLOUD_ATTEMPTS_PER_MACHINE_MAX = BOAT_ATTEMPTS_PER_MACHINE_MAX
+export const CLOUD_TRIALS_PER_MACHINE_MAX = BOAT_TRIALS_PER_MACHINE_MAX
 
 const sizeSchema = z.enum(CLOUD_SIZES)
-const attemptsSchema = z.number().int().min(1).max(CLOUD_ATTEMPTS_PER_MACHINE_MAX)
+const trialsSchema = z.number().int().min(1).max(CLOUD_TRIALS_PER_MACHINE_MAX)
 
 const fields = {
   id: nonEmpty().optional(),
@@ -29,7 +29,7 @@ const fields = {
   ...containerFields,
   maxConcurrent: z.number().optional(),
   reuse: z.boolean().optional(),
-  attemptsPerMachine: attemptsSchema.optional(),
+  trialsPerMachine: trialsSchema.optional(),
 }
 
 export const cloudSandboxSchema = z
@@ -75,7 +75,7 @@ const ORDER = [
   'pids',
   'maxConcurrent',
   'reuse',
-  'attemptsPerMachine',
+  'trialsPerMachine',
 ]
 
 function explain(issue: Issue, value: unknown): string {
@@ -105,8 +105,8 @@ function explain(issue: Issue, value: unknown): string {
       return `cloud({ maxConcurrent }) takes a number (got ${got(v)})`
     case 'reuse':
       return `cloud({ reuse }) is true or false (got ${got(v)})`
-    case 'attemptsPerMachine':
-      return `cloud({ attemptsPerMachine }) is a whole number from 1 to ${CLOUD_ATTEMPTS_PER_MACHINE_MAX} (got ${got(v)})`
+    case 'trialsPerMachine':
+      return `cloud({ trialsPerMachine }) is a whole number from 1 to ${CLOUD_TRIALS_PER_MACHINE_MAX} (got ${got(v)})`
     case 'kind':
       return `a cloud sandbox's kind is "cloud" (got ${got(v)})`
     default:
@@ -138,7 +138,7 @@ export const cloudProblem = (value: CloudSandboxDescriptor) =>
       'cpus',
       'pids',
       'reuse',
-      'attemptsPerMachine',
+      'trialsPerMachine',
     ],
     skip: ['maxConcurrent'],
   })

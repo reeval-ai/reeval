@@ -2,7 +2,7 @@ import { defineEval } from 'reeval'
 import { observed } from 'reeval/graders'
 import { answering, app, questions } from './env.ts'
 
-// The mistake: this model answers, so the call doesn't fail and the attempt is the task's own.
+// The mistake: this model answers, so the call doesn't fail and the trial is the task's own.
 export default defineEval({
   environment: app,
   graders: [observed('answered', (answered) => answered === false)],

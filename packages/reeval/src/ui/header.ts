@@ -1,6 +1,6 @@
 // What `reeval run` prints before its logs, in every mode: the plan as a block of facts under a
 // title, its warnings and hints wrapped to the terminal's width with a hanging indent, and one
-// line per step until the attempts start. Off a color terminal the same lines print without
+// line per step until the trials start. Off a color terminal the same lines print without
 // color, and off any terminal without wrapping, since whatever shows them wraps.
 import { formatDuration, plural } from '../text.ts'
 import { type Colors, type Paint, stripAnsi } from './colors.ts'
@@ -58,7 +58,7 @@ export function headerLines(c: Colors, h: RunHeader, width: number): string[] {
   }
   const many = (one: string, n: number, many = `${one}s`) => (n === 1 ? one : many)
   const continued = [
-    h.resumed ? `${plural(h.resumed, 'attempt')} done` : '',
+    h.resumed ? `${plural(h.resumed, 'trial')} done` : '',
     h.retried ? `${plural(h.retried, 'error')} to retry` : '',
   ].filter(Boolean)
   const resumed = continued.length ? c.dim(` (resumed, ${continued.join(', ')})`) : ''
@@ -92,17 +92,16 @@ function harness(c: Colors, h: RunHeader, id: string): string {
 }
 
 function scope(c: Colors, h: RunHeader): string {
-  const attempts =
-    h.fewest < h.attempts ? `${h.fewest}–${h.attempts} attempts` : plural(h.attempts, 'attempt')
+  const trials = h.fewest < h.trials ? `${h.fewest}–${h.trials} trials` : plural(h.trials, 'trial')
   const parts = [
     plural(h.files, 'eval file'),
     plural(h.evals, 'eval') + (h.skipped ? ` (${h.skipped} skipped)` : ''),
     plural(h.cells, 'cell'),
-    attempts,
+    trials,
   ]
   const caps = [
-    h.budget.attempts !== undefined
-      ? `${h.budget.attempts} ${h.attempts <= h.budget.attempts ? c.green('✓') : c.red('✗')}`
+    h.budget.trials !== undefined
+      ? `${h.budget.trials} ${h.trials <= h.budget.trials ? c.green('✓') : c.red('✗')}`
       : '',
     h.budget.duration ?? '',
   ].filter(Boolean)
@@ -111,7 +110,7 @@ function scope(c: Colors, h: RunHeader): string {
 
 function estimate(c: Colors, h: RunHeader): string {
   const serial = `~${formatDuration(h.estimateMs)} ${c.dim('(serial)')}`
-  const most = Math.min(h.concurrency, h.attempts)
+  const most = Math.min(h.concurrency, h.trials)
   const parallel = h.parallel ?? most
   if (parallel <= 1) return serial
   const capped = parallel < most ? `, ${parallel} at once` : ''
@@ -208,7 +207,7 @@ export class PrepareLines {
           `  ${c.green('✓')}  ${outcome.target.label} ready${image ? c.dim(`, ${image.cached ? 'from saved' : 'built'} image ${image.name}`) : ''}${outcome.ms >= 1000 ? ` ${c.dim(formatDuration(outcome.ms))}` : ''}`,
         ]
       : [
-          `  ${c.red('✗')}  ${outcome.target.label} failed to prepare ${c.dim(`(set by ${outcome.target.setBy.join(', ')}; only its attempts fail)`)}`,
+          `  ${c.red('✗')}  ${outcome.target.label} failed to prepare ${c.dim(`(set by ${outcome.target.setBy.join(', ')}; only its trials fail)`)}`,
           ...tailLines(outcome.failure.message, max).map((l) => `${indent(GLYPH)}${c.orange(l)}`),
         ]
     if (this.#pending.size === 0 && this.#images.size) lines.push(this.#summary(c))
@@ -229,18 +228,18 @@ export class PrepareLines {
 
 const targetKey = (t: { kind: string; key: string }) => `${t.kind}\0${t.key}`
 
-/** The start line's text: how the attempts' logs will print. */
+/** The start line's text: how the trials' logs will print. */
 export function startText(output: OutputOptions): string {
   return output.outputLogs === 'none'
     ? 'Running...'
     : output.outputLogs === 'errors-only'
-      ? 'Running; logs print for failed attempts only...'
+      ? 'Running; logs print for failed trials only...'
       : output.logOrder === 'stream'
         ? 'Streaming logs...'
-        : "Running; each attempt's logs print as it ends..."
+        : "Running; each trial's logs print as it ends..."
 }
 
-/** The last line before the attempts' own: how their logs will print. */
+/** The last line before the trials' own: how their logs will print. */
 export function startLine(c: Colors, output: OutputOptions): string {
   return `  ${c.teal('◆')}  ${startText(output)}`
 }

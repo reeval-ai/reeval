@@ -1,4 +1,4 @@
-// One interface for every eval language: discovery, collection and attempt bodies.
+// One interface for every eval language: discovery, collection and trial bodies.
 import { existsSync } from 'node:fs'
 import { delimiter, join, resolve } from 'node:path'
 import { loadEvalFile } from '../engine/loader.ts'
@@ -16,7 +16,7 @@ type AdapterBase = {
 /** Eval file loads in the worker process (TypeScript today). */
 export type InProcessAdapter = AdapterBase & { remote: false; runnerCommand?: never }
 
-/** Eval file loads in an SDK runner over the attempt protocol (Python today). */
+/** Eval file loads in an SDK runner over the trial protocol (Python today). */
 export type RemoteAdapter = AdapterBase & {
   remote: true
   runnerCommand: (root: string) => RunnerCommand

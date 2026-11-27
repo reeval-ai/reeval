@@ -1,4 +1,4 @@
-// The compare option's plain-data contract: the control, its variants and the lift they need.
+// The compare option's plain-data contract: the baseline, its variants and the lift they need.
 // Environments in it are checked by whichever schema the caller passes (an
 // `Environment` from `defineEnvironment`, or environment data from another language).
 import { z } from 'zod'
@@ -10,7 +10,7 @@ import { type Assert, type Issue, refusal, type Same } from './shared.ts'
 /** The compare object, with environments checked by `environment`. */
 export const compareSchema = <E extends z.ZodType>(environment: E) =>
   z.strictObject({
-    control: environment,
+    baseline: environment,
     variants: z.array(environment).min(1),
     minLift: z.number().min(-1).max(1).optional(),
     agents: z.array(z.union([z.string(), harnessDescriptorSchema])).optional(),
@@ -42,12 +42,12 @@ function explain(where: string) {
     const [key, index] = issue.path as [string, number?]
     const v = spec[key]
     switch (key) {
-      case 'control':
-        if (v === undefined) return noControl(where)
+      case 'baseline':
+        if (v === undefined) return noBaseline(where)
         if (Array.isArray(v)) {
-          return `compare.control in ${where} takes one environment (got ${v.map((e) => (e as { name?: string } | null)?.name ?? describe(e)).join(', ')}). For a grid without a compare, use environments.`
+          return `compare.baseline in ${where} takes one environment (got ${v.map((e) => (e as { name?: string } | null)?.name ?? describe(e)).join(', ')}). For a grid without a compare, use environments.`
         }
-        return `compare.control in ${where} must be an environment from defineEnvironment (got ${describe(v)}). It is what each variant is measured against; variants are not layered on it.`
+        return `compare.baseline in ${where} must be an environment from defineEnvironment (got ${describe(v)}). It is what each variant is measured against; variants are not layered on it.`
       case 'minLift':
         return `compare.minLift in ${where} is points from -1 to 1, e.g. minLift: 0.1 (got ${describe(v)})`
       case 'agents': {
@@ -68,10 +68,10 @@ function explain(where: string) {
 }
 
 /** The order the hand-written checks ran in, so the first refusal stays the same. */
-const ORDER = ['control', 'gate', 'minLift', 'agents', 'variants']
+const ORDER = ['baseline', 'gate', 'minLift', 'agents', 'variants']
 
-const noControl = (where: string) =>
-  `compare in ${where} has no control. Name it: compare: { control: app, variants: [...] }.`
+const noBaseline = (where: string) =>
+  `compare in ${where} has no baseline. Name it: compare: { baseline: app, variants: [...] }.`
 
 /**
  * What's wrong with a compare object whose environments `environment` checks, or undefined.
@@ -79,13 +79,13 @@ const noControl = (where: string) =>
  */
 export function compareProblem(value: unknown, where: string, environment: z.ZodType) {
   if (Array.isArray(value)) {
-    return `compare in ${where} must be an object, not a list. Use compare: { control, variants: [...] }.`
+    return `compare in ${where} must be an object, not a list. Use compare: { baseline, variants: [...] }.`
   }
-  if (isObjectLike(value) && 'baseline' in value) {
-    return `Unknown compare option "baseline" in ${where}. Did you mean "control"?`
+  if (isObjectLike(value) && 'control' in value) {
+    return `Unknown compare option "control" in ${where}. Did you mean "baseline"?`
   }
   if (!isObjectLike(value) || !Array.isArray(value.variants)) {
-    return `compare in ${where} takes { control, variants } (got ${describe(value)}). Use compare: { control: a, variants: [b, c], gate?, minLift?, agents? }.`
+    return `compare in ${where} takes { baseline, variants } (got ${describe(value)}). Use compare: { baseline: a, variants: [b, c], gate?, minLift?, agents? }.`
   }
   return refusal(compareSchema(environment), value, explain(where), { order: ORDER })
 }

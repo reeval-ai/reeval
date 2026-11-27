@@ -4,7 +4,7 @@ import { composeLabels } from '../src/sandbox/labels.ts'
 
 const NAME = /^[a-z0-9][a-z0-9_-]*$/
 
-test('compose labels name the run as the project and the attempt as the service', () => {
+test('compose labels name the run as the project and the trial as the service', () => {
   const labels = composeLabels(
     '20260924T152700Z_009763c_elliot-hesp_k3f9',
     'skills/Greet_Ada # claude-code/sonnet#2',

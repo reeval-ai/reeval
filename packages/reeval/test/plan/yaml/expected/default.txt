@@ -1,6 +1,6 @@
-no profile · 3 evals · 4 cells · 10 attempts
-compared             a/plain/fake    control          ungated    ×4  runs 4 (compare default)
+no profile · 3 evals · 4 cells · 10 trials
+compared             a/plain/fake    baseline         ungated    ×4  trials 4 (compare default)
                      a/skilled/fake  variant skilled  gated any  ×4
-inherits             a/base/fake     control          gated any  ×1  files README.md
-slow [nightly-only]  a/base/fake     control          gated any  ×1  files README.md
+inherits             a/base/fake     baseline         gated any  ×1  files README.md
+slow [nightly-only]  a/base/fake     baseline         gated any  ×1  files README.md
 excluded: —

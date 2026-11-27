@@ -269,7 +269,7 @@ export type EgressProxy = {
   setTransformations(rules: readonly RequestTransformation[]): void
   setPolicy(policy: NetworkPolicy): void
   /**
-   * Starts the attempt's next phase under `policy`: later traffic is tagged with `phase`, and each
+   * Starts the trial's next phase under `policy`: later traffic is tagged with `phase`, and each
    * open tunnel (CONNECT, or a plain WebSocket upgrade) whose host `policy` refuses is closed and
    * recorded as refused, since a tunnel's host is checked only as it opens.
    */

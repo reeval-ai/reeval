@@ -127,7 +127,7 @@ export function succeeded(c: Pick<GraderContext, 'execs'>, commandOrLabel: strin
   return exec.exitCode
 }
 
-/** What the attempt's turns used. */
+/** What the trial's turns used. */
 export type Usage = {
   turns: number
   /** Input (cache included) plus output tokens, subagents included; null when a turn's harness reported none. */
@@ -143,7 +143,7 @@ export type Usage = {
   cost: number | null
 }
 
-/** What the attempt's turns used: their count, tokens, tool calls, time and cost. */
+/** What the trial's turns used: their count, tokens, tool calls, time and cost. */
 export function usage(c: Turns): Usage {
   const used = budgetUsed(c.turns)
   return {

@@ -8,7 +8,7 @@ const exportsTheList = defineGrader('exports-the-list', {
 })
 
 export default defineEval({
-  runs: 2,
+  trials: 2,
   cases: MODULES.map((key) => ({ key })),
   graders: [
     exportsTheList,

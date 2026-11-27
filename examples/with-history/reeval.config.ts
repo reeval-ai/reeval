@@ -20,7 +20,7 @@ export default defineConfig({
     text: 'I added multiply(a, b) to src/math.js and a test for it.',
   }),
   sandbox: fakeSandbox(),
-  // Every run is copied into ./history to commit; only failing attempts keep their trajectories,
+  // Every run is copied into ./history to commit; only failing trials keep their trajectories,
   // diffs and logs, which is history.artifacts' default.
   record: 'always',
   history: { store: local({ dir: 'history' }), artifacts: 'failures' },

@@ -6,21 +6,21 @@ Each row is a mistake, what reeval says and the fix.
 |---|---|---|
 | No `reeval.config.*` | `No reeval.config.ts … here or above. Run reeval init.` | `reeval init`, or pass `--config` |
 | `compare` in `reeval.config.ts` | `compare can't be set in reeval.config.ts` | Put it on the eval's `defineEval` |
-| `compare: [b]` | `compare … must be an object, not a list` | `compare: { control: a, variants: [b] }` |
-| `compare: { variants: [b] }` | `compare … has no control` | `compare: { control: a, variants: [b] }` |
-| `compare: { baseline: a, … }` | `Unknown compare option "baseline" … Did you mean "control"?` | `compare: { control: a, … }` |
+| `compare: [b]` | `compare … must be an object, not a list` | `compare: { baseline: a, variants: [b] }` |
+| `compare: { variants: [b] }` | `compare … has no baseline` | `compare: { baseline: a, variants: [b] }` |
+| `compare: { baseline: a, … }` | `Unknown compare option "baseline" … Did you mean "baseline"?` | `compare: { baseline: a, … }` |
 | `compare: { strategy: 'peer' }` | `Unknown compare option "strategy"` | Drop it. Variants already run on their own |
-| `environments` beside `compare` | `… sets both environments and compare` | Move the environment into `compare.control` |
+| `environments` beside `compare` | `… sets both environments and compare` | Move the environment into `compare.baseline` |
 | `evaluate.each(cases)(name, fn)` | `evaluate.each is not a function` | `defineEval({ cases, task: async (c, item) => … })` |
 | `cases` for items that should each pass or fail alone | One failing case fails the whole eval | One `*.eval.ts` file per item |
 | `where` without `cases` | `… sets where without cases` | Put `where` beside `cases` on `defineEval` |
 | `survey(…)`, or `gate: 'observe'` | `survey is not a function` / `Unknown option "gate"` | `defineEval({ task })`: the default `target: capability()` only reports |
 | `compare: false` on an eval | `compare: false can't be set` | Use a profile's `limit.compare: false` |
 | A question and no language model | `questions "…" (…) needs a language model` (exit 2) | Set `analysis.model`, give the question its own `model`, or set `question: { model }` |
-| `import { baseline }` | `reeval has no baseline` | Name the control in `compare: { control }`; it isn't an export |
-| `repeat: 3` / `times` | `Unknown option "repeat" … Did you mean "runs"?` | `runs: 3` |
-| `runs: { bestOf: 4 }` | `runs.bestOf … must be an odd whole number of 3 or more` | `runs: { bestOf: 3 }` or `5` |
-| `runs: { bestOf: 3 }` with `compare` | `… compares environments, so it can't take runs: { bestOf: 3 }` | a fixed count, `runs: 4` |
+| `import { baseline }` | `reeval has no baseline` | Name the baseline in `compare: { baseline }`; it isn't an export |
+| `repeat: 3` / `times` | `Unknown option "repeat" … Did you mean "trials"?` | `trials: 3` |
+| `trials: { bestOf: 4 }` | `trials.bestOf … must be an odd whole number of 3 or more` | `trials: { bestOf: 3 }` or `5` |
+| `trials: { bestOf: 3 }` with `compare` | `… compares environments, so it can't take trials: { bestOf: 3 }` | a fixed count, `trials: 4` |
 | Judge model `'gemini-3.8-flash'` | needs a provider prefix | `'google/gemini-3.8-flash'` |
 | `opencode({ model: 'gemini-3.8-flash' })` | `an OpenCode model id names its provider` (exit 2) | `'google/gemini-3.8-flash'` |
 | No `judge.model` anywhere | `judge grader … has no model` | Set one, or `fakeJudge()` |

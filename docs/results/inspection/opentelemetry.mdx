@@ -3,7 +3,7 @@ title: "Export to OpenTelemetry"
 description: "Send the agents' traces, and reeval's own spans, logs, and machine metrics, to an OpenTelemetry backend as the run goes."
 ---
 
-Set the standard OpenTelemetry variables and `reeval run` sends each attempt's agent trace to any OTLP backend while it runs. The same variables with a `REEVAL_` prefix (`REEVAL_OTEL_*`) send reeval's own trace, its log records, and the machine's metrics.
+Set the standard OpenTelemetry variables and `reeval run` sends each trial's agent trace to any OTLP backend while it runs. The same variables with a `REEVAL_` prefix (`REEVAL_OTEL_*`) send reeval's own trace, its log records, and the machine's metrics.
 
 ## Send a run to a collector
 
@@ -15,7 +15,7 @@ docker run -d --name jaeger -p 16686:16686 -p 4318:4318 \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npx reeval run
 ```
 
-Open `http://localhost:16686` and pick the `reeval` service. Each attempt is one trace: the agent's span, its turns, and their model and tool calls, linked to the attempt's span in reeval's own trace. With no endpoint set, reeval loads none of this and sends nothing.
+Open `http://localhost:16686` and pick the `reeval` service. Each trial is one trace: the agent's span, its turns, and their model and tool calls, linked to the trial's span in reeval's own trace. With no endpoint set, reeval loads none of this and sends nothing.
 
 ## Send a run to a hosted backend
 
@@ -36,9 +36,9 @@ Only reeval's own process exports. No `OTEL_*` or `REEVAL_OTEL_*` variable reach
 
 | Signal | What | When |
 |---|---|---|
-| Traces (`OTEL_*`) | Each attempt's agent: `invoke_agent`, each `turn`, and its `chat` model calls and `execute_tool` calls, with GenAI and OpenInference model, token, and cost attributes, and each check and judgment as a `gen_ai.evaluation.result` event. No prompt, answer, or tool input or output | Each `turn` and its `execute_tool` calls as the turn ends, the rest when the attempt ends |
-| Traces (`REEVAL_OTEL_*`) | The spans in [`spans.jsonl`](/reference/run-record): the run, each machine, container, attempt, lease, and phase | In batches as each span ends; the run's span last |
-| Logs (`REEVAL_OTEL_*`) | The run's start, its notices, and one record for each finished attempt with its outcome, on the run's trace | In batches as they happen |
+| Traces (`OTEL_*`) | Each trial's agent: `invoke_agent`, each `turn`, and its `chat` model calls and `execute_tool` calls, with GenAI and OpenInference model, token, and cost attributes, and each check and judgment as a `gen_ai.evaluation.result` event. No prompt, answer, or tool input or output | Each `turn` and its `execute_tool` calls as the turn ends, the rest when the trial ends |
+| Traces (`REEVAL_OTEL_*`) | The spans in [`spans.jsonl`](/reference/run-record): the run, each machine, container, trial, lease, and phase | In batches as each span ends; the run's span last |
+| Logs (`REEVAL_OTEL_*`) | The run's start, its notices, and one record for each finished trial with its outcome, on the run's trace | In batches as they happen |
 | Metrics (`REEVAL_OTEL_*`) | `system.cpu.utilization`, `system.cpu.load_average.1m`, `system.memory.usage`, `system.memory.utilization`, `system.filesystem.usage`, and `system.filesystem.utilization` for the project's and staging filesystems (labeled `reeval.filesystem.role`), plus reeval's `process.cpu.utilization` and `process.memory.usage` | Every `REEVAL_OTEL_METRIC_EXPORT_INTERVAL` (60 seconds), and once at the end |
 
 Every span and log record carries `reeval.run.id`, so one query finds a run. A run that stops early leaves the spans that had ended; their parent, the run's span, is missing.
@@ -61,7 +61,7 @@ reeval sends OTLP/HTTP as protobuf, or as JSON with `OTEL_EXPORTER_OTLP_PROTOCOL
 
 <CardGroup cols={2}>
   <Card title="Debugging" href="/results/inspection/debugging">
-    Read an attempt's phase trace and trajectory.
+    Read a trial's phase trace and trajectory.
   </Card>
   <Card title="Queries" href="/results/inspection/queries">
     Ask the run history questions in SQL.

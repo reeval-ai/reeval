@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { isAbsolute, relative, resolve } from 'node:path'
 import picomatch from 'picomatch'
 import { glob } from 'tinyglobby'
-import { attemptId, relativeFile } from '../ids.ts'
+import { relativeFile, trialId } from '../ids.ts'
 
 /** Never searched for eval files. */
 export const DEFAULT_EXCLUDE = ['**/node_modules/**', '**/.git/**']
@@ -84,13 +84,13 @@ export function matchesEvalId(id: string, filter: string): boolean {
   return false
 }
 
-/** `--cell`: the cell key or `cell#n` attempt id, matched exactly. */
+/** `--cell`: the cell key or `cell#n` trial id, matched exactly. */
 export function matchesCell(
-  attempt: { cell: { key: string }; n: number } | undefined,
+  trial: { cell: { key: string }; n: number } | undefined,
   cell: string,
 ): boolean {
-  if (!attempt) return false
-  return cell === attempt.cell.key || cell === attemptId(attempt.cell.key, attempt.n)
+  if (!trial) return false
+  return cell === trial.cell.key || cell === trialId(trial.cell.key, trial.n)
 }
 
 /** A positional filter part matches an eval's id; cells are picked with `--cell` alone. */

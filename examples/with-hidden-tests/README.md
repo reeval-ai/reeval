@@ -29,11 +29,11 @@ punctuation, so one of the three hidden tests fails:
 
 ```text
 with-hidden-tests.eval.ts
-  · with-hidden-tests  mean 67% · 0/1 run at 100% (pass@1)  capability(1)
+  · with-hidden-tests  mean 67% · 0/1 trial at 100% (pass@1)  capability(1)
     #1  67%  hidden-tests 67%
 ```
 
-The run record's grade lists the files the grader read, with their hashes. The attempt's
+The run record's grade lists the files the grader read, with their hashes. The trial's
 `diff.patch` has only `src/slugify.js`: the hidden test never enters the agent's workspace.
 
 | File | What it is |

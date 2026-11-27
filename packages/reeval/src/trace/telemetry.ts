@@ -1,5 +1,5 @@
 // One of a run's OpenTelemetry exports, when its variables name a collector, on the OpenTelemetry
-// SDK: spans as each ends (a batch span processor), the run's notices and finished attempts as log
+// SDK: spans as each ends (a batch span processor), the run's notices and finished trials as log
 // records (a batch log record processor), and the machine's metrics on an interval (a periodic
 // metric reader), each to its OTLP exporter. The agent export and reeval's own each start one, on
 // their own variables (`otlp.ts`). Nothing here can fail the run: an export that fails is a reason
@@ -343,16 +343,16 @@ export function startTelemetry(o: {
         log(
           e.at,
           r.state === 'failed' ? 'WARN' : 'INFO',
-          `${r.state} ${r.name}${r.attempt ? ` (${r.attempt.label})` : ''}`,
+          `${r.state} ${r.name}${r.trial ? ` (${r.trial.label})` : ''}`,
           {
-            'reeval.event': 'attempt',
-            'reeval.attempt.key': r.key,
+            'reeval.event': 'trial',
+            'reeval.trial.key': r.key,
             'reeval.eval.name': r.name,
             'reeval.eval.file': r.file,
-            'reeval.attempt.state': r.state,
-            'reeval.attempt.duration_ms': Math.round(r.durationMs),
-            ...(r.attempt && { 'reeval.attempt.label': r.attempt.label }),
-            ...(r.errors[0] && { 'reeval.attempt.error': shown(r.errors[0]) }),
+            'reeval.trial.state': r.state,
+            'reeval.trial.duration_ms': Math.round(r.durationMs),
+            ...(r.trial && { 'reeval.trial.label': r.trial.label }),
+            ...(r.errors[0] && { 'reeval.trial.error': shown(r.errors[0]) }),
           },
         )
       } else if (e.type === 'run-start') {

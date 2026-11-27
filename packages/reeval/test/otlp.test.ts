@@ -229,7 +229,7 @@ describe('startTelemetry', () => {
     assert.ok(!root.parentSpanId, 'the run span is a root')
   })
 
-  test("sends the run's notices and finished attempts as log records on the run's span", async (t) => {
+  test("sends the run's notices and finished trials as log records on the run's span", async (t) => {
     const c = await collector(t)
     withEnv(t, {
       OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: `${c.url}/logs`,
@@ -269,13 +269,13 @@ describe('startTelemetry', () => {
     )
     assert.deepEqual(attributesOf(records[1].attributes), {
       'reeval.run.id': 'r1',
-      'reeval.event': 'attempt',
-      'reeval.attempt.key': 'k1',
+      'reeval.event': 'trial',
+      'reeval.trial.key': 'k1',
       'reeval.eval.name': 'writes hello',
       'reeval.eval.file': 'evals/a.eval.ts',
-      'reeval.attempt.state': 'failed',
-      'reeval.attempt.duration_ms': 12,
-      'reeval.attempt.error': 'expected 1 to be 2 [REDACTED]',
+      'reeval.trial.state': 'failed',
+      'reeval.trial.duration_ms': 12,
+      'reeval.trial.error': 'expected 1 to be 2 [REDACTED]',
     })
   })
 
@@ -345,7 +345,7 @@ describe('startTelemetry', () => {
       attributes: {},
       events: [{ name: 'gen_ai.evaluation.result', timeMs: 2, attributes: { a: 1 } }],
     })
-    own?.span({ traceId: T, spanId: P, name: 'attempt', startMs: 1, endMs: 2, attributes: {} })
+    own?.span({ traceId: T, spanId: P, name: 'trial', startMs: 1, endMs: 2, attributes: {} })
     assert.equal(await agent?.close(), null)
     assert.equal(await own?.close(), null)
     assert.deepEqual(
@@ -363,7 +363,7 @@ describe('startTelemetry', () => {
     assert.equal(chat.events[0].name, 'gen_ai.evaluation.result')
     const opsSent: Json = ops.sent[0]?.body.resourceSpans[0]
     assert.equal(attributesOf(opsSent.resource.attributes)['service.name'], 'reeval')
-    assert.equal(opsSent.scopeSpans[0].spans[0].name, 'attempt')
+    assert.equal(opsSent.scopeSpans[0].spans[0].name, 'trial')
   })
 
   test('close waits at most CLOSE_MS for a collector that never answers', async (t) => {

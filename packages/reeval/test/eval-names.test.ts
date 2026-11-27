@@ -50,8 +50,8 @@ export default defineEval({ async task() {} })
       ['show'],
       ['history'],
       ['compare'],
-      ['query', 'select eval_key, key from attempts'],
-      ['query', 'failing_attempts'],
+      ['query', 'select eval_key, key from trials'],
+      ['query', 'failing_trials'],
     ] as const) {
       const out = await runCli(p.dir, [...args])
       assert.ok(out.code === 0 || out.code === 1, `${args.join(' ')}: ${out.stdout}${out.stderr}`)
@@ -129,7 +129,7 @@ export default defineEval({ cases: [{ key: 'sk-ant-${'a'.repeat(24)}' }], async 
     assert.doesNotMatch(out, KEYS)
     const matched = await runCli(p.dir, ['run', '--dry-run', 'plain#[REDACTED]'])
     assert.equal(matched.code, 0, matched.stdout + matched.stderr)
-    assert.match(matched.stdout, /1 eval · 1 cell · 1 attempt/)
+    assert.match(matched.stdout, /1 eval · 1 cell · 1 trial/)
   })
 
   test('a value declared with secret() in an id is refused at plan time, writing it nowhere', async () => {

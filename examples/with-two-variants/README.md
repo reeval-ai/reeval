@@ -2,8 +2,8 @@
 
 **Shows:** one convention handed to the agent two ways, against nothing. The agent adds
 `divide(a, b)`, and a grader runs a hidden test that checks it throws the project's `RangeError`
-for a zero divisor. `compare` runs the control and two variants (the rule as a skill, and as a
-docs file in the workspace), and `reeval query contrasts` sets every pair of arms side by side.
+for a zero divisor. `compare` runs the baseline and two variants (the rule as a skill, and as a
+docs file in the workspace), and `reeval query contrasts` sets every pair of environments side by side.
 
 **Needs:** Docker, where the hidden test runs, even for the fake agent; in this repo, run
 `pnpm install && pnpm build` at the root first. A real agent also needs its key in `.env.local`
@@ -26,19 +26,19 @@ any other agent in [`examples/profiles.ts`](../profiles.ts).
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** a row per arm. Both variants pass where the control misses:
+**What to look at:** a row per environment. Both variants pass where the baseline misses:
 
 ```text
 with-two-variants.eval.ts
-  · with-two-variants  mean 100% · 8/8 runs at 100% (pass@8)  capability(1)
-    arm              pass
+  · with-two-variants  mean 100% · 8/8 trials at 100% (pass@8)  capability(1)
+    environment      pass
     math             0 of 4
-      error  score 0.00 below 1: throws-range-error scored 0.00 (4 runs)
+      error  score 0.00 below 1: throws-range-error scored 0.00 (4 trials)
     errors-skill     4 of 4  helped
     errors-doc       4 of 4  helped
 ```
 
-Lift pairs each variant with the control only. After a run, the `contrasts` view pairs the two
+Lift pairs each variant with the baseline only. After a run, the `contrasts` view pairs the two
 variants with each other too:
 
 ```bash
@@ -53,12 +53,12 @@ errors-doc     errors-skill   4       4       0
 ```
 
 The last row is the question the compare asks: the doc and the skill tie on this agent, so
-either way of handing it the convention works. The eval sets no `runs`, so each arm gets four
-tries, enough for a verdict.
+either way of handing it the convention works. The eval sets no `trials`, so each environment gets four
+trials, enough for a verdict.
 
 | File | What it is |
 |---|---|
-| [`with-two-variants.eval.ts`](./with-two-variants.eval.ts) | The eval: the control, two variants and a hidden test |
+| [`with-two-variants.eval.ts`](./with-two-variants.eval.ts) | The eval: the baseline, two variants and a hidden test |
 | [`skills/errors/SKILL.md`](./skills/errors/SKILL.md) | The convention as a skill |
 | [`docs/errors.md`](./docs/errors.md) | The same convention as a docs file the variant puts in the workspace |
 | [`project/`](./project) | The package the agent starts from: `src/math.js` and its test |
@@ -66,5 +66,5 @@ tries, enough for a verdict.
 | [`fake-agent/`](./fake-agent) | What the fake agent writes: `plain/`, or `convention/` when it finds the convention |
 | [`reeval.config.ts`](./reeval.config.ts) | The fake agent and its step that looks for the convention, and the real agents from `../profiles.ts` |
 
-[Measure lift against a control](../../docs/results/compare/lift.mdx)
+[Measure lift against a baseline](../../docs/results/compare/lift.mdx)
 covers comparing variants against each other.

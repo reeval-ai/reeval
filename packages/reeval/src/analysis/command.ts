@@ -75,11 +75,11 @@ export function contextMarkdown(d: Digest, head: string, base: string | null): s
   return [
     `# reeval analysis context: ${head}${base ? ` vs ${base}` : ''}`,
     '',
-    'Analyze this reeval run for the engineer who wrote the evals. The digest below holds facts reeval computed (F…), evidence excerpts (E…, trajectory lines as L<n>) and the attempts table. Cite those ids for every claim, keep to the verdicts in the facts, and suggest at most 5 concrete actions, each verified with a reeval command from the CLI list.',
+    'Analyze this reeval run for the engineer who wrote the evals. The digest below holds facts reeval computed (F…), evidence excerpts (E…, trajectory lines as L<n>) and the trials table. Cite those ids for every claim, keep to the verdicts in the facts, and suggest at most 5 concrete actions, each verified with a reeval command from the CLI list.',
     '',
     ...(d.frame === 'study'
       ? [
-          "This run is a study: no eval's target can fail the run, so it measures how the arms differ. Failing attempts are data, not a failed gate.",
+          "This run is a study: no eval's target can fail the run, so it measures how the environments differ. Failing trials are data, not a failed gate.",
           '',
         ]
       : []),
@@ -101,7 +101,7 @@ export function contextMarkdown(d: Digest, head: string, base: string | null): s
     '## To dig further',
     '',
     '- `reeval query effort`, `reeval query factor_effects`, `reeval query skill_reads`, `reeval query flaky_cells`, `reeval query drift`',
-    `- \`reeval query "SELECT line, tool, target FROM tool_calls WHERE attempt_key = '<key>'"\`: an attempt's tool calls`,
+    `- \`reeval query "SELECT line, tool, target FROM tool_calls WHERE trial_key = '<key>'"\`: a trial's tool calls`,
     "- `reeval show <run> --json`: the whole record; trajectories are under the run's artifact folder",
     '',
     '## Digest',
@@ -116,7 +116,7 @@ function citedSummary(d: Digest, cites: string[]): Record<string, string> {
   for (const c of cites) {
     const fact = d.facts.find((f) => f.id === c)
     const evidence = d.evidence.find((e) => e.id === c || c.startsWith(`${e.id}:`))
-    const attempt = d.attempts[c.replace(/:exec\d+$/, '')]
+    const trial = d.trials[c.replace(/:exec\d+$/, '')]
     if (fact) {
       const { id: _id, ...rest } = fact
       out[c] = clip(JSON.stringify(rest), 400)
@@ -125,9 +125,9 @@ function citedSummary(d: Digest, cites: string[]): Record<string, string> {
       out[c] = line
         ? clip(evidence.lines.find((l) => l.startsWith(`L${line[1]} `)) ?? evidence.ref, 400)
         : `${evidence.ref}: ${evidence.why}`
-    } else if (attempt) {
+    } else if (trial) {
       out[c] =
-        `${attempt.runId} · ${attempt.attempt} · ${attempt.outcome} · ${attempt.tools} tool calls${attempt.checks ? ` · checks ${attempt.checks}` : ''}`
+        `${trial.runId} · ${trial.trial} · ${trial.outcome} · ${trial.tools} tool calls${trial.checks ? ` · checks ${trial.checks}` : ''}`
     }
   }
   return out
@@ -221,7 +221,7 @@ export type ToolReads = { evidence: DigestEvidence[]; text: string }
 
 const docBase = async (config: ResolvedConfig, p: PreparedAnalysis) => ({
   kind: 'reeval-analysis' as const,
-  schemaVersion: 1 as const,
+  schemaVersion: 2 as const,
   scope: p.scope,
   anchor: p.head.runId,
   inputs: {
@@ -278,10 +278,10 @@ export async function explainDigest(
     createdAt: new Date().toISOString(),
     validation,
     analysis: body,
-    attempts: Object.fromEntries(
-      Object.entries(p.digest.attempts).map(([id, a]) => [
+    trials: Object.fromEntries(
+      Object.entries(p.digest.trials).map(([id, a]) => [
         id,
-        { runId: a.runId, evalSlug: a.evalSlug, attempt: a.attempt },
+        { runId: a.runId, evalSlug: a.evalSlug, trial: a.trial },
       ]),
     ),
     cited: citedSummary(seen, [...new Set(cites)]),
@@ -363,7 +363,7 @@ export async function explainCommand(ctx: Ctx, args: string[]): Promise<number> 
     const chars = digestChars(digest)
     ctx.out(
       [
-        `digest ${head.runId}${base ? ` vs ${base.runId}` : ''}: ${digest.facts.length} facts, ${digest.evidence.length} evidence items${digest.dropped.length ? ` (${digest.dropped.length} dropped to fit)` : ''}, ${Object.keys(digest.attempts).length} attempts`,
+        `digest ${head.runId}${base ? ` vs ${base.runId}` : ''}: ${digest.facts.length} facts, ${digest.evidence.length} evidence items${digest.dropped.length ? ` (${digest.dropped.length} dropped to fit)` : ''}, ${Object.keys(digest.trials).length} trials`,
         `size ${chars} characters ≈ ${Math.ceil(chars / 4)} tokens (cap ${config.analysis.maxInputTokens} in, ${config.analysis.maxOutputTokens} out)`,
         `model ${modelName} · ${ANALYSIS_PROMPT_VERSION} · cache ${cached ? 'hit' : 'miss'} (.reeval/analysis/${key}.json)`,
       ].join('\n'),

@@ -2,7 +2,7 @@ import { defineEval } from 'reeval'
 import { base, skilled, terse } from '../envs.ts'
 
 export default defineEval({
-  compare: { control: base, variants: [skilled, terse] },
+  compare: { baseline: base, variants: [skilled, terse] },
   questions: [
     {
       question: 'Which handles state more cleanly?',

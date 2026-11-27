@@ -1,7 +1,7 @@
-no profile · 5 evals · 5 cells · 5 attempts
-browser-off    a/-/fake  control  gated any  ×1  capture: browser false
-full-page      a/-/fake  control  gated any  ×1  capture: full-page
-no-capture     a/-/fake  control  gated any  ×1
-vision-model   a/-/fake  control  gated any  ×1  capture: model google/gemini-3.8-flash
-with-defaults  a/-/fake  control  gated any  ×1  capture: 1280×720 · 30s
+no profile · 5 evals · 5 cells · 5 trials
+browser-off    a/-/fake  baseline  gated any  ×1  capture: browser false
+full-page      a/-/fake  baseline  gated any  ×1  capture: full-page
+no-capture     a/-/fake  baseline  gated any  ×1
+vision-model   a/-/fake  baseline  gated any  ×1  capture: model google/gemini-3.8-flash
+with-defaults  a/-/fake  baseline  gated any  ×1  capture: 1280×720 · 30s
 excluded: —

@@ -4,6 +4,6 @@ import { defineEval } from 'reeval'
 // One cell that passes prints its verdict and name, nothing under it.
 export default defineEval({
   task: async (c) => {
-    assert.equal(c.attempt.n, 1, 'first try')
+    assert.equal(c.trial.n, 1, 'first try')
   },
 })

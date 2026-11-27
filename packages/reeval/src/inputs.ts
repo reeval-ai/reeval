@@ -1,4 +1,4 @@
-// The host files an attempt's environment and sandbox name, as the plan sees them: what a copy of
+// The host files a trial's environment and sandbox name, as the plan sees them: what a copy of
 // the project elsewhere would need. Paths are already absolute (the helpers resolve them where
 // they're written); a folder is walked as reeval walks it to place it, so the list is its files.
 import { type Dirent, existsSync, readdirSync, realpathSync, statSync } from 'node:fs'
@@ -82,7 +82,7 @@ function walkFolder(
         const outside = !inside(real, target)
         if (outside && !(via === undefined && !targetIsDir && readThrough.includes(path))) {
           out.warnings.push(
-            `${what}: ${shown}, outside its folder; reeval places only regular files, so the attempt doesn't get it`,
+            `${what}: ${shown}, outside its folder; reeval places only regular files, so the trial doesn't get it`,
           )
         }
         out.inputs.push({ path: through ?? full, kind, symlinkTo: target })
@@ -142,7 +142,7 @@ const cache = new Map<string, Found>()
 /**
  * The host files the layers and sandbox read, every layer's (a later layer's `files` can replace
  * an earlier one's, so this is a superset), and the plan's warnings about them. A path that
- * doesn't exist is left out: the attempt reports it.
+ * doesn't exist is left out: the trial reports it.
  */
 export function environmentInputs(
   layers: readonly EnvironmentLayer[],

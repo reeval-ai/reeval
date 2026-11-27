@@ -1,11 +1,11 @@
-// `c.decide` end to end on the fake harness: what a recorded attempt keeps of its calls, and a
-// call the decide timeout or the attempt's own timeout cuts off.
+// `c.decide` end to end on the fake harness: what a recorded trial keeps of its calls, and a
+// call the decide timeout or the trial's own timeout cuts off.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
-import { readStoredAttempt } from '../src/history/stored-attempt.ts'
-import type { AttemptRecord } from '../src/history/types.ts'
+import { readStoredTrial } from '../src/history/stored-trial.ts'
+import type { TrialRecord } from '../src/history/types.ts'
 import { fakeConfig, project, readRun, runCli } from './helpers.ts'
 
 const SECRET = `ghp_${'a1B2'.repeat(9)}`
@@ -33,8 +33,8 @@ export default defineEval({
 })
 `
 
-const decisionLines = (dir: string, attempt: AttemptRecord) => {
-  const ref = attempt.files.decisions
+const decisionLines = (dir: string, trial: TrialRecord) => {
+  const ref = trial.files.decisions
   assert.ok(ref, 'files.decisions')
   return readFileSync(join(dir, ref.path), 'utf8')
     .trim()
@@ -43,7 +43,7 @@ const decisionLines = (dir: string, attempt: AttemptRecord) => {
 }
 
 describe('c.decide', () => {
-  test('what a passing attempt stored has its decisions, the answers masked', async () => {
+  test('what a passing trial stored has its decisions, the answers masked', async () => {
     const p = await project('decide-stored', {
       'reeval.config.ts': fakeConfig(),
       'evals/a.eval.ts': evalFile(
@@ -55,14 +55,14 @@ describe('c.decide', () => {
     const recorded = await runCli(p.dir, ['record', 'latest'])
     assert.equal(recorded.code, 0, recorded.stdout + recorded.stderr)
     const { dir, evals } = readRun(p.dir, { history: 'evals/.history' })
-    const attempt = evals[0]?.trial as AttemptRecord
-    assert.equal(attempt.outcome, 'pass')
-    assert.equal(attempt.files.trajectory, undefined, 'a passing attempt keeps no trajectory')
-    const t = await readStoredAttempt(dir, attempt)
+    const trial = evals[0]?.trial as TrialRecord
+    assert.equal(trial.outcome, 'pass')
+    assert.equal(trial.files.trajectory, undefined, 'a passing trial keeps no trajectory')
+    const t = await readStoredTrial(dir, trial)
     assert.equal(t.decisions.length, 1)
     assert.equal(t.decisions[0]?.model, 'fake/fake-decision')
     assert.equal(t.decisions[0]?.answers.done?.type, 'boolean')
-    const stored = readFileSync(join(dir, attempt.files.decisions?.path ?? ''), 'utf8')
+    const stored = readFileSync(join(dir, trial.files.decisions?.path ?? ''), 'utf8')
     assert.match(stored, /"note":"/)
     assert.ok(!stored.includes(SECRET), 'the answers are masked')
   })
@@ -74,31 +74,31 @@ describe('c.decide', () => {
     })
     const ran = await runCli(p.dir, ['run'])
     const { dir, evals } = readRun(p.dir)
-    const attempt = evals[0]?.trial as AttemptRecord
-    assert.equal(attempt.outcome, 'infra_error', ran.stdout + ran.stderr)
+    const trial = evals[0]?.trial as TrialRecord
+    assert.equal(trial.outcome, 'infra_error', ran.stdout + ran.stderr)
     assert.match(
-      attempt.error?.message ?? '',
+      trial.error?.message ?? '',
       /^c\.decide\(\) with fake\/hanging timed out after 50ms\. Set decide\.model/,
     )
     assert.deepEqual(
-      decisionLines(dir, attempt).map((d) => [d.answers, d.error]),
+      decisionLines(dir, trial).map((d) => [d.answers, d.error]),
       [[{}, 'timed out after 50ms']],
     )
   })
 
-  test("the attempt's timeout aborts a call in flight, which the record keeps", async () => {
+  test("the trial's timeout aborts a call in flight, which the record keeps", async () => {
     const p = await project('decide-abort', {
       'reeval.config.ts': fakeConfig(),
       'evals/a.eval.ts': evalFile(HANGING, "timeout: '1s',"),
     })
     const ran = await runCli(p.dir, ['run'])
     const { dir, evals } = readRun(p.dir)
-    const attempt = evals[0]?.trial as AttemptRecord
-    assert.equal(attempt.outcome, 'fail', ran.stdout + ran.stderr)
-    assert.match(attempt.error?.message ?? '', /timed out/)
+    const trial = evals[0]?.trial as TrialRecord
+    assert.equal(trial.outcome, 'fail', ran.stdout + ran.stderr)
+    assert.match(trial.error?.message ?? '', /timed out/)
     assert.deepEqual(
-      decisionLines(dir, attempt).map((d) => [d.answers, d.error]),
-      [[{}, 'the attempt timed out or was canceled']],
+      decisionLines(dir, trial).map((d) => [d.answers, d.error]),
+      [[{}, 'the trial timed out or was canceled']],
     )
   })
 
@@ -122,16 +122,16 @@ export default defineEval({
     })
     const ran = await runCli(p.dir, ['run'])
     const { evals } = readRun(p.dir)
-    const attempt = evals[0]?.trial as AttemptRecord
-    assert.equal(attempt.outcome, 'fail', ran.stdout + ran.stderr)
+    const trial = evals[0]?.trial as TrialRecord
+    assert.equal(trial.outcome, 'fail', ran.stdout + ran.stderr)
     assert.match(
-      attempt.error?.message ?? '',
+      trial.error?.message ?? '',
       /c\.decide\(\) question "pick" is a choice, so its criteria are an option map/,
     )
-    assert.equal(attempt.decisionUse, undefined, 'nothing was asked')
+    assert.equal(trial.decisionUse, undefined, 'nothing was asked')
   })
 
-  test("a call's own model the run has no key for fails the attempt even when caught", async () => {
+  test("a call's own model the run has no key for fails the trial even when caught", async () => {
     const p = await project('decide-no-key', {
       'reeval.config.ts': fakeConfig(),
       'evals/a.eval.ts': `
@@ -153,13 +153,13 @@ export default defineEval({
       env: { ANTHROPIC_API_KEY: '', AI_GATEWAY_API_KEY: '' },
     })
     const { evals } = readRun(p.dir)
-    const attempt = evals[0]?.trial as AttemptRecord
-    assert.equal(attempt.outcome, 'fail', ran.stdout + ran.stderr)
+    const trial = evals[0]?.trial as TrialRecord
+    assert.equal(trial.outcome, 'fail', ran.stdout + ran.stderr)
     assert.match(
-      attempt.error?.message ?? '',
+      trial.error?.message ?? '',
       /No credentials for decide model "anthropic\/claude-haiku-4-5"/,
     )
-    assert.equal(attempt.decisionUse, undefined, 'nothing was asked')
+    assert.equal(trial.decisionUse, undefined, 'nothing was asked')
   })
 
   test("an invalid-argument error from the provider is the provider's, and keeps the call", async () => {
@@ -179,12 +179,12 @@ export default defineEval({
     })
     const ran = await runCli(p.dir, ['run'])
     const { dir, evals } = readRun(p.dir)
-    const attempt = evals[0]?.trial as AttemptRecord
-    assert.equal(attempt.outcome, 'infra_error', ran.stdout + ran.stderr)
+    const trial = evals[0]?.trial as TrialRecord
+    assert.equal(trial.outcome, 'infra_error', ran.stdout + ran.stderr)
     assert.match(
-      attempt.error?.message ?? '',
+      trial.error?.message ?? '',
       /^c\.decide\(\) with fake\/picky failed: Invalid argument/,
     )
-    assert.equal(decisionLines(dir, attempt).length, 1)
+    assert.equal(decisionLines(dir, trial).length, 1)
   })
 })

@@ -20,10 +20,10 @@ export default defineConfig({
     delayMs: 6000,
   }),
   sandbox: fakeSandbox(),
-  // One attempt at a time, so the two seconds end during the first attempt: the rest, queued
+  // One trial at a time, so the two seconds end during the first trial: the rest, queued
   // until it finishes at six seconds or more, are skipped.
   concurrency: 1,
-  budget: { attempts: 10, duration: '2s' },
+  budget: { trials: 10, duration: '2s' },
   // The real agents: `--profile claude-code`, or any other in ../profiles.ts. An example's own
   // profiles go beside them.
   profiles: { ...profiles },

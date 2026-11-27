@@ -3,7 +3,7 @@ title: "Run evaluations"
 description: "Run the evaluations in a project."
 ---
 
-`reeval run` runs the evaluations in a project. The command prints the plan, starts the attempts, and ends with one block per evaluation.
+`reeval run` runs the evaluations in a project. The command prints the plan, starts the trials, and ends with one block per evaluation.
 
 For more information about the result blocks, see [Read a run's output](/results/output).
 
@@ -33,7 +33,7 @@ Pass one `--tag` for each tag an evaluation must carry. Quote a value that start
 npx reeval run --tag smoke --tag '!billing'
 ```
 
-If a filter or tag matches nothing, reeval exits before it starts any attempt.
+If a filter or tag matches nothing, reeval exits before it starts any trial.
 
 ## Preview the plan
 
@@ -51,7 +51,7 @@ REEVAL v0.16.1  dry run
   ➜  Run:       …
   ➜  Harness:   cursor:composer-2.5 (effort: not checked)
   ➜  Sandbox:   docker
-  ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 attempt
+  ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 trial
   ➜  Est. Time: ~3m 00s (serial)
 ```
 
@@ -63,37 +63,37 @@ npx reeval run --dry-run --json
 
 The document lists every cell, and any evaluation set to `skip` or `todo`.
 
-## Set the attempts
+## Set the trials
 
-The `runs` option sets how many attempts each cell gets, and it defaults to 1. Each attempt runs in a fresh sandbox. In the `evals/camelcase.eval.ts` file, add `runs` to the options:
+The `trials` option sets how many trials each cell gets, and it defaults to 1. Each trial runs in a fresh sandbox. In the `evals/camelcase.eval.ts` file, add `trials` to the options:
 
 ```ts title="evals/camelcase/separators.eval.ts"
 export default defineEval({
   environment: camelcase,
-  runs: 4,
+  trials: 4,
   task: async (c) => {
     // ...
   },
 })
 ```
 
-To set it for one run, pass `--runs`, which replaces the option:
+To set it for one run, pass `--trials`, which replaces the option:
 
 ```bash
-npx reeval run --runs 4
+npx reeval run --trials 4
 ```
 
-A comparison below four counted attempts a side seldom shows that its effect holds. For more information, see [Too few runs](/reference/statistics#too-few-runs).
+A comparison below four counted trials a side seldom shows that its effect holds. For more information, see [Too few trials](/reference/statistics#too-few-trials).
 
 ## Set concurrency
 
-Pass `--concurrency` to set how many attempts reeval starts together:
+Pass `--concurrency` to set how many trials reeval starts together:
 
 ```bash
 npx reeval run --concurrency 4
 ```
 
-The `--concurrency` flag overrides `REEVAL_CONCURRENCY`, which overrides `concurrency` in the `reeval.config.ts` file. If you set none of those three, reeval uses 8, capped at one attempt per CPU and per gigabyte of memory where the sandboxes run.
+The `--concurrency` flag overrides `REEVAL_CONCURRENCY`, which overrides `concurrency` in the `reeval.config.ts` file. If you set none of those three, reeval uses 8, capped at one trial per CPU and per gigabyte of memory where the sandboxes run.
 
 ## Choose the output
 
@@ -121,11 +121,11 @@ The record gets status `interrupted`.
 `pnpm exec` and `pnpm reeval` pass Ctrl-C on as a SIGTERM, which counts as the same press, and give the shell the terminal back. A second Ctrl-C then reaches the shell: quit with the `kill <pid>` the run prints.
 </Warning>
 
-A second press quits without a record. The finished attempts stay in `.reeval/staging`, and `reeval history` lists the run as canceled:
+A second press quits without a record. The finished trials stay in `.reeval/staging`, and `reeval history` lists the run as canceled:
 
 ```text
 reeval: quit without writing run 20261030T131051Z_…'s record; its workers still destroy their sandboxes.
-  reeval run --resume 20261030T131051Z_… keeps the attempts that finished, runs the rest and writes the record.
+  reeval run --resume 20261030T131051Z_… keeps the trials that finished, runs the rest and writes the record.
   Deleting .reeval/staging/20261030T131051Z_… discards the run.
 ```
 
@@ -154,9 +154,9 @@ npx reeval run --retry-errors
 ```
 
 ```text
-retried 2 errored attempts: 1 now passes, 1 fails, 0 still error
+retried 2 errored trials: 1 now passes, 1 fails, 0 still error
 ```
 
 See [Retrying infrastructure errors](/reference/cli#retrying-infrastructure-errors).
 
-For attempt budgets, every `reeval run` flag and every variable, see [Size runs with profiles](/evaluations/runs/profiles), [the `reeval run` command](/reference/cli#reeval-run) and [Environment variables](/reference/environment-variables).
+For trial budgets, every `reeval run` flag and every variable, see [Size runs with profiles](/evaluations/runs/profiles), [the `reeval run` command](/reference/cli#reeval-run) and [Environment variables](/reference/environment-variables).

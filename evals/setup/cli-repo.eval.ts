@@ -9,7 +9,7 @@ const SAYS: Record<string, RegExp> = {
   'keeps-env-out-of-the-sandbox': /!\.env/,
   'keeps-the-config-out-of-the-sandbox': /!reeval\.config/,
   'compares-gemini-md': /rules:\s*file\(\s*['"][./]*GEMINI\.md/,
-  'leaves-gemini-md-out-of-the-control': /!GEMINI\.md/,
+  'leaves-gemini-md-out-of-the-baseline': /!GEMINI\.md/,
 }
 
 export default defineEval({

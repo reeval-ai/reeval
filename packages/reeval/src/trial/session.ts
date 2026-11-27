@@ -1,0 +1,737 @@
+import { randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
+import {
+  AgentError,
+  type AgentLog,
+  claudeMcpServers,
+  type HarnessSession,
+  type PluginUnpack,
+} from '@reeval/agents'
+import { writeTar } from '@reeval/sandbox-docker'
+import { shellQuote } from '@reeval/sandbox-docker/process'
+import { debugLog, debugTrace } from '../debug/trial.ts'
+import { snapshot } from '../diff.ts'
+import {
+  builtPlugins,
+  droppedPaths,
+  PLUGIN_DIR,
+  PLUGIN_MANIFEST,
+  PLUGIN_ROOT,
+  PLUGIN_ROOT_VAR,
+  type PluginFile,
+} from '../environment/plugins.ts'
+import {
+  type ResolvedEnvironment,
+  type ResolvedPlugin,
+  type ResolvedStep,
+  skillFiles,
+} from '../environment/resolve.ts'
+import { agentOf, brokeringFor, expectedBlockedFor } from '../harness/agents.ts'
+import { createHarness, layoutOf, workspaceSkillDir } from '../harness/index.ts'
+import type { Harness, Treatments } from '../harness/types.ts'
+import { unpackPlugins } from '../harness/unpack.ts'
+import { harnessId } from '../options.ts'
+import { redactSecrets } from '../redact.ts'
+import { createSandbox, InfraError, type Sandbox } from '../sandbox/index.ts'
+import { capabilitiesOf, sandboxKind } from '../sandbox/kinds.ts'
+import { brokerPhases } from '../sandbox/phases.ts'
+import { clip, formatDuration } from '../text.ts'
+import type { SandboxDescriptor, StartRetry } from '../types.ts'
+import { asCheck } from './checks.ts'
+import { useBuiltPlugins } from './environment.ts'
+import { timeMcpServers } from './mcp-startup.ts'
+import { setupAllowance, startTimeoutMs, type Trial } from './state.ts'
+
+const tailOf = (text: string) => text.trim().split('\n').slice(-10).join('\n')
+
+/** Setup steps in order, each with its own timeout; a failure is an infra error. */
+async function runSetup(a: Trial, box: Sandbox, env: ResolvedEnvironment) {
+  const { record, spec } = a
+  const steps: ResolvedStep[] = env.setup
+  record.setup = []
+  for (const [i, step] of steps.entries()) {
+    const what = `setup step ${i + 1}/${steps.length} "${clip(redactSecrets(step.run), 80)}" in environment ${spec.environment.name}`
+    const start = performance.now()
+    const stepSignal = AbortSignal.any([a.signal, AbortSignal.timeout(step.timeoutMs)])
+    const r = await asCheck(a, () =>
+      box.exec(step.run, {
+        signal: stepSignal,
+        env: env.checkVars,
+        ...(step.cwd ? { cwd: step.cwd } : {}),
+      }),
+    ).catch((error) => {
+      if (a.signal.aborted) throw error
+      if (!stepSignal.aborted) {
+        throw new InfraError(
+          `${what} couldn't run: ${error instanceof Error ? error.message : error}`,
+        )
+      }
+      return null
+    })
+    const durationMs = Math.round(performance.now() - start)
+    const output = r ? [r.stdout, r.stderr].filter(Boolean).join('\n') : ''
+    record.setup.push({ run: step.run, exitCode: r?.exitCode ?? null, durationMs, output })
+    debugLog(
+      'env',
+      `setup ${i + 1}/${steps.length} $ ${clip(redactSecrets(step.run), 120)} → ${r ? `exit ${r.exitCode}` : `timed out after ${formatDuration(step.timeoutMs)}`} · ${formatDuration(durationMs)}${step.cwd ? ` · in ${step.cwd}` : ''}`,
+    )
+    debugTrace(
+      'env',
+      'setup',
+      {
+        run: step.run,
+        cwd: step.cwd,
+        exitCode: r?.exitCode ?? null,
+        durationMs,
+        stdout: r?.stdout,
+        stderr: r?.stderr,
+      },
+      `setup ${i + 1} output`,
+    )
+    if (r?.exitCode === 0) continue
+    throw new InfraError(
+      r
+        ? `${what} exited ${r.exitCode} after ${formatDuration(durationMs)} (see setup.log):\n${tailOf(r.stderr || r.stdout)}`
+        : `${what} timed out after ${formatDuration(step.timeoutMs)} (see setup.log)`,
+    )
+  }
+}
+
+/** The `to: 'checks'` secrets the setup steps got as their real value: those without `hosts`. */
+function unbrokeredChecks(env: ResolvedEnvironment): string[] {
+  const brokered = new Set(env.substitutions.filter((s) => s.phase === 'checks').map((s) => s.name))
+  return Object.keys(env.checkVars).filter((name) => !brokered.has(name))
+}
+
+/** How many of the processes setup left running the record keeps, and how much of each command line. */
+const SETUP_PROCESSES = 20
+const SETUP_COMMAND_CHARS = 200
+
+/**
+ * The processes the setup steps left running with an unbrokered `to: 'checks'` secret in their
+ * environment, by the secret's variable name: a copy under another name or in a process's
+ * arguments isn't found. The listing runs as the agent's user, with no checks secrets of its own,
+ * so it sees the environments the agent could read, and prints names, never values. Docker only:
+ * the fake sandbox runs on the host, with no separation to report on.
+ */
+async function leftRunning(a: Trial, box: Sandbox, env: ResolvedEnvironment) {
+  const names = unbrokeredChecks(env)
+  if (!capabilitiesOf(a.spec.sandbox).processTable || !env.setup.length || !names.length) return []
+  const r = await box.exec(
+    [
+      'for t in tr sed sort; do command -v "$t" >/dev/null || { echo "no $t in the image" >&2; exit 1; }; done',
+      'for p in /proc/[0-9]*; do',
+      '  [ "$p" = "/proc/$$" ] && continue',
+      `  n=$(tr '\\0' '\\n' < "$p/environ" 2>/dev/null | sed -n -E 's/^(${names.join('|')})=.*/\\1/p' | sort -u | tr '\\n' ' ')`,
+      '  [ -n "$n" ] || continue',
+      // An argument can hold a tab or a line break, which would end the field or the line.
+      `  c=$(tr '\\0\\t\\n' '   ' < "$p/cmdline" 2>/dev/null)`,
+      `  [ -n "$c" ] || c=$(tr '\\t\\n' '  ' < "$p/comm" 2>/dev/null)`,
+      `  printf '%s\\t%s\\n' "$n" "$c"`,
+      'done',
+      'true',
+    ].join('\n'),
+    { signal: a.signal },
+  )
+  if (r.exitCode !== 0) {
+    debugLog('env', `couldn't list the processes setup left running: ${tailOf(r.stderr)}`)
+    return []
+  }
+  const known = new Set(names)
+  const found = r.stdout.split('\n').flatMap((line) => {
+    const tab = line.indexOf('\t')
+    if (tab < 0) return []
+    const secrets = line
+      .slice(0, tab)
+      .split(' ')
+      .filter((n) => known.has(n))
+    // Masked before it's cut, so a cut can't leave part of a value the masking wouldn't match.
+    const command = clip(redactSecrets(line.slice(tab + 1).trim()), SETUP_COMMAND_CHARS)
+    return secrets.length ? [{ command, secrets }] : []
+  })
+  if (found.length > SETUP_PROCESSES) {
+    debugLog(
+      'env',
+      `setup left ${found.length} processes running with a checks secret; the record keeps the first ${SETUP_PROCESSES}`,
+    )
+  }
+  return found.slice(0, SETUP_PROCESSES)
+}
+
+// A relative path: GNU tar (Git for Windows' too) reads a `C:` in its file name as a remote host.
+const WORKSPACE_TAR = '.reeval-workspace.tar'
+
+/** Unpacks the git workspace's tarball into the (empty) workspace. */
+async function copyWorkspace(
+  box: Sandbox,
+  workspace: NonNullable<ResolvedEnvironment['workspace']>,
+  signal: AbortSignal,
+) {
+  const start = performance.now()
+  const tar = await readFile(workspace.tar)
+  await box.writeFile(WORKSPACE_TAR, tar)
+  const r = await box.exec(`tar -xf ${WORKSPACE_TAR} && rm -f ${WORKSPACE_TAR}`, { signal })
+  if (r.exitCode !== 0) {
+    throw new InfraError(
+      `Couldn't unpack the workspace ${workspace.label} into the sandbox (the image needs tar): ${tailOf(r.stderr || r.stdout)}`,
+    )
+  }
+  if (workspace.init) {
+    // A fixed author and date, so every trial's HEAD is the same commit of the same tree.
+    const at = '2000-01-01T00:00:00Z'
+    const init = await box.exec(
+      `git init -q -b main && git add -A && git -c commit.gpgsign=false commit -q --no-verify -m ${shellQuote(`${workspace.label} at ${workspace.commit}`)}`,
+      {
+        signal,
+        env: {
+          GIT_AUTHOR_NAME: 'reeval',
+          GIT_AUTHOR_EMAIL: 'reeval@localhost',
+          GIT_AUTHOR_DATE: at,
+          GIT_COMMITTER_NAME: 'reeval',
+          GIT_COMMITTER_EMAIL: 'reeval@localhost',
+          GIT_COMMITTER_DATE: at,
+        },
+      },
+    )
+    if (init.exitCode !== 0) {
+      throw new InfraError(
+        `Couldn't give the workspace ${workspace.label} a .git (init: true needs git in the image): ${tailOf(init.stderr || init.stdout)}`,
+      )
+    }
+  }
+  debugLog(
+    'env',
+    `workspace ${workspace.label} at ${workspace.commit.slice(0, 12)} (${tar.byteLength} bytes of tar${workspace.init ? ', with a .git' : ''}) in ${formatDuration(performance.now() - start)}`,
+  )
+}
+
+/** Bytes per tar: each is built in memory and piped in whole. */
+const TAR_BATCH_BYTES = 64 * 1024 * 1024
+
+type FileToWrite = { path: string; content: string | Uint8Array }
+
+/**
+ * Writes `files` (workspace-relative, or `~/` for the home directory) with one tar per
+ * destination: on a container or VM each `writeFile` is a process of its own, which a vendored
+ * directory of thousands of files turns into minutes. A lone file is written as it is, and a
+ * sandbox where the tar doesn't unpack gets a write per file.
+ */
+export async function writeFiles(
+  box: Sandbox,
+  files: readonly FileToWrite[],
+  signal: AbortSignal,
+): Promise<void> {
+  const home = files.flatMap((f) =>
+    f.path.startsWith('~/') ? [{ ...f, path: f.path.slice(2) }] : [],
+  )
+  const workspace = files.filter((f) => !f.path.startsWith('~/'))
+  await unpackFiles(box, '', workspace, signal)
+  await unpackFiles(box, '~/', home, signal)
+}
+
+async function unpackFiles(
+  box: Sandbox,
+  prefix: '' | '~/',
+  files: readonly FileToWrite[],
+  signal: AbortSignal,
+) {
+  const one = async () => {
+    for (const f of files) await box.writeFile(`${prefix}${f.path}`, f.content)
+  }
+  // The unpack reads `find`'s names a line at a time.
+  if (files.length < 2 || files.some((f) => f.path.includes('\n'))) return one()
+  const entries = files.map((f) => ({
+    type: 'file' as const,
+    path: f.path,
+    mode: 0o644,
+    mtime: 0,
+    data:
+      typeof f.content === 'string'
+        ? Buffer.from(f.content, 'utf8')
+        : Buffer.from(f.content.buffer, f.content.byteOffset, f.content.byteLength),
+  }))
+  const batches: (typeof entries)[] = [[]]
+  let size = 0
+  for (const e of entries) {
+    if (size + e.data.length > TAR_BATCH_BYTES && batches[batches.length - 1]?.length) {
+      batches.push([])
+      size = 0
+    }
+    batches[batches.length - 1]?.push(e)
+    size += e.data.length
+  }
+  const dir = shellQuote(prefix ? box.home : box.workdir)
+  const name = `.reeval-files-${randomUUID()}.tar`
+  // Unpacked into a temporary directory first. A file that exists already, or lies under a
+  // symbolic link to a directory, is then `cat` into place as `writeFile` does, so it keeps its
+  // mode and a link is written through: every tar (and BusyBox's `cp -R`) replaces an existing
+  // file, and bsdtar refuses to extract through a link. The rest go over in one more tar, written
+  // to a file rather than piped so that a name tar can't read back (GNU tar unescapes `-T`'s
+  // backslashes) fails the unpack instead of dropping that file.
+  const unpack = [
+    'unset TAR_OPTIONS',
+    `cd ${dir} || exit 1`,
+    'd=$PWD',
+    `t=$(mktemp -d) || { rm -f ${name}; exit 1; }`,
+    '(',
+    `  tar -xmf "$d/${name}" -C "$t" && cd "$t" && find . -type f > "$t.all" || exit $?`,
+    '  : > "$t.new"',
+    '  while IFS= read -r f; do',
+    '    if [ -e "$d/$f" ] || [ -L "$d/$f" ]; then',
+    '      cat "$f" > "$d/$f" || exit 1',
+    '      continue',
+    '    fi',
+    `    p=\${f%/*}`,
+    `    while [ "$p" != . ] && [ ! -L "$d/$p" ]; do p=\${p%/*}; done`,
+    '    if [ "$p" = . ]; then printf \'%s\\n\' "$f" >> "$t.new"',
+    `    else mkdir -p "$d/\${f%/*}" && cat "$f" > "$d/$f" || exit 1`,
+    '    fi',
+    '  done < "$t.all"',
+    '  [ ! -s "$t.new" ] || { tar -cf "$t.tar" -T "$t.new" && cd "$d" && tar -xf "$t.tar"; }',
+    ')',
+    's=$?',
+    `cd "$d"; rm -rf "$t" "$t.all" "$t.new" "$t.tar" ${name}`,
+    'exit $s',
+  ].join('\n')
+  for (const batch of batches) {
+    await box.writeFile(`${prefix}${name}`, writeTar(batch))
+    const r = await box.exec(unpack, { signal })
+    if (r.exitCode !== 0) {
+      debugLog(
+        'env',
+        `the files' tar didn't unpack (exit ${r.exitCode}: ${tailOf(r.stderr || r.stdout)}): writing ${files.length} files one at a time`,
+      )
+      return one()
+    }
+  }
+}
+
+/** Whether the sandbox builds its plugins into an image on its own machine, not in preflight. */
+const onMachine = (sandbox: SandboxDescriptor) => {
+  const can = capabilitiesOf(sandbox)
+  return can.pluginBuilds && !can.images
+}
+
+/**
+ * A built plugin's directory, copied from where its layer left it in the image, less the parts
+ * `only` leaves out, with the manifest as reeval read it.
+ */
+async function copyBuiltPlugin(
+  a: Trial,
+  box: Sandbox,
+  plugin: ResolvedPlugin & { built: NonNullable<ResolvedPlugin['built']> },
+  dir: string,
+) {
+  const dropped = droppedPaths(plugin.parts).map((p) => shellQuote(`${dir}/${p}`))
+  const r = await box.exec(
+    `mkdir -p ${shellQuote(dir)} && cp -a ${shellQuote(plugin.built.dir)}/. ${shellQuote(dir)}/${dropped.length ? ` && rm -rf ${dropped.join(' ')}` : ''}`,
+    { signal: a.signal },
+  )
+  if (r.exitCode !== 0) {
+    throw new InfraError(
+      `Couldn't copy the ${plugin.name} plugin's build from ${plugin.built.tag}: ${tailOf(r.stderr || r.stdout)}`,
+    )
+  }
+  const manifest = plugin.files.find((f) => f.path === PLUGIN_MANIFEST)
+  if (manifest) await box.writeFile(`${dir}/${PLUGIN_MANIFEST}`, manifest.content)
+}
+
+/**
+ * Copies each plugin to `PLUGIN_DIR/<name>/` before the workspace snapshot (a built one from its
+ * layer in the image, any other from the host), and points its MCP servers' `${CLAUDE_PLUGIN_ROOT}`
+ * at that directory, for the adapter to load from there.
+ */
+async function copyPlugins(a: Trial, box: Sandbox, env: ResolvedEnvironment) {
+  const out: Treatments['plugins'] = []
+  for (const plugin of env.plugins) {
+    const at = `${PLUGIN_DIR}/${plugin.name}`
+    const dir = `${box.home}/${at.slice(2)}`
+    const { built } = plugin
+    if (built) await copyBuiltPlugin(a, box, { ...plugin, built }, dir)
+    else for (const f of plugin.files) await box.writeFile(`${at}/${f.path}`, f.content)
+    const executable = built
+      ? []
+      : plugin.files.flatMap((f) => (f.executable ? [`${dir}/${f.path}`] : []))
+    if (executable.length) {
+      const r = await box.exec(`chmod +x ${executable.map(shellQuote).join(' ')}`, {
+        signal: a.signal,
+      })
+      if (r.exitCode !== 0) {
+        throw new InfraError(
+          `Couldn't make the ${plugin.name} plugin's ${executable.length} executable files executable: ${tailOf(r.stderr || r.stdout)}`,
+        )
+      }
+    }
+    const root = (v: string) => v.replaceAll(PLUGIN_ROOT, dir)
+    for (const key of plugin.servers) {
+      const server = env.mcp[key]
+      if (server?.transport !== 'stdio') continue
+      env.mcp[key] = {
+        ...server,
+        command: root(server.command),
+        args: server.args.map(root),
+        env: {
+          ...Object.fromEntries(Object.entries(server.env).map(([k, v]) => [k, root(v)])),
+          [PLUGIN_ROOT_VAR]: dir,
+        },
+      }
+    }
+    out.push({ name: plugin.name, dir, parts: plugin.parts, servers: plugin.servers })
+    debugLog(
+      'env',
+      `plugin ${plugin.name} → ${at}/ (${built ? `built in ${built.tag}` : `${plugin.files.length} files`}; ${plugin.parts.join(', ')})`,
+    )
+  }
+  return out
+}
+
+/**
+ * The parts a flat agent has unpacked, as a built plugin's copy in the sandbox has them: its
+ * build's output, which `files` (the source before the build) may not match. Builds run on Docker
+ * only, so the sandbox has `find`.
+ */
+async function unpackedFromCopy(a: Trial, box: Sandbox, dir: string): Promise<PluginFile[]> {
+  const r = await box.exec(
+    `cd ${shellQuote(dir)} && find rules agents commands hooks -maxdepth 1 -type f 2>/dev/null; true`,
+    { signal: a.signal },
+  )
+  const out: PluginFile[] = []
+  for (const path of r.stdout.split('\n').filter(Boolean)) {
+    const content = await box.readFile(`${dir}/${path}`)
+    if (content !== null) out.push({ path, content: Buffer.from(content) })
+  }
+  return out
+}
+
+/**
+ * Unpacks the plugins' rules, subagents, commands and hooks into the workspace where a flat agent
+ * reads them, before the snapshot, so the diff leaves them out. A file the workspace already has
+ * is an infra error, except the hooks file, whose own handlers the plugins' join.
+ */
+async function writeUnpackedPlugins(
+  a: Trial,
+  box: Sandbox,
+  env: ResolvedEnvironment,
+  plugins: Treatments['plugins'],
+  unpack: PluginUnpack,
+) {
+  const placed = []
+  for (const p of plugins) {
+    const resolved = env.plugins.find((r) => r.name === p.name)
+    const files = resolved?.built ? await unpackedFromCopy(a, box, p.dir) : (resolved?.files ?? [])
+    placed.push({ ...p, files })
+  }
+  const hooksFile = unpack.hooks ? await box.readFile(unpack.hooks.file) : null
+  const files = unpackPlugins(placed, unpack, hooksFile)
+  const fresh = files.filter((f) => f.path !== unpack.hooks?.file)
+  if (fresh.length) {
+    const r = await box.exec(
+      `for p in ${fresh.map((f) => shellQuote(f.path)).join(' ')}; do { [ -e "$p" ] || [ -L "$p" ]; } && echo "$p"; done; true`,
+      { signal: a.signal },
+    )
+    const taken = r.stdout.trim().split('\n').filter(Boolean)
+    if (taken.length) {
+      throw new InfraError(
+        `The workspace already has ${taken.join(', ')}, which a plugin would replace: rename the plugin's file, or leave the plugin out of this cell`,
+      )
+    }
+  }
+  for (const f of files) {
+    await box.writeFile(f.path, f.content)
+    debugLog('env', `plugin part → ${f.path} (unpacked for the agent)`)
+  }
+}
+
+/**
+ * For an agent that starts a plugin's MCP servers from the plugin itself: rewrites each placed
+ * plugin's `.mcp.json` to the servers as reeval resolved them, through the MCP timer, so they're
+ * timed like the environment's. A manifest that declares `mcpServers` is pointed at that file.
+ * Only namespaced layouts, which refuse a plugin server reading a host secret, so no secret value
+ * lands in the file.
+ */
+async function writePluginMcp(
+  box: Sandbox,
+  env: ResolvedEnvironment,
+  plugins: Treatments['plugins'],
+  servers: Treatments['mcp'],
+) {
+  for (const placed of plugins) {
+    if (!placed.servers.length) continue
+    const own = Object.fromEntries(
+      placed.servers.flatMap((key) => {
+        const s = servers[key]
+        return s ? [[key.slice(placed.name.length + 1), s]] : []
+      }),
+    )
+    const at = `${PLUGIN_DIR}/${placed.name}`
+    const json = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`
+    await box.writeFile(`${at}/.mcp.json`, json({ mcpServers: claudeMcpServers(own) }))
+    const manifest = env.plugins
+      .find((p) => p.name === placed.name)
+      ?.files.find((f) => f.path === PLUGIN_MANIFEST)
+    const parsed = manifest ? JSON.parse(Buffer.from(manifest.content).toString('utf8')) : {}
+    if (parsed.mcpServers !== undefined) {
+      await box.writeFile(
+        `${at}/${PLUGIN_MANIFEST}`,
+        json({ ...parsed, mcpServers: './.mcp.json' }),
+      )
+    }
+    debugLog('env', `plugin ${placed.name}'s MCP servers → ${at}/.mcp.json, through the timer`)
+  }
+}
+
+/** How long a start that failed on a transient error waits before it's tried again. */
+const TRANSIENT_START_DELAY_MS = 2_000
+
+/**
+ * Starts a harness session within `timeoutMs`, at most twice. A start that doesn't become ready in
+ * time is aborted (and closed, should it finish later) and started once more, and so is one that
+ * fails on a transient {@link AgentError} (a 5xx or a network error): nothing has run yet, so the
+ * retry can't change what the trial measures. Each retry is passed to `onRetry` to record. A
+ * second timeout or transient failure, or any other failure, is the trial's infra error.
+ */
+export async function startWithRetry<S extends { close(): Promise<void> }>(
+  start: (signal: AbortSignal) => Promise<S>,
+  {
+    kind,
+    timeoutMs,
+    signal,
+    onRetry,
+    transientDelayMs = TRANSIENT_START_DELAY_MS,
+  }: {
+    kind: string
+    timeoutMs: number
+    signal: AbortSignal
+    onRetry: (retry: StartRetry) => void
+    transientDelayMs?: number
+  },
+): Promise<S> {
+  const late = `${kind}: session did not become ready within ${formatDuration(timeoutMs)}`
+  for (let tries = 1; ; tries++) {
+    const stop = new AbortController()
+    let timer: NodeJS.Timeout | undefined
+    const timedOut = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), timeoutMs)
+    })
+    const startedAt = Date.now()
+    const starting = start(AbortSignal.any([signal, stop.signal]))
+    let session: S | null
+    try {
+      session = await Promise.race([starting, timedOut])
+    } catch (error) {
+      signal.throwIfAborted()
+      if (!(error instanceof AgentError) || !error.transient) throw error
+      if (tries === 2) throw new InfraError(`${error.message} (tried twice)`)
+      onRetry({ error: error.message, waitedMs: Date.now() - startedAt })
+      debugLog('harness', `${error.message}; starting it once more`)
+      await new Promise((resolve) => setTimeout(resolve, transientDelayMs))
+      signal.throwIfAborted()
+      continue
+    } finally {
+      clearTimeout(timer)
+    }
+    if (session) return session
+    stop.abort(new InfraError(late))
+    starting.then(
+      (s) => s.close().catch(() => {}),
+      () => {},
+    )
+    signal.throwIfAborted()
+    if (tries === 2) throw new InfraError(`${late} (tried twice)`)
+    onRetry({ error: late, waitedMs: timeoutMs })
+    debugLog('harness', `${late}; starting it once more`)
+  }
+}
+
+/** The harness's lines and payloads, into the running trial's debug trace. */
+const trialLog: AgentLog = { log: debugLog, trace: debugTrace }
+
+function startHarness(
+  a: Trial,
+  harness: Harness,
+  box: Sandbox,
+  options: Parameters<Harness['start']>[2],
+): Promise<HarnessSession> {
+  const { harness: descriptor } = a.spec
+  return startWithRetry((signal) => harness.start(box, signal, options, trialLog), {
+    kind: descriptor.kind,
+    timeoutMs: startTimeoutMs(descriptor),
+    signal: a.signal,
+    onRetry: (retry) => {
+      a.record.startRetries = [...(a.record.startRetries ?? []), retry]
+    },
+  })
+}
+
+/**
+ * Starts the sandbox (with the brokered secrets its gateway swaps in), writes the
+ * environment's files, workspace skills and plugins, runs its setup steps, snapshots the workspace for
+ * the diff, switches to the agent's egress, and starts the harness session with the
+ * harness-placed skills and MCP servers.
+ */
+export async function startSession(
+  a: Trial,
+  runId: string,
+  trial: string,
+): Promise<[Sandbox, HarnessSession]> {
+  const startedAt = performance.now()
+  const { spec } = a
+  const env = a.env as ResolvedEnvironment
+  const box = await createSandbox(spec.sandbox, {
+    runId,
+    trial,
+    timeoutMs: spec.timeoutMs + setupAllowance(spec) + 60_000,
+    signal: a.signal,
+    env: env.vars,
+    image: a.image,
+    ...(a.hosts && { hosts: a.hosts }),
+    ...(a.base && { base: a.base }),
+    ...(onMachine(spec.sandbox) && { pluginBuilds: builtPlugins(spec.environment.layers) }),
+    harness: spec.harness,
+    brokering: brokeringFor(spec.harness, spec.vertex),
+    ...(agentOf(spec.harness, spec.vertex)?.keychainTrust && { keychainTrust: true }),
+    expectedBlocked: expectedBlockedFor(spec.harness, env.plugins.length > 0, spec.vertex)?.hosts,
+    substitutions: env.substitutions,
+    egress: spec.egress,
+    onWarning: (text) => a.report({ kind: 'warning', text }),
+    onSecretWarning: (warning) => a.report({ kind: 'secret-warning', ...warning }),
+  })
+  a.sandbox = box
+  a.meter = box.meter?.()
+  if (box.image) {
+    a.record.image = box.image
+    const { ref, id, base, agentCli } = box.image
+    debugLog(
+      'image',
+      `ready ${ref} (${id.replace(/^sha256:/, '').slice(0, 12)}) · prepared on its machine${ref !== base ? ` · on ${base}` : ''}${agentCli ? ` · agent CLI ${agentCli}` : ''}`,
+    )
+  }
+  if (onMachine(spec.sandbox)) {
+    useBuiltPlugins(
+      env,
+      box.builtPlugins ?? [],
+      `in ${box.image?.ref ?? 'its image'}`,
+      'as its machine started',
+    )
+  }
+  if (!capabilitiesOf(spec.sandbox).isolated) {
+    debugLog(
+      'container',
+      `${sandboxKind(spec.sandbox).provider(spec.sandbox)} sandbox at ${box.workdir}`,
+    )
+  }
+  a.phases = brokerPhases(box, env.substitutions, spec.egress)
+  if (a.signal.aborted) void box.destroy()
+  a.signal.throwIfAborted()
+  a.report({ kind: 'sandbox-up' })
+  await a.phases.start()
+  if (env.substitutions.length) {
+    const agent = env.substitutions.filter((s) => s.phase === 'agent').map((s) => s.name)
+    debugLog('broker', `gateway swaps in ${agent.join(', ') || 'nothing'} for the agent`)
+  }
+  if (env.workspace) await copyWorkspace(box, env.workspace, a.signal)
+  const skillDir = workspaceSkillDir(spec.harness)
+  const skillFileList = env.workspaceSkills.map((skill) => ({
+    skill,
+    files: skillFiles(skill).map((f) => ({
+      path: `${skillDir}/${skill.name}/${f.path}`,
+      content: f.content,
+    })),
+  }))
+  const toWrite = [...env.files, ...skillFileList.flatMap((s) => s.files)]
+  const filesStart = performance.now()
+  await writeFiles(box, toWrite, a.signal)
+  if (toWrite.length) {
+    debugLog(
+      'env',
+      `${toWrite.length} files written in ${formatDuration(performance.now() - filesStart)}`,
+    )
+  }
+  for (const f of env.files) {
+    const size = typeof f.content === 'string' ? Buffer.byteLength(f.content) : f.content.byteLength
+    debugLog('env', `file ${f.path} (${size} bytes${f.executable ? ', executable' : ''})`)
+  }
+  const executable = env.files.flatMap((f) =>
+    f.executable ? [f.path.startsWith('~/') ? `${box.home}/${f.path.slice(2)}` : f.path] : [],
+  )
+  if (executable.length) {
+    // BSD chmod (macOS, where the fake sandbox runs on the host) reads `--` after the mode as a
+    // file, so a leading `-` is guarded with `./` instead.
+    const paths = executable.map((p) => shellQuote(p.startsWith('-') ? `./${p}` : p))
+    const r = await box.exec(`chmod +x ${paths.join(' ')}`, {
+      signal: a.signal,
+    })
+    if (r.exitCode !== 0) {
+      throw new InfraError(
+        `Couldn't make ${executable.join(', ')} executable: ${tailOf(r.stderr || r.stdout)}`,
+      )
+    }
+  }
+  for (const { skill, files } of skillFileList) {
+    debugLog(
+      'env',
+      `skill ${skill.name} → ${skillDir}/${skill.name}/ (${files.length} files, workspace)`,
+    )
+  }
+  const plugins = await copyPlugins(a, box, env)
+  const layout = layoutOf(spec.harness)
+  if (layout.pluginUnpack && plugins.length) {
+    await writeUnpackedPlugins(a, box, env, plugins, layout.pluginUnpack)
+  }
+  for (const skill of env.skills) {
+    debugLog(
+      'env',
+      `skill ${skill.name} → the harness adapter places it (~/${layout.harnessSkillDir}/${skill.name}/ for ${spec.harness.kind === 'fake' ? `the fake ${spec.harness.layout ?? 'cursor'} layout` : spec.harness.kind})`,
+    )
+  }
+  for (const [name, server] of Object.entries(env.mcp)) {
+    debugLog(
+      'env',
+      `mcp ${name} (${server.transport}${server.transport === 'stdio' ? `: ${server.command} ${server.args.join(' ')}` : `: ${server.url}`}) → the harness adapter writes its MCP config`,
+    )
+  }
+  await runSetup(a, box, env)
+  const running = await leftRunning(a, box, env)
+  if (running.length) {
+    a.record.setupProcesses = running
+    debugLog(
+      'env',
+      `setup left ${running.length} process${running.length === 1 ? '' : 'es'} running with ${[...new Set(running.flatMap((p) => p.secrets))].join(', ')} (to: 'checks', no hosts) in the environment: ${running.map((p) => clip(p.command, 80)).join('; ')}`,
+    )
+  }
+  await snapshot(box, a.signal)
+  debugLog('env', 'workspace snapshot taken: the diff starts here')
+  // The harness's bootstrap starts its CLI too, so it runs under the agent's policy.
+  await a.phases.agent()
+  const timed = await timeMcpServers(box, env.mcp, a.signal)
+  if (timed.log) {
+    a.mcpStartup = timed.log
+    debugLog('env', "stdio MCP servers start through reeval's MCP timer")
+  } else if (timed.untimed) {
+    debugLog('env', `stdio MCP servers start untimed: ${timed.untimed}`)
+  }
+  if (layout.pluginPlacement === 'namespaced') {
+    await writePluginMcp(box, env, plugins, timed.servers)
+  }
+  const harness = await createHarness(spec.harness, spec.sandbox, spec.vertex)
+  const harnessStart = performance.now()
+  debugLog('harness', `starting ${harnessId(spec.harness)}: bootstrap and session`)
+  const session = await startHarness(a, harness, box, {
+    skills: env.skills,
+    workspaceSkills: env.workspaceSkills.map((s) => s.name),
+    mcp: timed.servers,
+    plugins,
+  })
+  debugLog(
+    'harness',
+    `${harnessId(spec.harness)} session ready in ${formatDuration(performance.now() - harnessStart)}`,
+  )
+  a.session = session
+  // The sampler started with the sandbox; the eval's body waits for it, so it's measured whole.
+  await a.meter?.ready(a.signal)
+  const startMs = performance.now() - startedAt
+  debugLog('container', `sandbox and session started in ${formatDuration(startMs)}`)
+  // The environment's preparation plus this start, not the eval's own code before its first call.
+  a.report({ kind: 'sandbox-ready', ms: Math.round(a.record.timings.setupMs + startMs) })
+  return [box, session]
+}

@@ -6,6 +6,6 @@ export default defineEval({
     { key: 'ada', who: 'Ada Lovelace' },
     { key: 'grace', who: 'Grace Hopper' },
   ],
-  compare: { control: base, variants: [skilled] },
+  compare: { baseline: base, variants: [skilled] },
   task: async () => {},
 })

@@ -19,7 +19,7 @@ type Try = {
   score?: number
 }
 
-const attempt = (cell: string, t: Try, i: number) => ({
+const trial = (cell: string, t: Try, i: number) => ({
   cell,
   run: i + 1,
   outcome: t.pass === false ? 'fail' : 'pass',
@@ -49,7 +49,7 @@ const vote = (winner: string, i: number) =>
 /** One entry: `marked` (the variant) against `plain`, with each side's tries and a question's winners. */
 function entry(
   variant: Try[],
-  control: Try[],
+  baseline: Try[],
   opts: { winners?: string[]; checks?: [number, number] } = {},
 ): EvalEntry {
   const count = (tries: Try[]) => ({
@@ -66,8 +66,8 @@ function entry(
         key: 'plain',
         harness: 'fake',
         environment: 'plain',
-        ...count(control),
-        ...(cPass === undefined ? {} : { checks: check(cPass, control.length) }),
+        ...count(baseline),
+        ...(cPass === undefined ? {} : { checks: check(cPass, baseline.length) }),
       },
       {
         key: 'marked',
@@ -77,9 +77,9 @@ function entry(
         ...(vPass === undefined ? {} : { checks: check(vPass, variant.length) }),
       },
     ],
-    attempts: [
-      ...variant.map((t, i) => attempt('marked', t, i)),
-      ...control.map((t, i) => attempt('plain', t, i)),
+    trials: [
+      ...variant.map((t, i) => trial('marked', t, i)),
+      ...baseline.map((t, i) => trial('plain', t, i)),
     ],
     answers: opts.winners
       ? [
@@ -102,7 +102,7 @@ const of = (ms: Measure[] | null, name: Measure['measure']) => {
 }
 
 describe('one comparison over every measure', () => {
-  test('identical arms are the same on every measure, so a ceiling is a tie', () => {
+  test('identical environments are the same on every measure, so a ceiling is a tie', () => {
     const ms = cellMeasures(entry(times(4, {}), times(4, {})), 'marked', 'plain')
     assert.deepEqual(
       ms?.map((m) => `${m.measure}:${m.verdict}`),
@@ -132,7 +132,7 @@ describe('one comparison over every measure', () => {
     assert.equal(of(slower, 'agentMs').text, '10× slower')
   })
 
-  test('a difference the test does not hold leans, with the runs a side that would hold it', () => {
+  test('a difference the test does not hold leans, with the trials a side that would hold it', () => {
     const spread = (lo: number, hi: number) =>
       Array.from({ length: 16 }, (_, i) => ({ ms: Math.round(lo + ((hi - lo) * i) / 15) }))
     const ms = cellMeasures(entry(spread(700, 1100), spread(800, 1200)), 'marked', 'plain')
@@ -172,7 +172,7 @@ describe('one comparison over every measure', () => {
     assert.equal(
       of(cellMeasures(entry(one, times(16, { ms: 1000 })), 'marked', 'plain'), 'agentMs').verdict,
       'same',
-      'one faster attempt of 16 leaves the medians level',
+      'one faster trial of 16 leaves the medians level',
     )
     const scored = (xs: number[]) => xs.map((score) => ({ score }))
     const judged = cellMeasures(
@@ -246,7 +246,7 @@ describe('one comparison over every measure', () => {
     assert.equal(four.needed, 6, 'the fewest runs at which 6 of 6 decisive pairs hold (p 0.031)')
     assert.equal(
       asked(['plain', 'plain', 'plain']).text,
-      '"Which is clearer?" picked the control in 6 of 6 votes (3 of 3 decisive pairs)',
+      '"Which is clearer?" picked the baseline in 6 of 6 votes (3 of 3 decisive pairs)',
     )
     assert.equal(asked(['plain', 'marked', 'tie']).verdict, 'same')
     assert.equal(asked(['tie', 'tie']).text, '"Which is clearer?" picked neither')
@@ -286,7 +286,7 @@ describe('one comparison over every measure', () => {
     assert.equal(check.text, '"compiles" +100 pts')
   })
 
-  test('pass rate keeps lift: a split under 4 runs a side leans, an equal rate is the same', () => {
+  test('pass rate keeps lift: a split under 4 trials a side leans, an equal rate is the same', () => {
     const lean = cellMeasures(entry(times(2, {}), times(2, { pass: false })), 'marked', 'plain')
     assert.equal(of(lean, 'pass').verdict, 'leans')
     assert.equal(of(lean, 'pass').text, 'pass rate +100 pts')
@@ -295,7 +295,7 @@ describe('one comparison over every measure', () => {
     assert.equal(readMeasures(held ?? []).told, 'same', 'the reading leaves pass rate out')
   })
 
-  test('a difference too few runs can test is short of runs, never the same', () => {
+  test('a difference too few trials can test is short of runs, never the same', () => {
     const fast = [50, 55, 60].map((ms) => ({ ms: ms * 10 }))
     const slow = [600, 650, 700].map((ms) => ({ ms: ms * 10 }))
     const time = of(cellMeasures(entry(fast, slow), 'marked', 'plain'), 'agentMs')
@@ -303,7 +303,7 @@ describe('one comparison over every measure', () => {
     assert.deepEqual(time.short, { now: 3, at: 4 })
     assert.equal(
       leanText(time),
-      "12× faster, but 3 runs a side can't confirm it; 4 is the least that can",
+      "12× faster, but 3 trials a side can't confirm it; 4 is the least that can",
     )
     const scored = (xs: number[]) => xs.map((score) => ({ score }))
     const judge = of(
@@ -342,12 +342,12 @@ describe('one comparison over every measure', () => {
     assert.equal(tieOf('pass', ms), 'tie')
   })
 
-  test('a reading names the soonest runs, and cases only when no lean is counted in runs', () => {
-    const lean = (unit: 'runs' | 'cases', needed: number): Measure => ({
-      measure: unit === 'runs' ? 'judge' : 'agentMs',
+  test('a reading names the soonest trials, and cases only when no lean is counted in trials', () => {
+    const lean = (unit: 'trials' | 'cases', needed: number): Measure => ({
+      measure: unit === 'trials' ? 'judge' : 'agentMs',
       label: null,
       variant: 1,
-      control: 0,
+      baseline: 0,
       estimate: 1,
       lo: null,
       hi: null,
@@ -358,11 +358,11 @@ describe('one comparison over every measure', () => {
       needed,
       unit,
     })
-    assert.deepEqual(readMeasures([lean('cases', 7), lean('runs', 30)]), {
+    assert.deepEqual(readMeasures([lean('cases', 7), lean('trials', 30)]), {
       told: 'leans',
-      measures: [lean('cases', 7), lean('runs', 30)],
+      measures: [lean('cases', 7), lean('trials', 30)],
       needed: 30,
-      unit: 'runs',
+      unit: 'trials',
     })
     const cases = readMeasures([lean('cases', 9), lean('cases', 7)])
     assert.ok(cases.told === 'leans' && cases.needed === 7 && cases.unit === 'cases')
@@ -400,7 +400,7 @@ describe('one comparison over every measure', () => {
     assert.equal(boundOf([]), null)
   })
 
-  test('identical arms that always pass are mostly a tie and seldom lean (seeded null draws)', () => {
+  test('identical environments that always pass are mostly a tie and seldom lean (seeded null draws)', () => {
     let seed = 764
     const random = () => {
       seed = (seed + 0x6d2b79f5) | 0

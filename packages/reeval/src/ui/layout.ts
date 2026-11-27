@@ -1,7 +1,7 @@
 // The result blocks every surface prints (the terminal, summary.md, `reeval show`): one line per
-// eval against its target (`target.ts`), its cases under it on a miss, a compare's arms, then the
+// eval against its target (`target.ts`), its cases under it on a miss, a compare's environments, then the
 // tally. Pure and deterministic: the same SuiteResult and remarks always print the same lines.
-// Scores read as percentages, arm counts `N of M` and effects words; statistics print only with
+// Scores read as percentages, environment counts `N of M` and effects words; statistics print only with
 // `verbose`.
 
 import type { Interval } from '../stats.ts'
@@ -14,16 +14,16 @@ import { type ObservedTally, observedLine } from '../view/observations.ts'
 import type { RunRemarks } from '../view/remarks.ts'
 import type {
   Across,
-  AttemptQuestionResult,
   CaseResult,
   CellError,
   CellResult,
   CheckResult,
   Effect,
   EvalResult,
-  PooledArm,
+  PooledEnvironment,
   QuestionResult,
   SuiteResult,
+  TrialQuestionResult,
 } from '../view/suite.ts'
 import { canceledOf, countedOf } from '../view/suite.ts'
 import { standing, targetNumber } from '../view/target.ts'
@@ -128,9 +128,9 @@ export function table(items: Item[], width = LABEL): string[] {
 }
 
 /**
- * `3 of 4`, with the attempts that didn't count named: `2 of 3 · 1 infra error · 1 skipped`. A
- * canceled attempt is recorded as a fail, but the agent didn't fail it, so it's named apart, and
- * a best-of cell names the attempts its majority made unneeded: `0 of 3 · 2 not needed (best of 5)`.
+ * `3 of 4`, with the trials that didn't count named: `2 of 3 · 1 infra error · 1 skipped`. A
+ * canceled trial is recorded as a fail, but the agent didn't fail it, so it's named apart, and
+ * a best-of cell names the trials its majority made unneeded: `0 of 3 · 2 not needed (best of 5)`.
  */
 function cellCount(cell: CellResult): string {
   const canceled = canceledOf(cell)
@@ -197,23 +197,25 @@ const ERROR_KIND: Record<CellError['kind'], string> = {
 export const errorKind = (err: CellError) => ERROR_KIND[err.kind]
 
 export const errorText = (err: CellError) =>
-  `${clip(err.message, ASSERTION_MAX)}${err.attempts > 1 ? ` (${plural(err.attempts, 'run')})` : ''}`
+  `${clip(err.message, ASSERTION_MAX)}${err.trials > 1 ? ` (${plural(err.trials, 'trial')})` : ''}`
 
-/** A control with no environment of its own is the baseline the variants change. */
-const armOf = (cell: CellResult) =>
+/** A baseline with no environment of its own is the baseline the variants change. */
+const environmentOf = (cell: CellResult) =>
   cell.variant ?? (cell.environment === '-' ? 'baseline' : cell.environment)
 
-/** Each cell's label: the parts that vary between them (harness, arm, sandbox). */
-export function labeler(cells: CellResult[], parts: Array<'harness' | 'arm' | 'sandbox'>) {
+/** Each cell's label: the parts that vary between them (harness, environment, sandbox). */
+export function labeler(cells: CellResult[], parts: Array<'harness' | 'environment' | 'sandbox'>) {
   const vary = parts.filter((p) => {
     const of = (cell: CellResult) =>
-      p === 'harness' ? cell.harness : p === 'arm' ? armOf(cell) : cell.sandbox
+      p === 'harness' ? cell.harness : p === 'environment' ? environmentOf(cell) : cell.sandbox
     return new Set(cells.map(of)).size > 1
   })
   const used = vary.length ? vary : parts.slice(0, 1)
   return (cell: CellResult) =>
     used
-      .map((p) => (p === 'harness' ? cell.harness : p === 'arm' ? armOf(cell) : cell.sandbox))
+      .map((p) =>
+        p === 'harness' ? cell.harness : p === 'environment' ? environmentOf(cell) : cell.sandbox,
+      )
       .join(' · ')
 }
 
@@ -267,7 +269,7 @@ function checkMatrix(
   return table(items, width)
 }
 
-/** Tools, agent time and tokens per cell, when each has enough tries and it matters. */
+/** Tools, agent time and tokens per cell, when each has enough trials and it matters. */
 function effortTable(
   c: Colors,
   cells: CellResult[],
@@ -322,7 +324,7 @@ function effortTable(
 type BodyOptions = { failed: boolean; verbose: boolean; explained: Set<string> }
 
 /**
- * A variant's comparison with its control beyond pass rate: `5× faster · judge "tidy" +0.12`. Only
+ * A variant's comparison with its baseline beyond pass rate: `5× faster · judge "tidy" +0.12`. Only
  * the measures that hold; `verbose` adds the ones that only lean, each `(leans)`. A judged check
  * reads as its judge's score, not again as its pass rate.
  */
@@ -339,27 +341,32 @@ function versus(measures: readonly Measure[] | null, verbose: boolean): string {
     .join(' · ')
 }
 
-type Arm = { label: string; count: string; effect: Text; vs: string }
+type CompareEnvironment = { label: string; count: string; effect: Text; vs: string }
 
-/** An arms table's header and a row per arm, with a `vs control` column when some arm has one. */
-function armItems(c: Colors, indent: number, head: string, arms: Arm[]): Row[] {
-  const column = arms.some((a) => a.vs)
+/** An environments table's header and a row per environment, with a `vs baseline` column when some environment has one. */
+function environmentItems(
+  c: Colors,
+  indent: number,
+  head: string,
+  environments: CompareEnvironment[],
+): Row[] {
+  const column = environments.some((a) => a.vs)
   return [
-    { indent, cells: [head, t('pass', c.dim), ...(column ? ['', t('vs control', c.dim)] : [])] },
-    ...arms.map((a) => ({
+    { indent, cells: [head, t('pass', c.dim), ...(column ? ['', t('vs baseline', c.dim)] : [])] },
+    ...environments.map((a) => ({
       indent,
       cells: [a.label, a.count, ...(column ? [a.effect, a.vs] : a.effect.text ? [a.effect] : [])],
     })),
   ]
 }
 
-/** Measure a change: a row per arm with its effect, the check matrix and the effort table. */
+/** Measure a change: a row per environment with its effect, the check matrix and the effort table. */
 function measureBody(c: Colors, cells: CellResult[], indent: number, o: BodyOptions): string[] {
-  const label = labeler(cells, ['arm', 'sandbox'])
-  const [head, ...rows] = armItems(
+  const label = labeler(cells, ['environment', 'sandbox'])
+  const [head, ...rows] = environmentItems(
     c,
     indent,
-    'arm',
+    'environment',
     cells.map((cell) => ({
       label: label(cell),
       count: cellCount(cell),
@@ -367,14 +374,17 @@ function measureBody(c: Colors, cells: CellResult[], indent: number, o: BodyOpti
       vs: versus(cell.measures, o.verbose),
     })),
   )
-  const arms: Item[] = head ? [head] : []
+  const environments: Item[] = head ? [head] : []
   for (const [i, cell] of cells.entries()) {
     const row = rows[i]
-    if (row) arms.push(row)
+    if (row) environments.push(row)
     const stats = o.verbose ? statsLine(cell, cells) : null
-    if (stats) arms.push({ indent: indent + 2, free: t(stats, c.dim) })
+    if (stats) environments.push({ indent: indent + 2, free: t(stats, c.dim) })
     for (const err of o.explained.has(cell.key) ? [] : cell.errors) {
-      arms.push({ indent: indent + 2, free: t(`${errorKind(err)}  ${errorText(err)}`, c.dim) })
+      environments.push({
+        indent: indent + 2,
+        free: t(`${errorKind(err)}  ${errorText(err)}`, c.dim),
+      })
     }
   }
   const labels = [
@@ -383,13 +393,13 @@ function measureBody(c: Colors, cells: CellResult[], indent: number, o: BodyOpti
   ]
   const width = Math.max(LABEL, ...labels.map((l) => indent + l.length))
   return [
-    ...table(arms, width),
+    ...table(environments, width),
     ...checkMatrix(c, cells, label, indent, width),
     ...effortTable(c, cells, label, indent, o.failed, width),
   ]
 }
 
-/** Compare harnesses with arms: a heading per harness, its arms as Measure a change under it. */
+/** Compare harnesses with environments: a heading per harness, its environments as Measure a change under it. */
 function bothBody(c: Colors, cells: CellResult[], indent: number, o: BodyOptions): string[] {
   const harnessOf = labeler(cells, ['harness', 'sandbox'])
   const groups = new Map<string, CellResult[]>()
@@ -404,7 +414,7 @@ function bothBody(c: Colors, cells: CellResult[], indent: number, o: BodyOptions
 /** Free-text answers shown per question; the rest are in the record. */
 const ANSWERS_SHOWN = 3
 
-function attemptQuestionLines(c: Colors, q: AttemptQuestionResult, indent: number): string[] {
+function trialQuestionLines(c: Colors, q: TrialQuestionResult, indent: number): string[] {
   const pad = ' '.repeat(indent)
   const head = `${pad}${c.dim('question')}  ${clip(q.question, 100)}`
   const failed =
@@ -419,27 +429,27 @@ function attemptQuestionLines(c: Colors, q: AttemptQuestionResult, indent: numbe
   const rows = table(
     shown.map((a) => ({
       indent: indent + 2,
-      cells: [a.attempt, clip(a.text.replace(/\s+/g, ' '), 100)],
+      cells: [a.trial, clip(a.text.replace(/\s+/g, ' '), 100)],
     })),
   )
   const more = q.answers.length - shown.length
-  const rest = more ? [`${pad}  ${c.dim(`${more} more: reeval query attempt_answers`)}`] : []
+  const rest = more ? [`${pad}  ${c.dim(`${more} more: reeval query trial_answers`)}`] : []
   return [head, ...rows, ...rest, ...failed]
 }
 
 function questionLines(
   c: Colors,
-  questions: Array<QuestionResult | AttemptQuestionResult>,
+  questions: Array<QuestionResult | TrialQuestionResult>,
   indent: number,
 ): string[] {
   return questions.flatMap((q) => {
-    if (q.kind === 'attempts') return attemptQuestionLines(c, q, indent)
+    if (q.kind === 'trials') return trialQuestionLines(c, q, indent)
     const pad = ' '.repeat(indent)
     const head = `${pad}${c.dim('question')}  ${clip(q.question, 100)}`
     if (q.votes === 0 && q.error === null) {
       return [
         head,
-        `${pad}  ${c.dim('no pairs to judge: tries that failed their checks are left out')}`,
+        `${pad}  ${c.dim('no pairs to judge: trials that failed their checks are left out')}`,
       ]
     }
     if (q.rates.length === 0 && q.error === null) {
@@ -483,7 +493,7 @@ function observedLines(
       })),
     )
   }
-  const label = labeler(cells, ['harness', 'arm', 'sandbox'])
+  const label = labeler(cells, ['harness', 'environment', 'sandbox'])
   const byKey = new Map(cells.map((cell) => [cell.key, cell]))
   const names = [...new Set(tallies.map((o) => o.name))]
   return names.flatMap((name) => [
@@ -515,16 +525,21 @@ function pooledCount(cases: CaseResult[], key: string): string {
 /** A variant's effect, with the `minLift` its interval's low end fell short of, which fails it. */
 function gatedEffect(
   c: Colors,
-  arm: { effect: Effect | null; minLift: number | null; interval: Interval | null },
+  environment: { effect: Effect | null; minLift: number | null; interval: Interval | null },
 ): Text {
-  const effect = effectText(c, arm.effect)
-  if (arm.minLift === null || !arm.interval || arm.interval.low >= arm.minLift) return effect
-  const short = `not by minLift ${Math.round(arm.minLift * 100)}`
+  const effect = effectText(c, environment.effect)
+  if (
+    environment.minLift === null ||
+    !environment.interval ||
+    environment.interval.low >= environment.minLift
+  )
+    return effect
+  const short = `not by minLift ${Math.round(environment.minLift * 100)}`
   return t(effect.text ? `${effect.text}, ${short}` : short, c.red)
 }
 
 /** `-v`: a variant's paired lift over the cases and its interval. */
-const pairedStats = (p: PooledArm) =>
+const pairedStats = (p: PooledEnvironment) =>
   `paired over ${plural(p.pairs, 'case')}, 95% interval ${signedPoints(p.interval.low)}…${signedPoints(p.interval.high)} points`
 
 /**
@@ -544,12 +559,12 @@ function pooledBody(
   const columns = [
     ...new Map(cases.flatMap((k) => k.cells).map((cell) => [cell.key, cell])).values(),
   ]
-  const label = labeler(columns, ['harness', 'arm', 'sandbox'])
+  const label = labeler(columns, ['harness', 'environment', 'sandbox'])
   const byKey = new Map(pooled.map((p) => [p.key, p]))
-  const [head, ...rows] = armItems(
+  const [head, ...rows] = environmentItems(
     c,
     indent,
-    kind === 'agents' ? 'agent' : 'arm',
+    kind === 'agents' ? 'agent' : 'environment',
     columns.map((col) => {
       const p = byKey.get(col.key)
       return {
@@ -617,7 +632,7 @@ export function pageErrorLines(c: Colors, cells: CellResult[], indent: number): 
   return [`${' '.repeat(indent)}${c.yellow(head)} ${c.dim(`→ ${first.file}${more}`)}`]
 }
 
-/** Each attempt's workspace that wasn't kept, or was kept without a file, once per reason. */
+/** Each trial's workspace that wasn't kept, or was kept without a file, once per reason. */
 export const workspaceLines = (c: Colors, cells: CellResult[], indent: number): string[] =>
   [...new Set(cells.flatMap((cell) => cell.workspaceNotes ?? []))].map(
     (text) => `${' '.repeat(indent)}${c.yellow(text)}`,
@@ -660,7 +675,7 @@ const heads = (c: Colors, evals: EvalResult[]) =>
 function caseLines(c: Colors, e: EvalResult, cells: CellResult[], verbose: boolean): string[] {
   const byKey = new Map(cells.map((cell) => [cell.key, cell]))
   const target = cells.filter((cell) => e.scored.some((a) => a.cell === cell.key))
-  const label = labeler(target, ['harness', 'arm', 'sandbox'])
+  const label = labeler(target, ['harness', 'environment', 'sandbox'])
   const cellLabel = (key: string) => {
     const cell = byKey.get(key)
     return cell ? label(cell) : key
@@ -691,11 +706,11 @@ function caseLines(c: Colors, e: EvalResult, cells: CellResult[], verbose: boole
 }
 
 /**
- * A compare's arms, their failed checks and effort, pooled over the cases on a family; none for
- * an eval that compares nothing. Each arm lists the errors of its cells not in `explained`, which
+ * A compare's environments, their failed checks and effort, pooled over the cases on a family; none for
+ * an eval that compares nothing. Each environment lists the errors of its cells not in `explained`, which
  * the case rows above it already show.
  */
-export function armLines(
+export function environmentLines(
   c: Colors,
   e: EvalResult,
   verbose: boolean,
@@ -713,7 +728,7 @@ export function armLines(
 }
 
 /**
- * The lines under an eval's head: its cases on a miss (`expands`), a compare's arms (pooled over
+ * The lines under an eval's head: its cases on a miss (`expands`), a compare's environments (pooled over
  * the cases on a family), then what else it recorded. `loose` when it has more than case rows,
  * so a blank line sets it apart.
  */
@@ -723,7 +738,7 @@ function evalBody(c: Colors, e: EvalResult, verbose: boolean): { lines: string[]
   const cells = [...new Map(all.map((cell) => [cell.key, cell])).values()]
   const rows = expands(e, verbose) || notRunCases(e).length ? caseLines(c, e, cells, verbose) : []
   const explained = new Set(rows.length ? e.scored.map((a) => a.cell) : [])
-  const arms = armLines(c, e, verbose, explained, 2)
+  const environments = environmentLines(c, e, verbose, explained, 2)
   const extras = [
     ...questionLines(c, e.questions, 2),
     ...(e.family ? [] : observedLines(c, e.observations, cells, 2)),
@@ -731,13 +746,13 @@ function evalBody(c: Colors, e: EvalResult, verbose: boolean): { lines: string[]
   return {
     lines: [
       ...rows,
-      ...arms,
+      ...environments,
       ...upstreamLines(c, all, 2),
       ...pageErrorLines(c, all, 2),
       ...workspaceLines(c, all, 2),
       ...extras,
     ],
-    loose: arms.length + extras.length > 0,
+    loose: environments.length + extras.length > 0,
   }
 }
 

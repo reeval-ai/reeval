@@ -1,4 +1,4 @@
-// What `tart()` clones, before any attempt: `reeval run` refuses an image Tart doesn't have, and
+// What `tart()` clones, before any trial: `reeval run` refuses an image Tart doesn't have, and
 // `reeval image build` pulls it (with progress, room for it checked first, and no Docker), on a
 // fake `tart` and a fake registry that answers as ghcr.io does, with a token.
 import assert from 'node:assert/strict'

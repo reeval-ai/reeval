@@ -1,7 +1,7 @@
 // Tart images with a harness baked in: preflight boots the image `tart()` names once, installs the
 // pinned pnpm and the harness's CLI with the same bootstrap Docker's images bake, and keeps the
-// stopped VM as a local Tart image that each attempt clones (copy-on-write on APFS). The
-// bootstrap's marker is in that image, so an attempt's harness finds its CLI and skips the install.
+// stopped VM as a local Tart image that each trial clones (copy-on-write on APFS). The
+// bootstrap's marker is in that image, so a trial's harness finds its CLI and skips the install.
 import { randomBytes } from 'node:crypto'
 import { posix } from 'node:path'
 import { bakeKey, PNPM_VERSION } from '@reeval/sandbox-docker'

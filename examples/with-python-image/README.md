@@ -25,7 +25,7 @@ claude-code` runs the same eval on Claude Code, and `--profile <name>` on any ot
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** the first run prepares the image before any attempt starts, and the cell is
+**What to look at:** the first run prepares the image before any trial starts, and the cell is
 named after the sandbox's `id`:
 
 ```text
@@ -37,7 +37,7 @@ named after the sandbox's `id`:
   ◆  Running...
 
 with-python-image.eval.ts
-  · with-python-image  mean 100% · 1/1 run at 100% (pass@1)  capability(1)
+  · with-python-image  mean 100% · 1/1 trial at 100% (pass@1)  capability(1)
 ```
 
 `pnpm reeval image build --dry-run` then shows the image reeval built on the tag's digest:

@@ -1,4 +1,4 @@
-// `reeval/provider/boat`: boat.dev machines that run each attempt's sandbox. This module only
+// `reeval/provider/boat`: boat.dev machines that run each trial's sandbox. This module only
 // describes them; the Boat SDK (`@boatdev/sdk`, an optional peer) loads in the worker that starts
 // one.
 import {
@@ -41,7 +41,7 @@ export function createBoat(
 
 /**
  * boat.dev machines, on the account whose key is in `BOAT_API_KEY`, as the config's or a
- * profile's `provider`. Each attempt runs in a container of its `docker()` sandbox's image on a
+ * profile's `provider`. Each trial runs in a container of its `docker()` sandbox's image on a
  * machine, where every egress policy is enforced; credentials stay on the host behind the egress
  * gateway. Preflight builds the image once into a Boat saved snapshot. Needs `npm i @boatdev/sdk`.
  */

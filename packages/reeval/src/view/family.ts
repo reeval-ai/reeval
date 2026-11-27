@@ -29,16 +29,16 @@ const VERDICT_NOTE: Record<FamilyLift['verdict'], string> = {
 
 /**
  * `pass@1 88% vs 20%  lift +68 pts (95% +40…+82, paired, 18 vs 1 discordant, p <0.001)`. At
- * one attempt a case, the counts are the discordant pairs; at several, the paired cases.
+ * one trial a case, the counts are the discordant pairs; at several, the paired cases.
  */
 export function familyLiftLabel(lift: FamilyLift): string {
   const { interval: i } = lift
   const range = `95% ${signed(i.lo)}…${signed(i.hi)}`
   const pairs = lift.discordant
-    ? `${lift.discordant.variantOnly} vs ${lift.discordant.controlOnly} discordant`
+    ? `${lift.discordant.variantOnly} vs ${lift.discordant.baselineOnly} discordant`
     : `${lift.pairs} cases`
   const p = lift.p === null ? '' : `, p ${pValue(lift.p)}`
-  const rates = `pass@1 ${pct(lift.variantRate)} vs ${pct(lift.controlRate)}`
+  const rates = `pass@1 ${pct(lift.variantRate)} vs ${pct(lift.baselineRate)}`
   return `${rates}  lift ${signed(lift.points)} pts (${range}, paired, ${pairs}${p})${VERDICT_NOTE[lift.verdict]}`
 }
 
@@ -51,7 +51,7 @@ const metricText = (name: string, m: FamilyEffortMetric | undefined) =>
 
 /**
  * `tools ×0.41 per case (fewer, signed-rank p 0.002) · agent time ×0.80 per case (noise, …)`;
- * a metric whose control median is 0 has no ratio and is left out.
+ * a metric whose baseline median is 0 has no ratio and is left out.
  */
 export function familyEffortLabel(lift: FamilyLift): string | null {
   const e = lift.effort

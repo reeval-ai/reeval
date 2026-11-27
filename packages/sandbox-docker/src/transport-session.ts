@@ -17,7 +17,7 @@ export type HostCommand = { argv: string[]; input: string | Uint8Array }
  * machines. `exec` numbers each command, so {@link SessionShell.kill} can find what it started.
  */
 export type SessionShell = {
-  /** Runs a host program to its end, into the attempt's trace. */
+  /** Runs a host program to its end, into the trial's trace. */
   run(
     argv: readonly string[],
     o: { input?: string | Uint8Array; signal?: AbortSignal | undefined },

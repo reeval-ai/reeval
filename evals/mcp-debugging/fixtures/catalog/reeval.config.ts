@@ -6,7 +6,7 @@ import { fakeSandbox } from 'reeval/sandbox'
 
 const write = JSON.stringify(join(import.meta.dirname, 'agent/write.mjs'))
 
-// What a chatty agent says when it's done: every attempt ends with a long summary.
+// What a chatty agent says when it's done: every trial ends with a long summary.
 const summary = Array.from(
   { length: 12 },
   (_, i) =>

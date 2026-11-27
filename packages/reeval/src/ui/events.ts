@@ -3,11 +3,11 @@
 import type { RunRecord, SecretWarning } from '../history/types.ts'
 import type { PrepareTarget } from '../sandbox/preflight.ts'
 import type { PrepareFailure } from '../sandbox/provider.ts'
-import type { AttemptMeta, EvalMeta, SandboxWarning, TurnStatus } from '../types.ts'
+import type { EvalMeta, SandboxWarning, TrialMeta, TurnStatus } from '../types.ts'
 import type { DebugLine } from '../view/debug.ts'
 import type { RunRemarks } from '../view/remarks.ts'
 
-/** One attempt's result. `id` is the eval's; `key` is unique per attempt. */
+/** One trial's result. `id` is the eval's; `key` is unique per trial. */
 export type EvalResult = {
   id: string
   key: string
@@ -15,8 +15,8 @@ export type EvalResult = {
   /** Enclosing group names, outermost first. */
   group: string[]
   name: string
-  /** Absent when the engine did not register an attempt for this result. */
-  attempt?: AttemptMeta
+  /** Absent when the engine did not register a trial for this result. */
+  trial?: TrialMeta
   state: 'passed' | 'failed' | 'skipped'
   durationMs: number
   errors: string[]
@@ -29,7 +29,7 @@ export type EvalResult = {
   todo?: true
   /**
    * Declared not to run: `.skip`, inside a `group.skip`, or left out by an `.only` in its file.
-   * Unset on an attempt a resume skips because it already completed.
+   * Unset on a trial a resume skips because it already completed.
    */
   skip?: true
 }
@@ -78,7 +78,7 @@ export type ProgressUpdate =
   /** A grader's result once the task returned; `score` is null for a grade that records only. */
   | { kind: 'grade-end'; grader: string; score: number | null; error?: string; ms: number }
   | { kind: 'cleanup' }
-  /** Something the attempt did that reeval stopped or changed, e.g. a refused brokered request. */
+  /** Something the trial did that reeval stopped or changed, e.g. a refused brokered request. */
   | { kind: 'warning'; text: string }
   /** A brokered secret's placeholder sent where it isn't swapped in; the CLI sends it on as a `secret-warning`. */
   | ({ kind: 'secret-warning' } & SecretWarning)
@@ -94,15 +94,15 @@ export type ProgressUpdate =
 /** A progress update stamped with the worker's clock (epoch ms). */
 export type Progress = { at: number } & ProgressUpdate
 
-/** One collected attempt. */
+/** One collected trial. */
 export type CollectedEval = {
   id: string
   key: string
   group: string[]
   name: string
   skipped: boolean
-  /** The attempt as planned: its cell and run, and on an eval with `cases`, its `family`. */
-  attempt?: AttemptMeta | undefined
+  /** The trial as planned: its cell and run, and on an eval with `cases`, its `family`. */
+  trial?: TrialMeta | undefined
 }
 
 /** What the plan line says, as the facts a terminal's run header lists one per line. */
@@ -110,9 +110,9 @@ export type RunHeader = {
   version: string
   runId: string
   dryRun: boolean
-  /** Attempts already completed in the run this one resumes. */
+  /** Trials already completed in the run this one resumes. */
   resumed?: number
-  /** Attempts it runs again after an infra error. */
+  /** Trials it runs again after an infra error. */
   retried?: number
   /** The config file, when it isn't in the current directory. */
   config?: string
@@ -121,20 +121,20 @@ export type RunHeader = {
   /** The effort each harness runs at, by id (its level, `none` or `not checked`); unset with only the fake harness. */
   efforts?: Record<string, string>
   sandboxes: string[]
-  /** The judge models the planned attempts use. */
+  /** The judge models the planned trials use. */
   judges: string[]
   files: number
   evals: number
   /** Evals planned but skipped. */
   skipped: number
   cells: number
-  /** The most attempts the plan may start, and the fewest it starts (below with best-of). */
-  attempts: number
+  /** The most trials the plan may start, and the fewest it starts (below with best-of). */
+  trials: number
   fewest: number
-  budget: { attempts?: number; duration?: string }
-  /** Serial: every attempt one after another. */
+  budget: { trials?: number; duration?: string }
+  /** Serial: every trial one after another. */
   estimateMs: number
-  /** How many attempts run at once, below `concurrency` when a sandbox provider caps it. */
+  /** How many trials run at once, below `concurrency` when a sandbox provider caps it. */
   parallel?: number
   concurrency: number
   /** Where the run's record lands; unset for `--dry-run`. */
@@ -156,8 +156,8 @@ export type PrepareView =
   /** The machine image a sandbox starts from: found saved, or being built. */
   | { state: 'image'; target: PrepareTargetView; image: { name: string; cached: boolean } }
 
-/** What a line about an attempt needs to name it. */
-export type AttemptRef = { id: string; key: string; attempt?: AttemptMeta }
+/** What a line about a trial needs to name it. */
+export type TrialRef = { id: string; key: string; trial?: TrialMeta }
 
 export type ReevalEvent =
   | {
@@ -167,7 +167,7 @@ export type ReevalEvent =
       files: number
       harness: string
       sandbox: string
-      /** How many attempts run at once. */
+      /** How many trials run at once. */
       concurrency: number
       runId: string
     }
@@ -188,11 +188,11 @@ export type ReevalEvent =
       hints: string[]
       sandboxWarnings?: SandboxWarning[]
     }
-  /** Every attempt in a file, once it's collected (skipped ones too, so tags are stable). */
+  /** Every trial in a file, once it's collected (skipped ones too, so tags are stable). */
   | { type: 'collected'; at: number; file: string; evals: CollectedEval[] }
-  | ({ type: 'eval-start'; at: number } & AttemptRef)
+  | ({ type: 'eval-start'; at: number } & TrialRef)
   | { type: 'eval-progress'; key: string; progress: Progress }
-  /** A `-v` (level 1) or `-vv` (level 2) debug line from an attempt, as it happens. */
+  /** A `-v` (level 1) or `-vv` (level 2) debug line from a trial, as it happens. */
   | { type: 'debug'; key: string; line: DebugLine }
   /** User `console.log`/`console.error` output; `key` is unset for output outside an eval. */
   | { type: 'log'; at: number; key?: string; stream: 'stdout' | 'stderr'; text: string }
@@ -200,10 +200,10 @@ export type ReevalEvent =
   /** Preflight preparing the sandboxes: the list, then each one ready or failed. */
   | ({ type: 'prepare'; at: number } & PrepareView)
   /**
-   * A brokered secret's placeholder an attempt sent where its value isn't swapped in, once per
-   * attempt, secret, host and reason. `attemptId` is the attempt's `key`.
+   * A brokered secret's placeholder a trial sent where its value isn't swapped in, once per
+   * trial, secret, host and reason. `trialId` is the trial's `key`.
    */
-  | ({ type: 'secret-warning'; at: number; attemptId: string } & SecretWarning)
+  | ({ type: 'secret-warning'; at: number; trialId: string } & SecretWarning)
   /** A run-level message, e.g. the Ctrl-C notice. */
   | { type: 'notice'; at: number; level: 'info' | 'warn' | 'error'; text: string }
   | {
@@ -216,7 +216,7 @@ export type ReevalEvent =
       results: EvalResult[]
       /** The run's remarks, or null when it raised none. */
       remarks?: RunRemarks | null
-      /** Attempts the run planned that this resume's filters left out and that aren't done. */
+      /** Trials the run planned that this resume's filters left out and that aren't done. */
       notRun?: number
       /**
        * Where the run was recorded, when it was (`--record`, `record: 'always'` or `'ci'`), as

@@ -1,7 +1,7 @@
-no profile · 3 evals · 4 cells · 12 attempts
-hint: 1 compare runs 3 times per cell; below 4 runs a side its lift shows only a direction and its effort can't be tested (runs: 4)
-compared             staging/plain/fake    control          ungated    ×3
+no profile · 3 evals · 4 cells · 12 trials
+hint: 1 compare runs 3 times per cell; below 4 trials a side its lift shows only a direction and its effort can't be tested (trials: 4)
+compared             staging/plain/fake    baseline         ungated    ×3
                      staging/skilled/fake  variant skilled  gated any  ×3
-inherits             staging/-/fake        control          gated any  ×3
-slow [nightly-only]  staging/-/fake        control          gated any  ×3
+inherits             staging/-/fake        baseline         gated any  ×3
+slow [nightly-only]  staging/-/fake        baseline         gated any  ×3
 excluded: —

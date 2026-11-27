@@ -1,4 +1,4 @@
-import { type AttemptContext, defineEnvironment } from 'reeval'
+import { defineEnvironment, type TrialContext } from 'reeval'
 import { docker, fakeSandbox, podman } from 'reeval/sandbox'
 
 /** The Docker and Podman tiers run the same containers. */
@@ -29,7 +29,7 @@ const SKILL = '~/.agents/skills/house-greeting'
 const listModes = `stat -c '%a %n' . conf conf/app.json ${SKILL} ${SKILL}/SKILL.md out out/log made made/by-agent notes notes/today.md`
 
 /** `<mode> <path>` of each of those that's group- or world-writable. */
-export async function writable(c: AttemptContext): Promise<string[]> {
+export async function writable(c: TrialContext): Promise<string[]> {
   const r = await c.exec(listModes)
   if (r.exitCode !== 0) throw new Error(`stat failed: ${r.stderr}`)
   return r.stdout

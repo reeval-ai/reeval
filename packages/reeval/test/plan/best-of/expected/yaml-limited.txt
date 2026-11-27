@@ -1,9 +1,9 @@
-profile pr (--profile) · 5 evals · 5 cells · 12–14 attempts
-best-of-3        a/-/docker  control  gated passRate 0.5  best of 3
-best-of-5-gated  a/-/docker  control  gated               ×3         target regression(1) · runs best of 5 → 3 (profile pr)
-fixed            a/-/docker  control  gated any           ×3         runs best of 5 → 3 (profile pr)
-inherits-it      a/-/docker  control  gated passRate 0.5  best of 3
-runs-2           a/-/docker  control  gated any           ×2
+profile pr (--profile) · 5 evals · 5 cells · 12–14 trials
+best-of-3        a/-/docker  baseline  gated passRate 0.5  best of 3
+best-of-5-gated  a/-/docker  baseline  gated               ×3         target regression(1) · trials best of 5 → 3 (profile pr)
+fixed            a/-/docker  baseline  gated any           ×3         trials best of 5 → 3 (profile pr)
+inherits-it      a/-/docker  baseline  gated passRate 0.5  best of 3
+trials-2         a/-/docker  baseline  gated any           ×2
 excluded: —
 image docker · cursor · 5 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

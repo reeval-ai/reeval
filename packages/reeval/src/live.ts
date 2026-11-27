@@ -10,17 +10,17 @@ import type { EvalResult } from './ui/events.ts'
 import {
   LIVE_FILE,
   LIVE_SCHEMA_VERSION,
-  type LiveAttempt,
   type LivePhase,
   type LiveProgress,
   type LiveStatus,
+  type LiveTrial,
   liveCounts,
 } from './view/live.ts'
 
 /** How often a live run rewrites its heartbeat; the studio calls it stopped after a few misses. */
 export const HEARTBEAT_MS = 2000
 
-/** An attempt a resume keeps from earlier in the run, as it finished then. */
+/** A trial a resume keeps from earlier in the run, as it finished then. */
 export type LiveKept = {
   outcome: 'pass' | 'fail' | 'infra_error'
   startedAt: string | null
@@ -32,9 +32,9 @@ export type LiveProgressOptions = {
   runId: string
   startedAt: Date
   planned: PlannedItem[]
-  /** By attempt key: a resume plans these skipped, but they show as they finished. */
+  /** By trial key: a resume plans these skipped, but they show as they finished. */
   kept?: ReadonlyMap<string, LiveKept>
-  /** Attempts the run planned that this resume leaves out: kept, as not run unless done. */
+  /** Trials the run planned that this resume leaves out: kept, as not run unless done. */
   leftOut?: readonly LeftOut[]
   invocation?: RunInvocation
   /** The event stream file, as {@link LiveProgress}'s `events` names it. */
@@ -109,7 +109,7 @@ export function writeLiveProgress(options: LiveProgressOptions): LiveProgressWri
   const file = join(options.dir, LIVE_FILE)
   const tmp = `${file}.${process.pid}.tmp`
   const kept = options.kept ?? new Map<string, LiveKept>()
-  const attempts = new Map<string, LiveAttempt>(
+  const trials = new Map<string, LiveTrial>(
     options.planned.map((p) => {
       const was = kept.get(p.key)
       return [
@@ -117,11 +117,11 @@ export function writeLiveProgress(options: LiveProgressOptions): LiveProgressWri
         {
           key: p.key,
           evalId: p.id,
-          name: p.attempt.name,
+          name: p.trial.name,
           file: p.file,
-          cell: p.attempt.cell.key,
-          n: p.attempt.n,
-          status: was?.outcome ?? (p.attempt.skip || p.attempt.plan.skip ? 'skipped' : 'queued'),
+          cell: p.trial.cell.key,
+          n: p.trial.n,
+          status: was?.outcome ?? (p.trial.skip || p.trial.plan.skip ? 'skipped' : 'queued'),
           startedAt: was?.startedAt ?? null,
           durationMs: was?.durationMs ?? null,
         },
@@ -129,9 +129,9 @@ export function writeLiveProgress(options: LiveProgressOptions): LiveProgressWri
     }),
   )
   for (const l of options.leftOut ?? []) {
-    if (attempts.has(l.key)) continue
+    if (trials.has(l.key)) continue
     const was = kept.get(l.key)
-    attempts.set(l.key, {
+    trials.set(l.key, {
       key: l.key,
       evalId: l.evalId,
       name: l.name,
@@ -147,7 +147,7 @@ export function writeLiveProgress(options: LiveProgressOptions): LiveProgressWri
   let stopped = false
 
   const read = (): LiveProgress => {
-    const list = [...attempts.values()]
+    const list = [...trials.values()]
     return {
       schemaVersion: LIVE_SCHEMA_VERSION,
       runId: options.runId,
@@ -158,7 +158,7 @@ export function writeLiveProgress(options: LiveProgressOptions): LiveProgressWri
       phase,
       planned: list.length,
       counts: liveCounts(list),
-      attempts: list,
+      trials: list,
       ...(options.invocation ? { invocation: options.invocation } : {}),
       ...(options.events ? { events: options.events } : {}),
     }
@@ -184,14 +184,14 @@ export function writeLiveProgress(options: LiveProgressOptions): LiveProgressWri
   }
   return {
     start(key, at) {
-      const a = attempts.get(key)
+      const a = trials.get(key)
       if (!a) return
       a.status = 'running'
       a.startedAt = new Date(at).toISOString()
       write()
     },
     end(result) {
-      const a = attempts.get(result.key)
+      const a = trials.get(result.key)
       if (!a || (kept.has(result.key) && result.state === 'skipped')) return
       a.status = finished(result)
       a.durationMs = result.durationMs

@@ -1,5 +1,5 @@
 {"case":"files","about":"writeFile in utf8 and base64, under the workspace and ~/, readFile of a file and of none, and a path reeval refuses","options":{}}
-{"reeval":{"type":"start","attempt":{"id":"fake/-/fake#1","cell":{"key":"fake/-/fake","harness":"fake","environment":"-","sandbox":"fake","role":"control"},"n":1},"file":"evals/files.eval.ts","body":"b1"}}
+{"reeval":{"type":"start","trial":{"id":"fake/-/fake#1","cell":{"key":"fake/-/fake","harness":"fake","environment":"-","sandbox":"fake","role":"baseline"},"n":1},"file":"evals/files.eval.ts","body":"b1"}}
 {"runner":{"id":"1","call":{"op":"writeFile","path":"notes/todo.md","contents":"- buy milk\n"}}}
 {"reeval":{"id":"1","ok":true,"op":"writeFile"}}
 {"runner":{"id":"2","call":{"op":"readFile","path":"notes/todo.md"}}}

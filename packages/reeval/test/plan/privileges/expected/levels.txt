@@ -1,16 +1,16 @@
-no profile · 7 evals · 7 cells · 7 attempts
+no profile · 7 evals · 7 cells · 7 trials
 WARNING: running as root in the sandbox: evals/installs-deps.eval.ts (docker({ root: true })) [eval evals/installs-deps.eval.ts]
 WARNING: running as root in the sandbox: evals/installs-packages.eval.ts (docker({ root: true })) [eval evals/installs-packages.eval.ts]
 warning: host devices in the sandbox: evals/boots-emulator.eval.ts (docker({ devices: ['kvm'] })) [eval evals/boots-emulator.eval.ts]
 warning: extra capabilities in the sandbox: evals/installs-deps.eval.ts (docker({ capabilities: ['NET_ADMIN'] })) [eval evals/installs-deps.eval.ts]
 warning: extra capabilities in the sandbox: reeval.config.ts (docker({ capabilities: ['NET_RAW'] })) [config]
-boots-emulator      fake/kvm/docker    control  gated any  ×1
-fake-sandbox        fake/host/fake     control  gated any  ×1
-installs-deps       fake/deps/docker   control  gated any  ×1
-installs-packages   fake/pkgs/docker   control  gated any  ×1
-pings-a-host        fake/net/docker    control  gated any  ×1
-stays-unprivileged  fake/plain/docker  control  gated any  ×1
-traces-a-route      fake/net/docker    control  gated any  ×1
+boots-emulator      fake/kvm/docker    baseline  gated any  ×1
+fake-sandbox        fake/host/fake     baseline  gated any  ×1
+installs-deps       fake/deps/docker   baseline  gated any  ×1
+installs-packages   fake/pkgs/docker   baseline  gated any  ×1
+pings-a-host        fake/net/docker    baseline  gated any  ×1
+stays-unprivileged  fake/plain/docker  baseline  gated any  ×1
+traces-a-route      fake/net/docker    baseline  gated any  ×1
 excluded: —
 image docker · cursor · 6 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)

@@ -2,7 +2,7 @@
 // reeval reads the file once as it starts, before it loads a config, and deletes it. A `readable`
 // value goes into the environment as a variable would; a `brokered`, `filled` or `sandbox` one is
 // held here, out of every environment, and the environment gets a placeholder in its place, so the
-// eval code reads a placeholder. An attempt's worker asks the main process for the held values over
+// eval code reads a placeholder. A trial's worker asks the main process for the held values over
 // the run's service channel, and the environment's `secret()`s take them from there: a brokered one
 // reaches only the egress gateway, which swaps it in on its hosts, a filled one too, with the
 // requests it's swapped into sent to the file's filler, and a sandbox one only the agent's sandbox.

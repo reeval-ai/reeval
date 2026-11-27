@@ -26,7 +26,7 @@ const GOLDEN_DIR = join(import.meta.dirname, 'fixtures/atif')
 const ENTRIES = ['real-harnesses', 'before-subagents', 'real-contract']
 const update = process.env.REEVAL_UPDATE_SNAPSHOTS === '1'
 
-/** Each attempt with a trajectory in an entry's runs, with its golden's path and its export. */
+/** Each trial with a trajectory in an entry's runs, with its golden's path and its export. */
 function exports(entry: string) {
   const history = join(CORPUS_DIR, entry, HISTORY_DIR)
   return readdirSync(history)
@@ -34,7 +34,7 @@ function exports(entry: string) {
     .flatMap((f) => {
       const run = readableRecord(JSON.parse(readFileSync(join(history, f), 'utf8')) as RunRecord)
       return run.evals.flatMap((e) =>
-        e.attempts.flatMap((a) => {
+        e.trials.flatMap((a) => {
           const path = a.files.trajectory?.path
           if (!path) return []
           const lines = parseTrajectory(readFileSync(join(history, run.runId, path), 'utf8'))
@@ -75,9 +75,9 @@ describe('toAtif', () => {
     const history = join(CORPUS_DIR, 'with-decisions', HISTORY_DIR)
     const file = readdirSync(history).find((f) => f.endsWith('.json')) as string
     const run = readableRecord(JSON.parse(readFileSync(join(history, file), 'utf8')) as RunRecord)
-    const attempts = run.evals.flatMap((e) => e.attempts)
-    assert.equal(attempts.length, 2)
-    for (const a of attempts) {
+    const trials = run.evals.flatMap((e) => e.trials)
+    assert.equal(trials.length, 2)
+    for (const a of trials) {
       const path = a.files.trajectory?.path as string
       const lines = parseTrajectory(readFileSync(join(history, run.runId, path), 'utf8'))
       assert.ok(
@@ -121,7 +121,7 @@ describe('toAtif', () => {
 
   test('turns, errors, web and edit calls, LLM calls, a bare input, and a subagent nested in a silent one', () => {
     const usage = (n: number) => ({ input: n, output: 1, cacheRead: 0, cacheWrite: 0 })
-    const attempt = {
+    const trial = {
       key: 'e#cell#1',
       cell: 'cell',
       imageId: 'img',
@@ -140,7 +140,7 @@ describe('toAtif', () => {
     const run = {
       runId: 'r',
       stack: { images: [{ id: 'img', agentCli: '1.0' }] },
-      evals: [{ cells: [{ key: 'cell', harnessKind: 'k', model: 'm' }], attempts: [attempt] }],
+      evals: [{ cells: [{ key: 'cell', harnessKind: 'k', model: 'm' }], trials: [trial] }],
     }
     const ts = '2026-01-01T00:00:00.000Z'
     const at = (turn: number, line: Record<string, unknown>) => ({ turn, ts, atMs: 0, ...line })
@@ -170,7 +170,7 @@ describe('toAtif', () => {
     ]
     const t = toAtif(
       structuredClone(run) as unknown as RunRecord,
-      structuredClone(attempt) as unknown as RunRecord['evals'][number]['attempts'][number],
+      structuredClone(trial) as unknown as RunRecord['evals'][number]['trials'][number],
       lines as never,
     )
     const parsed = trajectorySchema.safeParse(JSON.parse(JSON.stringify(t)))
@@ -203,12 +203,12 @@ describe('toAtif', () => {
       .filter((l) => l.type !== 'model-call')
       .map((l) => (l.type === 'web-search' ? { ...l, step: 2 } : l))
     assert.deepEqual(
-      toAtif(run as unknown as RunRecord, attempt as never, stepped as never)
+      toAtif(run as unknown as RunRecord, trial as never, stepped as never)
         .steps.filter((s) => s.source === 'agent')
         .map((s) => s.llm_call_count),
       [2, undefined, undefined],
     )
-    const uncounted = { ...structuredClone(attempt), activity: { llmCalls: null } }
+    const uncounted = { ...structuredClone(trial), activity: { llmCalls: null } }
     const none = toAtif(run as unknown as RunRecord, uncounted as never, lines as never)
     assert.ok(none.steps.every((s) => s.llm_call_count === undefined))
     const [a] = t.subagent_trajectories ?? []
@@ -309,7 +309,7 @@ describe('the ATIF schema', () => {
 })
 
 describe('exports in the config', () => {
-  test("writes each attempt's atif.json beside its trajectory, kept in the history", async () => {
+  test("writes each trial's atif.json beside its trajectory, kept in the history", async () => {
     const p = await project('config-exports', {
       'reeval.config.ts': fakeConfig({
         extra: "exports: ['atif'], record: 'always', history: { artifacts: 'all' },",
@@ -327,18 +327,15 @@ export default defineEval({
     const history = join(p.dir, HISTORY_DIR)
     const [file] = readdirSync(history).filter((f) => f.endsWith('.json'))
     const record = JSON.parse(readFileSync(join(history, file as string), 'utf8')) as RunRecord
-    const [attempt] = record.evals.flatMap((e) => e.attempts)
-    const ref = attempt?.files.atif
-    assert.equal(
-      ref?.path,
-      attempt?.files.trajectory?.path.replace('trajectory.jsonl', 'atif.json'),
-    )
+    const [trial] = record.evals.flatMap((e) => e.trials)
+    const ref = trial?.files.atif
+    assert.equal(ref?.path, trial?.files.trajectory?.path.replace('trajectory.jsonl', 'atif.json'))
     const trajectory = JSON.parse(readFileSync(join(history, record.runId, ref.path), 'utf8'))
     const parsed = trajectorySchema.safeParse(trajectory)
     assert.ok(parsed.success, JSON.stringify(parsed.error?.issues, null, 2))
     assert.equal(parsed.data.session_id, record.runId)
 
-    // At the default `evidence` level a passing attempt keeps neither its trajectory nor its export.
+    // At the default `evidence` level a passing trial keeps neither its trajectory nor its export.
     writeFileSync(
       join(p.dir, 'reeval.config.ts'),
       fakeConfig({ extra: "exports: ['atif'], record: 'always'," }),
@@ -348,13 +345,13 @@ export default defineEval({
     const runs = readdirSync(history).filter((f) => f.endsWith('.json') && f !== file)
     const [kept] = (
       JSON.parse(readFileSync(join(history, runs[0] as string), 'utf8')) as RunRecord
-    ).evals.flatMap((e) => e.attempts)
+    ).evals.flatMap((e) => e.trials)
     assert.deepEqual([kept?.files.trajectory, kept?.files.atif], [undefined, undefined])
   })
 })
 
 describe('reeval export', () => {
-  test("writes the run's archive, or an ATIF trajectory per attempt", async () => {
+  test("writes the run's archive, or an ATIF trajectory per trial", async () => {
     const p = await project('export', { 'reeval.config.ts': fakeConfig() })
     cpSync(join(CORPUS_DIR, 'real-harnesses', HISTORY_DIR), join(p.dir, HISTORY_DIR), {
       recursive: true,
@@ -394,6 +391,6 @@ describe('reeval export', () => {
     }
     const none = await runCli(p.dir, ['export', runId, '--format', 'atif', '--out', 'none'])
     assert.equal(none.code, 2)
-    assert.match(none.stderr, /kept no trajectory for any attempt/)
+    assert.match(none.stderr, /kept no trajectory for any trial/)
   })
 })

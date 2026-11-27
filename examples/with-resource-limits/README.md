@@ -3,7 +3,7 @@
 **Shows:** the container's memory, swap, CPU and process limits. The environment's `docker({ memory:
 '1g', swap: 0, cpus: 1, pids: 256 })` runs the agent on a smaller machine than the defaults (4g, 2
 CPUs, 1024 processes), and the task observes the cgroup's memory limit for an `observed` grader. A
-process that goes past it is killed, and the attempt is an infra error, whatever its graders said.
+process that goes past it is killed, and the trial is an infra error, whatever its graders said.
 
 **Needs:** Docker on cgroup v2, even for the fake agent, since the task reads
 `/sys/fs/cgroup/memory.max` (`docker info` says `Cgroup Version: 2`); in this repo, run `pnpm
@@ -35,8 +35,8 @@ with-resource-limits.eval.ts
     #1  infra error  out of memory: 1 process killed at the 1g limit; raise docker({ memory })
 ```
 
-reeval reads the container's out-of-memory kills at teardown and records them in the attempt's
-`error.resource`; `reeval query "SELECT attempt_key, oom_kills FROM failing_attempts"` lists them.
+reeval reads the container's out-of-memory kills at teardown and records them in the trial's
+`error.resource`; `reeval query "SELECT trial_key, oom_kills FROM failing_trials"` lists them.
 The limits set how the container runs, not what's in its image, so changing them never rebuilds
 one.
 

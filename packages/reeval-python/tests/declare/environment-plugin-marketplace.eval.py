@@ -12,7 +12,7 @@ listed = define_environment(
 
 
 def marketplace_plugins():
-    @evaluate("entries read at the attempt")
+    @evaluate("entries read at the trial")
     def entries(c): ...
 
 

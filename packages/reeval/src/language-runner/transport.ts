@@ -198,4 +198,4 @@ export function errorFrom(wire: WireError): Error {
   return error
 }
 
-export { isRunnerAttemptDone, isRunnerAttemptRequest, isSessionFrom } from './protocol.ts'
+export { isRunnerTrialDone, isRunnerTrialRequest, isSessionFrom } from './protocol.ts'

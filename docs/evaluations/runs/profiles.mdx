@@ -15,9 +15,9 @@ import { defineConfig } from '{{ pkg }}'
 export default defineConfig({
   defaultProfile: { ci: 'pr' },
   profiles: {
-    pr: { limit: { runs: 1 }, budget: { attempts: 10 } },
+    pr: { limit: { trials: 1 }, budget: { trials: 10 } },
     nightly: {
-      defaults: { runs: 4 },
+      defaults: { trials: 4 },
       record: 'always',
       budget: { duration: '2h' },
     },
@@ -27,7 +27,7 @@ export default defineConfig({
 
 For a runnable project, see [`with-profiles`](https://github.com/reeval-ai/reeval/tree/main/examples/with-profiles). For one profile per harness, each in Docker with its own judge, see the examples' shared [`profiles.ts`](https://github.com/reeval-ai/reeval/blob/main/examples/profiles.ts).
 
-An evaluation that sets its own `runs` keeps it over the profile's `defaults`. For more information about the order, see [The cascade](/reference/options#the-cascade).
+An evaluation that sets its own `trials` keeps it over the profile's `defaults`. For more information about the order, see [The cascade](/reference/options#the-cascade).
 
 To pick a profile, pass `--profile`:
 
@@ -64,18 +64,18 @@ A profile's `limit` narrows what evaluations ask for. In the `reeval.config.ts` 
 ```ts title="reeval.config.ts"
     pr: {
       limit: {
-        runs: 1,
+        trials: 1,
         compare: false,
         agents: ['claude-code:claude-sonnet-5'],
       },
-      budget: { attempts: 10 },
+      budget: { trials: 10 },
     },
 ```
 
 The plan notes show each cut:
 
 ```text
-runs 4 → 1 (profile pr)
+trials 4 → 1 (profile pr)
 compare off (profile pr)
 skipped: no agent left: profile pr allows claude-code:claude-sonnet-5
 ```
@@ -84,13 +84,13 @@ For more information about each `limit` key, see [`limit`](/reference/profiles#l
 
 ## Pin an evaluation
 
-An evaluation or group's `pin` option names the keys a profile's `limit` may not narrow: `'runs'`, `'compare'`, or `'harness'`. For a regression that must keep its variant on every run, pin `compare` and `runs` in the `evals/brand.eval.ts` file:
+An evaluation or group's `pin` option names the keys a profile's `limit` may not narrow: `'trials'`, `'compare'`, or `'harness'`. For a regression that must keep its variant on every run, pin `compare` and `trials` in the `evals/brand.eval.ts` file:
 
 ```ts title="evals/brand.eval.ts"
-pin: ['compare', 'runs'],
+pin: ['compare', 'trials'],
 ```
 
-Under the `pr` profile, the plan lists both cells and notes `pinned: compare, runs`. A group's `pin` covers every evaluation in it.
+Under the `pr` profile, the plan lists both cells and notes `pinned: compare, trials`. A group's `pin` covers every evaluation in it.
 
 ## Set a budget
 
@@ -103,18 +103,18 @@ npx reeval run --profile pr --dry-run
 The header's `Scope` row shows whether the plan fits:
 
 ```text
-  ➜  Scope:     1 eval file · 1 eval · 1 cell · 6 attempts (budget: 5 ✗)
+  ➜  Scope:     1 eval file · 1 eval · 1 cell · 6 trials (budget: 5 ✗)
 ```
 
 A run over the cap stops before it starts:
 
 ```text
-reeval: this run plans 6 attempts, over budget.attempts 5 (profile pr).
-Narrow it with --tag or --runs, or raise the budget.
+reeval: this run plans 6 trials, over budget.trials 5 (profile pr).
+Narrow it with --tag or --trials, or raise the budget.
 (--force runs it anyway)
 ```
 
-For more information about `attempts` and `duration`, see [`budget`](/reference/profiles#budget).
+For more information about `trials` and `duration`, see [`budget`](/reference/profiles#budget).
 
 ## Reference
 

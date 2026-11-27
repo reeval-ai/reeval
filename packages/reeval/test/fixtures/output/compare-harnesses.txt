@@ -1,4 +1,4 @@
-✗ greets-in-the-house-style-on-each-agent  mean 50% · 1/2 runs at 100%, worst 0%  regression(1)
+✗ greets-in-the-house-style-on-each-agent  mean 50% · 1/2 trials at 100%, worst 0%  regression(1)
     terse  0%  "house greeting" failed
       expected command to succeed, exit code 1 · evals/greets-in-the-house-style-on-each-agent.eval.ts:28
 

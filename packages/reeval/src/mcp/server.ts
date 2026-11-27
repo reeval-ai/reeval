@@ -4,7 +4,7 @@ import { McpServer, ResourceTemplate } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 import { allRuns, compareView, historyView, showRecord } from '../commands.ts'
 import { openHistoryDb, VIEW_NAMES } from '../history/db.ts'
-import { FLAKY_MIN_ATTEMPTS } from '../history/facts.ts'
+import { FLAKY_MIN_TRIALS } from '../history/facts.ts'
 import { readRecord, runDir } from '../history/files.ts'
 import { readReportInputs } from '../history/report-inputs.ts'
 import { renderSummary } from '../history/summary.ts'
@@ -26,37 +26,37 @@ export const DEFAULT_LINES = 200
 
 /** What each view has one row per, for its tool's description. */
 const VIEW_ROWS: Record<string, string> = {
-  lift: 'variant cell per run: its control, both sides’ pass counts and pass@1, lift points and the 95% interval (lo, hi), within_noise',
+  lift: 'variant cell per run: its baseline, both sides’ pass counts and pass@1, lift points and the 95% interval (lo, hi), within_noise',
   case_lift:
-    'variant cell per eval with cases per run: its control, paired cases, both sides’ mean pass@1 over them, lift points and the 95% interval (lo, hi), verdict and effort ratios',
+    'variant cell per eval with cases per run: its baseline, paired cases, both sides’ mean pass@1 over them, lift points and the 95% interval (lo, hi), verdict and effort ratios',
   effort:
-    'cell per run: attempts, median tool calls, agent seconds and tokens; for a variant, the ratios to its control, p-values and verdicts (tokens omitted when either side has no usage sample)',
-  attempt_answers:
-    'answer to a question asked of one attempt on its own (no across): the attempt, its outcome, the choice picked, the text, and the error when the call failed',
-  attempt_values:
-    'value an attempt recorded with c.observe(name, value), its last per name: the attempt, its outcome, the JSON value with its kind, num for a number and text for a string, and file_path for a value over 4 KiB (kind file)',
+    'cell per run: trials, median tool calls, agent seconds and tokens; for a variant, the ratios to its baseline, p-values and verdicts (tokens omitted when either side has no usage sample)',
+  trial_answers:
+    'answer to a question asked of one trial on its own (no across): the trial, its outcome, the choice picked, the text, and the error when the call failed',
+  trial_values:
+    'value a trial recorded with c.observe(name, value), its last per name: the trial, its outcome, the JSON value with its kind, num for a number and text for a string, and file_path for a value over 4 KiB (kind file)',
   failure_meta:
-    'key of the meta an EvalError an attempt threw carried: the attempt, its outcome and reason, the turn it threw after, the JSON value with its kind, num for a number and text for a string',
+    'key of the meta an EvalError a trial threw carried: the trial, its outcome and reason, the turn it threw after, the JSON value with its kind, num for a number and text for a string',
   factor_effects:
     'factor contrast (environment, harness, model) by evidence tier, with pass@1 and effort verdicts',
   measure_effects:
     'measure per variant cell (pooled over the cases, on an eval with several) per run: pass rate, each check, judge and compare question, tool calls, agent time and tokens, each side’s value, the estimate, interval or p, verdict (better, worse, same or leans), its text and the runs a lean needs to hold',
   skill_reads:
-    'attempt and skill it had, placed by its environment or found (source: placed, skill-dir for one a setup step, the workspace or a package manager put in an agent skill directory, elsewhere for a SKILL.md read outside them): the trajectory line of its first read (a path under skills/<name>, or a Skill, skill or load_skill call by its name), and how many',
-  flaky_cells: `cell (per case, on an eval with cases) with mixed outcomes pooled over comparable runs: counts, a Wilson interval, a verdict (flaky from ${FLAKY_MIN_ATTEMPTS} counted attempts, else mixed: too few to call it flaky) and a likely cause`,
+    'trial and skill it had, placed by its environment or found (source: placed, skill-dir for one a setup step, the workspace or a package manager put in an agent skill directory, elsewhere for a SKILL.md read outside them): the trajectory line of its first read (a path under skills/<name>, or a Skill, skill or load_skill call by its name), and how many',
+  flaky_cells: `cell (per case, on an eval with cases) with mixed outcomes pooled over comparable runs: counts, a Wilson interval, a verdict (flaky from ${FLAKY_MIN_TRIALS} counted trials, else mixed: too few to call it flaky) and a likely cause`,
   drift:
     'run where a cell’s fingerprint changed from its previous run, what changed, and noise = 1 when only agent runtime state did',
-  failing_attempts:
-    'failed or infra-error attempt, with its harness, model, environment skill, error, the reason its task threw, OOM kills and first failed check',
-  attempt_resources:
-    'attempt whose sandbox gave readings: its machine (provider, size, vCPUs, memory) and what it used there (CPU seconds, average, 95th percentile and peak cores, peak memory, a container’s cgroup memory peak and CPU throttling, a VM’s disk bytes, and the shares of what it was given)',
+  failing_trials:
+    'failed or infra-error trial, with its harness, model, environment skill, error, the reason its task threw, OOM kills and first failed check',
+  trial_resources:
+    'trial whose sandbox gave readings: its machine (provider, size, vCPUs, memory) and what it used there (CPU seconds, average, 95th percentile and peak cores, peak memory, a container’s cgroup memory peak and CPU throttling, a VM’s disk bytes, and the shares of what it was given)',
   eval_trend:
     'eval per run (an eval with cases is one, with how many): outcome, target, pass@1, mean score, pass@k and pass^k, branch, PR and fingerprint',
   verdict_flips: 'judge question per cell whose pass rate changed from its previous run',
   check_discrimination:
     "check (an older reeval's expect label) per variant cell per run: its passes, failures and not-run on both sides, and whether it discriminates (both-pass and both-fail checks measure nothing)",
   check_rates:
-    "check (an older reeval's expect label) per cell per run, control and variant alike: harness, environment, role, passes, failures, errors, not-run and rate = pass / (pass + fail), null when none",
+    "check (an older reeval's expect label) per cell per run, baseline and variant alike: harness, environment, role, passes, failures, errors, not-run and rate = pass / (pass + fail), null when none",
   check_streaks:
     "check (an older reeval's expect label) per cell, comparable fingerprint and branch over recorded runs: how many newest runs in a row it passed with no fail (on a variant, on both sides), their tries, and the run that ended the streak",
 }
@@ -151,8 +151,8 @@ const limitField = (max: number, fallback: number, what: string) =>
     .optional()
     .describe(`At most this many ${what} (default ${fallback}, at most ${max})`)
 
-export const trajectoryUri = (runId: string, attemptKey: string) =>
-  `reeval://runs/${runId}/trajectories/${encodeURIComponent(attemptKey)}`
+export const trajectoryUri = (runId: string, trialKey: string) =>
+  `reeval://runs/${runId}/trajectories/${encodeURIComponent(trialKey)}`
 
 /** Reads the record of a run named by id, recorded or scratch; null if there's none. */
 async function recordById(config: ResolvedConfig, runId: string): Promise<RunRecord | null> {
@@ -162,8 +162,8 @@ async function recordById(config: ResolvedConfig, runId: string): Promise<RunRec
 }
 
 const INSTRUCTIONS = `Read-only access to this project's reeval run history: runs of evals for coding agents, recorded in git and scratch runs in .reeval/runs. Use it to debug a failed, flaky or regressed eval run.
-Why did a run fail? Call failures first: each failed attempt's failing graders, error, check logs and the end of its trajectory, and whether its cell failed in earlier runs (new or not, since which run, what changed since it last passed). It's far smaller than show or summary.md.
-Then: trajectory reads one attempt in full; compare diffs two runs (regressions, fixes, stack changes); history is pass/fail per eval over recent runs; show is one run's whole record. The query_* tools answer questions across runs (flaky_cells, drift, failing_attempts, eval_trend, lift, effort); query runs read-only SQL (query_schema lists tables). analysis returns saved reeval explain results. Runs are named latest, latest~N, a run id prefix or a git SHA prefix. Nothing here runs evals: reeval run does, in a terminal.`
+Why did a run fail? Call failures first: each failed trial's failing graders, error, check logs and the end of its trajectory, and whether its cell failed in earlier runs (new or not, since which run, what changed since it last passed). It's far smaller than show or summary.md.
+Then: trajectory reads one trial in full; compare diffs two runs (regressions, fixes, stack changes); history is pass/fail per eval over recent runs; show is one run's whole record. The query_* tools answer questions across runs (flaky_cells, drift, failing_trials, eval_trend, lift, effort); query runs read-only SQL (query_schema lists tables). analysis returns saved reeval explain results. Runs are named latest, latest~N, a run id prefix or a git SHA prefix. Nothing here runs evals: reeval run does, in a terminal.`
 
 /** Builds the factory `reeval mcp` serves: one McpServer per connection (stdio) or request (HTTP). */
 export async function serverFactory(config: ResolvedConfig, version: string) {
@@ -179,18 +179,18 @@ export async function serverFactory(config: ResolvedConfig, version: string) {
       {
         title: 'Why a run failed',
         description:
-          'Debug a failed reeval eval run: why each failed or infra-error attempt failed. Per attempt: the graders that scored under 1 or errored, the failing expect checks and judge scores an older record has, the error, nonzero check commands with their log tails, the setup log tail for infra errors, changed files, the final message and the last trajectory lines (tool calls with targets and output). Per cell: whether the failure is new, the run its failing streak started in, the last run it passed and what changed since (fingerprint parts, eval source files). Start here, before show or trajectory.',
+          'Debug a failed reeval eval run: why each failed or infra-error trial failed. Per trial: the graders that scored under 1 or errored, the failing expect checks and judge scores an older record has, the error, nonzero check commands with their log tails, the setup log tail for infra errors, changed files, the final message and the last trajectory lines (tool calls with targets and output). Per cell: whether the failure is new, the run its failing streak started in, the last run it passed and what changed since (fingerprint parts, eval source files). Start here, before show or trajectory.',
         inputSchema: z.object({
           run: z.string().optional().describe(RUN_REF),
           filter: z.string().optional().describe('Only evals whose id contains this'),
-          limit: limitField(100, DEFAULT_FAILURES, 'failed attempts'),
+          limit: limitField(100, DEFAULT_FAILURES, 'failed trials'),
           tail: z
             .number()
             .int()
             .min(0)
             .max(100)
             .optional()
-            .describe(`Trajectory lines from the end of each attempt (default ${DEFAULT_TAIL})`),
+            .describe(`Trajectory lines from the end of each trial (default ${DEFAULT_TAIL})`),
         }),
         annotations: READ_ONLY,
       },
@@ -231,7 +231,7 @@ export async function serverFactory(config: ResolvedConfig, version: string) {
       {
         title: 'Show a run',
         description:
-          'One reeval run: its full record (reeval show --json: stack, plan, evals, cells with lift and effort, attempts with verdicts, errors, token usage and file references) or, with format md, its summary.md. Large on big runs: to see why a run failed, failures is smaller.',
+          'One reeval run: its full record (reeval show --json: stack, plan, evals, cells with lift and effort, trials with verdicts, errors, token usage and file references) or, with format md, its summary.md. Large on big runs: to see why a run failed, failures is smaller.',
         inputSchema: z.object({
           run: z.string().optional().describe(RUN_REF),
           format: z.enum(['json', 'md']).optional().describe('json (default) or md'),
@@ -294,26 +294,26 @@ export async function serverFactory(config: ResolvedConfig, version: string) {
     server.registerTool(
       'trajectory',
       {
-        title: 'Attempt trajectory',
+        title: 'Trial trajectory',
         description:
-          "What the coding agent did in one reeval attempt, to debug it: its trajectory.jsonl lines (prompts, messages, tool calls with inputs and outputs), a page at a time. Attempt keys are in show's evals[].attempts[].key.",
+          "What the coding agent did in one reeval trial, to debug it: its trajectory.jsonl lines (prompts, messages, tool calls with inputs and outputs), a page at a time. Trial keys are in show's evals[].trials[].key.",
         inputSchema: z.object({
           run: z.string().optional().describe(RUN_REF),
-          attempt: z
+          trial: z
             .string()
-            .describe('The attempt key, or its id (<cell>#<n>) when only one eval has it'),
+            .describe('The trial key, or its id (<cell>#<n>) when only one eval has it'),
           offset: z.number().int().min(0).optional().describe('Lines to skip (default 0)'),
           limit: limitField(MAX_ROWS, DEFAULT_LINES, 'lines'),
         }),
         annotations: READ_ONLY,
       },
-      guard(async ({ run, attempt, offset = 0, limit = DEFAULT_LINES }) => {
+      guard(async ({ run, trial, offset = 0, limit = DEFAULT_LINES }) => {
         const record = await showRecord(config, run)
-        const read = await readTrajectory(config, record, attempt)
+        const read = await readTrajectory(config, record, trial)
         return {
           runId: record.runId,
-          attempt: read.attempt.key,
-          uri: trajectoryUri(record.runId, read.attempt.key),
+          trial: read.trial.key,
+          uri: trajectoryUri(record.runId, read.trial.key),
           total: read.lines.length,
           offset,
           lines: read.lines.slice(offset, offset + limit),
@@ -355,7 +355,7 @@ export async function serverFactory(config: ResolvedConfig, version: string) {
       {
         title: 'Query run history with SQL',
         description:
-          "One read-only SQLite SELECT or WITH statement over .reeval/history.db, the projection of every recorded and scratch run (reeval query). Tables include runs, evals, cells, attempts, judgements, tool_calls, assertions; the views are the query_* tools. query_schema lists every table's columns.",
+          "One read-only SQLite SELECT or WITH statement over .reeval/history.db, the projection of every recorded and scratch run (reeval query). Tables include runs, evals, cells, trials, judgements, tool_calls, assertions; the views are the query_* tools. query_schema lists every table's columns.",
         inputSchema: z.object({
           sql: z.string().describe('One SELECT or WITH statement'),
           limit: limitField(MAX_ROWS, DEFAULT_ROWS, 'rows'),
@@ -419,18 +419,18 @@ export async function serverFactory(config: ResolvedConfig, version: string) {
 
     server.registerResource(
       'trajectory',
-      new ResourceTemplate('reeval://runs/{runId}/trajectories/{attempt}', { list: undefined }),
+      new ResourceTemplate('reeval://runs/{runId}/trajectories/{trial}', { list: undefined }),
       {
-        title: 'Attempt trajectory',
+        title: 'Trial trajectory',
         description:
-          "An attempt's trajectory.jsonl; the attempt key is percent-encoded (the trajectory tool returns the URI)",
+          "A trial's trajectory.jsonl; the trial key is percent-encoded (the trajectory tool returns the URI)",
         mimeType: 'application/jsonl',
         cacheHint: { ttlMs: 0, cacheScope: 'private' },
       },
-      async (uri, { runId, attempt }) => {
+      async (uri, { runId, trial }) => {
         const record = await recordById(config, String(runId))
         if (!record) throw new Error(`No run ${String(runId)}`)
-        const read = await readTrajectory(config, record, decode(String(attempt)))
+        const read = await readTrajectory(config, record, decode(String(trial)))
         return {
           contents: [
             {

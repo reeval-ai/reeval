@@ -1,6 +1,6 @@
 import type { EvalSpec } from 'reeval'
 import { inDiff, succeeded } from 'reeval/graders'
-import { arms, GUIDES } from './envs.ts'
+import { environments, GUIDES } from './envs.ts'
 import { patchOf } from './repo.ts'
 import { TASKS } from './tasks.ts'
 
@@ -24,11 +24,11 @@ const CHECKS = [
 export function contributes(id: string): EvalSpec {
   const task = TASKS.find((t) => t.id === id)
   if (!task) throw new Error(`no task ${id} in tasks.ts`)
-  const { control, variant, newGuides } = arms(task)
+  const { baseline, variant, newGuides } = environments(task)
   const variants = newGuides ? [variant, newGuides] : [variant]
   return {
     timeout: '45m',
-    compare: { control: control, variants },
+    compare: { baseline: baseline, variants },
     graders: [
       inDiff('packages/reeval/test/**'),
       inDiff('docs/**'),
@@ -39,7 +39,7 @@ export function contributes(id: string): EvalSpec {
     task: async (c) => {
       // The merged change, for reeval.oracle.config.ts's fake agent to apply. A real agent never
       // gets it.
-      if (c.attempt.cell.harness.startsWith('fake')) {
+      if (c.trial.cell.harness.startsWith('fake')) {
         await c.writeFile('~/oracle.patch', patchOf(task.pr.parent, task.pr.sha, GUIDES))
       }
       await c.send(task.prompt + FOOTER)

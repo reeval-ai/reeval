@@ -1,10 +1,10 @@
 // A run's regrades: `reeval regrade` writes each beside the run, in `<run>/regrades/<id>.json`, and
-// readers put its attempts' grades, scores and outcomes in place of the recorded ones, then roll the
+// readers put its trials' grades, scores and outcomes in place of the recorded ones, then roll the
 // run up again. The record itself is never rewritten.
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { attemptScore, scoreFailure } from '../grade/run.ts'
+import { scoreFailure, trialScore } from '../grade/run.ts'
 import { randomSuffix } from '../ids.ts'
 import { redactSecrets } from '../redact.ts'
 import { thresholdOf } from '../target.ts'
@@ -12,7 +12,7 @@ import { capMiddle } from '../text.ts'
 import type { GradeRecord } from '../types.ts'
 import { NewerSchemaError, readableRegrade } from '../view/record.ts'
 import { rerollRecord } from './assemble.ts'
-import type { EvalEntry, RegradedAttempt, RegradeRecord, RunRecord } from './types.ts'
+import type { EvalEntry, RegradedTrial, RegradeRecord, RunRecord } from './types.ts'
 
 export const REGRADES_DIR = 'regrades'
 
@@ -62,12 +62,12 @@ export function readRegrades(runDir: string): RegradeRecord[] {
   return out.sort((x, y) => (x.at === y.at ? (x.id < y.id ? -1 : 1) : x.at < y.at ? -1 : 1))
 }
 
-/** An attempt's score, outcome and error from `grades`, under its eval's recorded target. */
+/** A trial's score, outcome and error from `grades`, under its eval's recorded target. */
 export function gradedOutcome(
   grades: readonly GradeRecord[],
   target: EvalEntry['target'],
-): Pick<RegradedAttempt, 'score' | 'outcome' | 'error'> {
-  const score = attemptScore(grades)
+): Pick<RegradedTrial, 'score' | 'outcome' | 'error'> {
+  const score = trialScore(grades)
   const threshold = thresholdOf(target)
   const pass = score >= threshold
   return {
@@ -92,21 +92,21 @@ export function regradesStamp(runDir: string): string {
 }
 
 /**
- * The record as its regrades left it, each in order: an attempt one regraded takes the grades it
+ * The record as its regrades left it, each in order: a trial one regraded takes the grades it
  * rescored, recomputed or added, over the grades before it, and is scored again under its eval's
- * target; then the run is rolled up again. A regrade of attempts the record doesn't have changes
+ * target; then the run is rolled up again. A regrade of trials the record doesn't have changes
  * nothing.
  */
 export function applyRegrades(record: RunRecord, regrades: readonly RegradeRecord[]): RunRecord {
   const mine = regrades.filter((r) => r.regradeOf === record.runId)
   if (!mine.length) return record
   const byKey = new Map(
-    record.evals.flatMap((e) => e.attempts.map((a) => [a.key, { a, e }] as const)),
+    record.evals.flatMap((e) => e.trials.map((a) => [a.key, { a, e }] as const)),
   )
   const notes: NonNullable<RunRecord['regrades']> = []
   for (const r of mine) {
     const changed: string[] = []
-    for (const regraded of r.attempts) {
+    for (const regraded of r.trials) {
       const found = byKey.get(regraded.key)
       if (!found) continue
       const { a, e } = found
@@ -123,7 +123,7 @@ export function applyRegrades(record: RunRecord, regrades: readonly RegradeRecor
       a.regraded = r.id
       changed.push(a.key)
     }
-    notes.push({ id: r.id, at: r.at, attempts: changed })
+    notes.push({ id: r.id, at: r.at, trials: changed })
   }
   return { ...rerollRecord(record), regrades: notes }
 }

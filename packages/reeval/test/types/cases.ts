@@ -16,7 +16,7 @@ defineEval({
 })
 defineEval({
   cases: [{ key: 'a', n: 1 }],
-  runs: 2,
+  trials: 2,
   async task(_c, task) {
     const key: string = task.key
     const n: number = task.n
@@ -33,7 +33,7 @@ defineEval({
 })
 defineEval({
   cases: [{ key: '1' }, { key: '2' }],
-  compare: { control: app, variants: [skilled] },
+  compare: { baseline: app, variants: [skilled] },
   task: async () => {},
 })
 defineEval({ cases: [{ key: 'a' }], skip: true, task: async (_c, item) => void item })
@@ -69,7 +69,7 @@ defineEval({ environments: [app], task: async () => {} })
 // @ts-expect-error environment beside compare
 defineEval({
   environment: app,
-  compare: { control: app, variants: [skilled] },
+  compare: { baseline: app, variants: [skilled] },
   task: async () => {},
 })
 // @ts-expect-error harnesses is agents

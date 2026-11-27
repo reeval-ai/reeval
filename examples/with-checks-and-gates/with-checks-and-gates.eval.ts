@@ -19,7 +19,7 @@ export default defineEval({
     )
 
     // A task failure: the graders mean nothing if src/math.js doesn't parse, so stop here. The
-    // attempt scores 0 and no grader runs.
+    // trial scores 0 and no grader runs.
     const parses = await c.exec('node --check src/math.js')
     if (parses.exitCode !== 0) {
       throw new EvalError({

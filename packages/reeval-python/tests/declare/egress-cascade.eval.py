@@ -29,7 +29,7 @@ def a_group():
 group("a group", {"egress": {"allow": ["group.example.com"]}}, a_group)
 evaluate(
     "a variant runs under its own policy",
-    {"compare": {"control": plain, "variants": [closed]}},
+    {"compare": {"baseline": plain, "variants": [closed]}},
     body,
 )
 evaluate(

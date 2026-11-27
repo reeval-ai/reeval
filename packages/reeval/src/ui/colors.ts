@@ -22,7 +22,7 @@ export type Colors = {
   muted: Paint
   dim: Paint
   bold: Paint
-  /** A stable color per attempt tag, cycling Turborepo's palette in order of first use. */
+  /** A stable color per trial tag, cycling Turborepo's palette in order of first use. */
   tag(key: string): Paint
 }
 

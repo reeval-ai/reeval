@@ -1,6 +1,6 @@
 {
   "harness": "opencode-anthropic",
-  "attempts": [
+  "trials": [
     {
       "eval": "audit",
       "turns": [

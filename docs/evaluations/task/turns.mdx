@@ -28,7 +28,7 @@ For more information about grading a turn, see [Assertions](/evaluations/grading
 
 ## Continue over several turns
 
-Each later `c.send()` stays in the same attempt. The later prompt continues the same harness session, so the harness still has the earlier prompts and the replies it sent. `c.turns` lists every turn so far, oldest first.
+Each later `c.send()` stays in the same trial. The later prompt continues the same harness session, so the harness still has the earlier prompts and the replies it sent. `c.turns` lists every turn so far, oldest first.
 
 In the `evals/user.eval.ts` file, replace the callback body with two prompts and read the first turn from `c.turns`:
 
@@ -45,4 +45,4 @@ const earlier = c.turns[0]
 
 ## Reference
 
-For more information about every field on a turn, see [the Turn fields](/reference/attempt-context#turn).
+For more information about every field on a turn, see [the Turn fields](/reference/trial-context#turn).

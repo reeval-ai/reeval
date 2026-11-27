@@ -5,7 +5,6 @@
 export { analysisDocSchema, parsedAnalysis } from '../analysis-schema.ts'
 export * from './core.ts'
 export {
-  attemptRefSchema,
   countSchema,
   deltaSchema,
   figureSchema,
@@ -17,4 +16,5 @@ export {
   reportClaimSchema,
   runReportSchema,
   spreadSchema,
+  trialRefSchema,
 } from './schema.ts'

@@ -164,7 +164,7 @@ def innocent(c):
 """
 
 
-def test_sys_exit_in_one_body_fails_only_that_attempt(tmp_path: Path) -> None:
+def test_sys_exit_in_one_body_fails_only_that_trial(tmp_path: Path) -> None:
     host = Host(tmp_path, EXITS)
     try:
         host.start("innocent", "ok")
@@ -319,7 +319,7 @@ async def innocent(c):
 """
 
 
-def test_a_stray_system_exit_ends_every_running_attempt_with_an_error(tmp_path: Path) -> None:
+def test_a_stray_system_exit_ends_every_running_trial_with_an_error(tmp_path: Path) -> None:
     host = Host(tmp_path, TASK_EXITS)
     try:
         host.start("innocent", "k2")

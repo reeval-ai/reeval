@@ -1,17 +1,17 @@
-// `reeval mcp`'s failures tool: why each failed attempt of a run failed, in one answer sized for an
+// `reeval mcp`'s failures tool: why each failed trial of a run failed, in one answer sized for an
 // agent's context, and whether its cell failed before.
 import { join } from 'node:path'
 import { allRuns } from '../commands.ts'
 import { readRecord, scratchDir } from '../history/files.ts'
 import { toolTarget } from '../history/tool-target.ts'
 import type {
-  AttemptRecord,
   CellRecord,
   EvalEntry,
   FingerprintParts,
   HistoryCell,
   HistoryEntry,
   RunRecord,
+  TrialRecord,
 } from '../history/types.ts'
 import { resolveRun } from '../history/views.ts'
 import type { ResolvedConfig } from '../types.ts'
@@ -145,11 +145,11 @@ function cellHistory(entries: HistoryEntry[], run: RunRecord, e: EvalEntry, cell
   }
 }
 
-async function describeAttempt(
+async function describeTrial(
   config: ResolvedConfig,
   run: RunRecord,
   e: EvalEntry,
-  a: AttemptRecord,
+  a: TrialRecord,
   tail: number,
 ) {
   const cell = e.cells.find((c) => c.key === a.cell)
@@ -179,7 +179,7 @@ async function describeAttempt(
     a.error?.kind === 'assertion' && a.assertions?.some((x) => x.message === a.error?.message)
   return {
     eval: e.id,
-    attempt: a.key,
+    trial: a.key,
     cell: a.cell,
     harness: cell?.harness ?? null,
     environment: cell?.environment ?? null,
@@ -219,7 +219,7 @@ async function describeAttempt(
   }
 }
 
-const rank = (e: EvalEntry, a: AttemptRecord) => {
+const rank = (e: EvalEntry, a: TrialRecord) => {
   const gated = e.cells.find((c) => c.key === a.cell)?.gate !== 'none'
   return (a.outcome === 'fail' ? 0 : 1) + (gated ? 0 : 2)
 }
@@ -236,7 +236,7 @@ export async function failuresView(
   const failing = run.evals
     .filter((e) => !needle || e.id.toLowerCase().includes(needle))
     .flatMap((e) =>
-      e.attempts
+      e.trials
         .filter((a) => a.outcome === 'fail' || a.outcome === 'infra_error')
         .map((a) => ({ e, a })),
     )
@@ -251,8 +251,8 @@ export async function failuresView(
     histories.set(id, cellHistory(entries, run, e, cell))
     return [{ eval: e.id, cell: a.cell, ...histories.get(id) }]
   })
-  const attempts = await Promise.all(
-    shown.map(({ e, a }) => describeAttempt(config, run, e, a, options.tail ?? DEFAULT_TAIL)),
+  const trials = await Promise.all(
+    shown.map(({ e, a }) => describeTrial(config, run, e, a, options.tail ?? DEFAULT_TAIL)),
   )
   const header = {
     runId: run.runId,
@@ -267,7 +267,7 @@ export async function failuresView(
     return {
       ...header,
       failing: 0,
-      attempts: [],
+      trials: [],
       cells: [],
       note: `Nothing failed in ${run.runId}${needle ? ` matching "${options.filter}"` : ''}.${latest ? ` The latest run with a failure is ${latest.runId}: pass it as run.` : ''}`,
     }
@@ -276,8 +276,8 @@ export async function failuresView(
     ...header,
     failing: failing.length,
     shown: shown.length,
-    attempts,
+    trials,
     cells,
-    next: `For the whole story of one attempt, trajectory { run: "${run.runId}", attempt }. compare { head: "${run.runId}" } diffs this run against its baseline; query_flaky_cells says whether a cell fails intermittently across runs.`,
+    next: `For the whole story of one trial, trajectory { run: "${run.runId}", trial }. compare { head: "${run.runId}" } diffs this run against its baseline; query_flaky_cells says whether a cell fails intermittently across runs.`,
   }
 }

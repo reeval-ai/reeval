@@ -3,7 +3,7 @@
 // functions and backticks aren't followed.
 import { parse } from 'shell-quote'
 import { isObjectLike } from './object.ts'
-import type { AttemptContext, TrajectoryEvent, Turn } from './types.ts'
+import type { TrajectoryEvent, TrialContext, Turn } from './types.ts'
 
 /** One program a shell call ran: a segment of its command line, after its wrappers. */
 export type ShellCommand = {
@@ -263,7 +263,7 @@ type ShellSubject =
  * `exec`, `sudo`, `nohup`, `nice`, `command`, `bash -c` and package runners (`npx`, `bunx`, `npm exec`, `pnpm exec`,
  * `pnpm dlx`, `yarn dlx`). Takes a turn from `c.send()`, a list of turns, or `c`.
  */
-export function shellCommands(subject: ShellSubject | AttemptContext): ShellCommand[] {
+export function shellCommands(subject: ShellSubject | TrialContext): ShellCommand[] {
   const given: unknown = subject
   const turns = Array.isArray(given)
     ? (given as Pick<Turn, 'trajectory'>[])

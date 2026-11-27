@@ -24,13 +24,13 @@ import {
   WORKSPACE_DIR,
 } from '@reeval/sandbox-docker'
 import { shellQuote as q } from '@reeval/sandbox-docker/process'
-import { type AttemptDebug, attemptDebug } from '../debug/attempt.ts'
+import { type TrialDebug, trialDebug } from '../debug/trial.ts'
 import '../debug/docker.ts'
 import { egressLabel, gatewayPolicy, isDirect, setupEgress } from '../egress.ts'
 import type { SecretWarning } from '../history/types.ts'
 import { callUsage, type ModelCall } from '../model-calls.ts'
 import { heldSecret } from '../secrets-file.ts'
-import { attemptSpan, openSpan } from '../trace/spans.ts'
+import { openSpan, trialSpan } from '../trace/spans.ts'
 import type { DockerSandboxDescriptor } from '../types.ts'
 import type { SandboxOptions } from './index.ts'
 import { composeLabels } from './labels.ts'
@@ -55,10 +55,10 @@ export async function removeRunContainers(
   }
 }
 
-/** Distinct `secretWarnings` an attempt records at most. */
+/** Distinct `secretWarnings` a trial records at most. */
 const SECRET_WARNINGS = 50
 
-/** Distinct gateway warnings an attempt prints before one line says there are more. */
+/** Distinct gateway warnings a trial prints before one line says there are more. */
 const GATEWAY_WARNINGS = 5
 
 /**
@@ -66,7 +66,7 @@ const GATEWAY_WARNINGS = 5
  * Refused requests to the harness's expected hosts are traced only; teardown summarizes them.
  */
 function gatewayEvents(
-  debug: AttemptDebug | undefined,
+  debug: TrialDebug | undefined,
   credential: string | undefined,
   expected: readonly string[],
 ) {
@@ -106,7 +106,7 @@ export function gatewayGlue(options: SandboxOptions) {
   const brokered = [
     ...new Set([...(brokering ? [brokering.credential] : []), ...substitutions.map((s) => s.name)]),
   ]
-  const debug = attemptDebug()
+  const debug = trialDebug()
   const policy = gatewayPolicy(setupEgress(options.egress))
   const served: string[] = []
   const asked: string[] = []
@@ -169,7 +169,7 @@ export function gatewayGlue(options: SandboxOptions) {
     warned.add(text)
     const shown =
       warned.size > GATEWAY_WARNINGS
-        ? 'the egress gateway has more warnings for this attempt, not shown; its egress.blocked lists the requests it refused'
+        ? 'the egress gateway has more warnings for this trial, not shown; its egress.blocked lists the requests it refused'
         : text
     if (options.onWarning) options.onWarning(shown)
     else console.warn(`warning: ${shown}`)
@@ -269,7 +269,7 @@ export async function sessionSandbox(
     resources: {
       mode: SampleMode
       machine: { sandbox: string; size?: string; id?: string; name?: string }
-      /** Other attempts run on the machine at the same time. */
+      /** Other trials run on the machine at the same time. */
       shared?: boolean
     }
   },
@@ -348,8 +348,8 @@ export async function createDockerSandbox(
 }
 
 /**
- * The attempt in a new container of `image` on `engine`, the local CLI or a machine's over SSH,
- * with the egress gateway as its way out: always started, so every attempt's egress is recorded.
+ * The trial in a new container of `image` on `engine`, the local CLI or a machine's over SSH,
+ * with the egress gateway as its way out: always started, so every trial's egress is recorded.
  */
 export async function containerSandbox(
   options: SandboxOptions,
@@ -381,7 +381,7 @@ export async function containerSandbox(
     const box = await startContainer(options, o, (container) => {
       const id = container.slice(0, 12)
       span.set({ 'container.id': id })
-      attemptSpan()?.set({ 'reeval.sandbox': o.machine.sandbox, 'container.id': id })
+      trialSpan()?.set({ 'reeval.sandbox': o.machine.sandbox, 'container.id': id })
     })
     const destroy = box.destroy.bind(box)
     return Object.assign(box, {
@@ -424,7 +424,7 @@ async function startContainer(
     ...(o.capabilities && { capabilities: o.capabilities }),
     ...(o.devices && { devices: o.devices }),
     limits,
-    labels: { [LABEL.run]: options.runId, ...composeLabels(options.runId, options.attempt) },
+    labels: { [LABEL.run]: options.runId, ...composeLabels(options.runId, options.trial) },
     lifetimeMs: options.timeoutMs,
     abortSignal: options.signal,
     // A detached container can't start without the gateway.

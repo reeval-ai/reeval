@@ -50,7 +50,7 @@ export const SIGNALS = {
   },
   servedModel: {
     label: 'Served model (gateway)',
-    record: "the attempt's `servedModels`, from the model calls' responses",
+    record: "the trial's `servedModels`, from the model calls' responses",
   },
   cost: {
     label: 'Provider or CLI cost',
@@ -334,7 +334,7 @@ export const TELEMETRY: Record<AgentKind, Row> = {
     reasoningText: captured,
     perCallUsage: dropped('on the wire, and per turn in `usage.json`'),
     sideCallUsage: dropped(
-      "`session_title` and the server-side `web_search` call, the larger share of a searching attempt's cost",
+      "`session_title` and the server-side `web_search` call, the larger share of a searching trial's cost",
     ),
     servedModel: captured,
     cost: dropped('`usage.cost_in_usd_ticks` on every response, and `usage.json`'),

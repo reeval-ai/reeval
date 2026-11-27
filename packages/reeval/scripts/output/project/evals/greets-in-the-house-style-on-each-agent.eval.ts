@@ -19,7 +19,7 @@ const withSkill = defineEnvironment('with-skill', ({ skill }) => ({
 }))
 
 // Compare agents: the terse agent never greets in the house style. With a change too, the
-// harness is outer and the arms inner: the learner needs the skill, the terse one ignores it.
+// harness is outer and the environments inner: the learner needs the skill, the terse one ignores it.
 export default defineEval({
   target: regression(),
   agents: [skilled, terse],

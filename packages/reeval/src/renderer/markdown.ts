@@ -2,7 +2,7 @@
 // `reeval show --md`, `reeval compare --md`, the MCP server's `md` and `reeval explain --save`.
 
 import { medianWithDelta } from '../view/report/format.ts'
-import { attemptAnchorId } from '../view/report/ids.ts'
+import { trialAnchorId } from '../view/report/ids.ts'
 import {
   COMPARE_STATUS_LABEL,
   contrastMeasureLabel,
@@ -12,16 +12,14 @@ import {
   verdictLabel,
 } from '../view/report/labels.ts'
 import type {
-  ArmRow,
   AssertionRow,
-  AttemptIndexRow,
-  AttemptRef,
   BlockMarkdown,
   BreakdownRow,
   CaptureGallery,
   ChoiceBreakdown,
   ContrastRow,
   DiscoveryRate,
+  EnvironmentRow,
   EvalHeadline,
   EvalSection,
   ExecutiveRollup,
@@ -38,6 +36,8 @@ import type {
   RunHeader,
   RunReport,
   TaskResults,
+  TrialIndexRow,
+  TrialRef,
   VariantComparison,
 } from '../view/report/types.ts'
 
@@ -83,7 +83,7 @@ function table(headers: string[], rows: string[][]): string {
   return `${head}\n${sep}\n${body}`
 }
 
-function citeList(cites: AttemptRef[]): string {
+function citeList(cites: TrialRef[]): string {
   if (cites.length === 0) return ''
   return cites.map((c) => `[${c.id}](${c.href})`).join(', ')
 }
@@ -151,9 +151,9 @@ function headerLine(header: RunHeader): string {
     parts.push(`Run stopped early (${header.status}).`)
   }
   if (tally.counted > 0) {
-    parts.push(`${tally.passed} of ${tally.counted} counted attempts passed`)
+    parts.push(`${tally.passed} of ${tally.counted} counted trials passed`)
   } else {
-    parts.push(`${tally.counted} counted attempts`)
+    parts.push(`${tally.counted} counted trials`)
   }
   if (tally.reclassified > 0) {
     parts[parts.length - 1] += `, ${tally.reclassified} reclassified as infra error`
@@ -205,7 +205,7 @@ function renderHeadline(headline: EvalHeadline, blockLevel: number): string[] {
     if (headline.primary.leadRole === 'representative') {
       lines.push(`Showing 1 of ${headline.primary.answered.k} answers as representative.`, '')
     }
-    lines.push(`> ${clipCell(q.text, 400)} ([${q.attempt.id}, ${q.harness}](${q.attempt.href}))`)
+    lines.push(`> ${clipCell(q.text, 400)} ([${q.trial.id}, ${q.harness}](${q.trial.href}))`)
   }
   lines.push('')
   lines.push(headline.foot)
@@ -213,19 +213,19 @@ function renderHeadline(headline: EvalHeadline, blockLevel: number): string[] {
   return lines
 }
 
-function measureCells(row: BreakdownRow | ArmRow): string[] {
+function measureCells(row: BreakdownRow | EnvironmentRow): string[] {
   const measures =
     'measures' in row
       ? (row as BreakdownRow).measures
       : Object.fromEntries(
           MEASURE_ORDER.map((k) => {
-            const m = (row as ArmRow).measures[k]
+            const m = (row as EnvironmentRow).measures[k]
             return [k, m?.value ?? null] as const
           }),
         )
   return MEASURE_ORDER.map((k) => {
     if ('lift' in row) {
-      const m = (row as ArmRow).measures[k]
+      const m = (row as EnvironmentRow).measures[k]
       if (!m?.value) return 'not reported'
       const base = medianWithDelta(m.value.median.text, m.delta)
       if (m.lower) return `${base}, ${m.lower.text} harnesses lower`
@@ -280,9 +280,9 @@ function taskMarkdown(primary: TaskResults, blockLevel: number): string[] {
 function comparisonMarkdown(primary: VariantComparison, blockLevel: number): string[] {
   const lines: string[] = []
   lines.push(h(blockLevel, 'Baseline vs. variants'), '')
-  if (primary.arms.length) {
+  if (primary.environments.length) {
     lines.push(
-      primary.arms
+      primary.environments
         .map((a) => `- **${a.label}** (\`${a.id}\`): ${a.role}${a.change ? `: ${a.change}` : ''}`)
         .join('\n'),
       '',
@@ -293,14 +293,14 @@ function comparisonMarkdown(primary: VariantComparison, blockLevel: number): str
   }
   if (primary.summary.length) {
     const headers = [
-      'Arm',
+      'Environment',
       'Pass rate',
       'Lift',
       'Pass-rate verdict',
       ...MEASURE_ORDER.map((k) => MEASURE_LABEL[k]),
     ]
     const rows = primary.summary.map((r) => [
-      r.arm,
+      r.environment,
       r.rate.text,
       r.lift?.text ?? 'n/a',
       verdictLabel(r.verdict),
@@ -308,10 +308,10 @@ function comparisonMarkdown(primary: VariantComparison, blockLevel: number): str
     ])
     lines.push(table(headers, rows), '')
   }
-  if (primary.assertionsByArm.length) {
-    lines.push(h(blockLevel, 'Assertions by arm'), '')
-    const cols = primary.arms.map((a) => a.label)
-    lines.push(assertionTable(cols, primary.assertionsByArm), '')
+  if (primary.assertionsByEnvironment.length) {
+    lines.push(h(blockLevel, 'Assertions by environment'), '')
+    const cols = primary.environments.map((a) => a.label)
+    lines.push(assertionTable(cols, primary.assertionsByEnvironment), '')
   }
   if (primary.contrasts.length) {
     lines.push(h(blockLevel, 'Pairwise contrasts'), '')
@@ -334,13 +334,13 @@ function comparisonMarkdown(primary: VariantComparison, blockLevel: number): str
     lines.push(h(blockLevel, 'Effort by coding harness'), '')
     const headers = [
       'Coding harness',
-      'Arm',
+      'Environment',
       'Pass rate',
       ...MEASURE_ORDER.map((k) => MEASURE_LABEL[k]),
     ]
     const rows = primary.effortByHarness.map((r) => [
       r.harness === 'Median' ? '**Median**' : r.harness,
-      r.arm,
+      r.environment,
       r.rate.text,
       ...MEASURE_ORDER.map((k) => {
         const m = r.measures[k]
@@ -411,23 +411,23 @@ function choicesMarkdown(choices: ChoiceBreakdown[], blockLevel: number): string
     )
     if (c.rows.length) {
       const optionLabels = c.options.map((o) => o.label)
-      const showArm = c.rows.some((r) => r.arm !== null)
+      const showEnvironment = c.rows.some((r) => r.environment !== null)
       const headers = [
-        ...(showArm ? ['Arm'] : []),
+        ...(showEnvironment ? ['Environment'] : []),
         'Prompt',
         'Coding harness',
         ...optionLabels,
-        'Attempts',
+        'Trials',
       ]
       lines.push(
         table(
           headers,
           c.rows.map((r) => [
-            ...(showArm ? [r.arm ?? 'n/a'] : []),
+            ...(showEnvironment ? [r.environment ?? 'n/a'] : []),
             r.prompt ?? 'n/a',
             r.harness,
             ...optionLabels.map((o) => String(r.counts[o] ?? 0)),
-            String(r.attempts),
+            String(r.trials),
           ]),
         ),
         '',
@@ -542,7 +542,7 @@ function qualitativeMarkdown(rows: QualitativeAnswers[], blockLevel: number): st
     lines.push(`${q.answered.text} answered.`, '')
     const shown = q.entries.slice(0, 12)
     for (const e of shown) {
-      lines.push(`- ${clipCell(e.text, 240)} ([${e.attempt.id}, ${e.harness}](${e.attempt.href}))`)
+      lines.push(`- ${clipCell(e.text, 240)} ([${e.trial.id}, ${e.harness}](${e.trial.href}))`)
     }
     if (q.entries.length > shown.length) {
       lines.push(`- …and ${q.entries.length - shown.length} more.`)
@@ -554,7 +554,7 @@ function qualitativeMarkdown(rows: QualitativeAnswers[], blockLevel: number): st
 
 function capturesMarkdown(gallery: CaptureGallery, blockLevel: number): string[] {
   const lines: string[] = [h(blockLevel, 'Captures'), '']
-  const showArm = gallery.rows.some((r) => r.arm !== null)
+  const showEnvironment = gallery.rows.some((r) => r.environment !== null)
   const showNotes = gallery.rows.some((r) => r.shots.some((s) => s.meta))
   const rows: string[][] = []
   for (const r of gallery.rows) {
@@ -562,13 +562,13 @@ function capturesMarkdown(gallery: CaptureGallery, blockLevel: number): string[]
       const link = shot.href ? `[${shot.name}](${shot.href})` : `${shot.name} (not kept)`
       rows.push([
         r.harness,
-        ...(showArm ? [r.arm ?? 'n/a'] : []),
+        ...(showEnvironment ? [r.environment ?? 'n/a'] : []),
         r.case ?? 'n/a',
         link,
         shot.status === null ? 'n/a' : String(shot.status),
         shot.pageErrors === null ? 'n/a' : String(shot.pageErrors),
         ...(showNotes ? [shot.meta ?? 'n/a'] : []),
-        shot.attempt.id,
+        shot.trial.id,
       ])
     }
   }
@@ -576,13 +576,13 @@ function capturesMarkdown(gallery: CaptureGallery, blockLevel: number): string[]
     table(
       [
         'Coding harness',
-        ...(showArm ? ['Arm'] : []),
+        ...(showEnvironment ? ['Environment'] : []),
         'Case',
         'Capture',
         'HTTP',
         'Page errors',
         ...(showNotes ? ['Notes'] : []),
-        'Attempt',
+        'Trial',
       ],
       rows,
     ),
@@ -596,8 +596,8 @@ function failuresMarkdown(f: FailureClusters, blockLevel: number): string[] {
   if (f.clusters.length) {
     lines.push(
       table(
-        ['Kind', 'Label', 'At', 'Count', 'Attempts'],
-        f.clusters.map((c) => [c.kind, c.label, c.at ?? 'n/a', c.count.text, citeList(c.attempts)]),
+        ['Kind', 'Label', 'At', 'Count', 'Trials'],
+        f.clusters.map((c) => [c.kind, c.label, c.at ?? 'n/a', c.count.text, citeList(c.trials)]),
       ),
       '',
     )
@@ -672,7 +672,7 @@ export const blockMarkdown: BlockMarkdown = {
     if (rollup.rows.length) {
       lines.push(
         table(
-          ['Evaluation', 'Shape / arms', 'Primary result', 'Effort'],
+          ['Evaluation', 'Shape / environments', 'Primary result', 'Effort'],
           rollup.rows.map((r) => [
             `[${r.name}](#${r.anchor})`,
             `${r.shapes.join(', ')}; ${r.design}`,
@@ -698,14 +698,14 @@ export const blockMarkdown: BlockMarkdown = {
       h(2, 'Coding harnesses'),
       '',
       table(
-        ['Coding harness', 'Model', 'Effort', 'Served models', 'Gateway', 'Attempts'],
+        ['Coding harness', 'Model', 'Effort', 'Served models', 'Gateway', 'Trials'],
         rows.map((r: RosterRow) => [
           r.harness,
           r.model ?? 'n/a',
           r.effort ?? 'n/a',
           r.servedModels.join(', ') || 'n/a',
           r.gateway ?? 'n/a',
-          String(r.attempts),
+          String(r.trials),
         ]),
       ),
       '',
@@ -756,17 +756,17 @@ export const blockMarkdown: BlockMarkdown = {
     for (const w of state.warnings) lines.push(`> **Warning:** ${w}`, '')
     return lines.join('\n')
   },
-  attemptIndex(rows: AttemptIndexRow[], _single) {
+  trialIndex(rows: TrialIndexRow[], _single) {
     void _single
     if (rows.length === 0) return ''
-    const lines = [h(2, 'Attempt index'), '']
+    const lines = [h(2, 'Trial index'), '']
     lines.push(
       table(
         [
           'ID',
           'Eval',
           'Coding harness',
-          'Arm / Case',
+          'Environment / Case',
           'Outcome',
           'Tokens',
           'Agent time',
@@ -784,10 +784,10 @@ export const blockMarkdown: BlockMarkdown = {
             .filter(Boolean)
             .join(', ')
           return [
-            `<a id="${attemptAnchorId(r.key)}"></a>${r.id}`,
+            `<a id="${trialAnchorId(r.key)}"></a>${r.id}`,
             r.evalId,
             r.harness,
-            [r.arm, r.case].filter(Boolean).join(' / ') || 'n/a',
+            [r.environment, r.case].filter(Boolean).join(' / ') || 'n/a',
             r.reclassified ? `${r.outcome} (reclassified)` : r.outcome,
             r.tokens.text,
             r.agentMs.text,
@@ -811,9 +811,9 @@ export function runReportMarkdown(report: RunReport): string {
   parts.push(headerLine(report.header))
   parts.push('')
   const meta = `Run \`${report.runId}\` by ${report.header.author}, ${report.header.startedAt.slice(0, 10)}, reeval ${report.header.reeval}${report.header.profile ? `, profile \`${report.header.profile}\`` : ''}, ${
-    report.header.runsPerCell === null
-      ? 'varying runs per cell'
-      : `${report.header.runsPerCell} run${report.header.runsPerCell === 1 ? '' : 's'} per cell`
+    report.header.trialsPerCell === null
+      ? 'varying trials per cell'
+      : `${report.header.trialsPerCell} trial${report.header.trialsPerCell === 1 ? '' : 's'} per cell`
   }.`
   parts.push(meta)
   parts.push('')
@@ -826,7 +826,7 @@ export function runReportMarkdown(report: RunReport): string {
   }
   if (report.actions.length) parts.push(blockMarkdown.actions(report.actions))
   parts.push(blockMarkdown.provenance(report.provenance))
-  parts.push(blockMarkdown.attemptIndex(report.attempts, report.single))
+  parts.push(blockMarkdown.trialIndex(report.trials, report.single))
   return `${parts
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')

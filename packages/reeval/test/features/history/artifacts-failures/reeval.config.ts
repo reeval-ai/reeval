@@ -5,8 +5,8 @@ import { fakeAgent } from 'reeval/agent'
 export default defineConfig({
   target: regression(),
   agents: fakeAgent({}),
-  // One attempt a cell, where a compare would otherwise run 4 a side.
-  runs: 1,
+  // One trial a cell, where a compare would otherwise run 4 a side.
+  trials: 1,
   record: 'always',
   history: { artifacts: 'failures' },
 })

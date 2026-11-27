@@ -1,6 +1,6 @@
 // `reeval run`'s results as a status list: one row per eval, grouped under its file, each with
 // `✓` or `✗` (a blocking target's pass or miss) or `·`, its name, the number its target judges
-// (`86% ≥ 80%`, `4/5 runs at 100%, worst 70%`, `target.ts`) and the target, and a detail of plain
+// (`86% ≥ 80%`, `4/5 trials at 100%, worst 70%`, `target.ts`) and the target, and a detail of plain
 // sentences from the record. The sentences come from fixed templates (no model), so the same run
 // always reads the same:
 //
@@ -9,10 +9,10 @@
 //   what the task threw, the error it ended on, or the graders under 100% and the checks that
 //   failed, with an `EvalError`'s meta and the turn it threw after under it. Past eight rows, a
 //   count of the rest.
-// - A compare then reads its arms as `reeval show` prints them (`layout.ts`'s `armLines`): each
-//   arm's pass count and effect, the checks that failed in some arm and, when effort moved or the
+// - A compare then reads its environments as `reeval show` prints them (`layout.ts`'s `environmentLines`): each
+//   environment's pass count and effect, the checks that failed in some environment and, when effort moved or the
 //   eval missed, the effort table; with `-v`, each cell's difference and 95% interval. Under an
-//   arm, the errors of its cells that no case row shows.
+//   environment, the errors of its cells that no case row shows.
 // - An eval whose target doesn't block prints its answers (questions, `c.observe`) even in a list
 //   printed once.
 // - Under the case rows, what a row can't show: a turn's error, and the whole of an error that
@@ -36,16 +36,16 @@ import { formatUsage } from '../view/model.ts'
 import { type ObservedTally, observedLine } from '../view/observations.ts'
 import type { Remark, RunRemarks } from '../view/remarks.ts'
 import type {
-  AttemptQuestionResult,
   CellError,
   CellResult,
   EvalResult,
   QuestionResult,
   SuiteResult,
+  TrialQuestionResult,
 } from '../view/suite.ts'
 import { standing, targetNumber } from '../view/target.ts'
 import { colors } from './colors.ts'
-import { armLines, labeler as cellLabeler, checkLabel, upstreamTexts } from './layout.ts'
+import { labeler as cellLabeler, checkLabel, environmentLines, upstreamTexts } from './layout.ts'
 import { shownRemarks } from './remarks.ts'
 import {
   caseRows,
@@ -69,9 +69,9 @@ export type StatusIcon =
   | 'canceled'
 
 /**
- * A status glyph before a detail line's text: `spin` is an attempt reeval is waiting on (the
+ * A status glyph before a detail line's text: `spin` is a trial reeval is waiting on (the
  * interactive list animates it), `fail` a red `✗`, `miss` a dim one (a failure that doesn't fail
- * the eval, such as a compare's control), `error` a red `✗` for a timeout or infra error.
+ * the eval, such as a compare's baseline), `error` a red `✗` for a timeout or infra error.
  */
 export type DetailMark = 'spin' | 'pass' | 'fail' | 'miss' | 'error' | 'queued' | 'skipped'
 
@@ -112,7 +112,7 @@ export type StatusRow = {
   id: string
   name: string
   icon: StatusIcon
-  /** `86% ≥ 80%`, `4/5 runs at 100%, worst 70%`, `2 of 4 runs done`, `skipped`. */
+  /** `86% ≥ 80%`, `4/5 trials at 100%, worst 70%`, `2 of 4 trials done`, `skipped`. */
   summary: string
   /** `regression(1)`, the target the summary is judged against, painted dim after it. */
   target?: string
@@ -121,7 +121,7 @@ export type StatusRow = {
   detail: DetailLine[]
   /** It has remarks, under `Worth knowing:`, which a list printed once shows even on a pass. */
   remarks: number
-  /** A compare, whose detail (the control and its variants) a list printed once always shows. */
+  /** A compare, whose detail (the baseline and its variants) a list printed once always shows. */
   compare: boolean
   /** An eval whose target doesn't block, with answers (questions, `c.observe`), which a list printed once shows. */
   answers?: boolean
@@ -184,11 +184,11 @@ export function columns(rows: string[][]): string[] {
 }
 
 /**
- * A compare's arms as `reeval show` prints them, each listing the errors of its cells not in
+ * A compare's environments as `reeval show` prints them, each listing the errors of its cells not in
  * `explained`.
  */
 const compareLines = (e: EvalResult, verbose: boolean, explained: Set<string>): DetailLine[] =>
-  armLines(colors(false), e, verbose, explained, 2).map((text) => ({
+  environmentLines(colors(false), e, verbose, explained, 2).map((text) => ({
     depth: 0,
     text: text.slice(2),
   }))
@@ -226,7 +226,7 @@ function errorLines(cells: CellResult[], failedEval: boolean): DetailLine[] {
     for (const err of c.errors) {
       const key = `${err.kind}\n${err.message}`
       const e = by.get(key) ?? { ...err, n: 0 }
-      e.n += err.attempts
+      e.n += err.trials
       by.set(key, e)
     }
   }
@@ -240,7 +240,7 @@ function errorLines(cells: CellResult[], failedEval: boolean): DetailLine[] {
     const mark = e.kind === 'aborted' ? 'skipped' : !failedEval ? 'miss' : fail ? 'fail' : 'error'
     const tone = fail || !failedEval ? 'dim' : 'red'
     return [
-      { depth: 0, mark, text: `${plural(e.n, 'run')} ${ERROR_VERB[e.kind]}` } as const,
+      { depth: 0, mark, text: `${plural(e.n, 'trial')} ${ERROR_VERB[e.kind]}` } as const,
       ...messageLines(e.message, '', Number.POSITIVE_INFINITY).map(
         (text) => ({ depth: 1, text, tone }) as const,
       ),
@@ -258,7 +258,7 @@ function caseDetail(e: EvalResult, cells: CellResult[], verbose: boolean): Detai
   const byKey = new Map(cells.map((c) => [c.key, c]))
   const label = cellLabeler(
     cells.filter((c) => e.scored.some((a) => a.cell === c.key)),
-    ['harness', 'arm', 'sandbox'],
+    ['harness', 'environment', 'sandbox'],
   )
   const cellLabel = (key: string) => {
     const cell = byKey.get(key)
@@ -402,8 +402,9 @@ function remarkLines(remarks: Remark[], notes: string[]): DetailLine[] {
   return lines
 }
 
-/** A compare's failures are told apart by arm: `the control`, or the variant's name. */
-const armOf = (c: CellResult) => (c.baseline ? 'the control' : (c.variant ?? c.environment))
+/** A compare's failures are told apart by environment: `the baseline`, or the variant's name. */
+const environmentOf = (c: CellResult) =>
+  c.baseline ? 'the baseline' : (c.variant ?? c.environment)
 
 const nameOf = (e: Pick<EvalResult, 'group' | 'name' | 'template'>) =>
   [...e.group, e.template ?? e.name].join(' › ')
@@ -441,7 +442,7 @@ export function evalRow(
   const answers = [
     ...questionLines(e.questions ?? []),
     ...observedLines(e.observations ?? [], cells, (c) =>
-      compare ? armOf(c) : harnessLabel(record, c),
+      compare ? environmentOf(c) : harnessLabel(record, c),
     ),
   ]
   const detail = ran
@@ -486,10 +487,10 @@ const aligned = (
 }
 
 /** Each question's answer: who won the pairs, the tally of choices, or the first answers. */
-function questionLines(questions: Array<QuestionResult | AttemptQuestionResult>): DetailLine[] {
+function questionLines(questions: Array<QuestionResult | TrialQuestionResult>): DetailLine[] {
   return questions.flatMap((q): DetailLine[] => {
     const head = { depth: 0, text: `Question: ${clip(q.question, 100)}`, tone: 'heading' } as const
-    if (q.kind === 'attempts') {
+    if (q.kind === 'trials') {
       const failed: DetailLine[] =
         q.error === null
           ? []
@@ -510,10 +511,10 @@ function questionLines(questions: Array<QuestionResult | AttemptQuestionResult>)
         head,
         ...aligned(
           1,
-          shown.map((a) => [a.attempt, clip(a.text.replace(/\s+/g, ' '), 100)] as const),
+          shown.map((a) => [a.trial, clip(a.text.replace(/\s+/g, ' '), 100)] as const),
         ),
         ...(more
-          ? [{ depth: 1, text: `${more} more: reeval query attempt_answers`, tone: 'dim' } as const]
+          ? [{ depth: 1, text: `${more} more: reeval query trial_answers`, tone: 'dim' } as const]
           : []),
         ...failed,
       ]
@@ -523,7 +524,7 @@ function questionLines(questions: Array<QuestionResult | AttemptQuestionResult>)
         head,
         {
           depth: 1,
-          text: 'No pairs to judge: tries that failed their checks are left out.',
+          text: 'No pairs to judge: trials that failed their checks are left out.',
           tone: 'dim',
         },
       ]
@@ -553,7 +554,7 @@ function questionLines(questions: Array<QuestionResult | AttemptQuestionResult>)
   })
 }
 
-/** Where a failed eval's first failed attempt's final workspace snapshot is, to open it. */
+/** Where a failed eval's first failed trial's final workspace snapshot is, to open it. */
 function snapshotLines(cells: CellResult[], host?: string): DetailLine[] {
   const [first, ...others] = cells.flatMap((c) => c.snapshots ?? [])
   if (!first) return []
@@ -603,7 +604,7 @@ export type ListInput = {
   suite: SuiteResult
   remarks: RunRemarks | null
   verbose: boolean
-  /** Attempts the run planned that this resume's filters left out. */
+  /** Trials the run planned that this resume's filters left out. */
   notRun?: number
   /** The host the run is on, when it isn't this one: the paths the list names are there. */
   host?: string
@@ -636,14 +637,14 @@ export function statusList(input: ListInput): StatusList {
   const notes = [
     ...(input.notRun
       ? [
-          `Incomplete: ${plural(input.notRun, 'attempt')} this resume’s filters left out ${input.notRun === 1 ? 'is' : 'are'} not run; reeval run --resume ${record.runId} runs ${input.notRun === 1 ? 'it' : 'them'}`,
+          `Incomplete: ${plural(input.notRun, 'trial')} this resume’s filters left out ${input.notRun === 1 ? 'is' : 'are'} not run; reeval run --resume ${record.runId} runs ${input.notRun === 1 ? 'it' : 'them'}`,
         ]
       : []),
     ...(record.status === 'budget' && !input.notRun
-      ? ['Budget reached: attempts that hadn’t started were skipped']
+      ? ['Budget reached: trials that hadn’t started were skipped']
       : []),
     ...(record.status === 'interrupted' && !input.notRun
-      ? ['Interrupted: attempts that hadn’t finished were canceled']
+      ? ['Interrupted: trials that hadn’t finished were canceled']
       : []),
   ]
   return { files, errors: suite.errors, done, notes, hiddenRemarks: hidden }

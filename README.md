@@ -28,10 +28,10 @@ Evals are TypeScript files in `evals/`, next to the tool they test. Each run wri
 Cursor ⋅ Claude Code ⋅ Codex ⋅ Antigravity ⋅ OpenCode ⋅ Goose ⋅ pi ⋅ Grok Build
 
 - **Real agents**: each harness runs the agent itself, with its own tools, skills, and rules, as it works on a developer's machine ([Choose an agent](docs/configuration/agents/index.mdx)).
-- **Keys stay on the host**: each attempt starts in a fresh sandbox that holds only a placeholder key. reeval's egress gateway swaps in the real key on requests to that provider and nowhere else ([Pass secrets](docs/configuration/environments/secrets.mdx)).
+- **Keys stay on the host**: each trial starts in a fresh sandbox that holds only a placeholder key. reeval's egress gateway swaps in the real key on requests to that provider and nowhere else ([Pass secrets](docs/configuration/environments/secrets.mdx)).
 - **Compare a change**: one eval runs a baseline and its variants with the same prompt and checks, then prints whether each variant helped, made it worse, or did the same ([Measure lift against a baseline](docs/results/compare/lift.mdx)).
-- **Pinned environments**: an environment starts from a workspace, such as a git repository at a fixed ref, then adds files, setup steps, rules, skills, and MCP servers, so every attempt starts from the same state ([Define an environment](docs/configuration/environments/index.mdx)).
-- **History in Git**: recorded runs sit beside the code. `reeval query` reads them with SQL, and `reeval studio` shows each attempt's trajectory, diff, and checks ([Record runs in Git](docs/evaluations/runs/recording.mdx)).
+- **Pinned environments**: an environment starts from a workspace, such as a git repository at a fixed ref, then adds files, setup steps, rules, skills, and MCP servers, so every trial starts from the same state ([Define an environment](docs/configuration/environments/index.mdx)).
+- **History in Git**: recorded runs sit beside the code. `reeval query` reads them with SQL, and `reeval studio` shows each trial's trajectory, diff, and checks ([Record runs in Git](docs/evaluations/runs/recording.mdx)).
 
 ## Install
 
@@ -56,11 +56,11 @@ REEVAL v0.16.1  dry run
   ➜  Run:       …
   ➜  Harness:   cursor:composer-2.5 (effort: not checked)
   ➜  Sandbox:   docker
-  ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 attempt
+  ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 trial
   ➜  Est. Time: ~3m 00s (serial)
 
-eval                                    agents     variants  runs  attempts  notes
-evals/greet.eval.ts › creates greet.js  1          —         1     1         effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set)
+eval                                    agents  variants  trials  total  notes
+evals/greet.eval.ts › creates greet.js  1       —         1       1      effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set)
 …
 ```
 
@@ -76,7 +76,7 @@ Without `--yes`, `init` asks which agent to configure. The starter eval only pro
 
 ## Measure whether a skill helps
 
-The Vercel AI SDK deprecates `generateObject` in favor of `Output.object`, and agents trained on older code still reach for the old call. This eval measures whether a skill shipped with the SDK fixes that. It runs the same task in two arms, four attempts each: `plain` has no skill, and `with-skill` adds the one in `skills/ai-sdk`.
+The Vercel AI SDK deprecates `generateObject` in favor of `Output.object`, and agents trained on older code still reach for the old call. This eval measures whether a skill shipped with the SDK fixes that. It runs the same task in two environments, four trials each: `plain` has no skill, and `with-skill` adds the one in `skills/ai-sdk`.
 
 ```ts
 // evals/ai-sdk.eval.ts
@@ -90,8 +90,8 @@ const withSkill = plain.extendEnvironment('with-skill', ({ skill }) => ({
 }));
 
 export default defineEval({
-  runs: 4,
-  compare: { control: plain, variants: [withSkill] },
+  trials: 4,
+  compare: { baseline: plain, variants: [withSkill] },
   graders: [
     hasFile('triage.ts', { name: 'writes triage.ts' }),
     hasFile('triage.ts', /Output\.object/, { name: 'uses Output.object' }),
@@ -111,7 +111,7 @@ $ npx reeval run evals/ai-sdk.eval.ts
 $ npx reeval show
 …
 pass             triages a GitHub issue with the AI SDK
-  arm                 pass
+  environment                 pass
   plain               0 of 4
   with-skill          4 of 4  helped
   check               plain   with-skill
@@ -121,16 +121,16 @@ pass             triages a GitHub issue with the AI SDK
 1 pass
 ```
 
-Without the skill, no attempt used `Output.object`; with it, all four did. `helped` means the variant passed more often than the baseline, and `made it worse` less often. When the 95% interval of the difference spans zero (`-v` prints it), the `too-few-tries` remark names the `runs` that would make it hold. `+1 more passed` folds the checks that every arm passed.
+Without the skill, no trial used `Output.object`; with it, all four did. `helped` means the variant passed more often than the baseline, and `made it worse` less often. When the 95% interval of the difference spans zero (`-v` prints it), the `too-few-trials` remark names the `trials` that would make it hold. `+1 more passed` folds the checks that every environment passed.
 
 ## Run in CI and inspect runs
 
 | Command | Use it for |
 | --- | --- |
-| <code>reeval&nbsp;run&nbsp;--profile&nbsp;pr</code> | A run sized for a pull request. In the config `init` writes, that is one run per cell, no variants, and at most 20 attempts. |
+| <code>reeval&nbsp;run&nbsp;--profile&nbsp;pr</code> | A run sized for a pull request. In the config `init` writes, that is one trial per cell, no variants, and at most 20 trials. |
 | <code>reeval&nbsp;compare&nbsp;--fail-on-regression</code> | Diff a run against its nearest recorded ancestor, and exit 1 when an eval regressed. |
 | <code>reeval&nbsp;show&nbsp;--md</code> | One run's results as Markdown, for a job summary or a PR comment. |
-| <code>reeval&nbsp;query</code> | Read-only SQL over every run, or built-in views such as `lift`, `effort`, and `failing_attempts`. |
+| <code>reeval&nbsp;query</code> | Read-only SQL over every run, or built-in views such as `lift`, `effort`, and `failing_trials`. |
 | <code>reeval&nbsp;studio</code> | Runs, trajectories, diffs, and checks in the browser. |
 
 Environments load extensions from where teams already keep them:
@@ -159,11 +159,11 @@ The manual in [`docs/`](docs/overview.mdx) covers harnesses, sandboxes, environm
 
 To write or update evals, load [`skills/reeval/SKILL.md`](skills/reeval/SKILL.md). For every command, flag, and exit code, run `npx reeval --help`.
 
-To preview a run without starting sandboxes or spending tokens, run `npx reeval run --dry-run --json`. It prints the planned evals, cells, and attempts as one JSON document and exits 0.
+To preview a run without starting sandboxes or spending tokens, run `npx reeval run --dry-run --json`. It prints the planned evals, cells, and trials as one JSON document and exits 0.
 
 To check a machine's setup, run `npx reeval doctor --json`. It checks Node.js, the sandbox and its images, and the agents' keys, never prints a key, and changes nothing.
 
-To read past runs without calling a model, run `npx reeval query failing_attempts --json`, or `npx reeval explain --context` for a run's digest. `npx reeval mcp` serves the run history over stdio as read-only MCP tools.
+To read past runs without calling a model, run `npx reeval query failing_trials --json`, or `npx reeval explain --context` for a run's digest. `npx reeval mcp` serves the run history over stdio as read-only MCP tools.
 
 ## License
 

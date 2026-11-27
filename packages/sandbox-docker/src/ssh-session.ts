@@ -35,11 +35,11 @@ export type SshSessionOptions = {
   connectTimeoutMs?: number
   abortSignal?: AbortSignal
   /**
-   * Where the attempt lives, on a machine that runs several at once; setting up runs under a lock
-   * the others share. Default slot 0's, the machine's only attempt.
+   * Where the trial lives, on a machine that runs several at once; setting up runs under a lock
+   * the others share. Default slot 0's, the machine's only trial.
    */
   layout?: SlotLayout
-  /** The slot ran an attempt before: kill what its user left running and delete its files. */
+  /** The slot ran a trial before: kill what its user left running and delete its files. */
   reset?: boolean
   /** The label of the home the machine's image kept ({@link keepHomeCopy}), which {@link SshMachine.home} copies in. */
   home?: string
@@ -217,7 +217,7 @@ export async function connectSsh(options: SshSessionOptions): Promise<SshMachine
     ...(layout.home === SANDBOX_HOME
       ? [addUser(user)]
       : [
-          `{ command -v unshare && command -v setpriv && command -v mount; } >/dev/null || { echo "a machine shared by attempts needs unshare, setpriv and mount (util-linux)" >&2; false; }`,
+          `{ command -v unshare && command -v setpriv && command -v mount; } >/dev/null || { echo "a machine shared by trials needs unshare, setpriv and mount (util-linux)" >&2; false; }`,
           // Its commands see its home where slot 0's is, which must be there to bind it over.
           addUser(SANDBOX_USER),
           `chmod 700 ${SANDBOX_HOME}`,

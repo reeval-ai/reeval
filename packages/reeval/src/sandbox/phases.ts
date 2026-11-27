@@ -1,5 +1,5 @@
 import type { Substitution } from '@reeval/sandbox-docker'
-import { debugLog } from '../debug/attempt.ts'
+import { debugLog } from '../debug/trial.ts'
 import { gatewayPolicy, isDirect, phaseLabel } from '../egress.ts'
 import type { BrokeredSecret } from '../environment/resolve.ts'
 import type { PlannedEgress, PlannedPhaseEgress } from '../types.ts'

@@ -120,7 +120,7 @@ export type DoctorDeps = {
   fetch: typeof fetch
   /** The cloud VM or CI runner this machine looks like, as a phrase (`a GitHub Actions runner …`), or null. */
   cloudHost: () => Promise<string | null>
-  /** An access token from Application Default Credentials, as attempts on Vertex AI mint one. */
+  /** An access token from Application Default Credentials, as trials on Vertex AI mint one. */
   vertexToken: () => Promise<string>
   /** The first OpenSSH tool `boat()` runs (`ssh`, `ssh-keygen`) that isn't on PATH, or null. */
   missingSshTool: () => Promise<string | null>
@@ -309,7 +309,7 @@ export function configuredUses(config: ResolvedConfig) {
   return uses
 }
 
-/** What a run would use: the evals' planned attempts, or why they didn't load. */
+/** What a run would use: the evals' planned trials, or why they didn't load. */
 export type Planned = { uses: ImageUse[] } | { error: string }
 
 const planUses = (config: ResolvedConfig, deps: DoctorDeps): Promise<Planned> =>
@@ -406,7 +406,7 @@ async function checkPodman(deps: DoctorDeps): Promise<{ check: Check; running: b
         ? {
             id: 'podman',
             status: 'warn',
-            summary: `${summary}; an attempt may use up to 4 GB`,
+            summary: `${summary}; a trial may use up to 4 GB`,
             fix: 'give the Podman machine more memory (podman machine set --memory), or lower podman({ memory })',
           }
         : { id: 'podman', status: 'ok', summary },
@@ -490,14 +490,14 @@ async function checkDockerEngine(
   }
   const gb = capacity.memoryBytes / 1024 ** 3
   const summary = `running · ${capacity.cpus} CPUs, ${gb.toFixed(1)} GB memory (default concurrency ${defaultConcurrency(capacity)})`
-  // Each attempt's container may use up to 4 GB (docker({ limits }) sets another).
+  // Each trial's container may use up to 4 GB (docker({ limits }) sets another).
   return {
     checks: [
       gb < 4
         ? {
             id: 'docker',
             status: 'warn',
-            summary: `${summary}; an attempt may use up to 4 GB`,
+            summary: `${summary}; a trial may use up to 4 GB`,
             fix: 'give Docker more memory (Docker Desktop: Settings › Resources), or lower docker({ limits: { memory } })',
           }
         : { id: 'docker', status: 'ok', summary },
@@ -972,7 +972,7 @@ export function adcSource(deps: Pick<DoctorDeps, 'env' | 'platform'>): {
 
 /**
  * Each `vertex()` entry's project, and where its access tokens come from. Online, it mints one
- * and names whose it is (a token the host can't mint fails every attempt on Vertex AI), then asks
+ * and names whose it is (a token the host can't mint fails every trial on Vertex AI), then asks
  * Vertex whether it serves each model the config sends there to the project in that region.
  */
 export async function checkVertex(
@@ -1205,7 +1205,7 @@ const onePolicyText = (policy: EgressPolicy) =>
 
 /**
  * Every policy the config and its profiles set, the config's own first (the default when it sets
- * none), then each phase's policy of the planned attempts.
+ * none), then each phase's policy of the planned trials.
  */
 const egressPolicies = (config: ResolvedConfig, planned?: Planned): EgressPolicy[] => [
   ...[
@@ -1223,25 +1223,25 @@ const plannedText = (p: PlannedEgress) =>
     : onePolicyText(p.policy)
 
 /**
- * What the planned attempts run under, a line per distinct policy with the environments that set
+ * What the planned trials run under, a line per distinct policy with the environments that set
  * it; empty when the evals didn't load.
  */
 function plannedEgress(planned: Planned | undefined): Check[] {
   const uses = planned && 'uses' in planned ? planned.uses : []
-  const byPolicy = new Map<string, { attempts: number; environments: Set<string> }>()
+  const byPolicy = new Map<string, { trials: number; environments: Set<string> }>()
   for (const use of uses) {
     if (!use.egress) continue
     const text = plannedText(use.egress)
-    const entry = byPolicy.get(text) ?? { attempts: 0, environments: new Set() }
+    const entry = byPolicy.get(text) ?? { trials: 0, environments: new Set() }
     byPolicy.set(text, entry)
-    entry.attempts++
+    entry.trials++
     if (use.environment && use.environment !== NO_ENVIRONMENT)
       entry.environments.add(use.environment)
   }
-  const total = [...byPolicy.values()].reduce((sum, e) => sum + e.attempts, 0)
-  return [...byPolicy].map(([text, { attempts, environments }]) => {
+  const total = [...byPolicy.values()].reduce((sum, e) => sum + e.trials, 0)
+  return [...byPolicy].map(([text, { trials, environments }]) => {
     const which =
-      byPolicy.size === 1 ? 'every planned attempt' : `${attempts} of ${total} planned attempts`
+      byPolicy.size === 1 ? 'every planned trial' : `${trials} of ${total} planned trials`
     const envs = environments.size
       ? ` (${environments.size === 1 ? 'environment' : 'environments'} ${[...environments].join(', ')})`
       : ''
@@ -1250,7 +1250,7 @@ function plannedEgress(planned: Planned | undefined): Check[] {
 }
 
 /**
- * The policies the planned attempts run under, or the config's when the evals didn't load, then
+ * The policies the planned trials run under, or the config's when the evals didn't load, then
  * each profile's. `cloud` is the cloud VM or CI runner this machine looks like, which `allow-all`
  * exposes.
  */

@@ -11,4 +11,4 @@ const small = defineEnvironment('small', {
   }),
 })
 
-export default defineEval({ environment: small, runs: 2, task: async () => {} })
+export default defineEval({ environment: small, trials: 2, task: async () => {} })

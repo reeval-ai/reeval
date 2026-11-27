@@ -1,9 +1,9 @@
 // The conformance goldens in test/conformance/ (see its README), run against the real code. A
 // declare/ case's TypeScript eval file must record its expected.json, and that tree, declared in
 // place of the file, must plan the plan case's existing snapshot. A context/ script's requests go
-// to reeval's attempt host on a real attempt through the reference runner (conformance/runner.ts),
-// and reeval's answers and the attempt's record must be the script's.
-// Every message fits the attempt protocol's Zod schemas and its JSON Schema.
+// to reeval's trial host on a real trial through the reference runner (conformance/runner.ts),
+// and reeval's answers and the trial's record must be the script's.
+// Every message fits the trial protocol's Zod schemas and its JSON Schema.
 // REEVAL_UPDATE_SNAPSHOTS=1 rewrites the goldens; review the diff.
 import assert from 'node:assert/strict'
 import {
@@ -22,14 +22,14 @@ import { biome } from '../scripts/schema/check.ts'
 import type { ShapeSchema } from '../scripts/schema/generate.ts'
 import { validate } from '../scripts/schema/validate.ts'
 import { resolveConfig } from '../src/config.ts'
-import {
-  attemptAbortSchema,
-  attemptDoneProblem,
-  attemptReplySchema,
-  attemptRequestProblem,
-  attemptStartProblem,
-} from '../src/contract/attempt.ts'
 import { declarationProblem } from '../src/contract/declaration.ts'
+import {
+  trialAbortSchema,
+  trialDoneProblem,
+  trialReplySchema,
+  trialRequestProblem,
+  trialStartProblem,
+} from '../src/contract/trial.ts'
 import type { DeclarationTree, DeclaredNode } from '../src/declaration.ts'
 import { collect, collectingFile, registerGroup, registerTest } from '../src/engine/collector.ts'
 import { useEngine } from '../src/engine/runtime.ts'
@@ -338,33 +338,33 @@ ${extra}  async task(c) {
 `
 }
 
-/** What reeval and the runner said, with the attempt's record from the run record. */
+/** What reeval and the runner said, with the trial's record from the run record. */
 const answered = new Map<string, Line[]>()
 
 function checkMessage(line: Line, where: string, requests: Map<string, string>): void {
-  const reply = schema('protocol/attempt-reply')
+  const reply = schema('protocol/trial-reply')
   if (line.runner) {
     const m = line.runner
     if (m.type === 'done') {
-      assert.equal(attemptDoneProblem(m), undefined, where)
-      assert.deepEqual(validate(schema('protocol/attempt-done'), m), [], where)
+      assert.equal(trialDoneProblem(m), undefined, where)
+      assert.deepEqual(validate(schema('protocol/trial-done'), m), [], where)
       return
     }
-    assert.equal(attemptRequestProblem(m), undefined, where)
-    assert.deepEqual(validate(schema('protocol/attempt-request'), m), [], where)
+    assert.equal(trialRequestProblem(m), undefined, where)
+    assert.deepEqual(validate(schema('protocol/trial-request'), m), [], where)
     const id = m.id as string
     assert.ok(!requests.has(id), `${where}: request id ${id} is used twice`)
     requests.set(id, (m.call as { op: string }).op)
   } else if (line.reeval) {
     const m = line.reeval
     if (m.type === 'start') {
-      assert.equal(attemptStartProblem(m), undefined, where)
-      assert.deepEqual(validate(schema('protocol/attempt-start'), m), [], where)
+      assert.equal(trialStartProblem(m), undefined, where)
+      assert.deepEqual(validate(schema('protocol/trial-start'), m), [], where)
     } else if (m.type === 'abort') {
-      assert.ok(attemptAbortSchema.safeParse(m).success, where)
-      assert.deepEqual(validate(schema('protocol/attempt-abort'), m), [], where)
+      assert.ok(trialAbortSchema.safeParse(m).success, where)
+      assert.deepEqual(validate(schema('protocol/trial-abort'), m), [], where)
     } else {
-      const parsed = attemptReplySchema.safeParse(m)
+      const parsed = trialReplySchema.safeParse(m)
       assert.ok(parsed.success, `${where}: ${JSON.stringify(parsed.error?.issues[0])}`)
       assert.deepEqual(validate(reply, m), [], where)
       assert.equal(requests.get(m.id as string), m.op, `${where}: answers request ${m.id}`)
@@ -450,7 +450,7 @@ describe('context goldens', () => {
 
   test('the canary: a request with a key the protocol lacks is refused, naming it', () => {
     const request = { id: '1', call: { op: 'readFile', path: 'a.txt', encoding: 'utf8' } }
-    assert.match(attemptRequestProblem(request) ?? '', /unknown key "encoding"/)
+    assert.match(trialRequestProblem(request) ?? '', /unknown key "encoding"/)
     assert.throws(() => checkMessage({ runner: request }, 'canary', new Map()))
   })
 })

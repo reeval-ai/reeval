@@ -1,4 +1,4 @@
-// The image a `daytona({ image | from | dockerfile | install })` attempt starts from, as one
+// The image a `daytona({ image | from | dockerfile | install })` trial starts from, as one
 // Dockerfile Daytona builds: reeval's toolchain on the recipe's base, the harness's bootstrap
 // rendered as steps that run as the sandbox user, the install commands, and a copy of the sandbox
 // user's home that a shared machine's slots restore. Daytona builds it into a snapshot, keyed by
@@ -40,7 +40,7 @@ const REVISION = 1
 /** The stage a `FROM ${REEVAL_BASE}` Dockerfile starts from: reeval's toolchain and the harness. */
 const BASE_STAGE = 'reeval-base'
 
-/** What `daytona()` builds an attempt's image from. */
+/** What `daytona()` builds a trial's image from. */
 export type DaytonaImage = {
   /** The Dockerfile Daytona builds. */
   dockerfile: string
@@ -61,7 +61,7 @@ export type DaytonaImage = {
  * as the sandbox user, or null when there's nothing to install. It replays the bootstrap against a
  * session that records instead of running: every command succeeds with no output, and the home
  * is the sandbox user's. A probe that runs a binary it looked up runs `/bin/true` in the build,
- * so an install that left no CLI fails in the attempt, not the build.
+ * so an install that left no CLI fails in the trial, not the build.
  */
 export async function harnessScript(harness: HarnessDescriptor): Promise<string | null> {
   const bake = harnessBake(harness)

@@ -2,7 +2,7 @@
 // The model sees an ephemeral full-page PNG and returns tools; handlers send Input.*.
 import { generateText, stepCountIs, tool } from 'ai'
 import { z } from 'zod'
-import { debugLog, debugTrace } from '../debug/attempt.ts'
+import { debugLog, debugTrace } from '../debug/trial.ts'
 import { formatDuration, plural } from '../text.ts'
 import type {
   CaptureInstruction,

@@ -10,7 +10,7 @@ export type { CloudOptions } from './contract/cloud.ts'
 export type { CloudMachineSize, CloudSandboxDescriptor } from './types.ts'
 
 /**
- * VMs from the VM service at `REEVAL_VM_URL`, with the token in `REEVAL_VM_TOKEN`. Each attempt
+ * VMs from the VM service at `REEVAL_VM_URL`, with the token in `REEVAL_VM_TOKEN`. Each trial
  * runs in a container of the sandbox's image (its recipe's, or reeval's image for the harness with
  * none) in the VM's Docker, as `docker()` does, under any egress policy; credentials stay on the
  * host behind the egress gateway.

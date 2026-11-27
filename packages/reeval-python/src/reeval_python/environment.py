@@ -182,7 +182,7 @@ def docker(*, from_: str | None = None, **options: Any) -> DockerSandbox:
 
 
 def tart(image: str, **options: Any) -> TartSandbox:
-    """A macOS VM cloned from `image` (an OCI image or a local VM) for each attempt, run by
+    """A macOS VM cloned from `image` (an OCI image or a local VM) for each trial, run by
     Tart on this Apple Silicon Mac. It runs under `egress="allow-all"` only. `ssh={"key": …}`
     is relative to the eval file."""
     return TartSandbox({"kind": "tart", "image": image, **value_to_wire(options)})

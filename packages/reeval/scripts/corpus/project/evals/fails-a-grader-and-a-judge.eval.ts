@@ -1,7 +1,7 @@
 import { defineEval } from 'reeval'
 import { judge, succeeded } from 'reeval/graders'
 
-// A grader that fails, then a judge grader that fails, in one attempt.
+// A grader that fails, then a judge grader that fails, in one trial.
 export default defineEval({
   graders: [
     succeeded('grep -q Bonjour greet.js'),

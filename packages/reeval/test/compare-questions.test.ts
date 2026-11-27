@@ -15,7 +15,7 @@ import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox({ dir: new URL('../sandboxes', import.meta.url) })
 export const base = defineEnvironment('base', { sandbox })
 export const skilled = defineEnvironment('skilled', { sandbox })
-export const compare = { control: base, variants: [skilled] }
+export const compare = { baseline: base, variants: [skilled] }
 export const body = async (c) => {
   await c.send('go')
   assert.notEqual(await c.readFile('ok.txt'), null)
@@ -25,7 +25,7 @@ export const body = async (c) => {
     'evals/envs.ts': ENVS,
     'evals/asks.eval.ts': `import { defineEval } from 'reeval'
 import { body, compare } from './envs.ts'
-export default defineEval({ runs: 1, compare, questions: ${question}, task: body })
+export default defineEval({ trials: 1, compare, questions: ${question}, task: body })
 `,
   })
   const PAIRWISE = `[{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true }]`
@@ -49,7 +49,7 @@ export default defineEval({ runs: 1, compare, questions: ${question}, task: body
     )
   }
 
-  test('--dry-run names the questions with no language model; reeval run exits 2 before any attempt', async () => {
+  test('--dry-run names the questions with no language model; reeval run exits 2 before any trial', async () => {
     const p = await project('questions-no-model', {
       'reeval.config.ts': fakeConfig({ harness: `{ files: { 'ok.txt': 'yes' } }` }),
       ...asks(PAIRWISE),
@@ -75,9 +75,9 @@ export default defineEval({ runs: 1, compare, questions: ${question}, task: body
     assert.equal(r.code, 2, r.stdout + r.stderr)
     assert.match(
       r.stderr,
-      /questions "Which is cleaner\?" \(asks\) needs a language model to answer it\. Set analysis: \{ model: 'google\/gemini-3\.8-flash' \} in reeval\.config\.ts \(the judge, a fake judge, is an evaluation model: it scores yes\/no questions and can't pick between two attempts\), or give the question its own, \{ question: '…', model: 'google\/gemini-3\.8-flash' \}, or set question: \{ model \} on its group or eval\./,
+      /questions "Which is cleaner\?" \(asks\) needs a language model to answer it\. Set analysis: \{ model: 'google\/gemini-3\.8-flash' \} in reeval\.config\.ts \(the judge, a fake judge, is an evaluation model: it scores yes\/no questions and can't pick between two trials\), or give the question its own, \{ question: '…', model: 'google\/gemini-3\.8-flash' \}, or set question: \{ model \} on its group or eval\./,
     )
-    assert.doesNotMatch(r.stdout, /▶|^(pass|fail) /m, 'no attempt ran')
+    assert.doesNotMatch(r.stdout, /▶|^(pass|fail) /m, 'no trial ran')
     assert.equal(existsSync(join(p.dir, '.reeval/runs')), false)
   })
 
@@ -87,13 +87,13 @@ export default defineEval({ runs: 1, compare, questions: ${question}, task: body
         'judge',
         '',
         `{ model: 'typesafe-ai/jev-1.14.0' }`,
-        /needs a language model to answer it\. .* \(the judge, typesafe-ai\/jev-1\.14\.0, is an evaluation model: it scores yes\/no questions and can't pick between two attempts\)/,
+        /needs a language model to answer it\. .* \(the judge, typesafe-ai\/jev-1\.14\.0, is an evaluation model: it scores yes\/no questions and can't pick between two trials\)/,
       ],
       [
         'analysis',
         `analysis: { model: 'typesafe-ai/jev-1.14.0' },`,
         undefined,
-        /questions "Which is cleaner\?" \(asks\) would be answered by analysis\.model in reeval\.config\.ts, "typesafe-ai\/jev-1\.14\.0", an evaluation model: it scores yes\/no questions and can't pick between two attempts\. Use a language model/,
+        /questions "Which is cleaner\?" \(asks\) would be answered by analysis\.model in reeval\.config\.ts, "typesafe-ai\/jev-1\.14\.0", an evaluation model: it scores yes\/no questions and can't pick between two trials\. Use a language model/,
       ],
     ] as const) {
       const p = await project(`questions-eval-model-${name}`, {
@@ -120,11 +120,11 @@ export default defineEval({ runs: 1, compare, questions: ${question}, task: body
       'evals/envs.ts': ENVS,
       'evals/own-model.eval.ts': `import { defineEval } from 'reeval'
 import { compare } from './envs.ts'
-export default defineEval({ runs: 1, compare, questions: [{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true, model: 'anthropic/claude-sonnet-5' }], task: async () => {} })
+export default defineEval({ trials: 1, compare, questions: [{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true, model: 'anthropic/claude-sonnet-5' }], task: async () => {} })
 `,
       'evals/cascade.eval.ts': `import { defineEval } from 'reeval'
 import { compare } from './envs.ts'
-export default defineEval({ runs: 1, compare, questions: [{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true }, { question: 'Which is shorter?', across: 'environment', task: true, diff: true, model: 'openai/gpt-5.5' }], task: async () => {} })
+export default defineEval({ trials: 1, compare, questions: [{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true }, { question: 'Which is shorter?', across: 'environment', task: true, diff: true, model: 'openai/gpt-5.5' }], task: async () => {} })
 `,
     })
     const dry = await runCli(p.dir, ['run', '--dry-run', '--json'], { env: noKeys })
@@ -203,15 +203,15 @@ export const next = defineEnvironment('new-skill', { sandbox })
 `,
       'evals/two-questions.eval.ts': `import { defineEval } from 'reeval'
 import { body, compare } from './envs.ts'
-export default defineEval({ runs: 1, compare, questions: [{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true }, { question: 'Which is shorter?', across: 'environment', task: true, diff: true }], task: body })
+export default defineEval({ trials: 1, compare, questions: [{ question: 'Which is cleaner?', across: 'environment', task: true, diff: true }, { question: 'Which is shorter?', across: 'environment', task: true, diff: true }], task: body })
 `,
       'evals/reasons.eval.ts': `import { defineEval } from 'reeval'
 import { body, compare } from './envs.ts'
-export default defineEval({ runs: 1, compare, questions: [{ question: 'Which reads better?', across: 'environment', task: true, diff: true }], task: body })
+export default defineEval({ trials: 1, compare, questions: [{ question: 'Which reads better?', across: 'environment', task: true, diff: true }], task: body })
 `,
-      'evals/three-arms.eval.ts': `import { capability, defineEval } from 'reeval'
+      'evals/three-environments.eval.ts': `import { capability, defineEval } from 'reeval'
 import { body, current, next, none } from './envs.ts'
-export default defineEval({ target: capability(), compare: { control: none, variants: [current, next] }, questions: [{ question: 'Which delivers a better user experience?', across: 'environment', task: true, diff: true }], runs: 3, task: body })
+export default defineEval({ target: capability(), compare: { baseline: none, variants: [current, next] }, questions: [{ question: 'Which delivers a better user experience?', across: 'environment', task: true, diff: true }], trials: 3, task: body })
 `,
     })
     const dry = await runCli(p.dir, ['run', '--dry-run'])
@@ -234,7 +234,7 @@ export default defineEval({ target: capability(), compare: { control: none, vari
     assert.deepEqual(
       two?.cells.map((c) => [c.role, c.outcome, c.pass, c.fail]),
       [
-        ['control', 'pass', 1, 0],
+        ['baseline', 'pass', 1, 0],
         ['variant', 'pass', 1, 0],
       ],
     )
@@ -260,12 +260,12 @@ export default defineEval({ target: capability(), compare: { control: none, vari
       /### Pairwise review[\s\S]*\| Which reads better\? \| within \| base \| skilled \| 1 \| 1 \| 0 \| 2 \|/,
     )
 
-    // Three arms, three runs, and a vote for the side shown first: every pair splits with the
-    // order, which the pooled rates (each arm 50%) and a "0 ties" count hide.
-    assert.equal(named('three-arms')?.answers?.[0]?.votes.length, 18)
-    const armWins =
+    // Three environments, three runs, and a vote for the side shown first: every pair splits with the
+    // order, which the pooled rates (each environment 50%) and a "0 ties" count hide.
+    assert.equal(named('three-environments')?.answers?.[0]?.votes.length, 18)
+    const environmentWins =
       /^[│ ] +Question: Which delivers a better user experience\?\n[│ ] +no-skill +won \d+ of \d+\n[│ ] +current-skill +won \d+ of \d+\n[│ ] +new-skill +won \d+ of \d+$/m
-    assert.match(r.stdout, armWins)
+    assert.match(r.stdout, environmentWins)
     assert.match(
       run.read('summary.md'),
       /### Pairwise review[\s\S]*\| Which delivers a better user experience\? \| within \|/,
@@ -304,8 +304,8 @@ export default defineEval({ target: capability(), compare: { control: none, vari
   })
 
   // One run on three harnesses: `two` writes an extra file, which the fake vote prefers, and `bad`
-  // fails its check on every attempt, so it's in no pair but still in the pass rate and the exit
-  // code. The fake model answers a question asked of each attempt from its diff.
+  // fails its check on every trial, so it's in no pair but still in the pass rate and the exit
+  // code. The fake model answers a question asked of each trial from its diff.
   test('one run on three harnesses: pairs, votes and answers per question', async () => {
     const p = await project('questions-three-harnesses', {
       'reeval.config.ts': `import { defineConfig, defineEnvironment, regression } from 'reeval'
@@ -319,14 +319,14 @@ export default defineConfig({
     fakeAgent({ id: 'two', files: { 'ok.txt': 'yes', 'extra.txt': 'more' } }),
     fakeAgent({ id: 'bad', files: { 'no.txt': 'no' } }),
   ],
-  runs: 2,
+  trials: 2,
   environments: defineEnvironment('fake', { sandbox: fakeSandbox({ dir: new URL('./sandboxes', import.meta.url) }) }),
   judge: { model: fakeJudge({ score: 0.9 }) },
   analysis: {
     model: fakeAnalysis({
       vote: (p) => (p.a.diff?.includes('extra.txt') ? 'A' : p.b.diff?.includes('extra.txt') ? 'B' : 'tie'),
       answer: (q) => {
-        const wrote = q.attempt.diff?.includes('ok.txt') ?? false
+        const wrote = q.trial.diff?.includes('ok.txt') ?? false
         if (q.question === 'Did it write ok.txt?') return { choice: wrote ? 'yes' : 'no', text: 'read the diff' }
         return \`saw \${wrote ? 'ok' : 'no'}.txt\`
       },
@@ -355,7 +355,7 @@ import { compare } from './envs.ts'
 export const failed = (judged) => ({
   compare,
   agents: fakeAgent({ files: { 'ok.txt': 'yes' } }),
-  runs: 1,
+  trials: 1,
   judge: { model: fakeJudge({ score: 0.2 }) },
   questions: [{ question: 'Which is neater?', across: 'environment', task: true, diff: true }],
   graders: judged ? [judge('Is it nice?', { inputs: { diff: true } })] : [],
@@ -386,7 +386,7 @@ import { body, compare } from './envs.ts'
 export default defineEval({ compare, questions: [{ question: 'What did it run?', checks: ['npm tset'] }], task: body })
 `,
       'evals/one.ts': `import { fakeAgent } from 'reeval/agent'
-export const one = { agents: fakeAgent({ files: { 'ok.txt': 'yes' } }), runs: 1, questions: [{ question: 'What did it do?', task: true, output: true, diff: true, trajectory: true }] }
+export const one = { agents: fakeAgent({ files: { 'ok.txt': 'yes' } }), trials: 1, questions: [{ question: 'What did it do?', task: true, output: true, diff: true, trajectory: true }] }
 `,
       'evals/passes.eval.ts': `import { defineEval } from 'reeval'
 import { one } from './one.ts'
@@ -418,7 +418,7 @@ export default defineEval({ ...one, agents: fakeAgent({ failWith: 'agent CLI fai
     )
     assert.match(
       dry.stdout,
-      /^ {2}question 1\/1 {2}Did it write ok\.txt\? · after each attempt · shows task, output, diff, trajectory · each attempt · 12 attempts · yes \/ no · fake$/m,
+      /^ {2}question 1\/1 {2}Did it write ok\.txt\? · after each trial · shows task, output, diff, trajectory · each trial · 12 trials · yes \/ no · fake$/m,
     )
     const r = await runCli(p.dir)
     assert.equal(r.code, 1, r.stdout + r.stderr)
@@ -429,7 +429,7 @@ export default defineEval({ ...one, agents: fakeAgent({ failWith: 'agent CLI fai
       return e
     }
 
-    // Votes are recorded after the attempts; the outcome and pass rate are the checks'.
+    // Votes are recorded after the trials; the outcome and pass rate are the checks'.
     const e = named('votes/asks')
     const w = named('votes/plain')
     assert.equal(w.answers, undefined, 'no answers without questions')
@@ -443,18 +443,18 @@ export default defineEval({ ...one, agents: fakeAgent({ failWith: 'agent CLI fai
     assert.ok(answer)
     assert.equal(answer.model, 'fake')
     assert.equal(answer.error, undefined)
-    // Within: 2 harnesses with passing attempts × 2 runs; across: 2 arms × 2 runs, one vs two.
+    // Within: 2 harnesses with passing trials × 2 runs; across: 2 environments × 2 runs, one vs two.
     assert.equal(answer.votes.length, 16)
     assert.ok(!answer.votes.some((v) => [v.a, v.b, v.harness].includes('bad')), 'bad is in no pair')
     assert.equal(answer.votes.filter((v) => v.swapped).length, 8)
     assert.deepEqual(
       answer.votes
         .filter((v) => v.cut === 'across')
-        .map((v) => [v.arm, v.run, v.a, v.b, v.winner, v.swapped]),
-      ['base', 'skilled'].flatMap((arm) =>
+        .map((v) => [v.environment, v.run, v.a, v.b, v.winner, v.swapped]),
+      ['base', 'skilled'].flatMap((environment) =>
         [1, 2].flatMap((run) => [
-          [arm, run, 'one', 'two', 'two', false],
-          [arm, run, 'one', 'two', 'two', true],
+          [environment, run, 'one', 'two', 'two', false],
+          [environment, run, 'one', 'two', 'two', true],
         ]),
       ),
     )
@@ -492,7 +492,7 @@ export default defineEval({ ...one, agents: fakeAgent({ failWith: 'agent CLI fai
       /^[│ ] +Question: Which is tidier\?\n[│ ] +base +won 2 of 4\n[│ ] +skilled +won 2 of 4$/m,
     )
 
-    // Attempts whose checks failed are left out of the pairs, a verdict the eval didn't assert or not.
+    // Trials whose checks failed are left out of the pairs, a verdict the eval didn't assert or not.
     for (const name of ['failed-checks', 'failed-checks-judged']) {
       assert.deepEqual(
         named(name).answers?.map((a) => [a.question, a.votes.length]),
@@ -501,16 +501,16 @@ export default defineEval({ ...one, agents: fakeAgent({ failWith: 'agent CLI fai
       )
     }
 
-    // A question without across is asked of each attempt that ran to a pass or a fail, bad's
-    // failed attempts too, and its choices are tallied.
+    // A question without across is asked of each trial that ran to a pass or a fail, bad's
+    // failed trials too, and its choices are tallied.
     const chose = named('choices')
     assert.equal(chose.answers, undefined, 'no pairwise answers')
-    const choices = chose.attempts.map((a) => [a.cell.split('/')[0], a.answers?.[0]?.choice])
+    const choices = chose.trials.map((a) => [a.cell.split('/')[0], a.answers?.[0]?.choice])
     assert.equal(choices.length, 12)
     for (const [harness, choice] of choices) {
       assert.equal(choice, harness === 'bad' ? 'no' : 'yes', `${harness} answered ${choice}`)
     }
-    const [first] = chose.attempts[0]?.answers ?? []
+    const [first] = chose.trials[0]?.answers ?? []
     assert.deepEqual(
       first?.stateOptions,
       resolveQuestionState({ task: true, output: true, diff: true, trajectory: true }),
@@ -527,7 +527,7 @@ export default defineEval({ ...one, agents: fakeAgent({ failWith: 'agent CLI fai
     const okTxt = `question = 'Did it write ok.txt?'`
     const byOutcome = await runCli(p.dir, [
       'query',
-      `SELECT choice, outcome, COUNT(*) AS n FROM attempt_answers WHERE ${okTxt} GROUP BY choice, outcome ORDER BY choice`,
+      `SELECT choice, outcome, COUNT(*) AS n FROM trial_answers WHERE ${okTxt} GROUP BY choice, outcome ORDER BY choice`,
       '--json',
     ])
     assert.equal(byOutcome.code, 0, byOutcome.stderr)
@@ -537,46 +537,46 @@ export default defineEval({ ...one, agents: fakeAgent({ failWith: 'agent CLI fai
     ])
     const byCell = await runCli(p.dir, [
       'query',
-      `SELECT agent, role, choice, COUNT(*) AS n FROM attempt_answers WHERE ${okTxt} GROUP BY agent, role, choice ORDER BY agent, role`,
+      `SELECT agent, role, choice, COUNT(*) AS n FROM trial_answers WHERE ${okTxt} GROUP BY agent, role, choice ORDER BY agent, role`,
       '--json',
     ])
     assert.equal(byCell.code, 0, byCell.stderr)
     assert.deepEqual(JSON.parse(byCell.stdout), [
-      { agent: 'bad', role: 'control', choice: 'no', n: 2 },
+      { agent: 'bad', role: 'baseline', choice: 'no', n: 2 },
       { agent: 'bad', role: 'variant', choice: 'no', n: 2 },
-      { agent: 'one', role: 'control', choice: 'yes', n: 2 },
+      { agent: 'one', role: 'baseline', choice: 'yes', n: 2 },
       { agent: 'one', role: 'variant', choice: 'yes', n: 2 },
-      { agent: 'two', role: 'control', choice: 'yes', n: 2 },
+      { agent: 'two', role: 'baseline', choice: 'yes', n: 2 },
       { agent: 'two', role: 'variant', choice: 'yes', n: 2 },
     ])
-    const facts = await digestFacts(p.dir, 'attempt-question')
+    const facts = await digestFacts(p.dir, 'trial-question')
     assert.deepEqual(facts.find((f) => f.question === 'Did it write ok.txt?')?.choices, [
       { choice: 'yes', n: 8 },
       { choice: 'no', n: 4 },
     ])
 
-    // A free-text question asked of each attempt shows its answers.
+    // A free-text question asked of each trial shows its answers.
     assert.match(r.stdout, /^[│ ] +Question: What did it write\?\n[│ ] +\S+ +saw (ok|no)\.txt$/m)
 
-    // A per-attempt question naming a command no attempt ran is warned about once.
-    const unrun = 'question "What did it run?" checks names a command no attempt ran: "npm tset"'
+    // A per-trial question naming a command no trial ran is warned about once.
+    const unrun = 'question "What did it run?" checks names a command no trial ran: "npm tset"'
     assert.deepEqual(
       r.stdout
         .split('\n')
-        .filter((l) => l.includes('names a command no attempt ran'))
+        .filter((l) => l.includes('names a command no trial ran'))
         .map((l) => l.replace(/^[│ ]+/, '')),
       [
-        `⚠  ${unrun} on unrun-command, so each attempt's answer is that error. Outcomes are unchanged.`,
+        `⚠  ${unrun} on unrun-command, so each trial's answer is that error. Outcomes are unchanged.`,
         `12 of 12 not answered: ${unrun}`,
       ],
     )
-    for (const a of named('unrun-command').attempts) assert.equal(a.answers?.[0]?.error, unrun)
+    for (const a of named('unrun-command').trials) assert.equal(a.answers?.[0]?.error, unrun)
 
-    // An attempt that passed or failed is asked; an infra error's isn't.
+    // A trial that passed or failed is asked; an infra error's isn't.
     assert.deepEqual(
       ['passes', 'fails', 'broken-agent'].map((name) => {
         const x = named(name)
-        return [x.name, x.outcome, x.attempts[0]?.answers?.[0]?.text]
+        return [x.name, x.outcome, x.trials[0]?.answers?.[0]?.text]
       }),
       [
         ['passes', 'pass', 'saw ok.txt'],
@@ -622,11 +622,11 @@ export default defineConfig({
       'evals/envs.ts': ENVS,
       'evals/asks.eval.ts': `import { defineEval } from 'reeval'
 import { body, compare } from './envs.ts'
-export default defineEval({ runs: 1, compare, questions: ${PAIRWISE}, task: body })
+export default defineEval({ trials: 1, compare, questions: ${PAIRWISE}, task: body })
 `,
       'evals/describes.eval.ts': `import { defineEval } from 'reeval'
 import { body, compare } from './envs.ts'
-export default defineEval({ runs: 1, compare, questions: [{ question: 'What did it write?', task: true, output: true, diff: true, trajectory: true }], task: body })
+export default defineEval({ trials: 1, compare, questions: [{ question: 'What did it write?', task: true, output: true, diff: true, trajectory: true }], task: body })
 `,
     })
     const r = await runCli(p.dir)
@@ -656,7 +656,7 @@ export default defineEval({ runs: 1, compare, questions: [{ question: 'What did 
     assert.ok(calls.length >= 1, JSON.stringify(calls))
     for (const call of calls) assert.equal(call.error, 'the model is over quota')
 
-    // A failed call of a question asked of each attempt is kept on each attempt's answer.
+    // A failed call of a question asked of each trial is kept on each trial's answer.
     assert.match(r.stdout, /question "What did it write\?" on .* failed: the model is over quota/)
     assert.match(
       r.stdout,
@@ -664,7 +664,7 @@ export default defineEval({ runs: 1, compare, questions: [{ question: 'What did 
     )
     const described = run.evals.find((x) => x.name === 'describes')
     assert.equal(described?.outcome, 'pass')
-    for (const a of described?.attempts ?? []) {
+    for (const a of described?.trials ?? []) {
       assert.equal(a.answers?.[0]?.error, 'the model is over quota')
       assert.equal(a.answers?.[0]?.text, '')
     }
@@ -674,7 +674,7 @@ export default defineEval({ runs: 1, compare, questions: [{ question: 'What did 
     skip: noSignals,
   }, async () => {
     // A model that never replies, so the signal lands while every call is in flight. Two
-    // per-attempt calls and then the pairwise one: the third means both attempts have ended.
+    // per-trial calls and then the pairwise one: the third means both trials have ended.
     let asked = 0
     const server = createServer(() => {
       asked++
@@ -710,8 +710,8 @@ export default defineEval({ runs: 1, compare, questions: [{ question: 'What did 
       assert.equal(run.run.status, 'interrupted')
       const [e] = run.evals
       assert.equal(e?.answers, undefined, 'an aborted pairwise call is not a failed answer')
-      assert.equal(e?.attempts.length, 2)
-      for (const a of e?.attempts ?? []) {
+      assert.equal(e?.trials.length, 2)
+      for (const a of e?.trials ?? []) {
         assert.equal(a.outcome, 'pass')
         assert.deepEqual(
           a.answers?.map((x) => [x.question, x.error]),

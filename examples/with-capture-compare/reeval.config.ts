@@ -10,7 +10,7 @@ const fakeFile = (path: string) =>
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  // A scripted agent that copies ./fake-agent's files into the workspace: both arms add the
+  // A scripted agent that copies ./fake-agent's files into the workspace: both environments add the
   // button, and only the one with the skill styles it. The fake sandbox saves a 1×1 placeholder
   // for each screenshot.
   agents: fakeAgent({

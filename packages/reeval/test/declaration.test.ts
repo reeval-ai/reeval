@@ -27,7 +27,7 @@ function runIn(root: string): RunContext {
   const config = resolveConfig(
     {
       agents: [fakeAgent(), cursor({ model: 'composer-2.5' })],
-      runs: 1,
+      trials: 1,
     },
     root,
   )
@@ -78,11 +78,11 @@ const skill = defineEnvironment('skill', { rules: 'Use the house style.' })
 
 /** Eval files by id, each its default export's spec. */
 const EVALS: Record<string, () => object> = {
-  a: () => ({ runs: 2, tags: ['smoke'], agents: { only: 'fake' }, task: async () => {} }),
+  a: () => ({ trials: 2, tags: ['smoke'], agents: { only: 'fake' }, task: async () => {} }),
   skipped: () => ({ skip: 'not yet', task: async () => {} }),
   c: () => ({
     agents: { add: cursor({ model: 'composer-2', id: 'fast' }) },
-    compare: { control: plain, variants: [skill] },
+    compare: { baseline: plain, variants: [skill] },
     task: async () => {},
   }),
   d: () => ({ timeout: '2m', egress: 'deny-all', environment: skill, task: async () => {} }),
@@ -117,7 +117,7 @@ const groupedTree = (): DeclarationTree['children'] =>
           type: 'eval',
           name: 'a',
           mode: 'run',
-          options: { runs: 2 },
+          options: { trials: 2 },
           body: 'g1',
           source: { body: '0'.repeat(64) },
         },
@@ -229,9 +229,7 @@ test("an eval's graders as data plan through the tree, and come back out of it",
     declareTree([node], () => async () => {}),
   )
   const planned = (tests: typeof first.tests) =>
-    tests.map(
-      (t) => (t.options as { attempt: { plan: { graders?: unknown } } }).attempt.plan.graders,
-    )
+    tests.map((t) => (t.options as { trial: { plan: { graders?: unknown } } }).trial.plan.graders)
   assert.deepEqual(planned(first.tests), [
     [
       { name: 'turns', kind: 'builtin', weight: 1, required: false, recordsOnly: true },
@@ -285,7 +283,7 @@ function relativeTree(): DeclarationTree['children'] {
     },
     eval_('compare', {
       compare: {
-        control: env('plain', { sandbox: docker('./images/Dockerfile') }),
+        baseline: env('plain', { sandbox: docker('./images/Dockerfile') }),
         variants: [env('built', { sandbox: docker('../docker/Dockerfile') })],
       },
     }),
@@ -345,7 +343,7 @@ test("a tree's relative host paths resolve against the declaring file's director
     'context.environments.layers.0.spec.skills.0.path': join(evals, 'skills'),
     'context.environments.layers.0.spec.skills.1.spec': join(root, 'pkg.tgz'),
     'context.environments.layers.0.spec.workspace.url': join(root, 'app'),
-    'compare.compare.control.layers.0.spec.sandbox.dockerfile': join(evals, 'images/Dockerfile'),
+    'compare.compare.baseline.layers.0.spec.sandbox.dockerfile': join(evals, 'images/Dockerfile'),
     'compare.compare.variants.0.layers.0.spec.sandbox.dockerfile': join(root, 'docker/Dockerfile'),
     'case 0.sandbox.dockerfile': join(evals, 'images/Dockerfile'),
     'case 1.sandbox.dockerfile': join(evals, 'images/Dockerfile'),
@@ -391,8 +389,8 @@ test("a tree's missing Dockerfile is refused at its absolute path, naming the fi
     [{ sandbox }, 'sandbox.dockerfile'],
     [{ environments: env }, 'environments.layers[0].spec.sandbox.dockerfile'],
     [
-      { compare: { control: env, variants: [] } },
-      'compare.control.layers[0].spec.sandbox.dockerfile',
+      { compare: { baseline: env, variants: [] } },
+      'compare.baseline.layers[0].spec.sandbox.dockerfile',
     ],
   ] as const) {
     await assert.rejects(
@@ -459,7 +457,7 @@ test('planEval is pure: the same declaration and context give the same tests, ga
     name: 'p',
     mode: 'run' as const,
     groups: [],
-    options: { runs: 2 },
+    options: { trials: 2 },
     source: { body: '0'.repeat(64) },
   }
   const { tests: once, harnesses } = planEval(declaration, ctx)
@@ -470,7 +468,7 @@ test('planEval is pure: the same declaration and context give the same tests, ga
   assert.equal(once?.length, 4)
   assert.deepEqual(harnesses, run.config.harness.map(harnessId))
   assert.deepEqual(once?.[0]?.gate, {
-    limits: { attempts: 4 },
+    limits: { trials: 4 },
     rank: { eval: 'p', file: 'evals/p.eval.ts', order: 3, n: 1, cell: 0 },
   })
   assert.deepEqual(
@@ -520,7 +518,7 @@ test('the tree and the collected tests fit their JSON Schemas in schema/plan/', 
       name,
       groups,
       mode,
-      ...(options.attempt ? { attempt: options.attempt } : {}),
+      ...(options.trial ? { trial: options.trial } : {}),
     }))
   for (const test of JSON.parse(JSON.stringify(wire)))
     assert.deepEqual(validate(schema('wire-test'), test), [], test.name)

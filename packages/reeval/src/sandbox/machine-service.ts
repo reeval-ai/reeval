@@ -2,10 +2,10 @@
 // provider account, machine size and image, so every eval file's worker shares its machines, and
 // the pools on one account share its limits (`pool-account.ts`). It closes them all when the run
 // ends. A worker leases a slot over its IPC channel (or, outside
-// a worker, from pools in its own process) and gives it back when its attempt is done.
+// a worker, from pools in its own process) and gives it back when its trial is done.
 import { backstops } from '../engine/backstop.ts'
 import { callService } from '../scheduler/services.ts'
-import { attemptSpan, emitSpan, openSpan } from '../trace/spans.ts'
+import { emitSpan, openSpan, trialSpan } from '../trace/spans.ts'
 import type { MachineDescriptor } from './machine.ts'
 import { MACHINE_PROVIDERS } from './machines.ts'
 import { type GoneMachine, type LeaseFacts, MachinePool, type PoolLease } from './pool.ts'
@@ -24,15 +24,15 @@ export type MachineCall =
       /** What the provider starts machines from, as its preflight prepared it. */
       image?: unknown
       runId: string
-      /** The key of the attempt the lease is for. */
-      attempt?: string
+      /** The key of the trial the lease is for. */
+      trial?: string
       /** The project, where the provider's SDK resolves from. */
       root: string
-      /** How long the attempt may hold the machine. */
+      /** How long the trial may hold the machine. */
       ttlSeconds: number
     }
   | { op: 'release'; ticket: string; broken: boolean }
-  /** The worker stopped waiting (its attempt was canceled): a lease granted since goes back. */
+  /** The worker stopped waiting (its trial was canceled): a lease granted since goes back. */
   | { op: 'abandon'; ticket: string }
 
 /** A granted lease, as it crosses the channel. */
@@ -46,16 +46,16 @@ type WireEnded = { ended: string }
 
 type Held = {
   owner: string
-  attempt?: string
+  trial?: string
   lease?: PoolLease<unknown>
   waiting?: AbortController
 }
 
-/** The machines the run's pools hold, and which attempt holds a slot on which. */
+/** The machines the run's pools hold, and which trial holds a slot on which. */
 export type MachineHoldings = {
   /** Every machine's id, idle and in use, from its start's return until it's removed. */
   machines: string[]
-  /** The machine each attempt holds a slot on, by the attempt's key. */
+  /** The machine each trial holds a slot on, by the trial's key. */
   leases: Map<string, string>
 }
 
@@ -95,14 +95,14 @@ export class MachineService {
     if (call.op === 'release' || call.op === 'abandon') {
       const held = this.#held.get(key)
       this.#held.delete(key)
-      held?.waiting?.abort(new Error('The attempt stopped waiting for a machine'))
+      held?.waiting?.abort(new Error('The trial stopped waiting for a machine'))
       held?.lease?.release(call.op === 'release' && call.broken)
       return null
     }
     if (this.#closed) throw new Error("The run's machine pools are closed")
     const waiting = new AbortController()
-    const attempt = call.attempt !== undefined ? { attempt: call.attempt } : {}
-    this.#held.set(key, { owner, ...attempt, waiting })
+    const trial = call.trial !== undefined ? { trial: call.trial } : {}
+    this.#held.set(key, { owner, ...trial, waiting })
     let lease: PoolLease<unknown>
     try {
       const pool = await this.#pool(call)
@@ -115,9 +115,9 @@ export class MachineService {
     }
     if (!this.#held.has(key)) {
       lease.release()
-      throw new Error('The attempt stopped waiting for a machine')
+      throw new Error('The trial stopped waiting for a machine')
     }
-    this.#held.set(key, { owner, ...attempt, lease })
+    this.#held.set(key, { owner, ...trial, lease })
     const { info, machine, span, slot, reused, start, lost } = lease
     return { info, machine, span, slot, reused, start, lost } satisfies WireLease
   }
@@ -127,7 +127,7 @@ export class MachineService {
     for (const [key, held] of this.#held) {
       if (held.owner !== owner) continue
       this.#held.delete(key)
-      held.waiting?.abort(new Error("The attempt's worker exited"))
+      held.waiting?.abort(new Error("The trial's worker exited"))
       held.lease?.release(true)
     }
   }
@@ -138,7 +138,7 @@ export class MachineService {
     for (const pool of this.#opened) for (const id of pool.machineIds()) machines.add(id)
     const leases = new Map<string, string>()
     for (const held of this.#held.values()) {
-      if (held.attempt !== undefined && held.lease) leases.set(held.attempt, held.lease.machine)
+      if (held.trial !== undefined && held.lease) leases.set(held.trial, held.lease.machine)
     }
     return { machines: [...machines], leases }
   }
@@ -247,7 +247,7 @@ const localCall = (body: unknown) => {
 
 let tickets = 0
 
-/** A slot on one of the run's pooled machines, leased for one attempt. */
+/** A slot on one of the run's pooled machines, leased for one trial. */
 export type MachineLease = WireLease & {
   /** Gives the slot back; `broken` takes its machine out of the pool. */
   release(broken?: boolean): Promise<void>
@@ -267,7 +267,7 @@ export async function leaseMachine(
     signal.addEventListener('abort', () => reject(signal.reason), { once: true })
   })
   stop.catch(() => {})
-  // The attempt's timeout is for its own work, so waiting for a slot doesn't count, nor does a
+  // The trial's timeout is for its own work, so waiting for a slot doesn't count, nor does a
   // machine's start (its provider bounds a start, not the wait; a cancel ends either).
   const queued = backstops.getStore()?.hold()
   try {
@@ -279,7 +279,7 @@ export async function leaseMachine(
       'reeval.machine.slot': lease.slot,
       'reeval.machine.use': lease.reused + 1,
     }
-    attemptSpan()?.set(placement)
+    trialSpan()?.set(placement)
     const span = openSpan(
       'lease',
       {
@@ -287,7 +287,7 @@ export async function leaseMachine(
         'reeval.lease.wait_ms': Date.now() - asked,
         'reeval.machine.started': lease.start !== null,
       },
-      { parentSpanId: attemptSpan()?.spanId },
+      { parentSpanId: trialSpan()?.spanId },
     )
     span.link(lease.span)
     return {

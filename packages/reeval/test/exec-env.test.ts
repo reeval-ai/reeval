@@ -1,19 +1,19 @@
 // `c.exec`'s own `env`: a brokered secret's host value goes in as its placeholder without
 // rewriting a word that holds a short one, and a secret-named value a runner sends is masked
-// even when the attempt protocol refuses the call that carries it.
+// even when the trial protocol refuses the call that carries it.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { execEnv } from '../src/attempt/checks.ts'
-import type { Attempt } from '../src/attempt/state.ts'
-import type { AttemptRequest } from '../src/contract/attempt.ts'
-import { replyToAttempt } from '../src/language-runner/attempt-host.ts'
+import type { TrialRequest } from '../src/contract/trial.ts'
+import { replyToTrial } from '../src/language-runner/trial-host.ts'
 import { redactSecrets } from '../src/redact.ts'
-import type { AttemptContext } from '../src/types.ts'
+import { execEnv } from '../src/trial/checks.ts'
+import type { Trial } from '../src/trial/state.ts'
+import type { TrialContext } from '../src/types.ts'
 
 const brokering = (...secrets: Array<[value: string, placeholder: string]>) =>
   ({
     env: { substitutions: secrets.map(([value, placeholder]) => ({ value, placeholder })) },
-  }) as unknown as Attempt
+  }) as unknown as Trial
 
 test('a long brokered value is replaced wherever it is', () => {
   const a = brokering(['k3y-0123456789', 'PH_LONG'])
@@ -47,10 +47,10 @@ test('a short brokered value is replaced only as a token of its own', () => {
 
 test('a secret-named exec value the protocol refuses is masked from then on', async () => {
   const value = ['rr', 'refused', '3k9d', '7m2p'].join('-')
-  const reply = await replyToAttempt({} as AttemptContext, new Map(), {
+  const reply = await replyToTrial({} as TrialContext, new Map(), {
     id: '1',
     call: { op: 'exec', command: 'true', env: { API_TOKEN: `${value}\0` } },
-  } as AttemptRequest)
+  } as TrialRequest)
   assert.equal(reply.ok, false)
   const text = JSON.stringify(reply)
   assert.ok(text.includes(value), 'twin: the refusal quotes the value')

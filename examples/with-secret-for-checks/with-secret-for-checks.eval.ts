@@ -16,7 +16,7 @@ const agentEnv = defineGrader('agent-env', {
 
 export default defineEval({
   environment: e2e,
-  // Every attempt must score 1, so a token in the agent's environment fails the run.
+  // Every trial must score 1, so a token in the agent's environment fails the run.
   target: regression(),
   graders: [agentEnv, observed('task-has-token')],
   task: async (c) => {

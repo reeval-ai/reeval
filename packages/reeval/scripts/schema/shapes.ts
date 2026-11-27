@@ -39,7 +39,7 @@ export const SHAPES: PersistedShape[] = [
     name: 'trajectory-line',
     file: 'src/view/model.ts',
     type: 'TrajectoryLine',
-    where: "One line of an attempt's trajectory.jsonl in a run's artifacts",
+    where: "One line of a trial's trajectory.jsonl in a run's artifacts",
   },
   {
     name: 'analysis',
@@ -69,7 +69,7 @@ export const SHAPES: PersistedShape[] = [
     name: 'debug-request',
     file: 'src/view/debug.ts',
     type: 'DebugRequest',
-    where: "One line of an attempt's .reeval/debug/…/requests.ndjson",
+    where: "One line of a trial's .reeval/debug/…/requests.ndjson",
   },
   {
     name: 'live-progress',
@@ -97,20 +97,20 @@ export const SHAPES: PersistedShape[] = [
     name: 'exec-line',
     file: 'src/history/types.ts',
     type: 'ExecLine',
-    where: "One line of an attempt's execs.jsonl, each c.exec's result, in its run's directory",
+    where: "One line of a trial's execs.jsonl, each c.exec's result, in its run's directory",
   },
   {
     name: 'decision-line',
     file: 'src/types.ts',
     type: 'DecisionRecord',
-    where: "One line of an attempt's decisions.jsonl, each c.decide call, in its run's directory",
+    where: "One line of a trial's decisions.jsonl, each c.decide call, in its run's directory",
   },
   {
     name: 'workspace-manifest',
     file: 'src/history/types.ts',
     type: 'WorkspaceManifest',
     where:
-      "An attempt's workspace.json, the files of its kept workspace.tar.gz, in its run's directory",
+      "A trial's workspace.json, the files of its kept workspace.tar.gz, in its run's directory",
     versionField: 'schemaVersion',
   },
   {
@@ -130,7 +130,7 @@ export const SHAPES: PersistedShape[] = [
     name: 'capture-page',
     file: 'src/types.ts',
     type: 'CapturePageFile',
-    where: "What the browser saw on one c.capture(): an attempt's artifacts/<name>.capture.json",
+    where: "What the browser saw on one c.capture(): a trial's artifacts/<name>.capture.json",
     versionField: 'schemaVersion',
   },
   {
@@ -200,7 +200,7 @@ export const PLAN_SHAPES: PlanShape[] = [
     name: 'wire-test',
     file: 'src/engine/protocol.ts',
     type: 'WireTest',
-    where: "One planned test, with its attempt, in a worker's collected message",
+    where: "One planned test, with its trial, in a worker's collected message",
   },
   {
     name: 'to-worker',
@@ -255,35 +255,35 @@ export const PROTOCOL_SNAPSHOT_DIR = fileURLToPath(
 )
 
 /**
- * A message of the attempt protocol (src/contract/attempt.ts), whose JSON Schema is generated
- * from its Zod schema alone: `root` names it in `ATTEMPT_SCHEMAS`.
+ * A message of the trial protocol (src/contract/trial.ts), whose JSON Schema is generated
+ * from its Zod schema alone: `root` names it in `TRIAL_SCHEMAS`.
  */
 export type ProtocolShape = { name: string; root: string; where: string }
 
 export const PROTOCOL_SHAPES: ProtocolShape[] = [
   {
-    name: 'attempt-request',
-    root: 'AttemptRequest',
-    where: "A call an eval's body makes on its attempt, as a runner in another language sends it",
+    name: 'trial-request',
+    root: 'TrialRequest',
+    where: "A call an eval's body makes on its trial, as a runner in another language sends it",
   },
   {
-    name: 'attempt-reply',
-    root: 'AttemptReply',
-    where: "reeval's reply to an attempt request",
+    name: 'trial-reply',
+    root: 'TrialReply',
+    where: "reeval's reply to a trial request",
   },
   {
-    name: 'attempt-start',
-    root: 'AttemptStart',
-    where: "reeval's message to a runner that starts an attempt's body",
+    name: 'trial-start',
+    root: 'TrialStart',
+    where: "reeval's message to a runner that starts a trial's body",
   },
   {
-    name: 'attempt-abort',
-    root: 'AttemptAbort',
-    where: "reeval's message to a runner when the attempt is aborted, as c.signal aborts",
+    name: 'trial-abort',
+    root: 'TrialAbort',
+    where: "reeval's message to a runner when the trial is aborted, as c.signal aborts",
   },
   {
-    name: 'attempt-done',
-    root: 'AttemptDone',
+    name: 'trial-done',
+    root: 'TrialDone',
     where: "A runner's message when the eval's body has finished, with what it threw",
   },
 ]

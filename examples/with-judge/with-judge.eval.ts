@@ -9,7 +9,7 @@ export default defineEval({
   graders: [
     hasFile('src/math.js', /export function divide/),
     succeeded('node --test'),
-    // A yes/no question about the stored attempt: yes scores 1, no 0.
+    // A yes/no question about the stored trial: yes scores 1, no 0.
     judge('Would the error divide throws when b is 0 tell a caller what they did wrong?', {
       inputs: { diff: true },
     }),

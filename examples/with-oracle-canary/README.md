@@ -4,7 +4,7 @@
 oracle, a fake agent that does it right, must pass; a canary whose `clamp` ignores its bounds, with
 a test too weak to notice, must fail. Both run in the eval's real `docker()` sandbox, and the
 `clamp-clamps` grader runs a hidden check in a Docker container of its own. The config's
-`target: regression()` needs every attempt to score 1, so the canary fails the run.
+`target: regression()` needs every trial to score 1, so the canary fails the run.
 
 **Needs:** Docker, even for the fake agents, and `pnpm reeval image build` once; in this repo, run
 `pnpm install && pnpm build` at the root first. A real agent needs its key in `.env.local`
@@ -32,14 +32,14 @@ one profile you need.
 
 ```text
 with-oracle-canary.eval.ts
-  ✓ with-oracle-canary  mean 100% · 1/1 run at 100%  regression(1)
+  ✓ with-oracle-canary  mean 100% · 1/1 trial at 100%  regression(1)
 ```
 
 The canary's own test passes, so only the grader it never saw catches it, and the run exits 1:
 
 ```text
 with-oracle-canary.eval.ts
-  ✗ with-oracle-canary  mean 50% · 0/1 run at 100%  regression(1)
+  ✗ with-oracle-canary  mean 50% · 0/1 trial at 100%  regression(1)
     #1  50%  clamp-clamps 0%
     Snapshot: .reeval/runs/<run>/…/1/snapshots/final
 ```

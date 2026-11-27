@@ -52,7 +52,6 @@ import { type Credential, isSandboxKind, sandboxKind } from './sandbox/kinds.ts'
 import { docker } from './sandbox.ts'
 import { resolveHistory } from './store/resolve.ts'
 import type {
-  AttemptMeta,
   Budget,
   BuiltinGraderData,
   ConfigHelpers,
@@ -71,6 +70,7 @@ import type {
   ResolvedHistory,
   ResolvedProfile,
   SandboxDescriptor,
+  TrialMeta,
 } from './types.ts'
 
 export { UsageError }
@@ -82,7 +82,7 @@ const CONFIG_KEYS = [
   'agents',
   'sandbox',
   'environments',
-  'runs',
+  'trials',
   'target',
   'env',
   'egress',
@@ -122,7 +122,7 @@ const DEFAULTS_KEYS = [
   'graders',
   'sandbox',
   'environments',
-  'runs',
+  'trials',
   'target',
   'env',
   'egress',
@@ -132,7 +132,7 @@ const DEFAULTS_KEYS = [
   'timeout',
   'snapshot',
 ]
-const LIMIT_KEYS = ['runs', 'compare', 'agents', 'traits']
+const LIMIT_KEYS = ['trials', 'compare', 'agents', 'traits']
 
 export type ConfigInput = ReevalConfig | ((helpers: ConfigHelpers) => ReevalConfig)
 
@@ -387,11 +387,11 @@ const unknownKey = (value: object, allowed: string[], where: string, file: strin
   const key = Object.keys(value).find((k) => !allowed.includes(k))
   if (key === undefined) return
   const hints: Record<string, string> = {
-    reuse: 'Reusing control results from .history isn’t built yet; every run runs its controls.',
+    reuse: 'Reusing baseline results from .history isn’t built yet; every run runs its baselines.',
     compare: 'compare only goes on an eval; a profile can narrow it with limit.compare.',
     harnesses: 'Did you mean "agents"?',
   }
-  const near = closest(key, allowed)
+  const near = key === 'runs' && allowed.includes('trials') ? 'trials' : closest(key, allowed)
   const hint = hints[key] ?? (near ? `Did you mean "${near}"?` : `Use ${allowed.join(', ')}.`)
   throw new UsageError(`Unknown option "${key}" in ${where} in ${file}. ${hint}`)
 }
@@ -400,23 +400,23 @@ export function checkBudget(budget: unknown, where: string, file: string): Budge
   if (budget === undefined) return {}
   if (typeof budget !== 'object' || budget === null) {
     throw new UsageError(
-      `${where} in ${file} must be an object like { attempts: 20, duration: '1h' } (got ${JSON.stringify(budget)})`,
+      `${where} in ${file} must be an object like { trials: 20, duration: '1h' } (got ${JSON.stringify(budget)})`,
     )
   }
   if ('usd' in budget || 'tokens' in budget) {
     throw new UsageError(
-      `${where}.${'usd' in budget ? 'usd' : 'tokens'} in ${file} isn't supported yet: reeval records the tokens and cost of each attempt, but enforces no cost or token budget. Cap the run with attempts or duration.`,
+      `${where}.${'usd' in budget ? 'usd' : 'tokens'} in ${file} isn't supported yet: reeval records the tokens and cost of each trial, but enforces no cost or token budget. Cap the run with trials or duration.`,
     )
   }
-  unknownKey(budget, ['attempts', 'duration'], where, file)
-  const { attempts, duration } = budget as Budget
-  if (attempts !== undefined && !(Number.isInteger(attempts) && attempts >= 1)) {
+  unknownKey(budget, ['trials', 'duration'], where, file)
+  const { trials, duration } = budget as Budget
+  if (trials !== undefined && !(Number.isInteger(trials) && trials >= 1)) {
     throw new UsageError(
-      `${where}.attempts in ${file} must be a whole number of at least 1 (got ${JSON.stringify(attempts)})`,
+      `${where}.trials in ${file} must be a whole number of at least 1 (got ${JSON.stringify(trials)})`,
     )
   }
   if (duration !== undefined) parseDuration(duration)
-  return { ...(attempts ? { attempts } : {}), ...(duration ? { duration } : {}) }
+  return { ...(trials ? { trials } : {}), ...(duration ? { duration } : {}) }
 }
 
 const describeValue = (v: unknown) => {
@@ -430,7 +430,7 @@ function checkProfile(name: string, profile: unknown, file: string): Profile {
   const where = `profiles.${name}`
   if (typeof profile !== 'object' || profile === null) {
     throw new UsageError(
-      `${where} in ${file} must be an object of profile settings, e.g. { limit: { runs: 1 } } (got ${JSON.stringify(profile)})`,
+      `${where} in ${file} must be an object of profile settings, e.g. { limit: { trials: 1 } } (got ${JSON.stringify(profile)})`,
     )
   }
   unknownKey(profile, PROFILE_KEYS, where, file)
@@ -448,10 +448,10 @@ function checkProfile(name: string, profile: unknown, file: string): Profile {
   }
   if (p.limit !== undefined) {
     unknownKey(p.limit, LIMIT_KEYS, `${where}.limit`, file)
-    const { runs, compare, agents: harness, traits } = p.limit
-    if (runs !== undefined && !(Number.isInteger(runs) && runs >= 1)) {
+    const { trials, compare, agents: harness, traits } = p.limit
+    if (trials !== undefined && !(Number.isInteger(trials) && trials >= 1)) {
       throw new UsageError(
-        `${where}.limit.runs in ${file} must be a whole number of at least 1 (got ${JSON.stringify(runs)})`,
+        `${where}.limit.trials in ${file} must be a whole number of at least 1 (got ${JSON.stringify(trials)})`,
       )
     }
     if (
@@ -699,7 +699,7 @@ export function resolveConfig(
   if (user.profiles !== undefined) {
     if (typeof user.profiles !== 'object' || user.profiles === null) {
       throw new UsageError(
-        `profiles in ${file} must be an object of named profiles, e.g. profiles: { pr: { limit: { runs: 1 } } } (got ${JSON.stringify(user.profiles)})`,
+        `profiles in ${file} must be an object of named profiles, e.g. profiles: { pr: { limit: { trials: 1 } } } (got ${JSON.stringify(user.profiles)})`,
       )
     }
     for (const [name, profile] of Object.entries(user.profiles)) {
@@ -736,7 +736,7 @@ export function resolveConfig(
     harness,
     sandbox: user.sandbox ?? docker(),
     environments: user.environments === undefined ? [] : [user.environments].flat(),
-    runs: user.runs,
+    trials: user.trials,
     target: user.target,
     env: user.env ?? {},
     ...(user.egress !== undefined ? { egress: user.egress } : {}),
@@ -907,7 +907,7 @@ function checkAnalysis(
   }
 }
 
-/** Runs whose local debug data `.reeval/debug` keeps, and the trace buffer per attempt. */
+/** Runs whose local debug data `.reeval/debug` keeps, and the trace buffer per trial. */
 export const DEBUG_DEFAULTS = { keep: 20, traceBufferMb: 8 } as const
 
 function checkDebug(debug: ReevalConfig['debug'], file: string): ResolvedConfig['debug'] {
@@ -965,8 +965,8 @@ function checkSecrets(secrets: ReevalConfig['secrets'], file: string): ResolvedC
 export type Capacity = {
   cpus: number
   memoryBytes: number
-  /** A pooled provider's attempts at once, which its machines run, not the host. */
-  attempts?: number
+  /** A pooled provider's trials at once, which its machines run, not the host. */
+  trials?: number
 }
 
 export const hostCapacity = (): Capacity => ({
@@ -975,13 +975,13 @@ export const hostCapacity = (): Capacity => ({
 })
 
 /**
- * Attempts mostly wait on a model, so the default is 8, but no more than one per CPU or per GB
+ * Trials mostly wait on a model, so the default is 8, but no more than one per CPU or per GB
  * of memory where the sandboxes run (the Docker VM, under Docker Desktop): an idle agent
  * container takes about 300 MB, and the rest is headroom for what the agent runs. A pooled
- * provider's machines run its attempts, so its `attempts` is the default instead.
+ * provider's machines run its trials, so its `trials` is the default instead.
  */
-export function defaultConcurrency({ cpus, memoryBytes, attempts }: Capacity): number {
-  if (attempts) return Math.max(1, attempts)
+export function defaultConcurrency({ cpus, memoryBytes, trials }: Capacity): number {
+  if (trials) return Math.max(1, trials)
   return Math.max(1, Math.min(8, cpus, Math.floor(memoryBytes / 1e9)))
 }
 
@@ -1057,23 +1057,23 @@ function runModelGateway(
   return modelGatewayOrNone(model, pin, gatewayScope(config, profile))
 }
 
-/** A judge an attempt resolves: its `'provider/model'` and the gateway its calls go through. */
-export type PlannedJudge = NonNullable<AttemptMeta['judge']>
+/** A judge a trial resolves: its `'provider/model'` and the gateway its calls go through. */
+export type PlannedJudge = NonNullable<TrialMeta['judge']>
 
 type CredentialOptions = {
   harnesses?: HarnessDescriptor[]
   profile?: ResolvedProfile | null
   /** The `'provider/model'`s that answer questions. */
   questionModels?: string[]
-  /** The judges the planned attempts resolve, each with the gateway it goes through. */
+  /** The judges the planned trials resolve, each with the gateway it goes through. */
   judges?: PlannedJudge[]
-  /** The planned attempts' sandboxes, whose accounts some read a key for. */
+  /** The planned trials' sandboxes, whose accounts some read a key for. */
   sandboxes?: readonly SandboxDescriptor[]
 }
 
 /**
  * Names the environment variables the run's providers need but don't have: the harnesses it
- * plans (default: the config's), the run's judge and the judges its attempts resolve, the models
+ * plans (default: the config's), the run's judge and the judges its trials resolve, the models
  * that answer questions, `decide.model`, and required config and profile secrets.
  */
 export function missingCredentials(
@@ -1159,7 +1159,7 @@ export function neededCredentials(
 }
 
 /**
- * Keys the run sends in request headers (the agents' credentials, the run's and attempts' judges'
+ * Keys the run sends in request headers (the agents' credentials, the run's and trials' judges'
  * the questions' models' and `decide.model`'s) whose value has whitespace or a control character in it, with where
  * the first one is: a key pasted from a wrapped terminal line picks up a line break, and the agent
  * then hangs on a request it can't send rather than failing to authenticate.

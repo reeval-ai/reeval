@@ -12,7 +12,7 @@ const writes = (dir: string) => ({
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  // Every attempt must score 1: the oracle's run passes and the canary's fails.
+  // Every trial must score 1: the oracle's run passes and the canary's fails.
   target: regression(),
   // The oracle: a scripted agent that does the task right, with ./oracle's files. It must pass.
   agents: fakeAgent({

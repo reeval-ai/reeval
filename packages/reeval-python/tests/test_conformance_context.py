@@ -44,7 +44,7 @@ def test_context_golden(mirror: Path, tmp_path: Path) -> None:
     [node] = runner.collect(rel)["children"]
     assert node["options"] == lines[0]["options"], "the mirror declares the golden's options"
 
-    # The transport's `key` isn't in the goldens, which are the attempt protocol's own lines.
+    # The transport's `key` isn't in the goldens, which are the trial protocol's own lines.
     for line in lines[1:]:
         if "reeval" in line:
             msg = dict(line["reeval"])

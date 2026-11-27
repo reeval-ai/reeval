@@ -5,7 +5,7 @@
       "name": "best of 3",
       "mode": "run",
       "options": {
-        "runs": {
+        "trials": {
           "bestOf": 3
         }
       },
@@ -19,7 +19,7 @@
       "name": "best of 5 over a gate",
       "mode": "run",
       "options": {
-        "runs": {
+        "trials": {
           "bestOf": 5
         },
         "target": {
@@ -37,7 +37,7 @@
       "name": "best of 3 for the group",
       "mode": "run",
       "options": {
-        "runs": {
+        "trials": {
           "bestOf": 3
         }
       },
@@ -57,7 +57,7 @@
           "name": "a fixed count of its own",
           "mode": "run",
           "options": {
-            "runs": 2
+            "trials": 2
           },
           "body": "b5",
           "source": {

@@ -1,4 +1,4 @@
-import { observedName } from '../attempt/observe.ts'
+import { observedName } from '../trial/observe.ts'
 import type { JudgeInputs, JudgeOptions, ResolvedJudgeStateOptions } from '../types.ts'
 
 /**

@@ -2,7 +2,7 @@ import { runReportMarkdown } from '../renderer/markdown.ts'
 import type { Outcome } from '../types.ts'
 import { colors } from '../ui/colors.ts'
 import { tallyLine } from '../ui/layout.ts'
-import { type AttemptFacts, attemptFacts } from '../view/classify.ts'
+import { type TrialFacts, trialFacts } from '../view/classify.ts'
 import { harnessLabel, languageLabel, runtimeLabel, trajectoryByLine } from '../view/model.ts'
 import { buildRunReport, type RunReportOptions } from '../view/report/index.ts'
 import { runResourcesLine } from '../view/resources.ts'
@@ -65,13 +65,13 @@ export function stateRows(
   ])
   rows.push(['Agents', env.harnesses.map(harnessLabel).join(', ') || 'none'])
   if (run.regrades?.length) {
-    const evals = run.evals.filter((e) => e.attempts.some((a) => a.regraded)).map((e) => e.id)
+    const evals = run.evals.filter((e) => e.trials.some((a) => a.regraded)).map((e) => e.id)
     rows.push([
       'Regraded',
       `↻ ${evals.join(', ')} by ${run.regrades.length} regrade${run.regrades.length === 1 ? '' : 's'}, last ${run.regrades.at(-1)?.at} (reeval show --regrades; --original for the recorded grades)`,
     ])
   }
-  const resources = runResourcesLine(run.evals.flatMap((e) => e.attempts.map((a) => a.resources)))
+  const resources = runResourcesLine(run.evals.flatMap((e) => e.trials.map((a) => a.resources)))
   if (resources) rows.push(['Resources', resources])
   rows.push([
     'Environments',
@@ -122,17 +122,17 @@ export function renderSummary(run: RunRecord, opts: RunReportOptions = {}): stri
   return runReportMarkdown(buildRunReport(run, { links: { base: './' }, ...opts }))
 }
 
-/** Each attempt's facts from the trajectory `record` keeps, as `files` holds it to write. */
+/** Each trial's facts from the trajectory `record` keeps, as `files` holds it to write. */
 export function keptFacts(
   record: RunRecord,
   files: ReadonlyMap<string, Uint8Array>,
-): Map<string, AttemptFacts> {
-  const facts = new Map<string, AttemptFacts>()
+): Map<string, TrialFacts> {
+  const facts = new Map<string, TrialFacts>()
   for (const e of record.evals) {
-    for (const a of e.attempts) {
+    for (const a of e.trials) {
       const bytes = a.files.trajectory && files.get(a.files.trajectory.path)
       if (!bytes) continue
-      facts.set(a.key, attemptFacts(record, a, trajectoryByLine(Buffer.from(bytes).toString())))
+      facts.set(a.key, trialFacts(record, a, trajectoryByLine(Buffer.from(bytes).toString())))
     }
   }
   return facts

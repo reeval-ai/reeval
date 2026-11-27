@@ -1,5 +1,5 @@
 // A pool of remote machines for one machine size and image of a provider account, in the run's
-// main process, under the scheduler: an attempt asks for a slot only once its lease is granted.
+// main process, under the scheduler: a trial asks for a slot only once its lease is granted.
 // tarn pools the slots, the account (`pool-account.ts`) holds starts to the provider's rate and
 // counts the machines of every pool on it, and p-retry waits out a rate-limited start. What a
 // provider gives it is how to start and remove a machine, how to keep one alive, its limits, and
@@ -32,9 +32,9 @@ export type PoolProvider<M> = {
   /** Removes a machine; one already gone is removed. */
   remove(id: string): Promise<void>
   /**
-   * Restarts the clock of a machine about to run another attempt: it now expires `ttlSeconds`
+   * Restarts the clock of a machine about to run another trial: it now expires `ttlSeconds`
    * from this call, not from its start. A machine that can't be kept alive is taken out of the
-   * pool, so the attempt gets another; one the provider takes back throws `MachineReclaimed`.
+   * pool, so the trial gets another; one the provider takes back throws `MachineReclaimed`.
    */
   keepAlive?(id: string, ttlSeconds: number): Promise<void>
   /** Whether `error`, from `start`, is the provider refusing for now rather than failing. */
@@ -51,16 +51,16 @@ export type PoolOptions = {
   account?: PoolAccount
   /** The most machines this pool holds at once, within the account's. Default the account's. */
   machines?: number
-  /** Attempts one machine runs at once, each in a slot of its own. */
-  attemptsPerMachine: number
-  /** A slot takes another attempt after its first, reset; else each slot runs one. */
+  /** Trials one machine runs at once, each in a slot of its own. */
+  trialsPerMachine: number
+  /** A slot takes another trial after its first, reset; else each slot runs one. */
   reuse: boolean
   /** Called once for each machine when it's gone, or its start failed, for the run's trace. */
   onGone?: (machine: GoneMachine<unknown>) => void
-  /** How long a free slot waits for another attempt before it goes. Default 15 s. */
+  /** How long a free slot waits for another trial before it goes. Default 15 s. */
   idleMs?: number
   /**
-   * How long starts may keep being rate-limited before the waiting attempts fail. Default 15 min;
+   * How long starts may keep being rate-limited before the waiting trials fail. Default 15 min;
    * `Infinity` waits for as long as the provider asks.
    */
   maxRateWaitMs?: number
@@ -72,13 +72,13 @@ export type PoolOptions = {
   windowsMs?: { minute: number; hour: number }
 }
 
-/** What a lease says about its machine, for the attempt's debug trace. */
+/** What a lease says about its machine, for the trial's debug trace. */
 export type LeaseFacts = {
   machine: string
   /** The machine's span in the run's trace. */
   span: string
   slot: number
-  /** The attempts this slot ran before this one. */
+  /** The trials this slot ran before this one. */
   reused: number
   /**
    * The machine's start, for its first lease: how long it took, how long of that it waited for
@@ -92,7 +92,7 @@ export type LeaseFacts = {
   lost: { machine: string; error: string; reclaimed?: true }[]
 }
 
-/** How the attempt's trace names one of a lease's `lost` machines. */
+/** How the trial's trace names one of a lease's `lost` machines. */
 export const lostLine = (lost: LeaseFacts['lost'][number]) =>
   lost.reclaimed
     ? `gave ${lost.machine} back: ${lost.error}`
@@ -114,7 +114,7 @@ export type GoneMachine<M> = {
   leases: number
   /**
    * Why it went: `idle`, `used`, `broken`, `evicted`, `reclaimed`, `keep-alive failed`,
-   * `unwanted` (no attempt waited for it any more) or `run ended`.
+   * `unwanted` (no trial waited for it any more) or `run ended`.
    */
   why?: string
   /** Its start failed. */
@@ -134,9 +134,9 @@ export type PoolStats = {
   machinesAtOnce: number
   leases: number
   reusedLeases: number
-  /** Machines dropped because keeping them alive for another attempt failed. */
+  /** Machines dropped because keeping them alive for another trial failed. */
   keepAliveFailed: number
-  /** Machines the provider took back before another attempt. */
+  /** Machines the provider took back before another trial. */
   reclaimed: number
   /** Idle machines removed so another pool on the account could start one. */
   evicted: number
@@ -161,7 +161,7 @@ type Machine<M> = {
   removed?: Promise<void>
   start: MachineStart | null
   /**
-   * No attempt waits for it any more: a start still queued never goes out, and one under way is
+   * No trial waits for it any more: a start still queued never goes out, and one under way is
    * removed once up.
    */
   stop: AbortController
@@ -228,7 +228,7 @@ export class MachinePool<M> {
 
   constructor(provider: PoolProvider<M>, options: PoolOptions) {
     this.#provider = provider
-    this.#stopReason = new InfraError(`${provider.helper}: no attempt waits for this machine`)
+    this.#stopReason = new InfraError(`${provider.helper}: no trial waits for this machine`)
     const { limits, account, machines, onGone, ...rest } = options
     this.#onGone = onGone
     this.#options = {
@@ -236,7 +236,7 @@ export class MachinePool<M> {
       ...RATE_LIMIT_WAITS,
       windowsMs: { minute: 60_000, hour: 3_600_000 },
       ...rest,
-      attemptsPerMachine: Math.max(1, Math.floor(options.attemptsPerMachine)),
+      trialsPerMachine: Math.max(1, Math.floor(options.trialsPerMachine)),
     }
     this.#ownAccount = !account
     this.#account = account ?? new PoolAccount(provider.helper, { ...this.#options, limits })
@@ -246,10 +246,10 @@ export class MachinePool<M> {
     )
     this.#member = { idlest: () => this.#idlest() }
     this.#account.join(this.#member)
-    const { idleMs, attemptsPerMachine } = this.#options
+    const { idleMs, trialsPerMachine } = this.#options
     this.#slots = new tarn.Pool<Slot<M>>({
       min: 0,
-      max: this.#cap * attemptsPerMachine,
+      max: this.#cap * trialsPerMachine,
       propagateCreateError: true,
       acquireTimeoutMillis: FOREVER_MS,
       createTimeoutMillis: FOREVER_MS,
@@ -265,7 +265,7 @@ export class MachinePool<M> {
 
   /**
    * Waits for a slot, starting a machine for it when none is free. `ttlSeconds` is how long the
-   * attempt may hold it; every machine lives at least as long as the longest any attempt asked.
+   * trial may hold it; every machine lives at least as long as the longest any trial asked.
    */
   async acquire(o: { signal?: AbortSignal; ttlSeconds?: number } = {}): Promise<PoolLease<M>> {
     const { signal } = o
@@ -358,7 +358,7 @@ export class MachinePool<M> {
     return [...this.#machines].flatMap((m) => (m.id === undefined ? [] : [m.id]))
   }
 
-  /** Removes every machine, those in use and starting included; waiting attempts fail. */
+  /** Removes every machine, those in use and starting included; waiting trials fail. */
   close(): Promise<void> {
     this.#closed ??= (async () => {
       this.#closing.abort(new InfraError(`${this.#provider.helper}'s machine pool closed`))
@@ -389,7 +389,7 @@ export class MachinePool<M> {
     )
   }
 
-  /** With no attempt left waiting, the machines still starting would only sit idle: stop them. */
+  /** With no trial left waiting, the machines still starting would only sit idle: stop them. */
   #stopUnwanted() {
     if (this.#slots.numPendingAcquires() > 0) return
     for (const machine of this.#machines) {
@@ -406,7 +406,7 @@ export class MachinePool<M> {
       slot.out = false
       if (--machine.busy === 0) {
         machine.idleSince = performance.now()
-        // A pool already waiting on the account gets the room before this pool's next attempt,
+        // A pool already waiting on the account gets the room before this pool's next trial,
         // which then starts a machine of its own.
         if (
           !broken &&
@@ -437,7 +437,7 @@ export class MachinePool<M> {
       try {
         return await this.#claimOnce()
       } catch (error) {
-        // A start stopped for want of an attempt, with one waiting again: it gets another.
+        // A start stopped for want of a trial, with one waiting again: it gets another.
         const stopped = error === this.#stopReason && !this.#closing.signal.aborted
         if (!stopped || this.#slots.numPendingAcquires() === 0) throw error
       }
@@ -527,8 +527,8 @@ export class MachinePool<M> {
   }
 
   /**
-   * The machine idle longest, for the account to remove for another pool. A machine no attempt has
-   * leased yet is on its way to one, or is reaped once no attempt wants it.
+   * The machine idle longest, for the account to remove for another pool. A machine no trial has
+   * leased yet is on its way to one, or is reaped once no trial wants it.
    */
   #idlest(): { since: number; evict(): void } | null {
     let idlest: Machine<M> | undefined
@@ -553,7 +553,7 @@ export class MachinePool<M> {
         ...(machine.upAt !== undefined && { upAt: machine.upAt }),
         goneAt: Date.now(),
         start: machine.started,
-        slots: this.#options.attemptsPerMachine,
+        slots: this.#options.trialsPerMachine,
         leases: machine.leases,
         ...(machine.why !== undefined && { why: machine.why }),
         ...(error !== undefined && { error: (error as Error)?.message ?? String(error) }),
@@ -571,7 +571,7 @@ export class MachinePool<M> {
   }
 
   #startMachine(): Machine<M> {
-    const k = this.#options.attemptsPerMachine
+    const k = this.#options.trialsPerMachine
     const machine: Machine<M> = {
       span: randomBytes(8).toString('hex'),
       requestedAt: Date.now(),

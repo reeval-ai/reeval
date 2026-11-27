@@ -10,14 +10,14 @@ export default defineConfig({
     boat: { provider: boat() },
     'boat-large': { provider: boat({ type: 'large', maxConcurrent: 4 }) },
     'boat-pooled': {
-      provider: createBoat({ prefix: 'team' })({ reuse: true, attemptsPerMachine: 3 }),
+      provider: createBoat({ prefix: 'team' })({ reuse: true, trialsPerMachine: 3 }),
     },
     daytona: { provider: daytona() },
     'daytona-shared': {
       provider: createDaytona({ prefix: 'team' })({
         size: 'small',
         reuse: true,
-        attemptsPerMachine: 2,
+        trialsPerMachine: 2,
       }),
     },
   },

@@ -1,6 +1,6 @@
-import type { AttemptRecord, EvalEntry, FileRef } from '../../history/types.ts'
-import { type AttemptIdMap, attemptAnchor, idOf } from './ids.ts'
-import type { AttemptRef } from './types.ts'
+import type { EvalEntry, FileRef, TrialRecord } from '../../history/types.ts'
+import { idOf, type TrialIdMap, trialAnchor } from './ids.ts'
+import type { TrialRef } from './types.ts'
 
 /** Prefix every relative artifact link: `linkBase` as a folder, `./` by default. */
 export function withBase(linkBase: string | undefined, path: string): string {
@@ -21,19 +21,19 @@ function kept(ref: FileRef | undefined | null): string | null {
 }
 
 /**
- * Citation target for an attempt: trajectory, else diff, else first capture, else its anchor in
- * the attempt index (`attemptAnchor`).
+ * Citation target for a trial: trajectory, else diff, else first capture, else its anchor in
+ * the trial index (`trialAnchor`).
  * `FileRef.path` values are already relative to the run directory.
- * When `used` is set, a path already claimed by another attempt falls back to the anchor
+ * When `used` is set, a path already claimed by another trial falls back to the anchor
  * so baseline and variant cites stay distinct.
  */
-export function attemptHref(
+export function trialHref(
   _evalEntry: Pick<EvalEntry, 'slug'>,
-  attempt: AttemptRecord,
+  trial: TrialRecord,
   linkBase?: string,
   used?: Set<string>,
 ): string {
-  const files = attempt.files
+  const files = trial.files
   const trajectory = kept(files.trajectory)
   const preferred = trajectory
     ? withBase(linkBase, trajectory)
@@ -42,31 +42,31 @@ export function attemptHref(
         if (diff) return withBase(linkBase, diff)
         const capture = files.artifacts?.[0]
         if (capture) return withBase(linkBase, capture.path)
-        return attemptAnchor(attempt.key)
+        return trialAnchor(trial.key)
       })()
   if (!used) return preferred
   if (!used.has(preferred) || preferred.startsWith('#')) {
     used.add(preferred)
     return preferred
   }
-  const fallback = attemptAnchor(attempt.key)
+  const fallback = trialAnchor(trial.key)
   used.add(fallback)
   return fallback
 }
 
-export function attemptRef(
-  ids: AttemptIdMap,
+export function trialRef(
+  ids: TrialIdMap,
   evalEntry: Pick<EvalEntry, 'slug'>,
-  attempt: AttemptRecord,
+  trial: TrialRecord,
   linkBase?: string,
   used?: Set<string>,
   hrefByKey?: Map<string, string>,
-): AttemptRef | null {
-  const id = idOf(ids, attempt.key)
+): TrialRef | null {
+  const id = idOf(ids, trial.key)
   if (!id) return null
-  const assigned = hrefByKey?.get(attempt.key)
-  if (assigned) return { id, key: attempt.key, href: assigned }
-  return { id, key: attempt.key, href: attemptHref(evalEntry, attempt, linkBase, used) }
+  const assigned = hrefByKey?.get(trial.key)
+  if (assigned) return { id, key: trial.key, href: assigned }
+  return { id, key: trial.key, href: trialHref(evalEntry, trial, linkBase, used) }
 }
 
 /** Capture PNG link, or null when not kept (caller prints `name (not kept)`). */

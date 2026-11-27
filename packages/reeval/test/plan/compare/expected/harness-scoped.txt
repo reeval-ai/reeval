@@ -1,6 +1,6 @@
-no profile · 1 evals · 3 cells · 12 attempts
-scoped  a/base/docker     control          ungated    ×4  runs 4 (compare default)
-        b/base/docker     control          ungated    ×4
+no profile · 1 evals · 3 cells · 12 trials
+scoped  a/base/docker     baseline         ungated    ×4  trials 4 (compare default)
+        b/base/docker     baseline         ungated    ×4
         b/skilled/docker  variant skilled  gated any  ×4
 excluded: —
 image docker · cursor · 1 evals

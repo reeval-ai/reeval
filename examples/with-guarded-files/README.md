@@ -2,7 +2,7 @@
 
 **Shows:** failing an agent that touches files it was told to leave alone. The agent adds
 `clamp(n, min, max)` to a small package with no new dependencies. A `required` `notInDiff` grader
-guards `package.json` and `package-lock.json`: when either changed, the attempt scores 0, however
+guards `package.json` and `package-lock.json`: when either changed, the trial scores 0, however
 the tests went.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -27,11 +27,11 @@ claude-code` runs the same eval on Claude Code, and `--profile <name>` on any ot
 one profile you need.
 
 **What to look at:** `pnpm eval --profile canary -v`. The canary's `clamp` and tests are right, so
-only the guard catches it, and the attempt scores 0:
+only the guard catches it, and the trial scores 0:
 
 ```text
 with-guarded-files.eval.ts
-  · with-guarded-files  mean 0% · 0/1 run at 100% (pass@1)  capability(1)
+  · with-guarded-files  mean 0% · 0/1 trial at 100% (pass@1)  capability(1)
     #1  0%  not-in-diff:package.json,package-lock.json 0% (required)
 ```
 

@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { hostname } from 'node:os'
 import { join } from 'node:path'
 import { fileEvalId } from '../../src/eval-id.ts'
-import { attemptKey, recordFileName } from '../../src/ids.ts'
+import { recordFileName, trialKey } from '../../src/ids.ts'
 
 const DEFAULT_INCLUDE = ['evals/**/*.eval.ts', 'evals/**/*.eval.py'] as const
 const evalKey = (file: string) => fileEvalId(DEFAULT_INCLUDE, file)
@@ -43,11 +43,11 @@ export function writeStoppedStaging(
       phase: 'running',
       planned: 0,
       counts: { done: 0, passed: 0, failed: 0, errored: 0, skipped: 0, running: 0 },
-      attempts: [],
+      trials: [],
     })}\n`,
   )
   for (const c of completed) {
-    const key = attemptKey(evalKey(c.file), c.cell, c.n ?? 1)
+    const key = trialKey(evalKey(c.file), c.cell, c.n ?? 1)
     writeFileSync(join(staging, 'evals', recordFileName(key)), `${JSON.stringify(PASS, null, 2)}\n`)
   }
   return staging
@@ -57,7 +57,7 @@ export function writeScratch(
   root: string,
   runId: string,
   status: 'complete' | 'interrupted' | 'budget',
-  attempts: ReadonlyArray<{
+  trials: ReadonlyArray<{
     key: string
     outcome: 'pass' | 'fail' | 'skipped' | 'infra_error'
   }> = [],
@@ -73,7 +73,7 @@ export function writeScratch(
       evals: [
         {
           cells: [],
-          attempts: attempts.map((a) => ({
+          trials: trials.map((a) => ({
             ...a,
             error:
               a.outcome === 'infra_error'

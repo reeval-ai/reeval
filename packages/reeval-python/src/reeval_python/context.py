@@ -1,4 +1,4 @@
-"""Attempt context: native Python API over the attempt protocol."""
+"""Trial context: native Python API over the trial protocol."""
 
 from __future__ import annotations
 
@@ -10,11 +10,11 @@ from datetime import timedelta
 from typing import Any, Literal, TypeVar, cast, overload
 
 from reeval_python._wire import (
-    AttemptCall,
-    AttemptCallDecide,
-    AttemptCallExec,
     DecideStatePart,
     DecideStatePartInputs,
+    TrialCall,
+    TrialCallDecide,
+    TrialCallExec,
 )
 from reeval_python.errors import ReevalCallError
 from reeval_python.types import BackgroundHandle, Decision, ExecResult, Turn
@@ -114,7 +114,7 @@ def _decide_call(
     questions: Mapping[str, Any],
     model: str | None,
     provider_options: Mapping[str, Mapping[str, Any]] | None,
-) -> AttemptCallDecide:
+) -> TrialCallDecide:
     call: dict[str, Any] = {
         "op": "decide",
         "state": json_value(state, "c.decide()'s state is a string, a JSON object or parts"),
@@ -124,10 +124,10 @@ def _decide_call(
         call["model"] = model
     if provider_options is not None:
         call["providerOptions"] = json_value(provider_options, "providerOptions are JSON")
-    return cast(AttemptCallDecide, call)
+    return cast(TrialCallDecide, call)
 
 
-SendFn = Callable[[AttemptCall], Awaitable[dict[str, Any]]]
+SendFn = Callable[[TrialCall], Awaitable[dict[str, Any]]]
 
 
 def _exec_env(env: Mapping[str, str] | None) -> dict[str, str] | None:
@@ -148,13 +148,13 @@ def _exec_env(env: Mapping[str, str] | None) -> dict[str, str] | None:
     return out
 
 
-class AttemptContext:
-    def __init__(self, attempt_id: str, send: SendFn) -> None:
-        self._attempt = attempt_id
+class TrialContext:
+    def __init__(self, trial_id: str, send: SendFn) -> None:
+        self._trial = trial_id
         self._send = send
         self.turns: list[Turn] = []
 
-    async def _call(self, call: AttemptCall) -> dict[str, Any]:
+    async def _call(self, call: TrialCall) -> dict[str, Any]:
         reply = await self._send(call)
         if not reply.get("ok", False):
             err = cast(dict[str, Any], reply.get("error") or {})
@@ -220,7 +220,7 @@ class AttemptContext:
         retries: int | None,
         interval: timedelta | float | None,
     ) -> ExecResult | BackgroundHandle:
-        call: AttemptCallExec = {"op": "exec", "command": command}
+        call: TrialCallExec = {"op": "exec", "command": command}
         if background:
             call["background"] = True
         if env is not None:
@@ -264,7 +264,7 @@ class AttemptContext:
             await self._call({"op": "writeFile", "path": path, "contents": contents})
 
     def observe(self, name: str, value: object) -> Coroutine[Any, Any, None]:
-        """Record a fact about the attempt under `name`, such as what the agent installed. It
+        """Record a fact about the trial under `name`, such as what the agent installed. It
         never affects the outcome; observing a name again replaces its value. `value` is JSON."""
         data = json_value(value, f"c.observe({name!r}, …) takes a JSON value")
         return tracked(self._observe(name, data), "c.observe()")
@@ -294,7 +294,7 @@ class AttemptContext:
         call = _decide_call(state, questions, model, provider_options)
         return tracked(self._decide(call), "c.decide()")
 
-    async def _decide(self, call: AttemptCallDecide) -> Decision:
+    async def _decide(self, call: TrialCallDecide) -> Decision:
         reply = await self._call(call)
         return Decision._from_wire(cast(dict[str, Any], reply["result"]))  # pyright: ignore[reportPrivateUsage]
 
@@ -313,10 +313,10 @@ class AttemptContext:
         return _state_part(output, diff, contents, observations, trajectory, on)
 
 
-class SyncAttemptContext:
+class SyncTrialContext:
     """Sync façade: each method blocks on the runner's asyncio loop."""
 
-    def __init__(self, async_ctx: AttemptContext, loop: Any) -> None:
+    def __init__(self, async_ctx: TrialContext, loop: Any) -> None:
         self._ctx = async_ctx
         self._loop = loop
 
@@ -385,7 +385,7 @@ class SyncAttemptContext:
         self._run(self._ctx._write_file(path, contents))  # pyright: ignore[reportPrivateUsage]
 
     def observe(self, name: str, value: object) -> None:
-        """Record a fact about the attempt under `name`, such as what the agent installed. It
+        """Record a fact about the trial under `name`, such as what the agent installed. It
         never affects the outcome; observing a name again replaces its value. `value` is JSON."""
         data = json_value(value, f"c.observe({name!r}, …) takes a JSON value")
         self._run(self._ctx._observe(name, data))  # pyright: ignore[reportPrivateUsage]

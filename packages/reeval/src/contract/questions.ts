@@ -1,5 +1,5 @@
 // The questions option's plain-data contract: each question, the factors a pairwise one varies,
-// what it's shown of each attempt, and the cascading `question` defaults.
+// what it's shown of each trial, and the cascading `question` defaults.
 import { z } from 'zod'
 import { isObjectLike } from '../object.ts'
 import type { PairFactor, QuestionFields, QuestionInputs, QuestionOptions } from '../types.ts'
@@ -186,7 +186,7 @@ function acrossProblem(question: string, across: unknown, where: string): string
   if (bad === 'harness') {
     return `${at}: across is ${ACROSS_HINT} (got "harness"). Did you mean 'agent'?`
   }
-  return `${at}: across is ${ACROSS_HINT}, or a list of both (got ${describe(Array.isArray(across) && across.length === 0 ? across : bad)}). Leave it out to ask each attempt on its own.`
+  return `${at}: across is ${ACROSS_HINT}, or a list of both (got ${describe(Array.isArray(across) && across.length === 0 ? across : bad)}). Leave it out to ask each trial on its own.`
 }
 
 /** What's wrong with an entry's `choices`, or undefined. */
@@ -214,7 +214,7 @@ function questionProblem(item: unknown, where: string): string {
   }
   const unknown = Object.keys(item).filter((k) => !QUESTION_KEYS.includes(k))
   if (unknown.includes('contents')) {
-    return `questions in ${where} can't set contents: questions are asked after the attempts, when their workspaces are gone. Narrow diff instead.`
+    return `questions in ${where} can't set contents: questions are asked after the trials, when their workspaces are gone. Narrow diff instead.`
   }
   if (unknown.length) {
     const hint = unknown.some((k) => k === 'cut' || k === 'cuts') ? ACROSS_MEAN : ''
@@ -234,7 +234,7 @@ function questionProblem(item: unknown, where: string): string {
     if (problem) return problem
   }
   if (across !== undefined && choices !== undefined) {
-    return `questions "${text}" in ${where} sets both across and choices. choices are the answers a question asked of each attempt picks from, and across makes it pick between two attempts instead: drop choices to vote between pairs, or drop across to ask each attempt.`
+    return `questions "${text}" in ${where} sets both across and choices. choices are the answers a question asked of each trial picks from, and across makes it pick between two trials instead: drop choices to vote between pairs, or drop across to ask each trial.`
   }
   const parts = questionInputsProblem(item as Record<string, unknown>, `questions "${text}"`, where)
   if (parts) return parts

@@ -268,16 +268,16 @@ describe('reeval mcp', () => {
     assert.match(textOf(missing), /No run matches "nope"/)
   })
 
-  test('failures says why each attempt failed, and whether its cell failed before', async () => {
+  test('failures says why each trial failed, and whether its cell failed before', async () => {
     const r = await json(modern, 'failures')
     assert.equal(r.runId, runs[1])
     assert.equal(r.failing, 2)
-    const attempts = r.attempts as Json[]
+    const trials = r.trials as Json[]
     assert.deepEqual(
-      attempts.map((a) => a.eval),
+      trials.map((a) => a.eval),
       [`also-writes-ok-${PLANTED}`, 'writes-ok'],
     )
-    const [first] = attempts as [Json]
+    const [first] = trials as [Json]
     assert.equal(first.outcome, 'fail')
     assert.equal(first.gated, true)
     assert.deepEqual(
@@ -300,7 +300,7 @@ describe('reeval mcp', () => {
 
     const one = await json(modern, 'failures', { filter: 'also', tail: 1 })
     assert.equal(one.failing, 1)
-    const [only] = one.attempts as [Json]
+    const [only] = one.trials as [Json]
     assert.equal((only.trajectory as { tail: Json[] }).tail.length, 1)
     const clean = await json(modern, 'failures', { run: runs[0] })
     assert.equal(clean.failing, 0)
@@ -322,13 +322,13 @@ describe('reeval mcp', () => {
 
   test('trajectories, as a tool and as resources; runs are resources', async () => {
     const record = await cliJson(dir, ['show'])
-    const attempt = record.evals[0].attempts[0]
-    const r = await json(modern, 'trajectory', { attempt: attempt.key })
-    assert.equal(r.attempt, attempt.key)
+    const trial = record.evals[0].trials[0]
+    const r = await json(modern, 'trajectory', { trial: trial.key })
+    assert.equal(r.trial, trial.key)
     const lines = r.lines as Json[]
     assert.equal(r.total, lines.length)
     assert.ok(lines.some((l) => l.type === 'prompt' && l.text === 'go'))
-    const page = await json(modern, 'trajectory', { attempt: attempt.key, offset: 1, limit: 1 })
+    const page = await json(modern, 'trajectory', { trial: trial.key, offset: 1, limit: 1 })
     assert.deepEqual(page.lines, lines.slice(1, 2))
 
     const read = await modern.readResource({ uri: r.uri as string })
@@ -350,8 +350,8 @@ describe('reeval mcp', () => {
       await cliJson(dir, ['show', runs[0] as string]),
     )
 
-    const ambiguous = await call(modern, 'trajectory', { attempt: attempt.id })
-    assert.ok(ambiguous.isError, 'two evals share the attempt id')
+    const ambiguous = await call(modern, 'trajectory', { trial: trial.id })
+    assert.ok(ambiguous.isError, 'two evals share the trial id')
     assert.match(textOf(ambiguous), /use its key/)
     for (const bad of [
       `reeval://runs/${runs[0]}/trajectories/..%2F..%2Freeval.config.ts`,

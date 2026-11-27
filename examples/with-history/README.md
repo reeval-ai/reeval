@@ -2,7 +2,7 @@
 
 **Shows:** recording runs and comparing two of them. The agent adds `multiply(a, b)` to a small
 package. `record: 'always'` copies every run into `history/` to commit, `history.artifacts` keeps
-the trajectories and diffs of failing attempts only (its default), and `reeval history` and `reeval compare` read
+the trajectories and diffs of failing trials only (its default), and `reeval history` and `reeval compare` read
 it back.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -30,7 +30,7 @@ ends with the line that records it:
 
 ```text
 with-history.eval.ts
-  ✗ with-history  mean 50% · 0/1 run at 100%  regression(1)
+  ✗ with-history  mean 50% · 0/1 trial at 100%  regression(1)
     #1  50%  succeeded:node --test 0%
 …
 recorded history/20261126T080701Z_….json + 10 artifact files in history/20261126T080701Z_…/ (124.5 KB). Commit it with git.

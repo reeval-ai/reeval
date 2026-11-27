@@ -13,14 +13,14 @@ from reeval_python.runner import RUNNER_PROTOCOL
 
 SRC = Path(__file__).resolve().parents[1] / "src"
 
-ATTEMPT: dict[str, Any] = {
+TRIAL: dict[str, Any] = {
     "id": "fake/-/fake#1",
     "cell": {
         "key": "fake/-/fake",
         "harness": "fake",
         "environment": "-",
         "sandbox": "fake",
-        "role": "control",
+        "role": "baseline",
     },
     "n": 1,
 }

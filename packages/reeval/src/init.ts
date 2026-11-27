@@ -98,13 +98,13 @@ export default defineConfig({
   analysis: { model: '${analysisModel}' },
   defaultProfile: { ci: 'pr' },
   profiles: {
-    // PR runs in CI: one attempt per cell, no variants.
-    pr: { limit: { runs: 1, compare: false }, budget: { attempts: 20 } },
-    // Thorough: four attempts per cell, the fewest a compare's lift needs, recorded every time.
+    // PR runs in CI: one trial per cell, no variants.
+    pr: { limit: { trials: 1, compare: false }, budget: { trials: 20 } },
+    // Thorough: four trials per cell, the fewest a compare's lift needs, recorded every time.
     nightly: {
-      defaults: { runs: 4 },
+      defaults: { trials: 4 },
       record: 'always',
-      budget: { attempts: 80, duration: '2h' },
+      budget: { trials: 80, duration: '2h' },
     },
   },
 })
@@ -114,7 +114,7 @@ export default defineConfig({
 export function environmentsSource(pkg: string): string {
   return `import { defineEnvironment } from '${pkg}'
 
-/** What every attempt of greet.eval.ts starts in, before the agent's first turn. */
+/** What every trial of greet.eval.ts starts in, before the agent's first turn. */
 export const greeter = defineEnvironment('greeter', {
   // Written into the workspace.
   files: { 'package.json': '{ "type": "module" }\\n' },

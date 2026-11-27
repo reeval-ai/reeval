@@ -12,7 +12,7 @@ export type Lookup = (host: string) => Promise<string[]>
  * What a sandbox provider can do about egress. `enforce`: nothing (`none`), `allow-all` or
  * `deny-all` only (`all-or-nothing`), or a host allowlist too (`allowlist`). `record`: whether
  * it reports the hosts the sandbox contacted and was refused. `switches`: whether it can change
- * the policy during an attempt, from the setup phase's to the agent's.
+ * the policy during a trial, from the setup phase's to the agent's.
  */
 export type EgressCapabilities = {
   enforce: 'none' | 'all-or-nothing' | 'allowlist'
@@ -22,7 +22,7 @@ export type EgressCapabilities = {
 
 /**
  * The Docker sandbox enforces every policy through its egress gateway, records what passes, and
- * switches policy mid-attempt by changing the gateway's and detaching or reattaching networks.
+ * switches policy mid-trial by changing the gateway's and detaching or reattaching networks.
  */
 export const DOCKER_EGRESS: EgressCapabilities = {
   enforce: 'allowlist',
@@ -64,7 +64,7 @@ export const PACKAGE_HOSTS: readonly string[] = Object.freeze([
 ])
 
 /**
- * The harness's own hosts plus `PACKAGE_HOSTS`. Only that harness's hosts: a Cursor attempt
+ * The harness's own hosts plus `PACKAGE_HOSTS`. Only that harness's hosts: a Cursor trial
  * can't reach Anthropic.
  */
 export const defaultAllowedHosts = (harness: BakedHarness) => [
@@ -216,7 +216,7 @@ function hostsNames(file: string): Set<string> {
 /**
  * Resolves through c-ares rather than `getaddrinfo`, which runs on libuv's four-thread pool: a
  * name whose lookup hangs (a cloud metadata host probed from a VM that isn't on that cloud takes
- * 20 s) would otherwise hold a thread, and four of them stall every attempt's CONNECT in the
+ * 20 s) would otherwise hold a thread, and four of them stall every trial's CONNECT in the
  * process. A name the servers said doesn't exist is refused from a cache for a while, since the
  * tools that probe metadata hosts probe them again and again; any other failure (a timeout, a
  * SERVFAIL) fails fast but isn't cached, so a DNS blip doesn't refuse a real host. c-ares reads

@@ -3,7 +3,7 @@ title: "Connect MCP servers"
 description: "Let the agent call tools exposed by MCP servers."
 ---
 
-You set `mcp` on an environment to give the agent servers it can call during an attempt. For more information about the history server `reeval mcp` serves, see [History MCP server reference](/reference/history-mcp-server).
+You set `mcp` on an environment to give the agent servers it can call during a trial. For more information about the history server `reeval mcp` serves, see [History MCP server reference](/reference/history-mcp-server).
 
 ## Add a stdio server
 
@@ -50,7 +50,7 @@ To build a header from several host variables, pass `secret.template()` with a `
 headers: { authorization: secret.template('Bearer ${DOCS_TOKEN}') },
 ```
 
-An unset variable ends the attempt as an infrastructure error. For more information about brokering, see [Secrets](/configuration/environments/secrets), and for the options, see [`mcp.http()`](/reference/environment-helpers#mcphttp). OpenCode, Goose, pi, Codex, and fx have no SSE transport, so `mcp.sse` stops the plan with exit code 2 on them. Use `mcp.http` or `mcp.stdio`.
+An unset variable ends the trial as an infrastructure error. For more information about brokering, see [Secrets](/configuration/environments/secrets), and for the options, see [`mcp.http()`](/reference/environment-helpers#mcphttp). OpenCode, Goose, pi, Codex, and fx have no SSE transport, so `mcp.sse` stops the plan with exit code 2 on them. Use `mcp.http` or `mcp.stdio`.
 
 ## Check the agent called the server
 
@@ -60,7 +60,7 @@ The `calledMcp` grader from `{{ pkg }}/graders` passes when the trajectory has a
 graders: [calledMcp('releases', 'latest_version')],
 ```
 
-To match the tool input, pass a string, a regular expression, or an object as the second argument of `calledTool('mcp__releases__latest_version', input)`. For a complete control and variant evaluation of a server, see [Measure MCP servers](/evaluations/recipes/measure-mcp-servers). For a runnable project, see [`with-mcp`](https://github.com/reeval-ai/reeval/tree/main/examples/with-mcp).
+To match the tool input, pass a string, a regular expression, or an object as the second argument of `calledTool('mcp__releases__latest_version', input)`. For a complete baseline and variant evaluation of a server, see [Measure MCP servers](/evaluations/recipes/measure-mcp-servers). For a runnable project, see [`with-mcp`](https://github.com/reeval-ai/reeval/tree/main/examples/with-mcp).
 
 ## Troubleshooting
 
@@ -68,6 +68,6 @@ Match the message to a fix:
 
 | Symptom | Check | Next action |
 |---|---|---|
-| `MCP server releases didn't answer initialize within 60s` | The stdio command never answered `initialize`. The attempt stops. | Run the command in the sandbox and read why it exits. |
+| `MCP server releases didn't answer initialize within 60s` | The stdio command never answered `initialize`. The trial stops. | Run the command in the sandbox and read why it exits. |
 | `MCP server releases took 4s to start.` | A stdio server took at least 2 seconds to answer `initialize`. | Install the package in the image. For more information about install layers, see [`docker.install`](/reference/options#docker). |
 | `expected MCP calls matching releases/latest_version, got none` | The trajectory has no matching MCP call. | Pass the server name from `mcp` and the tool name the server advertises. |

@@ -15,10 +15,10 @@ export const REPORT_POLICY = {
    */
   tiedCeiling: true,
   /**
-   * Two or more variants: one N-arm summary table, then a harness-by-arm effort
+   * Two or more variants: one N-environment summary table, then a harness-by-environment effort
    * pivot, then pairwise contrasts.
    */
-  variantLayout: 'n-arm' as const,
+  variantLayout: 'n-environment' as const,
 } as const
 
 export type ReportPolicy = typeof REPORT_POLICY

@@ -2,7 +2,7 @@
 name: telemetry-audit
 description: >
   The ground-truth method for checking what reeval records about a harness against what actually
-  happened: run a real attempt, collect the gateway traffic, the CLI's on-disk state and its native
+  happened: run a real trial, collect the gateway traffic, the CLI's on-disk state and its native
   stream, diff all three against the run record and trajectory signal by signal, and file a gap
   for each mismatch. Use when adding or bumping a harness, filling its telemetry declarations, or
   when a token, cost or trajectory number looks wrong.
@@ -20,14 +20,14 @@ the wire first, then disk, then the stream.
 A throwaway reeval project outside the repo (never commit it), on the harness's Docker image and a
 reasoning-capable model at an explicit `effort`. Two evals:
 
-- **`audit`**, one attempt that exercises every signal in `SIGNALS`
+- **`audit`**, one trial that exercises every signal in `SIGNALS`
   (`packages/reeval/test/contract/telemetry.ts`):
   - turn 1: use a skill, edit a file, run a command that prints ~300 KB (`seq 1 30000`-style),
     call a stdio MCP server's `echo` and a `bulk` tool that returns ~60 KB ending in a unique
     marker;
   - turn 2: a web search, so side calls show up;
   - last, in the eval body: `c.exec` a `find` and `tar` of everything the CLI wrote under its home,
-    `/tmp` and `/root` since the attempt started, and copy it out.
+    `/tmp` and `/root` since the trial started, and copy it out.
 - **`aborted`**: a long write cut off by a short `timeout` (45 s), for the aborted-turn signals.
 
 ## 2. Capture the three sources

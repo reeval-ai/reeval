@@ -302,8 +302,8 @@ const RECORD_TYPES = [
   'FamilyEffort',
   'FamilyEffortMetric',
   'FingerprintParts',
-  'AttemptRecord',
-  'AttemptFiles',
+  'TrialRecord',
+  'TrialFiles',
   'ArtifactRef',
   'CaptureStep',
   'JudgmentRecord',
@@ -315,7 +315,7 @@ const RECORD_TYPES = [
   'EnvironmentRecord',
   'PluginRecord',
   'EgressRecord',
-  'AttemptImage',
+  'TrialImage',
   'VmImage',
   'PhaseTimings',
   'FileChange',
@@ -622,15 +622,15 @@ if (!limitCompare) {
 }
 
 // limit.compare runs after the cascade, so it tests the resolved compare from any level, and a
-// control it leaves without variants gates like an eval without compare (gateIf in src/options.ts).
+// baseline it leaves without variants gates like an eval without compare (gateIf in src/options.ts).
 if (limitCompare && /applies when the evaluation sets `compare`/.test(limitCompare)) {
   problems.push(
     'reference/profiles limit.compare says it "applies when the evaluation sets `compare`": it limits the resolved compare, from a group, a profile\'s defaults, the config or the evaluation (src/options.ts)',
   )
 }
-if (limitCompare && !/control gates like an evaluation without `compare`/.test(limitCompare)) {
+if (limitCompare && !/baseline gates like an evaluation without `compare`/.test(limitCompare)) {
   problems.push(
-    'reference/profiles limit.compare does not say how a control left without variants gates: like an evaluation without `compare` (src/options.ts gateIf)',
+    'reference/profiles limit.compare does not say how a baseline left without variants gates: like an evaluation without `compare` (src/options.ts gateIf)',
   )
 }
 
@@ -808,15 +808,15 @@ for (const [pageName, command] of [['results/inspection/debugging', 'reeval clea
   }
 }
 
-// Debug data is built per attempt (src/attempt/index.ts, src/debug/attempt.ts), so a run with no
-// attempt writes no directory.
+// Debug data is built per trial (src/trial/index.ts, src/debug/trial.ts), so a run with no
+// trial writes no directory.
 if (
   page('results/inspection/debugging')
     .split(/\n\n+/)
     .some((paragraph) => /debug\b/i.test(paragraph) && /\bon every run\b/i.test(paragraph))
 ) {
   problems.push(
-    'docs/results/inspection/debugging.mdx says a debug directory is written on every run: an attempt writes it, so a run with no attempt writes none',
+    'docs/results/inspection/debugging.mdx says a debug directory is written on every run: a trial writes it, so a run with no trial writes none',
   )
 }
 
@@ -1220,7 +1220,7 @@ problems.push(...copied)
 // is". Only a definition counts: the predicate starts with an article, "one", "what", "how",
 // "each" or "every", so "A cell is flaky when" and "The lift is paired by case" pass.
 const ABOUT_THE_EXAMPLE = new Set([
-  'docs/getting-started/quickstart.mdx: The control is an unstyled page.',
+  'docs/getting-started/quickstart.mdx: The baseline is an unstyled page.',
 ])
 
 const plainMarkdown = (text) =>
@@ -1390,7 +1390,7 @@ if (/empty `notes` column/.test(page('reference/authoring-api'))) {
 }
 
 // The cascade says where the run flags act: --runs replaces runs, --tag filters evaluations and
-// --concurrency caps parallel attempts (src/cli.ts).
+// --concurrency caps parallel trials (src/cli.ts).
 const cascadeText =
   page('reference/options').match(/^## The cascade\n([\s\S]*?)(?=^## )/m)?.[1] ?? ''
 if (!cascadeText) {
@@ -1400,7 +1400,7 @@ if (!cascadeText) {
   !(/`--tag`/.test(cascadeText) && /`--concurrency`/.test(cascadeText))
 ) {
   problems.push(
-    'reference/options The cascade names --runs but not --tag and --concurrency: say that --tag filters evaluations and --concurrency caps parallel attempts (src/cli.ts)',
+    'reference/options The cascade names --runs but not --tag and --concurrency: say that --tag filters evaluations and --concurrency caps parallel trials (src/cli.ts)',
   )
 }
 

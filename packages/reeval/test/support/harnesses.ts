@@ -101,7 +101,7 @@ export type HarnessRow = {
   hostEnv?: string[]
   /** reeval's image for it, which the Docker tier needs built. */
   image: BakedHarness
-  /** Where the placed contract skill shows up in the attempt's `context`. */
+  /** Where the placed contract skill shows up in the trial's `context`. */
   skillContext: RegExp
   /**
    * What reeval places of a plugin on this harness: the parts its catalog entry loads
@@ -124,7 +124,7 @@ export type HarnessRow = {
   autoHosts: string[]
   /** A host it reaches on every turn; null for the fake agent, which reaches none. */
   apiHost: string | null
-  /** False for a harness with no MCP client: its MCP attempts must be refused, not run. */
+  /** False for a harness with no MCP client: its MCP trials must be refused, not run. */
   mcp?: false
   /** Whether it reports token usage for each turn; checked either way. */
   tokens: boolean
@@ -154,7 +154,7 @@ export type HarnessRow = {
    */
   askedModel?: RegExp
   /**
-   * Whether every attempt records the upstream providers that served its calls and what they
+   * Whether every trial records the upstream providers that served its calls and what they
    * cost (`upstreams`, `reportedCostUsd`): true on OpenRouter, whose responses say both.
    */
   upstream?: true
@@ -933,7 +933,7 @@ export const keyOf = (row: HarnessRow) =>
 export const harnessOf = (row: HarnessRow) => row.harness ?? row.id
 
 /**
- * The cell's harness id in attempt ids: `cursor:composer-2.5`, `opencode:claude-haiku-5-5` (the
+ * The cell's harness id in trial ids: `cursor:composer-2.5`, `opencode:claude-haiku-5-5` (the
  * model's last segment), or `fake`.
  */
 export const cellOf = (row: HarnessRow) =>
@@ -959,7 +959,7 @@ const BOAT_ENV = ['REEVAL_CONTRACT_SANDBOX', 'BOAT_API_KEY', 'BOAT_BASE_URL']
 /**
  * Why a row doesn't run here, or false. Real rows run only with `REEVAL_TEST_REAL=1` (they spend
  * money), and skip without it, saying so; asked for, a row without its key runs and fails in
- * `reserveAttempts`, naming the variable. `REEVAL_CONTRACT_HARNESSES=cursor,…` picks rows. A missing
+ * `reserveTrials`, naming the variable. `REEVAL_CONTRACT_HARNESSES=cursor,…` picks rows. A missing
  * image fails instead under `REEVAL_TEST_REQUIRE_DOCKER=1`, as the Docker tier does. In boat(), only
  * rows with a key run.
  */
@@ -1032,14 +1032,14 @@ export function scanTargets(value: string): string {
 }
 
 /**
- * The hard cap on real attempts across every suite of one CI job: each real row reserves what it
+ * The hard cap on real trials across every suite of one CI job: each real row reserves what it
  * may start in `REEVAL_REAL_LEDGER` (a file, one number per line) before it runs, and fails without
- * starting anything when that would take the job over `REEVAL_REAL_ATTEMPT_BUDGET`. Unset, no cap
- * (local runs); each reeval run's own `budget.attempts` still holds. A real row without its key fails
+ * starting anything when that would take the job over `REEVAL_REAL_TRIAL_BUDGET`. Unset, no cap
+ * (local runs); each reeval run's own `budget.trials` still holds. A real row without its key fails
  * here, before anything starts: asking for real agents (`REEVAL_TEST_REAL=1`) and getting a skip would
  * pass a nightly that tested nothing.
  */
-export function reserveAttempts(row: HarnessRow, attempts: number, what: string): void {
+export function reserveTrials(row: HarnessRow, trials: number, what: string): void {
   if (row.key && !keyOf(row)) {
     throw new Error(
       `${row.key.from.join(' or ')} isn't set, and REEVAL_TEST_REAL=1 asks for real ${row.id}: set it, or leave ${row.id} out of REEVAL_CONTRACT_HARNESSES`,
@@ -1051,7 +1051,7 @@ export function reserveAttempts(row: HarnessRow, attempts: number, what: string)
       `${unset.join(' and ')} isn't set, and REEVAL_TEST_REAL=1 asks for real ${row.id}: set it, or leave ${row.id} out of REEVAL_CONTRACT_HARNESSES`,
     )
   }
-  const budget = Number(process.env.REEVAL_REAL_ATTEMPT_BUDGET)
+  const budget = Number(process.env.REEVAL_REAL_TRIAL_BUDGET)
   const ledger = process.env.REEVAL_REAL_LEDGER
   if (!row.key || !budget || !ledger) return
   const spent = existsSync(ledger)
@@ -1060,10 +1060,10 @@ export function reserveAttempts(row: HarnessRow, attempts: number, what: string)
         .filter(Boolean)
         .reduce((sum, line) => sum + Number(line.split(' ')[0]), 0)
     : 0
-  if (spent + attempts > budget) {
+  if (spent + trials > budget) {
     throw new Error(
-      `${what} on ${row.id} would start ${attempts} real attempts, over the job's budget of ${budget} (${spent} reserved): raise the job's REEVAL_REAL_ATTEMPT_BUDGET (contract.yml, or real.yml's smoke job) if the suite grew on purpose`,
+      `${what} on ${row.id} would start ${trials} real trials, over the job's budget of ${budget} (${spent} reserved): raise the job's REEVAL_REAL_TRIAL_BUDGET (contract.yml, or real.yml's smoke job) if the suite grew on purpose`,
     )
   }
-  appendFileSync(ledger, `${attempts} ${what} ${row.id}\n`)
+  appendFileSync(ledger, `${trials} ${what} ${row.id}\n`)
 }

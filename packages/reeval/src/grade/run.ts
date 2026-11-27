@@ -1,10 +1,10 @@
 import { AgentError } from '@reeval/agents'
-import { maskNumbers, notJson } from '../attempt/observe.ts'
 import { canonicalJson } from '../eval-source.ts'
 import { sha256 } from '../ids.ts'
 import { redactSecrets, redactValue } from '../redact.ts'
 import { InfraError } from '../sandbox/types.ts'
 import { clip, formatDuration } from '../text.ts'
+import { maskNumbers, notJson } from '../trial/observe.ts'
 import type { GradeFingerprint, GradeReads, GradeRecord, JSONValue, JudgeGrade } from '../types.ts'
 import { copyFiles, GradeError, type GradeInputs, graderContext, readData } from './context.ts'
 import type { CodeRun, GradeRun, GraderDef } from './define.ts'
@@ -170,7 +170,7 @@ async function runCode(run: CodeRun, inputs: GradeInputs, signal: AbortSignal): 
 
 /**
  * `run`'s `env` sandbox with its files copied in. Failing to start it or copy them is the
- * attempt's infra error, thrown as a `SandboxFailure`; a grader with files and no kept workspace
+ * trial's infra error, thrown as a `SandboxFailure`; a grader with files and no kept workspace
  * is its own error. `timed()` is the signal, with the grader's timeout running, once its slot is
  * held.
  */
@@ -323,10 +323,10 @@ export async function runGraders(
 }
 
 /**
- * The attempt's score from its grades: the scored grades' mean, weighted, or 0 when a required
+ * The trial's score from its grades: the scored grades' mean, weighted, or 0 when a required
  * grader scored under 1. 1 when nothing scored.
  */
-export function attemptScore(grades: readonly GradeRecord[]): number {
+export function trialScore(grades: readonly GradeRecord[]): number {
   if (grades.some((g) => g.required && (g.score === null || g.score < 1))) return 0
   const scored = grades.filter((g) => g.score !== null && g.weight > 0)
   const total = scored.reduce((sum, g) => sum + g.weight, 0)
@@ -334,7 +334,7 @@ export function attemptScore(grades: readonly GradeRecord[]): number {
   return scored.reduce((sum, g) => sum + g.weight * (g.score as number), 0) / total
 }
 
-/** Why an attempt that scored under its threshold fails: its score and each grader that cost it. */
+/** Why a trial that scored under its threshold fails: its score and each grader that cost it. */
 export function scoreFailure(
   score: number,
   threshold: number,

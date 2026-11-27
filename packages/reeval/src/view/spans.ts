@@ -6,9 +6,9 @@
 //   machine             a VM: pooled (`boat()`, `daytona()`) from its start to its removal, or
 //                       `tart()`'s from its boot to its deletion
 //   container           a container: Docker's or Podman's, or one on a pooled VM (its parent)
-//   attempt             one attempt, with where it ran (`host.id`, `container.id`, the slot)
-//   lease               the attempt's slot on a pooled machine, linked to the machine's span
-//   setup, agent, …     the attempt's phases, as its `timings` count them
+//   trial             one trial, with where it ran (`host.id`, `container.id`, the slot)
+//   lease               the trial's slot on a pooled machine, linked to the machine's span
+//   setup, agent, …     the trial's phases, as its `timings` count them
 
 import { fillDefaults } from './record.ts'
 

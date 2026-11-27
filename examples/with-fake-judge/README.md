@@ -30,7 +30,7 @@ names `README.mdx`, so the README never reaches the judge and it says no:
 
 ```text
 with-fake-judge.eval.ts
-  · with-fake-judge  mean 0% · 0/1 run at 100% (pass@1)  capability(1)
+  · with-fake-judge  mean 0% · 0/1 trial at 100% (pass@1)  capability(1)
     #1  0%  judge "Does README.md document multiply?" 0%
 ```
 

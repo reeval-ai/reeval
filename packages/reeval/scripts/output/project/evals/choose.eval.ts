@@ -22,7 +22,7 @@ export default defineEval({
     { key: 'a Python agent', only: true },
   ],
   agents: advisor,
-  runs: 2,
+  trials: 2,
   target: regression(0.8),
   graders: [namesGenkit, onlyGenkit],
   task: async (c, { key: task }) => {

@@ -16,8 +16,8 @@ const unused =
 export default defineConfig({
   target: regression(),
   agents: fakeAgent({}),
-  // One attempt a cell, where a compare would otherwise run 4 a side.
-  runs: 1,
+  // One trial a cell, where a compare would otherwise run 4 a side.
+  trials: 1,
   sandbox: root,
   // Present so the fixture can prove a named env does not inherit this sandbox.
   environments: defineEnvironment('config', { sandbox: unused }),

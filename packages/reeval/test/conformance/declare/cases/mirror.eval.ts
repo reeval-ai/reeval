@@ -6,7 +6,7 @@ evaluate(
   'pooled',
   {
     cases: [{ key: 'ada' }, { key: 'grace' }, { key: 'linus' }],
-    compare: { control: base, variants: [skilled], minLift: 0.2 },
+    compare: { baseline: base, variants: [skilled], minLift: 0.2 },
     target: regression(),
   },
   async () => {},
@@ -18,7 +18,7 @@ evaluate(
       { key: 'ada', who: 'Ada Lovelace' },
       { key: 'grace', who: 'Grace Hopper' },
     ],
-    compare: { control: base, variants: [skilled] },
+    compare: { baseline: base, variants: [skilled] },
   },
   async () => {},
 )

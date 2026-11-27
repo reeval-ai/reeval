@@ -1,32 +1,32 @@
-no profile · 6 evals · 24 cells · 88 attempts
-hint: 1 compare runs 2 times per cell; below 4 runs a side its lift shows only a direction and its effort can't be tested (runs: 4)
-questions-group/asks-none       a/base/docker     control          ungated    ×4  runs 4 (compare default)
+no profile · 6 evals · 24 cells · 88 trials
+hint: 1 compare runs 2 times per cell; below 4 trials a side its lift shows only a direction and its effort can't be tested (trials: 4)
+questions-group/asks-none       a/base/docker     baseline         ungated    ×4  trials 4 (compare default)
                                 a/skilled/docker  variant skilled  gated any  ×4
-                                b/base/docker     control          ungated    ×4
+                                b/base/docker     baseline         ungated    ×4
                                 b/skilled/docker  variant skilled  gated any  ×4
-questions-group/asks            a/base/docker     control          ungated    ×4  runs 4 (compare default)
+questions-group/asks            a/base/docker     baseline         ungated    ×4  trials 4 (compare default)
                                 a/skilled/docker  variant skilled  gated any  ×4
-                                b/base/docker     control          ungated    ×4
+                                b/base/docker     baseline         ungated    ×4
                                 b/skilled/docker  variant skilled  gated any  ×4
                                 question: Which handles state more cleanly? · shows diff · environment · 8 pairs · no language model
-questions-group/gated           a/base/docker     control          ungated    ×2  target regression(0.5)
+questions-group/gated           a/base/docker     baseline         ungated    ×2  target regression(0.5)
                                 a/skilled/docker  variant skilled  gated      ×2
-                                b/base/docker     control          ungated    ×2
+                                b/base/docker     baseline         ungated    ×2
                                 b/skilled/docker  variant skilled  gated      ×2
                                 question: Which handles state more cleanly? · shows diff · environment · 4 pairs · no language model
-questions-group/other-compare   a/base/docker     control          ungated    ×4  runs 4 (compare default)
+questions-group/other-compare   a/base/docker     baseline         ungated    ×4  trials 4 (compare default)
                                 a/terse/docker    variant terse    gated any  ×4
-                                b/base/docker     control          ungated    ×4
+                                b/base/docker     baseline         ungated    ×4
                                 b/terse/docker    variant terse    gated any  ×4
                                 question: Which handles state more cleanly? · shows diff · environment · 8 pairs · no language model
-questions-group/other-question  a/base/docker     control          ungated    ×4  runs 4 (compare default)
+questions-group/other-question  a/base/docker     baseline         ungated    ×4  trials 4 (compare default)
                                 a/skilled/docker  variant skilled  gated any  ×4
-                                b/base/docker     control          ungated    ×4
+                                b/base/docker     baseline         ungated    ×4
                                 b/skilled/docker  variant skilled  gated any  ×4
-                                question: What did the agent change? · shows diff · each attempt · 16 attempts · no language model
-questions-group/pairs-compares  a/base/docker     control          ungated    ×4  runs 4 (compare default)
+                                question: What did the agent change? · shows diff · each trial · 16 trials · no language model
+questions-group/pairs-compares  a/base/docker     baseline         ungated    ×4  trials 4 (compare default)
                                 a/skilled/docker  variant skilled  gated any  ×4
-                                b/base/docker     control          ungated    ×4
+                                b/base/docker     baseline         ungated    ×4
                                 b/skilled/docker  variant skilled  gated any  ×4
                                 question: Which is shorter? · shows diff · environment · 8 pairs · no language model
 excluded: questions-group/pairs-skipped (skip)

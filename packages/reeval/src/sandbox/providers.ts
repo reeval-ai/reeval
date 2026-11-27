@@ -14,7 +14,6 @@ import type { ParsedTartHost } from '../contract/tart.ts'
 import { pluginBuildId } from '../environment/plugins.ts'
 import { UsageError } from '../errors.ts'
 import type {
-  AttemptImage,
   BoatSandboxDescriptor,
   CloudSandboxDescriptor,
   DaytonaSandboxDescriptor,
@@ -24,6 +23,7 @@ import type {
   PluginSource,
   SandboxBase,
   TartSandboxDescriptor,
+  TrialImage,
   VmImage,
 } from '../types.ts'
 import type { BoatImage, BoatImageTimings } from './boat-images.ts'
@@ -241,7 +241,7 @@ export function dockerProvider(
 export const preparedImage = (handle: PreparedHandle): PreparedImage => handle as PreparedImage
 
 /** {@link preparedImage} as the record has it: the image, without the plugins built into it. */
-export const attemptImage = (handle: PreparedHandle): AttemptImage => {
+export const trialImage = (handle: PreparedHandle): TrialImage => {
   const { plugins: _, ...image } = preparedImage(handle)
   return image
 }
@@ -332,7 +332,7 @@ const tartRefusal = (message: string): PrepareError =>
     message,
   })
 
-/** The hosts a Tart provider's `prepare` started each attempt's VM on, when it ran on others. */
+/** The hosts a Tart provider's `prepare` started each trial's VM on, when it ran on others. */
 export const preparedHosts = (handle: PreparedHandle): PreparedHost[] | null => {
   const hosts = (handle as { hosts?: unknown } | null)?.hosts
   return Array.isArray(hosts) ? (hosts as PreparedHost[]) : null
@@ -489,7 +489,7 @@ export const tartProvider = (
       const digests = new Set(each.map((h) => h.digest))
       if (digests.size > 1) {
         throw tartRefusal(
-          `tart(${sandbox.image}) is a different image on each host, so the record can't say which one an attempt ran:\n${each
+          `tart(${sandbox.image}) is a different image on each host, so the record can't say which one a trial ran:\n${each
             .map((h) => `  ${h.host}: ${h.digest ?? 'no digest'}`)
             .join(
               '\n',

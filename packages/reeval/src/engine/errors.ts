@@ -1,4 +1,4 @@
-// How an attempt's error prints: its message, the diff, and the stack with a code frame at the
+// How a trial's error prints: its message, the diff, and the stack with a code frame at the
 // eval's own line, as Vitest's reporter printed them. Workers serialize errors with
 // @vitest/utils (`serializeError`); this runs in the main process.
 import { existsSync, readFileSync } from 'node:fs'

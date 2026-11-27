@@ -19,14 +19,14 @@ from reeval_python.runner import RUNNER_PROTOCOL
 
 SRC = Path(__file__).resolve().parents[1] / "src"
 
-ATTEMPT = {
+TRIAL = {
     "id": "fake/-/fake#1",
     "cell": {
         "key": "fake/-/fake",
         "harness": "fake",
         "environment": "-",
         "sandbox": "fake",
-        "role": "control",
+        "role": "baseline",
     },
     "n": 1,
 }
@@ -135,7 +135,7 @@ class Host:
                 self._cond.wait(left)
 
     def start(self, name: str, key: str = "k1") -> None:
-        msg = {"type": "start", "key": key, "attempt": ATTEMPT, "file": "evals/x.eval.py"}
+        msg = {"type": "start", "key": key, "trial": TRIAL, "file": "evals/x.eval.py"}
         self.send({**msg, "body": self.bodies[name]})
 
     def abort(self, key: str, reason: str = "timeout", message: str = "late") -> None:

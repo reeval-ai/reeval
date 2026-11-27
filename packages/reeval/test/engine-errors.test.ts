@@ -1,4 +1,4 @@
-// How an attempt's error prints (engine/errors.ts): Vitest's layout, message, diff, stack and
+// How a trial's error prints (engine/errors.ts): Vitest's layout, message, diff, stack and
 // code frame, from errors as a worker serialized them.
 import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync } from 'node:fs'

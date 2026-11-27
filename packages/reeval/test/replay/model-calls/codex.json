@@ -1,6 +1,6 @@
 {
   "harness": "codex",
-  "attempts": [
+  "trials": [
     {
       "eval": "audit",
       "turns": [

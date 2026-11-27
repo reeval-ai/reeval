@@ -1,5 +1,5 @@
-no profile · 2 evals · 2 cells · 2 attempts
-builtins  fake/-/fake  control  gated any  ×1
+no profile · 2 evals · 2 cells · 2 trials
+builtins  fake/-/fake  baseline  gated any  ×1
           grader no-page-errors:home · builtin · weight 0.5
           grader used-skill:http-retries · builtin · weight 2 · required
           grader called-tool:Bash · builtin · weight 1
@@ -9,7 +9,7 @@ builtins  fake/-/fake  control  gated any  ×1
           grader builds · code · weight 1
           grader judge:Is the retry readable? · judge · weight 1
           grader judge:What tone does the reply take? · judge · records only
-none      fake/-/fake  control  gated any  ×1
+none      fake/-/fake  baseline  gated any  ×1
           grader turns · builtin · records only
           grader no-page-errors:home · builtin · weight 0.5
 excluded: —

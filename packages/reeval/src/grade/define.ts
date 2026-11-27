@@ -50,10 +50,10 @@ const ENV_KINDS = ['docker', 'fake']
 /** A grader's `env`: the sandbox `grade` runs in, and its network. */
 export type GraderEnv = { sandbox: SandboxDescriptor; egress: PlannedEgress }
 
-/** What a grader runs once per attempt: its `grade` call, or its judge's question. */
+/** What a grader runs once per trial: its `grade` call, or its judge's question. */
 export type GradeRun = CodeRun | JudgeRun
 
-/** One `grade` call per attempt, which a `defineGraders` group's members share. */
+/** One `grade` call per trial, which a `defineGraders` group's members share. */
 export type CodeRun = {
   kind: 'code'
   grade: (c: GraderContext) => unknown
@@ -116,7 +116,7 @@ function specOf<S>(
     )
   }
   if (typeof spec.grade !== 'function') {
-    throw new DefinitionError(`${where} needs grade, a function from the attempt to its grade`)
+    throw new DefinitionError(`${where} needs grade, a function from the trial to its grade`)
   }
   return spec
 }
@@ -285,7 +285,7 @@ export function judgeGrader(
 }
 
 /**
- * A grader: what it reads of an attempt once the task returns, and how its grade scores. Pass a
+ * A grader: what it reads of a trial once the task returns, and how its grade scores. Pass a
  * spec, or a callback that takes the `file` and `directory` helpers for its `data`.
  *
  *     export const noNewDeps = defineGrader('no-new-deps', {
@@ -322,7 +322,7 @@ export function defineGrader<C = unknown, G extends JSONValue = any>(
 }
 
 /**
- * Graders that share one `grade` call per attempt, each scoring its grade its own way:
+ * Graders that share one `grade` call per trial, each scoring its grade its own way:
  *
  *     export const [builds, tests] = defineGraders(['builds', 'tests'], {
  *       grade: (c) => ({ built: …, passed: … }),

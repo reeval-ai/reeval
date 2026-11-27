@@ -4,7 +4,7 @@ import { baseline, variant } from './env.ts'
 
 // artifacts: ['landing'] sends each side's landing capture as an image, and not aside.
 export default defineEval({
-  compare: { control: baseline, variants: [variant] },
+  compare: { baseline: baseline, variants: [variant] },
   graders: [pageStatus('landing', 200)],
   questions: [
     { question: 'Which page looks better?', across: 'environment', artifacts: ['landing'] },

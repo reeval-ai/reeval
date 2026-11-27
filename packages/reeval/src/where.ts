@@ -1,11 +1,11 @@
 // `where` on an eval with cases: which case and environment pairs run, decided at plan time over
-// one case's planned attempts. With `compare`, the control's answer holds for every variant on
+// one case's planned trials. With `compare`, the baseline's answer holds for every variant on
 // its harness, so each variant runs the same cases.
 
 import { closest } from './contract/shared.ts'
 import { traitsOf } from './environment.ts'
 import { UsageError } from './errors.ts'
-import type { PlannedAttempt } from './options.ts'
+import type { PlannedTrial } from './options.ts'
 import type { Case, ExcludedPair, Where } from './types.ts'
 
 /** One case's `where`, as `planEval` gets it. */
@@ -17,9 +17,9 @@ export type CaseWhere = {
   where: Where<unknown>
 }
 
-/** One case's attempts after `where`: the ones kept, and the pairs it left out. */
+/** One case's trials after `where`: the ones kept, and the pairs it left out. */
 export type PickedPairs = {
-  kept: PlannedAttempt[]
+  kept: PlannedTrial[]
   excluded: ExcludedPair[]
   /** Every cell key before `where`, then the ones it kept, for the eval-wide checks. */
   cells: Array<{ key: string; environment: string }>
@@ -29,15 +29,15 @@ export type PickedPairs = {
 /** Keys a trait lookup can hit without naming a trait: JSON, promises and inspection. */
 const PASSTHROUGH = new Set(['toJSON', 'then', 'constructor'])
 
-export function pickPairs(w: CaseWhere, attempts: PlannedAttempt[]): PickedPairs {
-  const controls = attempts.filter((a) => a.cell.role === 'control')
-  const known = [...new Set(controls.flatMap((a) => Object.keys(traitsOf(a.environment.layers))))]
+export function pickPairs(w: CaseWhere, trials: PlannedTrial[]): PickedPairs {
+  const baselines = trials.filter((a) => a.cell.role === 'baseline')
+  const known = [...new Set(baselines.flatMap((a) => Object.keys(traitsOf(a.environment.layers))))]
   const decisions = new Map<string, { keep: boolean; readHarness: boolean }>()
-  const decide = (control: PlannedAttempt) => {
-    const id = control.cell.key
+  const decide = (baseline: PlannedTrial) => {
+    const id = baseline.cell.key
     const made = decisions.get(id)
     if (made) return made
-    const env = control.environment
+    const env = baseline.environment
     const traits = traitsOf(env.layers)
     let readHarness = false
     const view = new Proxy(traits, {
@@ -58,7 +58,7 @@ export function pickPairs(w: CaseWhere, attempts: PlannedAttempt[]): PickedPairs
       environment: Object.freeze({ name: env.name, traits: view }),
       get harness() {
         readHarness = true
-        return control.cell.harness
+        return baseline.cell.harness
       },
     }
     let result: unknown
@@ -78,15 +78,15 @@ export function pickPairs(w: CaseWhere, attempts: PlannedAttempt[]): PickedPairs
     decisions.set(id, decided)
     return decided
   }
-  const controlOf = (a: PlannedAttempt) =>
-    a.cell.role === 'control'
+  const baselineOf = (a: PlannedTrial) =>
+    a.cell.role === 'baseline'
       ? a
-      : (controls.find((c) => c.cell.harness === a.cell.harness) as PlannedAttempt)
+      : (baselines.find((c) => c.cell.harness === a.cell.harness) as PlannedTrial)
   const cells: PickedPairs['cells'] = []
   const keptCells: string[] = []
   const excluded: ExcludedPair[] = []
-  const kept = attempts.filter((a) => {
-    const { keep, readHarness } = decide(controlOf(a))
+  const kept = trials.filter((a) => {
+    const { keep, readHarness } = decide(baselineOf(a))
     const first = !cells.some((c) => c.key === a.cell.key)
     if (first) cells.push({ key: a.cell.key, environment: a.cell.environment })
     if (keep) {

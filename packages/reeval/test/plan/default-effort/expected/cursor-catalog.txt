@@ -1,17 +1,17 @@
-no profile · 1 evals · 13 cells · 13 attempts
-e  codex:gpt-5.6-sol/-/docker                 control  gated any  ×1  effort medium · effort: claude-code:claude-haiku-4-5 none (Claude Code sends no effort to claude-haiku-4-5) · effort: antigravity:gemini-3.8-flash-low none (the model id names its effort, low) · effort: fx:gpt-5.4-mini none (fx sends no effort of its own, and reeval adds one only on vertex()) · effort: cursor:composer-2.5 none (Cursor's model catalog lists no effort for composer-2.5) · efforts differ: medium on codex:gpt-5.6-sol, claude-code:claude-sonnet-5-5, antigravity:gemini-3.8-flash, opencode:gemini-3.8-flash, goose:gemini-3.8-flash, pi:gemini-3.8-flash, grok-build:grok-4.6, cursor:gpt-5.6-luna; high on codex:gpt-5.6-sol[effort=high]; none on claude-code:claude-haiku-4-5, antigravity:gemini-3.8-flash-low, fx:gpt-5.4-mini, cursor:composer-2.5
-   codex:gpt-5.6-sol[effort=high]/-/docker    control  gated any  ×1
-   claude-code:claude-sonnet-5-5/-/docker     control  gated any  ×1  effort medium
-   claude-code:claude-haiku-4-5/-/docker      control  gated any  ×1
-   antigravity:gemini-3.8-flash/-/docker      control  gated any  ×1  effort medium
-   antigravity:gemini-3.8-flash-low/-/docker  control  gated any  ×1
-   opencode:gemini-3.8-flash/-/docker         control  gated any  ×1  effort medium
-   goose:gemini-3.8-flash/-/docker            control  gated any  ×1  effort medium
-   pi:gemini-3.8-flash/-/docker               control  gated any  ×1  effort medium
-   grok-build:grok-4.6/-/docker               control  gated any  ×1  effort medium
-   fx:gpt-5.4-mini/-/docker                   control  gated any  ×1
-   cursor:composer-2.5/-/docker               control  gated any  ×1
-   cursor:gpt-5.6-luna/-/docker               control  gated any  ×1  effort medium
+no profile · 1 evals · 13 cells · 13 trials
+e  codex:gpt-5.6-sol/-/docker                 baseline  gated any  ×1  effort medium · effort: claude-code:claude-haiku-4-5 none (Claude Code sends no effort to claude-haiku-4-5) · effort: antigravity:gemini-3.8-flash-low none (the model id names its effort, low) · effort: fx:gpt-5.4-mini none (fx sends no effort of its own, and reeval adds one only on vertex()) · effort: cursor:composer-2.5 none (Cursor's model catalog lists no effort for composer-2.5) · efforts differ: medium on codex:gpt-5.6-sol, claude-code:claude-sonnet-5-5, antigravity:gemini-3.8-flash, opencode:gemini-3.8-flash, goose:gemini-3.8-flash, pi:gemini-3.8-flash, grok-build:grok-4.6, cursor:gpt-5.6-luna; high on codex:gpt-5.6-sol[effort=high]; none on claude-code:claude-haiku-4-5, antigravity:gemini-3.8-flash-low, fx:gpt-5.4-mini, cursor:composer-2.5
+   codex:gpt-5.6-sol[effort=high]/-/docker    baseline  gated any  ×1
+   claude-code:claude-sonnet-5-5/-/docker     baseline  gated any  ×1  effort medium
+   claude-code:claude-haiku-4-5/-/docker      baseline  gated any  ×1
+   antigravity:gemini-3.8-flash/-/docker      baseline  gated any  ×1  effort medium
+   antigravity:gemini-3.8-flash-low/-/docker  baseline  gated any  ×1
+   opencode:gemini-3.8-flash/-/docker         baseline  gated any  ×1  effort medium
+   goose:gemini-3.8-flash/-/docker            baseline  gated any  ×1  effort medium
+   pi:gemini-3.8-flash/-/docker               baseline  gated any  ×1  effort medium
+   grok-build:grok-4.6/-/docker               baseline  gated any  ×1  effort medium
+   fx:gpt-5.4-mini/-/docker                   baseline  gated any  ×1
+   cursor:composer-2.5/-/docker               baseline  gated any  ×1
+   cursor:gpt-5.6-luna/-/docker               baseline  gated any  ×1  effort medium
 excluded: —
 image docker · codex · 1 evals
   base  reeval-sandbox:codex-0.1.14  (reeval's image: pulled or built when missing or when its key changed)

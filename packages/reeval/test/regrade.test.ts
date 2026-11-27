@@ -115,7 +115,7 @@ async function setup(
 }
 
 const actions = (r: RegradeRecord | undefined) =>
-  r?.attempts[0]?.actions.map((a) => [a.grader, a.action])
+  r?.trials[0]?.actions.map((a) => [a.grader, a.action])
 
 const JUDGE_DOWN =
   /The judge's provider failed judge grader quality on typesafe-ai\/jev-1\.14\.0: overloaded/
@@ -159,7 +159,7 @@ describe('reeval regrade', () => {
       evalFile("says, key, inDiff('out.txt', { required: true })"),
     )
     const plan = await cli(p.dir, ['regrade', '--dry-run'])
-    assert.match(plan, /1 eval, 1 attempt in 1 run: 0 to recompute, 1 to re-score, 0 unchanged/)
+    assert.match(plan, /1 eval, 1 trial in 1 run: 0 to recompute, 1 to re-score, 0 unchanged/)
     assert.match(plan, /in-diff:out\.txt {2,}score changed {2,}re-score {2,}no calls/)
     assert.match(plan, /says {2,}unchanged {2,}keep/)
     assert.deepEqual(regradeFiles(p.dir), [], '--dry-run writes nothing')
@@ -172,7 +172,7 @@ describe('reeval regrade', () => {
       ['key', 'kept'],
       ['in-diff:out.txt', 'rescored'],
     ])
-    assert.equal(regradeFiles(p.dir)[0]?.attempts[0]?.grades[2]?.required, true)
+    assert.equal(regradeFiles(p.dir)[0]?.trials[0]?.grades[2]?.required, true)
     assert.match(
       await cli(p.dir, ['regrade', '--dry-run']),
       /Nothing changed: every grade is current/,
@@ -181,12 +181,12 @@ describe('reeval regrade', () => {
     // The conservative function digest covers the grader's whole module, so key recomputes too.
     await writeFile(join(p.dir, 'evals/graders.ts'), graders('goodbye'))
     const plan2 = await cli(p.dir, ['regrade', '--dry-run'])
-    assert.match(plan2, /says {2,}grader changed: code {2,}recompute {2,}1 attempt/)
-    assert.match(plan2, /key {2,}grader changed: code {2,}recompute {2,}1 attempt/)
+    assert.match(plan2, /says {2,}grader changed: code {2,}recompute {2,}1 trial/)
+    assert.match(plan2, /key {2,}grader changed: code {2,}recompute {2,}1 trial/)
     assert.match(plan2, /in-diff:out\.txt {2,}unchanged {2,}keep/)
     const recomputed = await cli(p.dir, ['regrade', '--yes'])
     assert.match(recomputed, /says {2,}1\/1 → 0\/1 passed/)
-    assert.match(recomputed, /attempts {2,}1\/1 → 0\/1 passed/)
+    assert.match(recomputed, /trials {2,}1\/1 → 0\/1 passed/)
     const second = regradeFiles(p.dir)[1]
     assert.deepEqual(actions(second), [
       ['says', 'recomputed'],
@@ -199,7 +199,7 @@ describe('reeval regrade', () => {
         .find((n) => n.endsWith('.json'))
         ?.slice(0, -5),
     )
-    assert.deepEqual([second?.attempts[0]?.outcome, second?.attempts[0]?.score], ['fail', 0.5])
+    assert.deepEqual([second?.trials[0]?.outcome, second?.trials[0]?.score], ['fail', 0.5])
 
     assert.match(await cli(p.dir, ['history']), /✗↻ {4}0\/1 {2}one/)
     assert.match(await cli(p.dir, ['history']), /↻ regraded/)
@@ -212,8 +212,8 @@ describe('reeval regrade', () => {
     assert.doesNotMatch(original, /says 0%/, 'canary: the recorded grade passed')
     const listed = await cli(p.dir, ['show', '--regrades'])
     assert.match(listed, /2 regrades of /)
-    assert.match(listed, /every changed grader {2}1 attempt: 1\/1 → 1\/1 passed/)
-    assert.match(listed, /every changed grader {2}1 attempt: 1\/1 → 0\/1 passed/)
+    assert.match(listed, /every changed grader {2}1 trial: 1\/1 → 1\/1 passed/)
+    assert.match(listed, /every changed grader {2}1 trial: 1\/1 → 0\/1 passed/)
     const json = JSON.parse(await cli(p.dir, ['show', '--regrades', '--json'])) as RegradeRecord[]
     assert.equal(json.length, 2)
   })
@@ -250,15 +250,15 @@ describe('reeval regrade', () => {
       '--yes',
     ])
     const files = regradeFiles(p.dir)
-    const first = files.find((f) => f.attempts[0]?.actions.some((a) => a.action === 'new'))
+    const first = files.find((f) => f.trials[0]?.actions.some((a) => a.action === 'new'))
     assert.ok(first, JSON.stringify(files))
-    const quality = first.attempts[0]?.grades.find((g) => g.grader === 'quality')
+    const quality = first.trials[0]?.grades.find((g) => g.grader === 'quality')
     assert.deepEqual(
       [quality?.grade, quality?.score, quality?.judge?.calls?.[0]?.model],
       [false, 0, 'fake'],
     )
     assert.ok(
-      first.attempts[0]?.grades.some((g) => g.grader === 'key'),
+      first.trials[0]?.grades.some((g) => g.grader === 'key'),
       'the removed grader kept',
     )
     assert.deepEqual(first.graders, ['quality'])
@@ -274,7 +274,7 @@ describe('reeval regrade', () => {
     const plan = await cli(p.dir, ['regrade'])
     assert.match(plan, /0 to recompute, 0 to re-score, 0 unchanged, 1 can't be regraded/)
     assert.match(plan, /says {2,}inputs missing {2,}skip 1 {2,}the trajectory wasn't kept/)
-    assert.match(plan, /Nothing to regrade: 1 attempt can't be regraded/)
+    assert.match(plan, /Nothing to regrade: 1 trial can't be regraded/)
     assert.deepEqual(regradeFiles(p.dir), [])
 
     const bad = await recorded('regrade-bad-line', { artifacts: 'all' })
@@ -379,7 +379,7 @@ export default defineEval({ graders: [parsed], task: async (c) => void (await c.
     assert.doesNotMatch(out.stdout, /failed/)
     const [file] = regradeFiles(p.dir)
     assert.deepEqual(actions(file), [['parsed', 'recomputed']])
-    const grade = file?.attempts[0]?.grades[0]
+    const grade = file?.trials[0]?.grades[0]
     assert.equal(grade?.score, 0)
     assert.match(grade?.error ?? '', /JSON/)
     assert.match(await cli(p.dir, ['history']), /✗↻? +0\/1 {2}one/)
@@ -406,7 +406,7 @@ export default defineEval({ graders: [waits], task: async (c) => void (await c.s
     assert.equal(out.code, 1, out.stdout + out.stderr)
     assert.match(out.stdout, /1 grade failed\b/)
     assert.match(out.stdout, /waits on .+: grade timed out after 200ms$/m)
-    const stored = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].attempts[0].grades[0]
+    const stored = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].trials[0].grades[0]
     assert.deepEqual([stored.score, stored.error], [1, undefined])
   })
 
@@ -438,9 +438,9 @@ export default defineEval({ graders: [quality], judge: { model: down }, task: as
     assert.match(out.stdout, /1 grade failed\b/)
     assert.match(out.stdout, /quality on .+: .*provider unreachable/)
     for (const f of regradeFiles(p.dir)) {
-      for (const a of f.attempts) assert.equal(a.actions[0]?.action, 'failed')
+      for (const a of f.trials) assert.equal(a.actions[0]?.action, 'failed')
     }
-    const stored = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].attempts[0].grades[0]
+    const stored = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].trials[0].grades[0]
     assert.deepEqual([stored.score, stored.error], [1, undefined])
     assert.match(await cli(p.dir, ['history']), /✓↻? +1\/1 {2}one/)
 
@@ -481,14 +481,14 @@ export default defineEval({ graders: [quality], task: async (c) => void (await c
       assert.equal(out.code, 1, out.stdout + out.stderr)
       assert.match(out.stdout, /1 grade failed\b/)
       assert.match(out.stdout, new RegExp(`quality on .+: ${JUDGE_DOWN.source}`))
-      const stored = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].attempts[0].grades[0]
+      const stored = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].trials[0].grades[0]
       assert.deepEqual([stored.score, stored.error], [1, undefined])
     } finally {
       api.close()
     }
   })
 
-  test("holds back every grader it reruns on an attempt while the judge's provider is down", async () => {
+  test("holds back every grader it reruns on a trial while the judge's provider is down", async () => {
     const api = await judgeApi()
     const mixed = (question: string, word: string) => `${qualityGrader(question)}
 export const says = defineGrader('says', {
@@ -514,7 +514,7 @@ export default defineEval({ graders: [quality, says], task: async (c) => void (a
       for (const grader of ['quality', 'says']) {
         assert.match(out.stdout, new RegExp(`${grader} on .+: ${JUDGE_DOWN.source}`))
       }
-      const stored = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].attempts[0].grades
+      const stored = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].trials[0].grades
       assert.deepEqual(
         stored.map((g: { grader: string; score: number }) => [g.grader, g.score]),
         [
@@ -549,17 +549,17 @@ export default defineEval({ graders: [quality], target: regression(0.4), task: a
     const out = await cli(p.dir, ['regrade', '--yes'])
     assert.match(out, /quality {2,}score changed {2,}re-score {2,}no calls/)
     const [file] = regradeFiles(p.dir)
-    const grade = file?.attempts[0]?.grades[0]
+    const grade = file?.trials[0]?.grades[0]
     assert.deepEqual(
       [
-        file?.attempts[0]?.actions[0]?.action,
+        file?.trials[0]?.actions[0]?.action,
         grade?.grade,
         grade?.score,
         grade?.judge?.calls?.length,
       ],
       ['rescored', false, 0.5, 1],
     )
-    assert.match(out, /attempts {2,}0\/1 → 1\/1 passed/)
+    assert.match(out, /trials {2,}0\/1 → 1\/1 passed/)
   })
 
   test('treats a case whose data changed as inputs missing, and keeps a removed case', async () => {
@@ -656,7 +656,7 @@ export default defineEval({ graders: [inDiff('out.txt', { required: ${a} }), has
       await cli(p.dir, ['regrade', '--dry-run']),
       /Nothing changed: every grade is current/,
     )
-    const grades = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].attempts[0].grades
+    const grades = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].trials[0].grades
     assert.deepEqual(
       grades.map((g: { grader: string; required: boolean }) => [g.grader, g.required]),
       [
@@ -666,7 +666,7 @@ export default defineEval({ graders: [inDiff('out.txt', { required: ${a} }), has
     )
   })
 
-  test('recomputes a code grader on an attempt that ran in no environment', async () => {
+  test('recomputes a code grader on a trial that ran in no environment', async () => {
     const p = await project('regrade-no-environment', {
       '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
       'reeval.config.ts': fakeConfig({ harness, extra: "history: { artifacts: 'all' }," }).replace(
@@ -693,12 +693,12 @@ export default defineEval({ graders: [inDiff('out.txt', { required: ${a} }), has
       ['key', 'recomputed'],
     ])
     assert.match(await cli(p.dir, ['show']), /^ {4}#1 {2}0% {2}says 0%$/m)
-    const grades = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].attempts[0].grades
+    const grades = JSON.parse(await cli(p.dir, ['show', '--json'])).evals[0].trials[0].grades
     const says = grades.find((g: { grader: string }) => g.grader === 'says')
     assert.deepEqual([says?.grade, says?.score], [false, 0])
   })
 
-  test("marks a code grader inputs missing when the attempt's environment record is gone", async () => {
+  test("marks a code grader inputs missing when the trial's environment record is gone", async () => {
     const p = await recorded('regrade-environment-gone', { artifacts: 'all' })
     const [file] = readdirSync(join(p.dir, HISTORY)).filter((n) => n.endsWith('.json'))
     const path = join(p.dir, HISTORY, file ?? '')
@@ -709,7 +709,7 @@ export default defineEval({ graders: [inDiff('out.txt', { required: ${a} }), has
     const out = await cli(p.dir, ['regrade', '--yes'])
     assert.match(
       out,
-      /says {2,}inputs missing {2,}skip 1 {2,}the attempt's environment record is missing/,
+      /says {2,}inputs missing {2,}skip 1 {2,}the trial's environment record is missing/,
     )
     assert.deepEqual(regradeFiles(p.dir), [])
   })
@@ -721,6 +721,6 @@ export default defineEval({ graders: [inDiff('out.txt', { required: ${a} }), has
     const context = await cli(p.dir, ['explain', '--context'])
     assert.match(context, /"outcome":\s*"fail"/)
     assert.doesNotMatch(context, /"outcome":\s*"pass"/)
-    assert.match(await cli(p.dir, ['query', 'SELECT outcome FROM attempts']), /fail/)
+    assert.match(await cli(p.dir, ['query', 'SELECT outcome FROM trials']), /fail/)
   })
 })

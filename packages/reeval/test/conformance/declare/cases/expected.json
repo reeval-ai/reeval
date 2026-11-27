@@ -6,7 +6,7 @@
       "mode": "run",
       "options": {
         "compare": {
-          "control": {
+          "baseline": {
             "kind": "environment",
             "name": "base",
             "layers": [
@@ -68,7 +68,7 @@
       "mode": "run",
       "options": {
         "compare": {
-          "control": {
+          "baseline": {
             "kind": "environment",
             "name": "base",
             "layers": [
@@ -130,7 +130,7 @@
       "mode": "run",
       "options": {
         "compare": {
-          "control": {
+          "baseline": {
             "kind": "environment",
             "name": "base",
             "layers": [
@@ -192,7 +192,7 @@
       "mode": "run",
       "options": {
         "compare": {
-          "control": {
+          "baseline": {
             "kind": "environment",
             "name": "base",
             "layers": [
@@ -249,7 +249,7 @@
       "mode": "run",
       "options": {
         "compare": {
-          "control": {
+          "baseline": {
             "kind": "environment",
             "name": "base",
             "layers": [

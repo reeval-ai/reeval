@@ -3,9 +3,9 @@ import { defineEval } from 'reeval'
 import { composer, pim } from './agents.ts'
 import { plain, withHouseGreeting } from './environments.ts'
 
-// A pairwise question over two agents and two arms, and one asked of each attempt. Any greeting
-// that names the person passes, so every attempt can be in a pair: within each agent the question
-// compares the arms, and across agents it compares Cursor and pi on the same arm. The model sees only the diffs (not the
+// A pairwise question over two agents and two environments, and one asked of each trial. Any greeting
+// that names the person passes, so every trial can be in a pair: within each agent the question
+// compares the environments, and across agents it compares Cursor and pi on the same environment. The model sees only the diffs (not the
 // skill), so the question asks about what they show. Its win rates annotate; the check gates.
 // The nightly runs it with --profile questions (test/questions-real.test.ts).
 const namesAda = `node -e "import('./greet.js').then((m) => {
@@ -18,8 +18,8 @@ const namesAda = `node -e "import('./greet.js').then((m) => {
 export default defineEval({
   tags: ['questions'],
   agents: [composer, pim],
-  runs: 1,
-  compare: { control: plain, variants: [withHouseGreeting] },
+  trials: 1,
+  compare: { baseline: plain, variants: [withHouseGreeting] },
   questions: [
     {
       question: 'Which greet.js handles a missing or empty name better?',

@@ -17,7 +17,7 @@ Results:
   show [run]                Show a run
   export [run]              Export a run as an archive, or in another format
   compare [base] [head]     Compare two runs
-  regrade [filter...]       Grade recorded attempts again with today's graders
+  regrade [filter...]       Grade recorded trials again with today's graders
   checkout [run] [dir]      Check out a run's code as a git worktree
   sync [run...]             Sync runs with the history store
   query [sql | view]        Query run history with SQL or a named view

@@ -37,7 +37,7 @@ LlamaIndex         1          pass
 the Vercel AI SDK  1          pass
 ```
 
-Each rival's attempt has the same judge grader, which reads the question and the answer
+Each rival's trial has the same judge grader, which reads the question and the answer
 (`{ task: true, output: true }`), so one grader name covers every case. Its grade is in the run
 record, under `.reeval/runs/`:
 

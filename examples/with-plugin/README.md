@@ -28,7 +28,7 @@ load.
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** `pnpm eval -v` traces each attempt. Its `env` lines show the parts placed and
+**What to look at:** `pnpm eval -v` traces each trial. Its `env` lines show the parts placed and
 where the skill and server went:
 
 ```text

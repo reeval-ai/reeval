@@ -34,7 +34,7 @@ class JudgeDefaults(TypedDict, total=False):
 
 
 class BestOf(TypedDict):
-    """`runs={"best_of": 5}`: stop each cell once a majority of its 5 attempts agree."""
+    """`trials={"best_of": 5}`: stop each cell once a majority of its 5 trials agree."""
 
     best_of: int
     """Odd, 3 or more."""
@@ -61,26 +61,26 @@ class EvalOptions(TypedDict, total=False):
     pin: Sequence[str]
     question: Mapping[str, Any]
     questions: Sequence[Mapping[str, Any]]
-    """Asked of each attempt, or between attempts with `across`; `[]` clears the group's. Each
+    """Asked of each trial, or between trials with `across`; `[]` clears the group's. Each
     names what it's shown: `{"question": …, "diff": True}`, at least one input."""
     sandbox: DockerSandbox | TartSandbox | Mapping[str, Any]
     snapshot: bool | Literal["turns"] | Mapping[str, Any]
-    """When each attempt's workspace is copied into its directory in `.reeval/runs`: `True` after
+    """When each trial's workspace is copied into its directory in `.reeval/runs`: `True` after
     the checks, `"turns"` after each `send` too, `False` never, or `{"when": …, "compress": True}`
     for `<name>.tar.gz` files. Default `True`."""
     revision: int | str
     """The eval's version, in its fingerprint: bump it when a helper, a constant outside the body
     or a fixture changes what it measures. A group's applies to evals inside that set none."""
-    runs: int | BestOf
-    """Attempts per cell, or `{"best_of": n}`, which stops each cell once a majority of its
-    attempts agree. Not on a compared eval."""
+    trials: int | BestOf
+    """Trials per cell, or `{"best_of": n}`, which stops each cell once a majority of its
+    trials agree. Not on a compared eval."""
     tags: Sequence[str]
     target: Target
-    """Whether the eval passes and can fail the run, over its attempts' scores: `regression(…)`
+    """Whether the eval passes and can fail the run, over its trials' scores: `regression(…)`
     or `capability(…)`; default `capability()`, which only reports. On a compare it
     applies to the variants."""
     timeout: timedelta | float
-    """Per attempt, in seconds or as a timedelta."""
+    """Per trial, in seconds or as a timedelta."""
 
 
 class Case(TypedDict):

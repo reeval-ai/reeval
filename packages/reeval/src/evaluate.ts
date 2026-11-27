@@ -1,5 +1,4 @@
 import { dirname } from 'node:path'
-import { type Grading, runAttempt } from './attempt/index.ts'
 import { bestOfCell } from './best-of.ts'
 import { caseEvalName, caseKeys } from './cases.ts'
 import { declarationProblem } from './contract/declaration.ts'
@@ -39,6 +38,7 @@ import { checkOptions, matchesTags, refuseIllegalCompare, sandboxProvider } from
 import { type PlannedEval, planEval } from './plan-eval.ts'
 import { maskedVariables, redactSecrets } from './redact.ts'
 import { sandboxKind } from './sandbox/kinds.ts'
+import { type Grading, runTrial } from './trial/index.ts'
 import type {
   BuiltinGraderData,
   Case,
@@ -163,7 +163,7 @@ const givenPaths = new Map<string, string>()
  * `name` as it's declared, recorded and shown: masked as everything reeval writes is, so the
  * eval's id, its artifact directory and every view hold no secret. Two names that mask to the
  * same name are refused rather than numbered: the id is the key history, compare and query
- * group attempts by across runs, and a number would depend on the order of the declarations.
+ * group trials by across runs, and a number would depend on the order of the declarations.
  */
 function shownName(
   kind: 'eval' | 'group' | 'todo',
@@ -236,8 +236,8 @@ function registerTodo(given: string) {
 }
 
 /**
- * `N` is `runs.bestOf` as written, so an even or fractional literal is a type error. With
- * `cases`, the body takes the attempt and its case, typed from the list.
+ * `N` is `trials.bestOf` as written, so an even or fractional literal is a type error. With
+ * `cases`, the body takes the trial and its case, typed from the list.
  */
 type EvaluateFn = {
   <const T, N extends number = number>(
@@ -287,7 +287,7 @@ function checkUnique(
   const earlier = declared.get(id)
   if (earlier) {
     throw new UsageError(
-      `${where} is declared twice in this file. Each eval needs its own name, or its attempts are merged into one eval.${hint}${separatorHint(path, earlier.path)}`,
+      `${where} is declared twice in this file. Each eval needs its own name, or its trials are merged into one eval.${hint}${separatorHint(path, earlier.path)}`,
     )
   }
   const family = inFamily ? undefined : families.get(id)
@@ -353,7 +353,7 @@ function refuseOffMachineGraders(grading: Grading | undefined, run: RunContext, 
   )
 }
 
-/** Refuses a judge grader with no model of its own on an attempt whose eval has no judge model. */
+/** Refuses a judge grader with no model of its own on a trial whose eval has no judge model. */
 function checkJudgeModels(
   grading: Grading,
   tests: NonNullable<ReturnType<typeof planEval>['tests']>,
@@ -438,7 +438,7 @@ function prepare(
   if (planned.tests) {
     const note = maskedNote([...groupStack.map((g) => g.given), given])
     if (note) {
-      for (const notes of new Set(planned.tests.map((t) => t.attempt.plan.notes))) notes.push(note)
+      for (const notes of new Set(planned.tests.map((t) => t.trial.plan.notes))) notes.push(note)
     }
     const listed = graders.map((g) => ({
       name: g.name,
@@ -449,7 +449,7 @@ function prepare(
         ? { recordsOnly: true as const }
         : {}),
     }))
-    if (listed.length) for (const t of planned.tests) t.attempt.plan.graders = listed
+    if (listed.length) for (const t of planned.tests) t.trial.plan.graders = listed
     registered++
   }
   const commit = () => {
@@ -462,9 +462,9 @@ function prepare(
         : [],
     )
     for (const { name: testName, spec, ...options } of planned.tests) {
-      const { cell, n, bestOf } = options.attempt
+      const { cell, n, bestOf } = options.trial
       let hooks: Pick<TestOptions, 'ready' | 'settled'> = {}
-      // A resumed run's completed attempts are skipped, but still settle their place in the cell.
+      // A resumed run's completed trials are skipped, but still settle their place in the cell.
       if (bestOf !== undefined) {
         const of = bestOfCells.get(cell.key) ?? bestOfCell(bestOf)
         bestOfCells.set(cell.key, of)
@@ -474,13 +474,13 @@ function prepare(
       if (spec && getRunContext().inputs) {
         const { root } = getRunContext().config
         const found = environmentInputs(spec.environment.layers, spec.sandbox, root)
-        const { attempt } = options
-        const warnings = [...new Set([...attempt.plan.warnings, ...found.warnings])]
-        test.attempt = { ...attempt, plan: { ...attempt.plan, warnings }, inputs: found.inputs }
+        const { trial } = options
+        const warnings = [...new Set([...trial.plan.warnings, ...found.warnings])]
+        test.trial = { ...trial, plan: { ...trial.plan, warnings }, inputs: found.inputs }
       }
       if (spec && graderSandboxes.length)
-        test.attempt = { ...options.attempt, ...test.attempt, graderSandboxes }
-      const readCap = spec && sandboxKind(spec.sandbox).attemptCap?.(spec.sandbox)
+        test.trial = { ...options.trial, ...test.trial, graderSandboxes }
+      const readCap = spec && sandboxKind(spec.sandbox).trialCap?.(spec.sandbox)
       if (spec && test.gate && readCap) {
         const gate = { ...test.gate, limits: { ...test.gate.limits } }
         const before = test.ready
@@ -496,7 +496,7 @@ function prepare(
       registerTest(
         testName,
         test,
-        spec ? (handle) => runAttempt(spec, fn, handle, graded) : async () => {},
+        spec ? (handle) => runTrial(spec, fn, handle, graded) : async () => {},
       )
     }
   }
@@ -591,9 +591,9 @@ function registerCases(
       `where in ${where} must be a function from a case and an environment to true or false, e.g. where: ({ case: item, environment }) => item.stacks.includes(environment.traits.stack).`,
     )
   }
-  if (isObjectLike(rest.runs) && 'bestOf' in rest.runs) {
+  if (isObjectLike(rest.trials) && 'bestOf' in rest.trials) {
     throw new UsageError(
-      `${where} has cases, so it can't take runs: { bestOf }: best-of stops each cell on its own, and the cases pool over the runs. Set a fixed count, e.g. runs: 3.`,
+      `${where} has cases, so it can't take trials: { bestOf }: best-of stops each cell on its own, and the cases pool over the runs. Set a fixed count, e.g. trials: 3.`,
     )
   }
   const keys = caseKeys(cases, where)
@@ -660,12 +660,12 @@ function applyWhere(where: string, keys: string[], prepared: Prepared[]): void {
   for (const p of prepared) {
     const own = p.planned.picked?.excluded ?? []
     for (const t of p.planned.tests ?? []) {
-      plans.add(t.attempt.plan)
-      if (own.length) t.attempt.plan.excluded = own
-      if (t.attempt.family) t.attempt.plan.familyExcluded = excluded
+      plans.add(t.trial.plan)
+      if (own.length) t.trial.plan.excluded = own
+      if (t.trial.family) t.trial.plan.familyExcluded = excluded
     }
   }
-  // A completed attempt's plan is a copy that shares its notes.
+  // A completed trial's plan is a copy that shares its notes.
   for (const list of new Set([...plans].map((p) => p.notes))) list.push(...notes)
 }
 
@@ -690,7 +690,7 @@ type SpecOnly = {
 
 /**
  * One eval: an eval file's default export. Its id is the file's path from the evals root without
- * `.eval.ts`. With `cases`, the task takes the attempt and its case, typed from the list.
+ * `.eval.ts`. With `cases`, the task takes the trial and its case, typed from the list.
  */
 export function defineEval<const T, N extends number = number>(
   spec: CaseEvalSpec<T, N>,
@@ -861,7 +861,7 @@ function optionsFrom(written: EvalOptionsData, where: string, base: string): Eva
   const variants = compare.variants.map((v, i) => asEnv(v, `compare.variants[${i}]`))
   return {
     ...rest,
-    compare: { ...compare, control: asEnv(compare.control, 'compare.control'), variants },
+    compare: { ...compare, baseline: asEnv(compare.baseline, 'compare.baseline'), variants },
   }
 }
 

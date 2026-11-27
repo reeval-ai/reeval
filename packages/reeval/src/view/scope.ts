@@ -31,18 +31,23 @@ const CONFIG_KEY_VERSION = 1
 
 const sorted = (list: readonly string[] | undefined) => (list ? [...list].sort() : undefined)
 
+/** A count of trials hashes as `runs`, the name version 1 of the key gave it. */
+function asRuns<T extends { trials?: unknown }>({ trials, ...rest }: T) {
+  return { ...rest, runs: trials }
+}
+
 function profileKey(profile: NonNullable<RunRecord['profile']>) {
   const { defaults, limit } = profile
   return {
     name: profile.name,
     defaults: {
-      ...defaults,
+      ...asRuns(defaults),
       harness: sorted(defaults.harness),
       env: sorted(defaults.env),
       timeout: durationMs(defaults.timeout),
     },
     limit: {
-      ...limit,
+      ...asRuns(limit),
       harness: sorted(limit.harness),
       traits: limit.traits
         ? Object.fromEntries(
@@ -67,14 +72,14 @@ export function runScope(record: RunRecord): RunScope {
     v: CONFIG_KEY_VERSION,
     profile: record.profile ? profileKey(record.profile) : null,
     invocation: {
-      runs: invocation?.runs,
+      runs: invocation?.trials,
       filters: sorted(filters),
       tags: sorted(tags),
       traits: sorted(traits),
     },
     config: {
       environment: config.environment,
-      runs: config.runs,
+      runs: config.trials,
       bestOf: config.bestOf,
       judgeModel: config.judgeModel,
       threshold: config.threshold,
@@ -85,7 +90,10 @@ export function runScope(record: RunRecord): RunScope {
   return {
     profile: record.profile?.name ?? null,
     subset:
-      filters.length > 0 || tags.length > 0 || traits.length > 0 || invocation?.runs !== undefined,
+      filters.length > 0 ||
+      tags.length > 0 ||
+      traits.length > 0 ||
+      invocation?.trials !== undefined,
     configKey: sha256Hex(canonical(key)),
   }
 }

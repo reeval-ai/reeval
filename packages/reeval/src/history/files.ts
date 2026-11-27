@@ -42,12 +42,12 @@ import { keptFacts, summaryFiles } from './summary.ts'
 import type {
   ArtifactLevel,
   ArtifactRef,
-  AttemptFiles,
-  AttemptRecord,
   FileRef,
   HistoryEntry,
   RunDebug,
   RunRecord,
+  TrialFiles,
+  TrialRecord,
 } from './types.ts'
 
 export class HistoryError extends Error {
@@ -350,7 +350,7 @@ async function claimRun(dir: string, runId: string): Promise<() => Promise<void>
 
 /**
  * A record its continuation replaces: the run stopped before it finished, or `next` ran one of
- * its infra errors again and keeps that error in the attempt's `retries`.
+ * its infra errors again and keeps that error in the trial's `retries`.
  */
 export const replaceable = (bytes: Buffer, where: string, next: Buffer) => {
   try {
@@ -358,10 +358,10 @@ export const replaceable = (bytes: Buffer, where: string, next: Buffer) => {
     if (was.status === 'interrupted' || was.status === 'budget') return true
     const now = parseRecord(next, where)
     const retried = new Map(
-      now.evals.flatMap((e) => e.attempts).map((a) => [a.key, a.retries ?? []] as const),
+      now.evals.flatMap((e) => e.trials).map((a) => [a.key, a.retries ?? []] as const),
     )
     return was.evals
-      .flatMap((e) => e.attempts)
+      .flatMap((e) => e.trials)
       .some(
         (a) =>
           a.outcome === 'infra_error' &&
@@ -520,12 +520,12 @@ async function writeClaimed(
 
 const failed = (x: { outcome: string }) => x.outcome === 'fail' || x.outcome === 'infra_error'
 
-/** Whether the attempt keeps its heavy evidence at this artifact level. */
+/** Whether the trial keeps its heavy evidence at this artifact level. */
 const keeps = (x: { outcome: string }, level: ArtifactLevel) =>
   level === 'all' || level === 'evidence' || (level === 'failures' && failed(x))
 
 /**
- * What a passing attempt keeps under `evidence`: its diff, captures, `c.exec` results, `c.decide`
+ * What a passing trial keeps under `evidence`: its diff, captures, `c.exec` results, `c.decide`
  * calls and final workspace.
  */
 const evidenceFiles = ({
@@ -535,7 +535,7 @@ const evidenceFiles = ({
   decisions,
   workspace,
   workspaceManifest,
-}: AttemptFiles): AttemptFiles => ({
+}: TrialFiles): TrialFiles => ({
   ...(diff ? { diff } : {}),
   ...(artifacts?.length ? { artifacts } : {}),
   ...(execs ? { execs } : {}),
@@ -544,7 +544,7 @@ const evidenceFiles = ({
   ...(workspaceManifest ? { workspaceManifest } : {}),
 })
 
-/** Passing attempts under `evidence` drop trajectory, setup, check logs, and judge input. */
+/** Passing trials under `evidence` drop trajectory, setup, check logs, and judge input. */
 const evidencePass = (a: { outcome: string }, level: ArtifactLevel) =>
   level === 'evidence' && !failed(a)
 
@@ -552,7 +552,7 @@ const evidencePass = (a: { outcome: string }, level: ArtifactLevel) =>
 const withPages = (refs: ArtifactRef[]): FileRef[] =>
   refs.flatMap((r) => (r.capture?.page ? [r, r.capture.page] : [r]))
 
-const attemptRefs = (a: AttemptRecord, level: ArtifactLevel = 'all'): FileRef[] => {
+const trialRefs = (a: TrialRecord, level: ArtifactLevel = 'all'): FileRef[] => {
   const files = evidencePass(a, level) ? evidenceFiles(a.files) : a.files
   return [
     ...Object.values(files).flatMap((v) => (Array.isArray(v) ? withPages(v) : v ? [v] : [])),
@@ -574,7 +574,7 @@ export type RecordOptions = {
    * a remote store's copy isn't (default true).
    */
   committed?: boolean
-  /** Upload the attempts' debug data too, staged in `staging` (a remote store's `history.debug`). */
+  /** Upload the trials' debug data too, staged in `staging` (a remote store's `history.debug`). */
   debug?: { level: RunDebug['level']; staging: string }
   /** Write the run's `<runId>.zip` beside its record too (`history.archive`). */
   archive?: boolean
@@ -921,7 +921,7 @@ async function leveled(
   }
   for (const e of record.evals) {
     // A pairwise input goes with its eval, and so do the screenshots it names: the sides it
-    // compares passed, so their attempts don't keep them.
+    // compares passed, so their trials don't keep them.
     const shown = new Set<string>()
     for (const q of e.answers ?? []) {
       if (!q.input) continue
@@ -936,30 +936,30 @@ async function leveled(
         if ('path' in s && s.path) shown.add(s.path)
       }
     }
-    // A cell or eval that failed with no failed attempt (a `minLift` gate) keeps every attempt's
+    // A cell or eval that failed with no failed trial (a `minLift` gate) keeps every trial's
     // files, as the only evidence of it.
-    const whole = failed(e) && !e.attempts.some(failed)
-    for (const a of e.attempts) {
+    const whole = failed(e) && !e.trials.some(failed)
+    for (const a of e.trials) {
       // Observed values go with the record at every level but `none`, the large ones in files.
       for (const o of a.observations ?? []) {
         if (!o.file) continue
         if (level === 'none') delete o.file
         else await keep(o.file)
       }
-      const cellFailed = e.attempts.some((b) => b.cell === a.cell && failed(b))
+      const cellFailed = e.trials.some((b) => b.cell === a.cell && failed(b))
       const cell = e.cells.find((c) => c.key === a.cell)
       const all = whole || (cell !== undefined && failed(cell) && !cellFailed)
       if (level !== 'none' && (all || keeps(a, level))) {
-        for (const ref of attemptRefs(a, all ? 'all' : level)) await keep(ref)
+        for (const ref of trialRefs(a, all ? 'all' : level)) await keep(ref)
         if (evidencePass(a, level) && !all) {
           a.files = evidenceFiles(a.files)
           for (const c of a.checks) delete c.log
         }
         continue
       }
-      // Kept beside a failed attempt of its cell and case: `flaky_cells`, per case, tells the
-      // checks varying from the agent by whether a failed attempt's diff matches a passing one's.
-      const caseFailed = e.attempts.some((b) => b.cell === a.cell && b.case === a.case && failed(b))
+      // Kept beside a failed trial of its cell and case: `flaky_cells`, per case, tells the
+      // checks varying from the agent by whether a failed trial's diff matches a passing one's.
+      const caseFailed = e.trials.some((b) => b.cell === a.cell && b.case === a.case && failed(b))
       const diff = level !== 'none' && caseFailed ? a.files.diff : undefined
       const screenshots = (a.files.artifacts ?? []).filter((r) => shown.has(r.path))
       a.files = {

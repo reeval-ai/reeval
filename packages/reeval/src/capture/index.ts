@@ -1,7 +1,7 @@
 import { createServer } from 'node:net'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { CAPTURE_NAME, CAPTURE_NAME_MAX, CAPTURE_NAME_RULE } from '../contract/attempt.ts'
+import { CAPTURE_NAME, CAPTURE_NAME_MAX, CAPTURE_NAME_RULE } from '../contract/trial.ts'
 import { parseDuration } from '../duration.ts'
 import { isOneOf } from '../object.ts'
 import { cacheDir } from '../root.ts'
@@ -256,7 +256,7 @@ export function checkCaptureName(name: string): void {
  * fake sandbox, which shares the host's network, one the kernel hands out can be taken in between.
  */
 export const PORT_RANGE = { min: 20_000, max: 32_767 } as const
-/** Ports this process handed out lately, which a concurrent attempt hasn't bound yet. */
+/** Ports this process handed out lately, which a concurrent trial hasn't bound yet. */
 const handedOut: number[] = []
 const HANDED_OUT_KEEP = 256
 const PICK_TRIES = 50

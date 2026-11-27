@@ -2,7 +2,7 @@ import type { RunTrace } from '../../src/history/trace.ts'
 
 /**
  * What would make Perfetto misdraw or drop part of a trace: a slice with a bad time, slices on one
- * track that overlap without nesting, and attempts sharing a lane at once. Empty when it's sound.
+ * track that overlap without nesting, and trials sharing a lane at once. Empty when it's sound.
  */
 export function traceProblems(trace: RunTrace): string[] {
   const problems: string[] = []
@@ -26,8 +26,8 @@ export function traceProblems(trace: RunTrace): string[] {
       if (s.end > s.start) open.push(s)
     }
   }
-  const attempts = trace.traceEvents.filter((e) => e.ph === 'X' && e.cat === 'attempt')
-  if (attempts.length !== trace.otherData.attempts)
-    problems.push(`${attempts.length} attempt slices for ${trace.otherData.attempts} attempts`)
+  const trials = trace.traceEvents.filter((e) => e.ph === 'X' && e.cat === 'trial')
+  if (trials.length !== trace.otherData.trials)
+    problems.push(`${trials.length} trial slices for ${trace.otherData.trials} trials`)
   return problems
 }

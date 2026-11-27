@@ -43,7 +43,7 @@ export async function writeStudioResponses(source: StudioSource, out: string): P
     const index = (await get(studioPaths.report(runId), true)) as RunReportIndex | null
     for (const e of index?.evals ?? []) {
       const detail = (await get(studioPaths.eval(runId, e.id))) as EvalDetail
-      for (const a of detail.attempts) {
+      for (const a of detail.trials) {
         if (a.links.trajectory) await get(`${a.links.trajectory}?limit=2000`, true)
       }
     }

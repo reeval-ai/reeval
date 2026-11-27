@@ -20,9 +20,9 @@ export default defineConfig({
   ...(process.env.REEVAL_CONTRACT_GATEWAY === 'vercel' ? { gateway: [vercel()] } : {}),
   ...(process.env.REEVAL_CONTRACT_GATEWAY === 'openrouter' ? { gateway: [openrouter()] } : {}),
   ...(process.env.REEVAL_CONTRACT_GATEWAY === 'vertex' ? { gateway: [vertex()] } : {}),
-  // No retries, one attempt per cell: a failure is a failure (see README, flake policy).
-  runs: 1,
+  // No retries, one trial per cell: a failure is a failure (see README, flake policy).
+  trials: 1,
   timeout: '4m',
   // The hard cap: the 32 evals in evals/, and nothing a stray eval file could add.
-  budget: { attempts: 32 },
+  budget: { trials: 32 },
 })

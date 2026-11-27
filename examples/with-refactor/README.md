@@ -26,7 +26,7 @@ runs the same eval on Claude Code, with a real judge, and `--profile <name>` on 
 one profile you need.
 
 **What to look at:** the run record's grades, under `.reeval/runs/`. The tests guard is
-`required`, so an attempt that edits them scores 0 whatever the judge says. The judge's grade
+`required`, so a trial that edits them scores 0 whatever the judge says. The judge's grade
 keeps its answer, not the diff it was given:
 
 ```json

@@ -1320,12 +1320,12 @@ export default defineConfig({ agents: fakeAgent() })
       'evals/a.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const lib = defineEnvironment('lib', { sandbox: docker(), egress: { allow: ['registry.npmjs.org'] } })
-export default defineEval({ environment: lib, runs: 1, async task() {} })
+export default defineEval({ environment: lib, trials: 1, async task() {} })
 `,
       'evals/a2.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
 const lib = defineEnvironment('lib', { sandbox: docker(), egress: { allow: ['registry.npmjs.org'] } })
-export default defineEval({ environment: lib, runs: 1, async task() {} })
+export default defineEval({ environment: lib, trials: 1, async task() {} })
 `,
     })
     const env = { DOCKER_HOST: 'unix:///nonexistent/reeval-doctor.sock' }
@@ -1336,23 +1336,23 @@ export default defineEval({ environment: lib, runs: 1, async task() {} })
     assert.deepEqual(
       (await egress()).map((c: Check) => c.summary),
       [
-        "allow registry.npmjs.org, plus each harness's own hosts: every planned attempt (environment lib)",
+        "allow registry.npmjs.org, plus each harness's own hosts: every planned trial (environment lib)",
       ],
     )
     await writeFile(
       join(p.dir, 'evals/b.eval.ts'),
       `import { defineEnvironment, defineEval } from 'reeval'
 import { docker } from 'reeval/sandbox'
-export default defineEval({ environment: defineEnvironment('open', { sandbox: docker() }), runs: 1, async task() {} })
+export default defineEval({ environment: defineEnvironment('open', { sandbox: docker() }), trials: 1, async task() {} })
 `,
     )
     const summaries = (await egress()).map((c: Check) => c.summary)
     assert.equal(summaries.length, 2, summaries.join('\n'))
     assert.match(
       summaries[0],
-      /^allow registry\.npmjs\.org, .*: 2 of 3 planned attempts \(environment lib\)$/,
+      /^allow registry\.npmjs\.org, .*: 2 of 3 planned trials \(environment lib\)$/,
     )
-    assert.match(summaries[1], /^proxy: .*: 1 of 3 planned attempts \(environment open\)$/)
+    assert.match(summaries[1], /^proxy: .*: 1 of 3 planned trials \(environment open\)$/)
     assert.doesNotMatch(summaries.join('\n'), /the default/)
   })
 
@@ -1447,8 +1447,8 @@ export default defineConfig({ agents: cursor({ model: 'composer-2.5' }) })
     const bad = await runCli(broken.dir, ['doctor'])
     assert.equal(bad.code, 1)
     assert.match(bad.stdout, /✗ config +Unknown option "harness" in reeval\.config\.ts/)
-    const flag = await runCli(empty.dir, ['doctor', '--runs', '2'])
+    const flag = await runCli(empty.dir, ['doctor', '--trials', '2'])
     assert.equal(flag.code, 2)
-    assert.match(flag.stderr, /--runs isn't an option of reeval doctor/)
+    assert.match(flag.stderr, /--trials isn't an option of reeval doctor/)
   })
 })

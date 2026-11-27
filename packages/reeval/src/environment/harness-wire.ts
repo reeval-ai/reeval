@@ -113,7 +113,7 @@ export type ModelSpecific = Pick<
 export type ExpectedBlocked = {
   hosts: readonly string[]
   why: string
-  /** Tried only in a session given plugins; another session's attempt on these hosts is a real block. */
+  /** Tried only in a session given plugins; another session's trial on these hosts is a real block. */
   withPlugins?: true
 }
 

@@ -1,5 +1,5 @@
 // The agent's model calls, as the egress gateway timed them: collected on the worker for the
-// whole attempt, then placed in the turn they started in as `model-call` trajectory events.
+// whole trial, then placed in the turn they started in as `model-call` trajectory events.
 import type { EventTime, ModelCallEvent, TokenUsage } from './types.ts'
 
 /** One model call, on the worker's clock (epoch ms). */
@@ -114,7 +114,7 @@ function roles(
 
 /**
  * The calls that started within a turn, as trajectory events on its clock, each with its role.
- * `calls` is the whole attempt's: a call declaring tools anywhere in it tells the tool-less calls
+ * `calls` is the whole trial's: a call declaring tools anywhere in it tells the tool-less calls
  * in this turn apart. A call the turn's end cut short keeps its own length.
  */
 export function modelCallEvents(

@@ -5,7 +5,7 @@
       "name": "best of",
       "mode": "run",
       "options": {
-        "runs": {
+        "trials": {
           "bestOf": 3
         },
         "target": {
@@ -23,7 +23,7 @@
       "name": "capability reports",
       "mode": "run",
       "options": {
-        "runs": 3,
+        "trials": 3,
         "target": {
           "kind": "capability",
           "threshold": 0.5,
@@ -40,7 +40,7 @@
       "name": "capability",
       "mode": "run",
       "options": {
-        "runs": 3,
+        "trials": 3,
         "target": {
           "kind": "capability",
           "threshold": 1,
@@ -100,7 +100,7 @@
       "mode": "run",
       "options": {
         "compare": {
-          "control": {
+          "baseline": {
             "kind": "environment",
             "name": "base",
             "layers": [
@@ -143,7 +143,7 @@
           "kind": "regression",
           "threshold": 0.8
         },
-        "runs": 2
+        "trials": 2
       },
       "body": "b6",
       "source": {
@@ -156,7 +156,7 @@
       "mode": "run",
       "options": {
         "compare": {
-          "control": {
+          "baseline": {
             "kind": "environment",
             "name": "base",
             "layers": [
@@ -200,7 +200,7 @@
           "threshold": 1,
           "blocking": false
         },
-        "runs": 4
+        "trials": 4
       },
       "body": "b7",
       "source": {
@@ -212,7 +212,7 @@
       "name": "reports",
       "mode": "run",
       "options": {
-        "runs": 3
+        "trials": 3
       },
       "body": "b8",
       "source": {

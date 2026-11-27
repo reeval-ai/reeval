@@ -21,7 +21,7 @@ const WORKSPACE = '/reeval/workspace'
 
 /**
  * The four ways an agent can learn reeval, each alone, on top of the task's project. The
- * control is the skill before the split; the variants are the split skill, the docs site's
+ * baseline is the skill before the split; the variants are the split skill, the docs site's
  * pages in `reeval-docs/`, and `reeval mcp` (run history only) as an MCP server.
  */
 export function channels(base: Environment) {
@@ -44,7 +44,7 @@ export function channels(base: Environment) {
       ]),
     },
   }))
-  return { control: skillCurrent, variants: [skillSplit, docs, mcp] }
+  return { baseline: skillCurrent, variants: [skillSplit, docs, mcp] }
 }
 
 /** Shared by every task: a reeval project the agent has never seen, and how to run it. */

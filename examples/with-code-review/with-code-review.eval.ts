@@ -8,7 +8,7 @@ export default defineEval({
   environment: app,
   target: regression(1),
   graders: [
-    // A review edits nothing: an attempt that fixes the bug instead scores 0.
+    // A review edits nothing: a trial that fixes the bug instead scores 0.
     notInDiff('**', { required: true }),
     judge('Does the review find that page() is off by one, so page 1 skips items?', {
       inputs: { output: true },

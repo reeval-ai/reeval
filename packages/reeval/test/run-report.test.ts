@@ -7,12 +7,12 @@ import { FORBIDDEN_OUTPUT, runReportMarkdown } from '../src/renderer/markdown.ts
 import type { CompareRow } from '../src/view/compare.ts'
 import { NewerSchemaError, readableRecord } from '../src/view/record.ts'
 import {
-  attemptAnchor,
-  attemptAnchorId,
   buildRunReport,
   REPORT_VERSION,
   readableRunReport,
   runReportSchema,
+  trialAnchor,
+  trialAnchorId,
 } from '../src/view/report/index.ts'
 
 function loadCorpusRun(name: string): RunRecord {
@@ -119,7 +119,7 @@ describe('buildRunReport', () => {
     assert.ok(primary.lead)
     assert.equal(primary.lead?.prior, '2 of 2')
     assert.equal(primary.lead?.current, '0 of 2')
-    assert.equal(report.evals[0]!.headline.fairness, 'too-few-runs')
+    assert.equal(report.evals[0]!.headline.fairness, 'too-few-trials')
     assert.ok(report.integrity.some((i) => i.kind === 'fairness-floor'))
     const block = report.evals[0]!.primary
     assert.equal(block?.kind, 'regression')
@@ -155,14 +155,14 @@ describe('buildRunReport', () => {
     const headline = (name: string) => md.split(`\n## ${name}\n`)[1]?.split('\n## ')[0] ?? ''
     assert.match(
       headline('adds-a-button-that-builds'),
-      /^\*\*mean 67% · 2\/3 cases hit 100% \(pass@1\)\*\* · capability\(1\)\n\nReport only: the target never fails the run\. 3 counted attempts over 3 cases, 1 coding harness\.$/m,
+      /^\*\*mean 67% · 2\/3 cases hit 100% \(pass@1\)\*\* · capability\(1\)\n\nReport only: the target never fails the run\. 3 counted trials over 3 cases, 1 coding harness\.$/m,
     )
     assert.match(headline('choose'), /^\*\*83% ≥ 80%\*\* · metric\(0\.8\)$/m)
-    assert.match(headline('choose'), /^On target\. 6 counted attempts over 3 cases/m)
+    assert.match(headline('choose'), /^On target\. 6 counted trials over 3 cases/m)
     assert.match(headline('explains-why-greet-js-fails'), /^\*\*67% < 80%\*\* · metric\(0\.8\)$/m)
     assert.match(
       headline('greets-in-french'),
-      /^\*\*mean 0% · 0\/1 run at 100%\*\* · regression\(1\)$/m,
+      /^\*\*mean 0% · 0\/1 trial at 100%\*\* · regression\(1\)$/m,
     )
     assert.match(headline('starts-its-sandbox'), /^\*\*infra error\*\* · regression\(1\)$/m)
     assert.match(headline('greets-in-welsh'), /^\*\*skipped\*\*$/m)
@@ -178,7 +178,7 @@ describe('buildRunReport', () => {
   test('pass-rate headlines name found/used outcomes from discovery matchers', () => {
     const record = cloneRecord('with-layouts')
     const e = record.evals.find((ev) => !ev.compare) ?? record.evals[0]!
-    for (const a of e.attempts) {
+    for (const a of e.trials) {
       a.assertions = [
         {
           label: 'used skill',
@@ -198,9 +198,9 @@ describe('buildRunReport', () => {
   test('pre-satisfied checks emit integrity and keep full wording', () => {
     const record = cloneRecord('with-layouts')
     const e = record.evals.find((ev) => !ev.compare) ?? record.evals[0]!
-    const attempt = e.attempts.find((a) => a.outcome === 'pass' || a.outcome === 'fail')
-    assert.ok(attempt)
-    attempt.assertions = [
+    const trial = e.trials.find((a) => a.outcome === 'pass' || a.outcome === 'fail')
+    assert.ok(trial)
+    trial.assertions = [
       {
         label: 'has index',
         matcher: 'toHaveFile',
@@ -233,7 +233,7 @@ describe('buildRunReport', () => {
   test('diagnostic judges omit at-or-above tallies', () => {
     const record = cloneRecord('with-layouts')
     const e = record.evals.find((ev) => !ev.compare) ?? record.evals[0]!
-    for (const a of e.attempts.slice(0, 2)) {
+    for (const a of e.trials.slice(0, 2)) {
       a.judgements = [
         {
           key: '0:diag',
@@ -289,11 +289,11 @@ describe('buildRunReport', () => {
     assert.match(runReportMarkdown(report), /agent \$.+, judge \$.+ \(mixed\)/)
   })
 
-  test('colliding trajectory paths get distinct attempt hrefs', () => {
+  test('colliding trajectory paths get distinct trial hrefs', () => {
     const record = cloneRecord('with-layouts')
-    const e = record.evals.find((ev) => ev.compare && ev.attempts.length >= 2)
+    const e = record.evals.find((ev) => ev.compare && ev.trials.length >= 2)
     assert.ok(e)
-    const [a, b] = e!.attempts
+    const [a, b] = e!.trials
     assert.ok(a && b)
     const shared = {
       path: 'shared/trajectory.jsonl',
@@ -303,45 +303,45 @@ describe('buildRunReport', () => {
     a.files.trajectory = shared
     b.files.trajectory = { ...shared }
     const report = buildRunReport(record, { evals: [e!.key], links: { base: './' } })
-    const hrefs = report.attempts.map((row) => row.href)
+    const hrefs = report.trials.map((row) => row.href)
     assert.equal(new Set(hrefs).size, hrefs.length)
     assert.ok(hrefs.some((h) => h.includes('shared/trajectory.jsonl')))
-    assert.ok(hrefs.includes(attemptAnchor(b.key)), 'the second falls back to its anchor')
-    assert.match(attemptAnchor(b.key), /^#attempt-[a-z0-9-]+$/)
+    assert.ok(hrefs.includes(trialAnchor(b.key)), 'the second falls back to its anchor')
+    assert.match(trialAnchor(b.key), /^#trial-[a-z0-9-]+$/)
   })
 
-  test('attempt anchors come from the stable key, the same in any report of the run, and each resolves', () => {
+  test('trial anchors come from the stable key, the same in any report of the run, and each resolves', () => {
     const record = loadCorpusRun('with-layouts')
     const whole = buildRunReport(record)
     const lastSeq = (e: (typeof record.evals)[number]) =>
-      Math.max(-1, ...e.attempts.map((a) => a.seq ?? -1))
+      Math.max(-1, ...e.trials.map((a) => a.seq ?? -1))
     const last = [...record.evals].sort((a, b) => lastSeq(b) - lastSeq(a))[0]
     assert.ok(last)
     const one = buildRunReport(record, { evals: [last.key] })
-    const keyOf = (r: typeof whole) => new Map(r.attempts.map((a) => [a.key, a]))
+    const keyOf = (r: typeof whole) => new Map(r.trials.map((a) => [a.key, a]))
     const all = keyOf(whole)
     let renumbered = 0
-    for (const row of one.attempts) {
+    for (const row of one.trials) {
       const same = all.get(row.key)
       assert.ok(same, row.key)
       if (same.id !== row.id) renumbered++
       if (row.href.startsWith('#')) assert.equal(row.href, same.href, 'the anchor is the same')
     }
-    assert.ok(renumbered > 0, 'the one-eval report numbers its attempts from A1')
+    assert.ok(renumbered > 0, 'the one-eval report numbers its trials from A1')
     const md = runReportMarkdown(whole)
     const targets = new Set([...md.matchAll(/<a id="([^"]+)"><\/a>/g)].map((m) => m[1]))
-    assert.equal(targets.size, whole.attempts.length, 'one anchor per attempt, all distinct')
-    for (const a of whole.attempts) assert.ok(targets.has(attemptAnchorId(a.key)), a.key)
-    const links = [...md.matchAll(/\]\(#(attempt-[^)]+)\)/g)].map((m) => m[1] as string)
+    assert.equal(targets.size, whole.trials.length, 'one anchor per trial, all distinct')
+    for (const a of whole.trials) assert.ok(targets.has(trialAnchorId(a.key)), a.key)
+    const links = [...md.matchAll(/\]\(#(trial-[^)]+)\)/g)].map((m) => m[1] as string)
     for (const link of links) assert.ok(targets.has(link), `#${link} has a target`)
     const cites = JSON.stringify(whole).match(/"id":"A\d+","key":"[^"]+"/g) ?? []
-    assert.ok(cites.length > 0, 'every AttemptRef carries its key')
+    assert.ok(cites.length > 0, 'every TrialRef carries its key')
   })
 
   test('text headlines disclose representative multi-answer collapse', () => {
     const record = cloneRecord('with-layouts')
     const e = record.evals.find((ev) => !ev.compare) ?? record.evals[0]!
-    e.attempts = e.attempts.slice(0, 2).map((a, i) => ({
+    e.trials = e.trials.slice(0, 2).map((a, i) => ({
       ...a,
       assertions: [],
       answers: [
@@ -354,7 +354,7 @@ describe('buildRunReport', () => {
       ],
     }))
     // Clear choices/judgments so text path wins.
-    for (const a of e.attempts) {
+    for (const a of e.trials) {
       a.judgments = []
       a.observations = []
     }
@@ -369,11 +369,11 @@ describe('buildRunReport', () => {
     assert.match(runReportMarkdown(report), /Showing 1 of \d+ answers as representative/)
   })
 
-  test("a text headline's quote cites a real attempt, or is left out when it has none", () => {
+  test("a text headline's quote cites a real trial, or is left out when it has none", () => {
     const textReport = (unnumbered: boolean) => {
       const record = cloneRecord('with-layouts')
       const e = record.evals.find((ev) => !ev.compare) ?? record.evals[0]!
-      e.attempts = e.attempts.slice(0, 1).map((a) => ({
+      e.trials = e.trials.slice(0, 1).map((a) => ({
         ...a,
         seq: unnumbered ? null : a.seq,
         assertions: [],
@@ -387,8 +387,8 @@ describe('buildRunReport', () => {
     const cited = textReport(false).evals[0]!.headline.primary
     assert.equal(cited.kind, 'text')
     if (cited.kind === 'text') {
-      assert.match(cited.lead?.attempt.id ?? '', /^A\d+$/)
-      assert.notEqual(cited.lead?.attempt.href, '#')
+      assert.match(cited.lead?.trial.id ?? '', /^A\d+$/)
+      assert.notEqual(cited.lead?.trial.href, '#')
     }
     const report = textReport(true)
     const uncited = report.evals[0]!.headline.primary
@@ -437,9 +437,9 @@ describe('readableRunReport', () => {
       message: "This report's header.title is missing: it must be a string",
     })
     const mistyped = golden()
-    ;(mistyped.attempts as Array<Record<string, unknown>>)[0]!.id = 7
+    ;(mistyped.trials as Array<Record<string, unknown>>)[0]!.id = 7
     assert.throws(() => readableRunReport(mistyped, 'report.json'), {
-      message: "report.json's attempts[0].id must be a string (got 7)",
+      message: "report.json's trials[0].id must be a string (got 7)",
     })
     const empty = golden()
     empty.evals = []
@@ -470,7 +470,7 @@ describe('readableRunReport', () => {
     assert.equal(stored.reportVersion, 1)
     const read = readableRunReport(stored)
     assert.equal(read.reportVersion, REPORT_VERSION)
-    const kinds = new Set(read.attempts.flatMap((a) => a.grades ?? []).map((g) => g.kind))
+    const kinds = new Set(read.trials.flatMap((a) => a.grades ?? []).map((g) => g.kind))
     assert.deepEqual([...kinds].sort(), ['builtin', 'code', 'judge'])
   })
 
@@ -486,6 +486,24 @@ describe('readableRunReport', () => {
     assert.equal(read.reportVersion, REPORT_VERSION)
     const choose = read.evals.find((e) => e.name === 'choose')
     assert.equal(choose?.headline.primary.kind, 'measure')
+  })
+
+  test("reads a version 4 report's links to its trials as the anchors the renderer writes", () => {
+    const file = corpusEntries()
+      .find((e) => e.name === 'before-llm-calls')
+      ?.runs.at(-1)
+      ?.file.replace(/\.json$/, '/report.json')
+    assert.ok(file)
+    const text = readFileSync(file, 'utf8')
+    assert.match(text, /"href": "#attempt-/)
+    const read = JSON.stringify(readableRunReport(JSON.parse(text)))
+    assert.doesNotMatch(read, /#attempt-/)
+    const markdown = runReportMarkdown(readableRunReport(JSON.parse(text)))
+    const ids = [...read.matchAll(/"href":"#(trial-[^"]+)"/g)].map((m) => m[1])
+    assert.ok(ids.length > 0)
+    for (const id of ids) {
+      assert.ok(markdown.includes(`<a id="${id}">`), `${id} is an anchor in the markdown`)
+    }
   })
 
   test('refuses a report from a newer reeval', () => {
@@ -510,7 +528,7 @@ describe('RunReport links', () => {
       links: { base, record: `/runs/${record.runId}/record` },
     })
     assert.equal(hosted.provenance.record, `/runs/${record.runId}/record`)
-    const trajectories = hosted.attempts.flatMap((a) => a.links.trajectory ?? [])
+    const trajectories = hosted.trials.flatMap((a) => a.links.trajectory ?? [])
     assert.ok(trajectories.length > 0)
     for (const t of trajectories) assert.ok(t.startsWith(base), t)
     assert.doesNotMatch(JSON.stringify(hosted), /"\.\/[^"]+"/, 'no link is left relative to ./')

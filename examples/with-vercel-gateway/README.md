@@ -28,8 +28,8 @@ one profile you need.
 on Claude Code. Both went through Vercel:
 
 ```text
-eval                 agents  variants  runs  attempts  target         notes
-with-vercel-gateway  1       —         1     1         capability(1)  gateway: claude-code:claude-sonnet-5 → vercel
+eval                 agents  variants  trials  total  target         notes
+with-vercel-gateway  1       —         1       1      capability(1)  gateway: claude-code:claude-sonnet-5 → vercel
 ```
 
 ```text

@@ -1,0 +1,25 @@
+{
+  "kind": "reeval-remarks",
+  "schemaVersion": 1,
+  "runId": "20261127T123011Z_b479de5_cursor-agent_nmb3",
+  "createdAt": "2026-11-27T12:30:42.885Z",
+  "remarks": [
+    {
+      "id": "5f22c17bd8a40f0b4812cb5d8f5711b384926b23ba1edb40fa3b6ba1ea9e8ab4",
+      "evalId": "cases",
+      "kind": "too-few-tries",
+      "severity": "concern",
+      "text": "The with-house-greeting variant, paired over 2 cases: better, but a paired lift needs 6 cases that differ between the arms to hold. It runs 2.5× faster, but 2 cases can't confirm it; 5 is the least that can.",
+      "brief": "Too few cases differ between the arms for the paired lift to hold; add cases at evals/cases.eval.ts to confirm it. So far, with-house-greeting runs 2.5× faster.",
+      "evidence": [
+        "cases/fake+with-house-greeting+docker"
+      ],
+      "fix": {
+        "at": "source:evals/cases.eval.ts",
+        "edit": "add cases, so 6 or more can differ between the arms"
+      },
+      "firstSeenRun": "20261127T123011Z_b479de5_cursor-agent_nmb3",
+      "printed": true
+    }
+  ]
+}

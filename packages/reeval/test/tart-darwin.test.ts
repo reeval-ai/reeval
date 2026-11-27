@@ -69,7 +69,7 @@ describe('harness bootstraps on macOS', { skip }, () => {
         const markers = execFileSync('find', [home, '-maxdepth', '5', '-name', '.bootstrap-*.ok'], {
           encoding: 'utf8',
         })
-        assert.ok(markers.trim(), 'the bootstrap left its marker, so an attempt skips the install')
+        assert.ok(markers.trim(), 'the bootstrap left its marker, so a trial skips the install')
       } finally {
         await tartCli(['delete', baked.image])
       }

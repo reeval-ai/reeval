@@ -4,5 +4,5 @@ import { claudeCode, cursor } from 'reeval/agent'
 export default defineConfig({
   agents: [cursor({ model: 'composer-2.5' }), claudeCode({ model: 'claude-sonnet-5' })],
   judge: { model: 'google/gemini-3.8-flash' },
-  runs: 2,
+  trials: 2,
 })

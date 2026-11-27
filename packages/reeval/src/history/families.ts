@@ -1,7 +1,7 @@
 // An eval with `cases` as one suite: each cell's mean score over the cases and, with
-// `compare`, each variant's lift over the control paired by case. A case is the unit: at one
-// attempt a case and side that's a Bernoulli pair (Newcombe's paired interval, McNemar's exact
-// test); at several, a t interval over the cases' mean score differences, so attempts within a
+// `compare`, each variant's lift over the baseline paired by case. A case is the unit: at one
+// trial a case and side that's a Bernoulli pair (Newcombe's paired interval, McNemar's exact
+// test); at several, a t interval over the cases' mean score differences, so trials within a
 // case are never counted as independent.
 import {
   containsZero,
@@ -18,7 +18,6 @@ import {
 import type { ExcludedPair } from '../types.ts'
 import { EFFORT_ALPHA, type EffortSample, effortSample } from '../view/effort.ts'
 import type {
-  AttemptRecord,
   CellRecord,
   EvalEntry,
   FamilyEffort,
@@ -27,19 +26,20 @@ import type {
   FamilyLift,
   FamilyRate,
   FamilyRecord,
+  TrialRecord,
 } from './types.ts'
 
-const isCounted = (a: AttemptRecord) => a.outcome === 'pass' || a.outcome === 'fail'
+const isCounted = (a: TrialRecord) => a.outcome === 'pass' || a.outcome === 'fail'
 
-/** A counted attempt's score: its own, else 1 for a pass and 0 for a fail. */
-export const scoreOf = (a: Pick<AttemptRecord, 'outcome' | 'score'>) =>
+/** A counted trial's score: its own, else 1 for a pass and 0 for a fail. */
+export const scoreOf = (a: Pick<TrialRecord, 'outcome' | 'score'>) =>
   a.score ?? (a.outcome === 'pass' ? 1 : 0)
 
-/** A case's side: its passes, its counted attempts and the sum of their scores. */
+/** A case's side: its passes, its counted trials and the sum of their scores. */
 type Side = { pass: number; counted: number; score: number; samples: EffortSample[] }
 
 function sideOf(entry: EvalEntry, cell: string): Side | null {
-  const counted = entry.attempts.filter((a) => a.cell === cell && isCounted(a))
+  const counted = entry.trials.filter((a) => a.cell === cell && isCounted(a))
   if (!counted.length) return null
   return {
     pass: counted.filter((a) => a.outcome === 'pass').length,
@@ -91,7 +91,7 @@ export const pooledPassRate = (cell: Pick<CellRecord, 'gate'>): number | undefin
 
 function metric(pairs: Array<[number, number]>): FamilyEffortMetric {
   const differences = pairs.map(([v, c]) => v - c)
-  const control = median(pairs.map(([, c]) => c)) ?? 0
+  const baseline = median(pairs.map(([, c]) => c)) ?? 0
   const variant = median(pairs.map(([v]) => v)) ?? 0
   const test = signedRank(differences)
   const nonZero = differences.filter((d) => d !== 0).length
@@ -105,15 +105,15 @@ function metric(pairs: Array<[number, number]>): FamilyEffortMetric {
           : 'more'
   return {
     pairs: pairs.length,
-    ratio: control === 0 ? null : round3(variant / control),
+    ratio: baseline === 0 ? null : round3(variant / baseline),
     p: test === null ? null : round3(test.p),
     verdict,
   }
 }
 
 /**
- * Each case's variant and control medians of one effort measure, over the cases where every
- * counted attempt on both sides has it: the pairs a family's paired effort test ranks.
+ * Each case's variant and baseline medians of one effort measure, over the cases where every
+ * counted trial on both sides has it: the pairs a family's paired effort test ranks.
  */
 export const casePairs = (
   pairs: ReadonlyArray<readonly [readonly EffortSample[], readonly EffortSample[]]>,
@@ -139,13 +139,13 @@ function effortOf(sides: Array<[Side, Side]>): FamilyEffort {
 
 function liftOf(
   variant: string,
-  control: string,
+  baseline: string,
   cases: EvalEntry[],
   minLift: number | undefined,
 ): FamilyLift | null {
   const pairs = cases.flatMap((e): Array<[Side, Side]> => {
     const v = sideOf(e, variant)
-    const c = sideOf(e, control)
+    const c = sideOf(e, baseline)
     return v && c ? [[v, c]] : []
   })
   if (!pairs.length) return null
@@ -159,19 +159,19 @@ function liftOf(
   let discordant: FamilyLift['discordant']
   let decided: boolean
   if (single) {
-    const counts: PairCounts = { both: 0, variantOnly: 0, controlOnly: 0, neither: 0 }
+    const counts: PairCounts = { both: 0, variantOnly: 0, baselineOnly: 0, neither: 0 }
     for (const [v, c] of pairs) {
       if (v.pass && c.pass) counts.both++
       else if (v.pass) counts.variantOnly++
-      else if (c.pass) counts.controlOnly++
+      else if (c.pass) counts.baselineOnly++
       else counts.neither++
     }
     const paired = pairedLiftInterval(counts)
     points = paired.points
     range = interval(paired.low, paired.high, 'newcombe-paired', [-1, 1])
-    p = round3(mcnemar(counts.variantOnly, counts.controlOnly))
-    discordant = { variantOnly: counts.variantOnly, controlOnly: counts.controlOnly }
-    decided = counts.variantOnly + counts.controlOnly >= PAIRED_MIN
+    p = round3(mcnemar(counts.variantOnly, counts.baselineOnly))
+    discordant = { variantOnly: counts.variantOnly, baselineOnly: counts.baselineOnly }
+    decided = counts.variantOnly + counts.baselineOnly >= PAIRED_MIN
   } else {
     const differences = pairs.map(
       ([v, c]) => (v.score * c.counted - c.score * v.counted) / (v.counted * c.counted),
@@ -192,10 +192,10 @@ function liftOf(
         : 'noise'
   return {
     variant,
-    vs: control,
+    vs: baseline,
     pairs: pairs.length,
     variantRate: round3(mean(vRates)),
-    controlRate: round3(mean(cRates)),
+    baselineRate: round3(mean(cRates)),
     ...(discordant ? { discordant } : {}),
     points: round3(points),
     interval: range,
@@ -240,16 +240,16 @@ export function familiesOf(
       const holder = cases.find((e) => e.cells.some((c) => c.key === key && c.role === 'variant'))
       const variant = holder?.cells.find((c) => c.key === key)
       if (!holder || !variant) continue
-      const control = holder.cells.find(
+      const baseline = holder.cells.find(
         (c) =>
-          c.role === 'control' && c.harness === variant.harness && c.sandbox === variant.sandbox,
+          c.role === 'baseline' && c.harness === variant.harness && c.sandbox === variant.sandbox,
       )
-      if (!control) continue
+      if (!baseline) continue
       const minLift = cases
         .flatMap((e) => e.cells.filter((c) => c.key === key))
         .map(minLiftOf)
         .find((m) => m !== undefined)
-      const lift = liftOf(key, control.key, cases, minLift)
+      const lift = liftOf(key, baseline.key, cases, minLift)
       if (lift) lifts.push(lift)
     }
     return {
@@ -258,7 +258,7 @@ export function familiesOf(
       group: first.group,
       name: family.name,
       cases: family.cases,
-      ran: cases.filter((e) => e.attempts.some((a) => a.outcome !== 'skipped')).length,
+      ran: cases.filter((e) => e.trials.some((a) => a.outcome !== 'skipped')).length,
       rates,
       lifts,
       ...(excluded?.length ? { excluded } : {}),

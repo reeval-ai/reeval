@@ -1065,7 +1065,7 @@ const ANALYZE = `analysis: {
         why: [],
         anomalies: [],
         actions: [],
-        confidence: { overall: 'low', why: 'one attempt' },
+        confidence: { overall: 'low', why: 'one trial' },
       }),
     }),
   },`

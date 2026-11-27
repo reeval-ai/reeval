@@ -16,7 +16,7 @@ export type { DockerOptions } from './contract/docker.ts'
 export type { TartOptions } from './contract/tart.ts'
 
 /**
- * One local Docker container per attempt. By default it's the image `reeval image build` makes. One
+ * One local Docker container per trial. By default it's the image `reeval image build` makes. One
  * base at most:
  *
  * - `image`: another image that already has the harness baked in, used as is.
@@ -78,7 +78,7 @@ function containerSandbox(
 }
 
 /**
- * A macOS VM on this Apple Silicon Mac, run by [Tart](https://tart.run). Each attempt clones
+ * A macOS VM on this Apple Silicon Mac, run by [Tart](https://tart.run). Each trial clones
  * `image` (an OCI image, which `reeval image build` pulls, or a local VM), boots it headless,
  * works in it over `tart exec`, and deletes it. A run refuses an image Tart doesn't have. `ssh` reaches an image without the Tart Guest Agent instead.
  * At most two run at once (`maxConcurrent`), as macOS allows.

@@ -1,4 +1,4 @@
-// The run's trace, spans.jsonl: a fake run writes one with the run, its attempts and their phases
+// The run's trace, spans.jsonl: a fake run writes one with the run, its trials and their phases
 // under it, the record names it, recording keeps it with the run's evidence, and with
 // REEVAL_OTEL_EXPORTER_OTLP_ENDPOINT set the run sends its spans, log records and metrics to a
 // collector during the run, while OTEL_* sends only the agents' spans.
@@ -29,7 +29,7 @@ const harness = `{ files: { 'hello.txt': 'hi\\n' }, text: 'done' }`
 async function fakeProject(name: string) {
   const p = await project(name, {
     '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
-    'reeval.config.ts': fakeConfig({ harness, extra: 'runs: 2,' }),
+    'reeval.config.ts': fakeConfig({ harness, extra: 'trials: 2,' }),
     'evals/a.eval.ts': evalFile,
   })
   const git = (...args: string[]) => execFileSync('git', args, { cwd: p.dir, stdio: 'ignore' })
@@ -105,12 +105,12 @@ describe('run spans', () => {
     assert.equal(root.attributes['reeval.run.id'], run.runId)
     for (const s of spans) assert.equal(s.traceId, traceIdOf(run.runId))
 
-    const attempts = byName(spans, 'attempt')
+    const trials = byName(spans, 'trial')
     assert.deepEqual(
-      attempts.map((a) => a.attributes['reeval.attempt.key']).sort(),
-      run.evals.flatMap((e) => e.attempts.map((a) => a.key)).sort(),
+      trials.map((a) => a.attributes['reeval.trial.key']).sort(),
+      run.evals.flatMap((e) => e.trials.map((a) => a.key)).sort(),
     )
-    for (const a of attempts) {
+    for (const a of trials) {
       assert.equal(a.parentSpanId, root.spanId)
       assert.equal(a.attributes['reeval.outcome'], 'pass')
       assert.ok(a.startMs <= a.endMs)
@@ -158,8 +158,8 @@ describe('run spans', () => {
     const logs: Json[] = (collector.of('/v1/logs') as Json[]).flatMap(
       (b) => b.resourceLogs[0]?.scopeLogs[0]?.logRecords ?? [],
     )
-    const attempts = logs.filter((l) => l.body.stringValue.startsWith('passed a'))
-    assert.equal(attempts.length, 2, JSON.stringify(logs))
+    const trials = logs.filter((l) => l.body.stringValue.startsWith('passed a'))
+    assert.equal(trials.length, 2, JSON.stringify(logs))
     const root = written.find((s) => s.name === 'reeval.run')
     for (const l of logs) {
       assert.equal(l.traceId, traceIdOf(run.runId))
@@ -175,7 +175,7 @@ describe('run spans', () => {
     )
   })
 
-  test("with OTEL_EXPORTER_OTLP_ENDPOINT set, the run sends each attempt's agent spans and nothing of its own", async (t) => {
+  test("with OTEL_EXPORTER_OTLP_ENDPOINT set, the run sends each trial's agent spans and nothing of its own", async (t) => {
     const collector = await startCollector(t)
     const p = await fakeProject('spans-otlp-agents')
     const r = await runCli(p.dir, ['run'], {
@@ -193,16 +193,16 @@ describe('run spans', () => {
     )
     const roots = sent.filter((s) => s.name === 'invoke_agent fake')
     assert.equal(roots.length, 2, JSON.stringify(sent.map((s) => s.name)))
-    assert.ok(!sent.some((s) => s.name === 'reeval.run' || s.name === 'attempt'))
-    const attempts = byName(parseSpans(read('spans.jsonl')), 'attempt').map((a) => a.spanId)
+    assert.ok(!sent.some((s) => s.name === 'reeval.run' || s.name === 'trial'))
+    const trials = byName(parseSpans(read('spans.jsonl')), 'trial').map((a) => a.spanId)
     for (const root of roots) {
       assert.equal(root.links[0]?.traceId, traceIdOf(run.runId))
-      assert.ok(attempts.includes(root.links[0]?.spanId), 'linked to its attempt in the run trace')
+      assert.ok(trials.includes(root.links[0]?.spanId), 'linked to its trial in the run trace')
       assert.ok(sent.some((s) => s.parentSpanId === root.spanId && s.name === 'turn 1'))
     }
   })
 
-  test("each turn's spans go as it ends, and a worker that dies mid-attempt leaves them under an error agent span", async (t) => {
+  test("each turn's spans go as it ends, and a worker that dies mid-trial leaves them under an error agent span", async (t) => {
     const collector = await startCollector(t)
     const p = await project('spans-otlp-crash', {
       '.gitignore': '.reeval/\nnode_modules/\nsandboxes/\n',
@@ -234,7 +234,7 @@ export default defineEval({
     assert.equal(root.status.code, 2)
     assert.equal(
       root.status.message,
-      'The engine worker exited before the attempt ended (signal SIGKILL)',
+      'The engine worker exited before the trial ended (signal SIGKILL)',
     )
   })
 
@@ -350,7 +350,7 @@ export default defineEval({
   test('spans go out in batches as they end, not only when the run does', async (t) => {
     const collector = await startCollector(t)
     const p = await project('spans-otlp-live', {
-      'reeval.config.ts': fakeConfig({ harness, extra: 'runs: 2, concurrency: 1,' }),
+      'reeval.config.ts': fakeConfig({ harness, extra: 'trials: 2, concurrency: 1,' }),
       'evals/a.eval.ts': `import assert from 'node:assert/strict'
 import { defineEval } from 'reeval'
 export default defineEval({
@@ -374,9 +374,9 @@ export default defineEval({
       (b.resourceSpans[0]?.scopeSpans[0]?.spans ?? []).map((s) => s.name),
     )
     assert.ok(batches.length >= 2, JSON.stringify(batches))
-    const first = batches.findIndex((names) => names.includes('attempt'))
+    const first = batches.findIndex((names) => names.includes('trial'))
     const root = batches.findIndex((names) => names.includes('reeval.run'))
-    assert.ok(first >= 0 && first < root, 'an attempt went out before the run ended')
+    assert.ok(first >= 0 && first < root, 'a trial went out before the run ended')
   })
 
   test('protobuf is the default protocol', async (t) => {
@@ -390,7 +390,7 @@ export default defineEval({
     for (const sent of collector.requests) assert.equal(sent.type, 'application/x-protobuf')
   })
 
-  test('a failed attempt is an error span with its outcome, and the run goes on', async () => {
+  test('a failed trial is an error span with its outcome, and the run goes on', async () => {
     const p = await project('spans-fail', {
       'reeval.config.ts': fakeConfig({ harness }),
       'evals/fails.eval.ts': `import assert from 'node:assert/strict'
@@ -415,10 +415,10 @@ export default defineEval({
     const { run, read } = readRun(p.dir)
     const text = read('spans.jsonl')
     assert.doesNotMatch(text, /ghp_a1B2/, 'errors in the trace are redacted')
-    const attempts = byName(parseSpans(text), 'attempt')
+    const trials = byName(parseSpans(text), 'trial')
     const of = (id: string) => {
-      const key = run.evals.find((e) => e.id === id)?.attempts[0]?.key
-      return attempts.find((a) => a.attributes['reeval.attempt.key'] === key)
+      const key = run.evals.find((e) => e.id === id)?.trials[0]?.key
+      return trials.find((a) => a.attributes['reeval.trial.key'] === key)
     }
     assert.equal(of('fails')?.attributes['reeval.outcome'], 'fail')
     assert.equal(of('throws')?.attributes['reeval.outcome'], 'fail')
@@ -507,7 +507,7 @@ describe('RunTrace', () => {
     const trace = new RunTrace({ dir, runId: 'r', onSpan: (s) => handed.push(s) })
     trace.add({
       spanId: '1'.padStart(16, '0'),
-      name: 'attempt',
+      name: 'trial',
       startMs: 1,
       endMs: 2,
       attributes: {},
@@ -517,7 +517,7 @@ describe('RunTrace', () => {
     trace.close()
     assert.deepEqual(
       handed.map((s) => s.name),
-      ['attempt', 'reeval.run'],
+      ['trial', 'reeval.run'],
     )
     const text = readFileSync(join(dir, 'spans.jsonl'), 'utf8')
     assert.deepEqual(parseSpans(text), handed)

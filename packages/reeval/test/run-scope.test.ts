@@ -27,7 +27,7 @@ function base(): Scoped {
     profile: {
       name: 'smoke',
       reason: '--profile',
-      defaults: { harness: ['a', 'b'], runs: 2 },
+      defaults: { harness: ['a', 'b'], trials: 2 },
       limit: { harness: ['a', 'b'], traits: { os: ['linux', 'mac'] } },
     },
     invocation: { profile: 'smoke', filters: [], tags: [] },
@@ -93,13 +93,13 @@ describe('runScope', () => {
     )
   })
 
-  test('a different profile, --runs, filter, tag, trait or judge model changes the key', () => {
+  test('a different profile, --trials, filter, tag, trait or judge model changes the key', () => {
     const k = key(base())
     const changes: Array<[string, (r: Scoped) => void]> = [
       ['profile name', (r) => (r.profile.name = 'full')],
-      ['profile defaults', (r) => (r.profile.defaults.runs = 5)],
-      ['profile limit', (r) => (r.profile.limit.runs = 1)],
-      ['--runs', (r) => (r.invocation.runs = 1)],
+      ['profile defaults', (r) => (r.profile.defaults.trials = 5)],
+      ['profile limit', (r) => (r.profile.limit.trials = 1)],
+      ['--trials', (r) => (r.invocation.trials = 1)],
       ['filter', (r) => (r.invocation.filters = ['greet'])],
       ['tag', (r) => (r.invocation.tags = ['smoke'])],
       ['trait', (r) => (r.invocation.traits = ['os=linux'])],
@@ -107,7 +107,7 @@ describe('runScope', () => {
       ['threshold', (r) => (r.config.threshold = 0.5)],
       ['timeout', (r) => (r.config.timeoutMs = 60_000)],
       ['profile timeout', (r) => (r.profile.defaults.timeout = '10m')],
-      ['config runs', (r) => (r.config.runs = 3)],
+      ['config trials', (r) => (r.config.trials = 3)],
       ['bestOf', (r) => (r.config.bestOf = 3)],
       ['environment', (r) => (r.config.environment = 'skill')],
       ['fingerprint scope', (r) => r.stack.fingerprintScope.pop()],
@@ -168,7 +168,7 @@ describe('runScope', () => {
       ['filter', (r) => (r.invocation.filters = ['greet'])],
       ['tag', (r) => (r.invocation.tags = ['smoke'])],
       ['trait', (r) => (r.invocation.traits = ['os=linux'])],
-      ['--runs', (r) => (r.invocation.runs = 1)],
+      ['--trials', (r) => (r.invocation.trials = 1)],
     ]
     for (const [what, edit] of triggers) assert.equal(runScope(edited(edit)).subset, true, what)
     assert.equal(runScope(edited((r) => (r.invocation.traits = []))).subset, false, 'traits: []')

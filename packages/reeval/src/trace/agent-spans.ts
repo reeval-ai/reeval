@@ -1,17 +1,17 @@
-// One attempt as the agent export's trace, from its finished record: what the agent did, in the
+// One trial as the agent export's trace, from its finished record: what the agent did, in the
 // OpenTelemetry GenAI conventions with OpenInference's attributes beside them, for LLM tracing
-// tools. One trace per attempt, with the run as its session:
+// tools. One trace per trial, with the run as its session:
 //
-//   invoke_agent <harness>    the attempt (AGENT), with a gen_ai.evaluation.result event per check
-//                             and per judgment, and a link to the attempt's span in the run's trace
+//   invoke_agent <harness>    the trial (AGENT), with a gen_ai.evaluation.result event per check
+//                             and per judgment, and a link to the trial's span in the run's trace
 //     turn <n>                each turn (CHAIN), with its errors and retries as events
 //       chat <model>          each model call the egress gateway saw (LLM)
 //       execute_tool <tool>   each tool call (TOOL); a subagent's calls under the call that spawned it,
 //                             which carries the subagent's own tokens
 //
 // No content: prompts, agent text, reasoning and tool input and output stay out. Ids come from the
-// run, the attempt, its start and what each span is, so a turn's spans sent as it ends and the rest
-// sent when the attempt ends make one trace, and sending one record twice sends the same spans.
+// run, the trial, its start and what each span is, so a turn's spans sent as it ends and the rest
+// sent when the trial ends make one trace, and sending one record twice sends the same spans.
 import type { SubagentRun, SubagentUsage, TokenUsage, TrajectoryEvent } from '@reeval/agents'
 import { redactSecrets } from '../redact.ts'
 import { sha256Hex } from '../sha256.ts'
@@ -25,7 +25,7 @@ export type AgentSpan = RunSpan & {
   events?: Array<{ name: string; timeMs: number; attributes: SpanAttributes }>
 }
 
-export type AgentAttempt = {
+export type AgentTrial = {
   runId: string
   evalId: string
   key: string
@@ -33,8 +33,8 @@ export type AgentAttempt = {
   n: number
   harness: HarnessDescriptor
   record: EvalRecord
-  /** The attempt's span in the run's trace. */
-  attemptSpanId?: string
+  /** The trial's span in the run's trace. */
+  trialSpanId?: string
 }
 
 const message = (text: string) => clip(redactSecrets(text.split('\n')[0] ?? ''), 1000)
@@ -87,8 +87,8 @@ function spawnAttributes(runs: SubagentRun[]): SpanAttributes {
   }
 }
 
-/** The attempt's `subagentUsage`: `unknown` where any turn's is, else `missing` where any is. */
-function attemptSubagentUsage(turns: Array<{ subagentUsage?: SubagentUsage }>) {
+/** The trial's `subagentUsage`: `unknown` where any turn's is, else `missing` where any is. */
+function trialSubagentUsage(turns: Array<{ subagentUsage?: SubagentUsage }>) {
   const all = turns.flatMap((t) => (t.subagentUsage ? [t.subagentUsage] : []))
   return all.find((u) => u === 'unknown') ?? all.find((u) => u === 'missing') ?? all[0]
 }
@@ -99,8 +99,8 @@ const TOOL_NAME: Partial<Record<TrajectoryEvent['type'], string>> = {
   'web-fetch': 'web-fetch',
 }
 
-/** The attempt's trace id, and each span's id from what it is, so a span sent early and the rest sent later agree. */
-function idsOf(o: AgentAttempt) {
+/** The trial's trace id, and each span's id from what it is, so a span sent early and the rest sent later agree. */
+function idsOf(o: AgentTrial) {
   const { record } = o
   const started = record.startedAt ?? record.turns[0]?.startedAt ?? ''
   const traceId = sha256Hex(`reeval-agent:${o.runId}:${o.key}:${started}`).slice(0, 32)
@@ -108,11 +108,11 @@ function idsOf(o: AgentAttempt) {
   return { started, traceId, spanId, rootId: spanId('root') }
 }
 
-const commonOf = (o: AgentAttempt) => ({ 'session.id': o.runId, 'reeval.run.id': o.runId })
+const commonOf = (o: AgentTrial) => ({ 'session.id': o.runId, 'reeval.run.id': o.runId })
 
 type Parts = { turn: boolean; tools: boolean; chat: boolean }
 
-function turnSpans(o: AgentAttempt, i: number, parts: Parts): AgentSpan[] {
+function turnSpans(o: AgentTrial, i: number, parts: Parts): AgentSpan[] {
   const turn = o.record.turns[i]
   if (!turn) return []
   const { traceId, spanId, rootId } = idsOf(o)
@@ -244,16 +244,16 @@ function turnSpans(o: AgentAttempt, i: number, parts: Parts): AgentSpan[] {
 
 /**
  * Turn `i`'s span and its tool calls' as soon as the turn ends, or none when a tool call's
- * duration is only inferred at the attempt's end, from model calls the gateway may still be timing.
+ * duration is only inferred at the trial's end, from model calls the gateway may still be timing.
  */
-export function finishedTurnSpans(o: AgentAttempt, i: number): AgentSpan[] {
+export function finishedTurnSpans(o: AgentTrial, i: number): AgentSpan[] {
   const turn = o.record.turns[i]
   if (!turn || turn.trajectory.some((e) => 'toolCallId' in e && e.durationMs === null)) return []
   return turnSpans(o, i, { turn: true, tools: true, chat: false })
 }
 
-/** The agent span as the attempt starts, which the run ends as an error if the attempt's worker dies first. */
-export function openAgentSpan(o: AgentAttempt): AgentSpan {
+/** The agent span as the trial starts, which the run ends as an error if the trial's worker dies first. */
+export function openAgentSpan(o: AgentTrial): AgentSpan {
   const { harness } = o
   const { started, traceId, rootId } = idsOf(o)
   const startMs = started ? Date.parse(started) : Date.now()
@@ -274,18 +274,18 @@ export function openAgentSpan(o: AgentAttempt): AgentSpan {
       ...(requested && { 'gen_ai.request.model': requested }),
       ...(effort && { 'gen_ai.request.reasoning.level': effort }),
       'reeval.eval.id': o.evalId,
-      'reeval.attempt.key': o.key,
+      'reeval.trial.key': o.key,
       'reeval.cell': o.cell,
-      'reeval.attempt.n': o.n,
+      'reeval.trial.n': o.n,
     },
-    ...(o.attemptSpanId && {
-      links: [{ traceId: traceIdOf(o.runId), spanId: o.attemptSpanId }],
+    ...(o.trialSpanId && {
+      links: [{ traceId: traceIdOf(o.runId), spanId: o.trialSpanId }],
     }),
   }
 }
 
-/** The attempt's spans from its finished record, but those of the turns in `sent`, whose model calls alone are left. */
-export function agentSpans(o: AgentAttempt, sent: ReadonlySet<number> = new Set()): AgentSpan[] {
+/** The trial's spans from its finished record, but those of the turns in `sent`, whose model calls alone are left. */
+export function agentSpans(o: AgentTrial, sent: ReadonlySet<number> = new Set()): AgentSpan[] {
   const { record } = o
   const all = record.turns.flatMap((_, i) =>
     turnSpans(o, i, { turn: true, tools: true, chat: true }),
@@ -337,7 +337,7 @@ export function agentSpans(o: AgentAttempt, sent: ReadonlySet<number> = new Set(
   const served = record.servedModels?.[0] ?? record.turns.findLast((t) => t.model)?.model
   const costs = record.turns.flatMap((t) => (t.cost ? [t.cost.usd] : []))
   const failed = record.outcome === 'fail' || record.outcome === 'infra_error'
-  const subagentUsage = attemptSubagentUsage(record.turns)
+  const subagentUsage = trialSubagentUsage(record.turns)
   spans.push({
     ...open,
     endMs,

@@ -8,7 +8,7 @@ const medium = defineEnvironment('medium', {
   egress: 'allow-all',
 })
 const shared = defineEnvironment('shared', {
-  sandbox: cloud({ size: 'large', reuse: true, attemptsPerMachine: 2, maxConcurrent: 4 }),
+  sandbox: cloud({ size: 'large', reuse: true, trialsPerMachine: 2, maxConcurrent: 4 }),
   egress: 'allow-all',
 })
 const python = defineEnvironment('python', {

@@ -6,17 +6,17 @@ import { base, skilled, terse } from '../../../plan/compare/evals/envs.ts'
 group(
   'asked by the group',
   {
-    compare: { control: base, variants: [skilled] },
+    compare: { baseline: base, variants: [skilled] },
     questions: [
       { question: 'Which handles state more cleanly?', across: 'environment', diff: true },
     ],
   },
   () => {
     evaluate('inherits the question', async () => {})
-    evaluate('also inherits it', { runs: 2, target: regression(0.5) }, async () => {})
+    evaluate('also inherits it', { trials: 2, target: regression(0.5) }, async () => {})
     evaluate(
       'replaces the compare',
-      { compare: { control: base, variants: [terse] } },
+      { compare: { baseline: base, variants: [terse] } },
       async () => {},
     )
     evaluate(
@@ -32,7 +32,7 @@ group(
   "pairs its evals' compares",
   { questions: [{ question: 'Which is shorter?', across: 'environment', diff: true }] },
   () => {
-    evaluate('compares', { compare: { control: base, variants: [skilled] } }, async () => {})
+    evaluate('compares', { compare: { baseline: base, variants: [skilled] } }, async () => {})
     evaluate.skip('skipped without a compare', async () => {})
   },
 )

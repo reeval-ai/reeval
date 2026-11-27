@@ -69,12 +69,12 @@ export function renderPlan(
     plan.profile ? `profile ${plan.profile.name} (${plan.profile.reason})` : 'no profile',
     `${totals.evals} evals${totals.skipped ? ` (${totals.skipped} skipped)` : ''}`,
     `${totals.cells} cells`,
-    totals.fewest === totals.attempts
-      ? `${totals.attempts} attempts`
-      : `${totals.fewest}–${totals.attempts} attempts`,
+    totals.fewest === totals.trials
+      ? `${totals.trials} trials`
+      : `${totals.fewest}–${totals.trials} trials`,
   ]
   const caps = [
-    budget.attempts === null ? '' : `attempts ${budget.attempts}`,
+    budget.trials === null ? '' : `trials ${budget.trials}`,
     budget.duration === null ? '' : `duration ${budget.duration}`,
   ].filter(Boolean)
   if (caps.length) head.push(`budget ${caps.join(', ')} ${budget.fits ? '✓' : '✗'}`)
@@ -96,7 +96,7 @@ export function renderPlan(
       rows.push([
         i === 0 ? `${e.id}${tags}` : '',
         c.key,
-        c.role === 'variant' ? `variant ${c.variant}` : 'control',
+        c.role === 'variant' ? `variant ${c.variant}` : 'baseline',
         c.gate === 'none'
           ? 'ungated'
           : c.gate === 'all'
@@ -104,7 +104,7 @@ export function renderPlan(
             : c.gate === 'any'
               ? 'gated any'
               : `gated passRate ${c.gate.passRate}`,
-        c.bestOf === undefined ? `×${c.runs}` : `best of ${c.bestOf}`,
+        c.bestOf === undefined ? `×${c.trials}` : `best of ${c.bestOf}`,
         [
           i === 0 && target !== 'capability(1)' ? `target ${target}` : '',
           c.effort && !c.key.includes('[effort=') ? `effort ${c.effort}` : '',
@@ -137,7 +137,7 @@ export function renderPlan(
         `case ${k.key}`,
         k.skip
           ? `skipped: ${k.skip}`
-          : k.cells.map((c) => `${c.key} ×${c.runs}`).join(', ') || 'no cells',
+          : k.cells.map((c) => `${c.key} ×${c.trials}`).join(', ') || 'no cells',
         k.whereExcluded?.length
           ? `where excludes ${k.whereExcluded.map((x) => x.environment + (x.harness ? `/${x.harness}` : '')).join(', ')}`
           : '',
@@ -152,7 +152,7 @@ export function renderPlan(
       const n = (count: number, one: string) => `${count} ${count === 1 ? one : `${one}s`}`
       const asks = q.across
         ? `${q.across.join(', ')} · ${n(q.pairs ?? 0, 'pair')}`
-        : `each attempt · ${n(q.attempts ?? 0, 'attempt')}${q.choices ? ` · ${q.choices.join(' / ')}` : ''}`
+        : `each trial · ${n(q.trials ?? 0, 'trial')}${q.choices ? ` · ${q.choices.join(' / ')}` : ''}`
       rows.push([
         '',
         `question: ${q.question} · shows ${q.shows.join(', ')} · ${asks} · ${q.model ?? 'no language model'}`,
@@ -218,7 +218,7 @@ function costLines(plan: PlanDocument): string[] {
   const unpriced = cost.unpriced.map((u) => `${u.model} ${range(u.tokens)}`).join(', ')
   return [
     costLine(cost) ?? 'cost  (no line)',
-    `${prices} · unpriced ${unpriced || '—'} · past ${cost.pastRuns} runs, ${cost.pastAttempts} attempts`,
+    `${prices} · unpriced ${unpriced || '—'} · past ${cost.pastRuns} runs, ${cost.pastTrials} trials`,
     ...table(
       cost.cells.map((c) => [
         `  ${c.eval}`,
@@ -226,7 +226,7 @@ function costLines(plan: PlanDocument): string[] {
         c.model ?? 'fake',
         `judge ${c.judgeModel ?? '—'}`,
         `${c.basis}${c.basis === 'history' ? ` ×${c.samples}` : ''}`,
-        `×${c.attempts}`,
+        `×${c.trials}`,
         `agent ${part(c.agent)}`,
         `judge ${part(c.judge)}`,
       ]),

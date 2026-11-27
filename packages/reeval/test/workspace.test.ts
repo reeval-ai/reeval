@@ -1,6 +1,6 @@
-// Git workspaces through the CLI: the repository is fetched on the host before any attempt, its
+// Git workspaces through the CLI: the repository is fetched on the host before any trial, its
 // ref resolved once and its tree cached by hash; a bad URL, ref, path or token fails only the
-// attempts that use it (exit 3), as an eval's sandbox image does; and the agent's diff starts
+// trials that use it (exit 3), as an eval's sandbox image does; and the agent's diff starts
 // from the repository.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
@@ -54,29 +54,29 @@ export default defineEval({ async task() {} })
 
 /**
  * A workspace that can't be prepared, reported once before the run as a sandbox's is: only the
- * attempts that use it fail, as infra errors (exit 3), and the other eval still passes.
+ * trials that use it fail, as infra errors (exit 3), and the other eval still passes.
  */
-async function failsOnlyItsAttempts(env: string, message: RegExp, hostEnv: NodeJS.ProcessEnv = {}) {
+async function failsOnlyItsTrials(env: string, message: RegExp, hostEnv: NodeJS.ProcessEnv = {}) {
   const p = await withEval(env)
   const r = await runCli(p.dir, ['run'], { env: hostEnv })
   const output = r.stdout + r.stderr
   assert.equal(r.code, 3, output)
   assert.match(
     output,
-    /✗ {2}workspace .+ failed to prepare \(set by environment app; only its attempts fail\)/,
+    /✗ {2}workspace .+ failed to prepare \(set by environment app; only its trials fail\)/,
   )
   assert.match(output, message)
   const { run } = readRun(p.dir)
   const outcome = (name: string) =>
-    run.evals.find((e) => e.name === name)?.attempts.map((a) => a.outcome)
+    run.evals.find((e) => e.name === name)?.trials.map((a) => a.outcome)
   assert.deepEqual(outcome('works-on-the-repo'), ['infra_error'])
   assert.deepEqual(outcome('needs-no-workspace'), ['pass'])
-  const error = run.evals.find((e) => e.name === 'works-on-the-repo')?.attempts[0]?.error
+  const error = run.evals.find((e) => e.name === 'works-on-the-repo')?.trials[0]?.error
   assert.equal(error?.prepare?.stage, 'workspace')
   assert.match(error?.message ?? '', message)
   assert.match(
     error?.message ?? '',
-    /set by environment app, failed to prepare before the run started; every attempt that needs it fails with this\)$/,
+    /set by environment app, failed to prepare before the run started; every trial that needs it fails with this\)$/,
   )
   return { p, r, run }
 }
@@ -84,12 +84,12 @@ async function failsOnlyItsAttempts(env: string, message: RegExp, hostEnv: NodeJ
 // Sequential: each case starts a `reeval run` that fetches git. Concurrent cases on a
 // 2-vCPU Windows runner starve each other and trip the CLI idle detector.
 describe('git workspaces', { concurrency: false }, () => {
-  test('a ref the repository lacks fails only the attempts that use it', async () => {
-    const { run } = await failsOnlyItsAttempts(
+  test('a ref the repository lacks fails only the trials that use it', async () => {
+    const { run } = await failsOnlyItsTrials(
       `workspace: git('../repo', { ref: 'v9' })`,
       /Workspace git\("\.\.\/repo#v9"\): the repository has no ref "v9" \(a branch, tag or commit SHA\)\./,
     )
-    const prepare = run.evals.flatMap((e) => e.attempts).find((a) => a.error)?.error?.prepare
+    const prepare = run.evals.flatMap((e) => e.trials).find((a) => a.error)?.error?.prepare
     assert.deepEqual(
       [prepare?.class, prepare?.ref, prepare?.setBy],
       ['config', '../repo#v9', ['environment app']],
@@ -97,7 +97,7 @@ describe('git workspaces', { concurrency: false }, () => {
   })
 
   test('an abbreviated SHA gets a hint', async () => {
-    await failsOnlyItsAttempts(
+    await failsOnlyItsTrials(
       `workspace: git('../repo', { ref: 'abc1234' })`,
       /no ref "abc1234".*Give a commit as its full 40-character SHA\./,
     )
@@ -131,7 +131,7 @@ describe('git workspaces', { concurrency: false }, () => {
     assert.doesNotMatch(full.stdout + full.stderr, /shallow clone/)
   })
 
-  test('compare arms on different refs of the same tree get a warning', async () => {
+  test('compare environments on different refs of the same tree get a warning', async () => {
     const p = await project('workspace-same-tree', {
       'reeval.config.ts': fakeConfig(),
       'evals/lift.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
@@ -144,7 +144,7 @@ const head = base.extendEnvironment('head', ({ git }) => ({
   workspace: git('../repo', { ref: process.env.HEAD_REF }),
 }))
 export default defineEval({
-  compare: { control: base, variants: [head] },
+  compare: { baseline: base, variants: [head] },
   async task(c) {
   await c.exec('true')
   },
@@ -158,7 +158,7 @@ export default defineEval({
     assert.match(
       same.stdout,
       new RegExp(
-        `warning: compare in lift: head and base start from the same tree \\([0-9a-f]{12}\\): git\\("\\.\\./repo#v1"\\) and git\\("\\.\\./repo#${v1}"\\) resolve to it, so the lift can't show a change to the workspace\\. Check the refs the arms read\\.`,
+        `warning: compare in lift: head and base start from the same tree \\([0-9a-f]{12}\\): git\\("\\.\\./repo#v1"\\) and git\\("\\.\\./repo#${v1}"\\) resolve to it, so the lift can't show a change to the workspace\\. Check the refs the environments read\\.`,
       ),
     )
     // Canary: a head that changed the tree gets no warning.
@@ -170,28 +170,28 @@ export default defineEval({
   })
 
   test('a missing subdirectory names what is there', async () => {
-    await failsOnlyItsAttempts(
+    await failsOnlyItsTrials(
       `workspace: git('../repo', { ref: 'v1', path: 'apps/web' })`,
       /Workspace git\("\.\.\/repo#v1:apps\/web"\) at v1 \(commit [0-9a-f]{7}\) has no directory "apps\/web"; its top level has: README\.md, app\//,
     )
   })
 
   test('a file as the path is refused', async () => {
-    await failsOnlyItsAttempts(
+    await failsOnlyItsTrials(
       `workspace: git('../repo', { ref: 'v1', path: 'README.md' })`,
       /"README\.md" is a file, not a directory/,
     )
   })
 
   test('a path that is not a repository says to check the URL', async () => {
-    await failsOnlyItsAttempts(
+    await failsOnlyItsTrials(
       `workspace: git('../nowhere', { ref: 'v1' })`,
       /Workspace git\("\.\.\/nowhere#v1"\): couldn't fetch it \(.+\)\. Check the URL; a private repository also needs this machine's git credentials\./,
     )
   })
 
-  test('a token variable that is not set fails only its attempts, naming the variable', async () => {
-    await failsOnlyItsAttempts(
+  test('a token variable that is not set fails only its trials, naming the variable', async () => {
+    await failsOnlyItsTrials(
       `workspace: git('https://git.example.invalid/acme/app', { ref: 'v1', token: 'REEVAL_TEST_UNSET_TOKEN' })`,
       /Workspace git\("https:\/\/git\.example\.invalid\/acme\/app#v1"\): its token variable REEVAL_TEST_UNSET_TOKEN isn't set\. Set it in the environment or \.env\.local\./,
     )
@@ -242,7 +242,7 @@ export default defineEval({
     }
   })
 
-  test('init: true gives the workspace a .git that the diff leaves out, and the same HEAD in every attempt', async () => {
+  test('init: true gives the workspace a .git that the diff leaves out, and the same HEAD in every trial', async () => {
     const p = await project('workspace-init', {
       'reeval.config.ts': fakeConfig({
         harness: `{ script: [[{ exec: 'echo x > NOTES.md && git add -A && git -c user.name=a -c user.email=a@b commit -qm notes' }]] }`,
@@ -257,7 +257,7 @@ const env = defineEnvironment('app', ({ git }) => ({
 }))
 export default defineEval({
   environment: env,
-  runs: 2,
+  trials: 2,
   async task(c) {
   assert.equal((await c.exec('git status --porcelain')).stdout, '?? app/extra.js\\n')
   assert.equal((await c.exec('git rev-parse HEAD')).stdout.trim(), process.env.EXPECTED_HEAD)
@@ -297,7 +297,7 @@ export default defineEval({
     const { run } = readRun(p.dir)
     assert.equal(run.environments.find((e) => e.workspace)?.workspace?.init, true)
     assert.deepEqual(
-      run.evals[0]?.attempts.map((a) => a.outcome),
+      run.evals[0]?.trials.map((a) => a.outcome),
       ['pass', 'pass'],
     )
   })

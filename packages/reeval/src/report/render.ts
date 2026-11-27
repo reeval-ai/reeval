@@ -42,7 +42,7 @@ export function runLine(b: ReportBundle): string | null {
   if (!b.run) return b.runError ? `none (${b.runError})` : null
   const s = b.run.summary
   const parts = [
-    plural(s.attempts ?? 0, 'attempt'),
+    plural(s.trials ?? 0, 'trial'),
     `${s.pass ?? 0} pass`,
     ...(s.fail ? [`${s.fail} fail`] : []),
     ...(s.infraError ? [plural(s.infraError, 'infra error')] : []),
@@ -150,8 +150,7 @@ export function renderMarkdown(b: ReportBundle, attachedFiles: string[]): string
   if (!b.run) out.push(b.runError ? `No run: ${b.runError}` : 'No run.')
   else {
     out.push(`${runLine(b)}, status ${b.run.status}.`)
-    if (b.run.moreFailures)
-      out.push('', `${b.run.moreFailures} more failing attempts aren't shown.`)
+    if (b.run.moreFailures) out.push('', `${b.run.moreFailures} more failing trials aren't shown.`)
     for (const f of b.run.failures) {
       out.push('', `### ${f.key}`, '', `Outcome ${f.outcome}.`)
       if (f.error) out.push(...fence('text', [`${f.error.kind}: ${f.error.message}`]))

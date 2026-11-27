@@ -42,19 +42,19 @@ reeval package, `test/python-sdk.test.ts` runs the same suite in CI.
 ## Writing evals
 
 ```python
-from reeval_python import SyncAttemptContext, evaluate
+from reeval_python import SyncTrialContext, evaluate
 
 
-@evaluate("lands", {"runs": 3, "timeout": 300})
-def lands(c: SyncAttemptContext) -> None:
+@evaluate("lands", {"trials": 3, "timeout": 300})
+def lands(c: SyncTrialContext) -> None:
     c.send("Create greet.py that prints hi")
     assert c.exec("python greet.py").stdout == "hi\n"
 ```
 
-A body is the task: it drives the agent and fails the attempt by raising. Plain `assert` keeps
+A body is the task: it drives the agent and fails the trial by raising. Plain `assert` keeps
 Python's semantics: a failure ends the body, and its message (or, with none, the statement as
-written) is the attempt's failure. An `AssertionError` the body catches fails nothing, so a retry
-loop can assert. Raise `EvalError("the build fails")` for an attempt that didn't get far enough to
+written) is the trial's failure. An `AssertionError` the body catches fails nothing, so a retry
+loop can assert. Raise `EvalError("the build fails")` for a trial that didn't get far enough to
 grade. Use typed results (`ExecResult.ok`, `Turn.text`, …) and `c.file(path)`.
 
 Use snake_case on the context (`read_file`, `write_file`, `file`). Options are typed
@@ -70,20 +70,20 @@ A `def` body gets a blocking context: `c.exec(…)` runs the command and returns
 and `c.read_file(…)` returns the contents.
 
 An `async def` body gets the async context: every `c.*` call is a coroutine to await. A call the
-body never awaits never runs, so it fails the attempt, and so does a task the body started and
+body never awaits never runs, so it fails the trial, and so does a task the body started and
 left running when it returns: await each one (`asyncio.gather`, a `TaskGroup`). A body that
 `yield`s is refused where it's declared.
 
-Annotate `c` (`SyncAttemptContext` or `AttemptContext`) and pyright checks the body too: a missing
+Annotate `c` (`SyncTrialContext` or `TrialContext`) and pyright checks the body too: a missing
 `await`, the wrong context for the kind of body, a generator or a returned value. An unannotated
 body is checked only when it runs.
 
 ```python
-from reeval_python import AttemptContext, evaluate
+from reeval_python import TrialContext, evaluate
 
 
 @evaluate("lands, async")
-async def lands(c: AttemptContext) -> None:
+async def lands(c: TrialContext) -> None:
     await c.send("Create greet.py that prints hi")
     assert (await c.exec("python greet.py")).ok
 ```
@@ -100,13 +100,13 @@ masked in everything reeval writes.
 
 ### Cases
 
-`"cases"` runs one eval over a list, and the body takes the attempt and its case. Each case is a
+`"cases"` runs one eval over a list, and the body takes the trial and its case. Each case is a
 dict (a `Case`, `TypedDict` with `key`) or a dataclass with a `key`. A key is 1–80 characters with
 no surrounding whitespace, `#`, `›` or control characters, and unique within the eval; the run reports each case as `<eval> [<key>]`.
 
 ```python
 @evaluate("greets", {"cases": [{"key": "en"}, {"key": "fr"}]})
-def greets(c: SyncAttemptContext, case: Case) -> None: ...
+def greets(c: SyncTrialContext, case: Case) -> None: ...
 ```
 
 ## Examples

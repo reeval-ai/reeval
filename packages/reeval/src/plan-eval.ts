@@ -1,8 +1,8 @@
 // An eval's plan from its declaration alone: the options cascade, the profile and tags, the
-// matrix, the egress, MCP and plugin refusals, and each attempt's gate. Pure but for reading local
+// matrix, the egress, MCP and plugin refusals, and each trial's gate. Pure but for reading local
 // plugins: whoever declared the eval (an eval file's `evaluate`, or a declaration tree) registers
 // what it returns.
-import { type AttemptSpec, setupAllowance } from './attempt/index.ts'
+
 import type { DeclaredFamily, DeclaredSource } from './declaration.ts'
 import { MAX_TIMER_MS, parseDuration } from './duration.ts'
 import { allowedHosts, unenforceable } from './egress.ts'
@@ -30,7 +30,7 @@ import { vercelBaseUrl, vercelBaseUrlProblem, vercelCredentialProblem } from './
 import { type VertexSettings, vertexSettings } from './gateway/vertex.ts'
 import { refusedMcp, refusedPlugins, refusedSharedMachine } from './harness/agents.ts'
 import { withDefaultEffort } from './harness/default-effort.ts'
-import { attemptId, attemptKey, evalId, relativeFile } from './ids.ts'
+import { evalId, relativeFile, trialId, trialKey } from './ids.ts'
 import {
   brokeredIn,
   type Cascading,
@@ -41,16 +41,16 @@ import {
   harnessId,
   type Level,
   matchesTags,
-  type PlannedAttempt,
+  type PlannedTrial,
   plainEnv,
   plainEnvError,
   plainHeaderError,
   plainHeaders,
   type ResolvedEval,
-  runsOf,
   sandboxProvider,
   sandboxSetBy,
   secretVarsIn,
+  trialsOf,
   unbrokered,
   unbrokeredError,
 } from './options.ts'
@@ -58,9 +58,9 @@ import { providerLimit, sandboxKind } from './sandbox/kinds.ts'
 import { place, type Target } from './sandbox/place.ts'
 import type { Limits } from './scheduler/core.ts'
 import { startEnv } from './startup.ts'
-import { controlTraitKeys, filtersLabel, pickTraits, traitFilters } from './traits.ts'
+import { baselineTraitKeys, filtersLabel, pickTraits, traitFilters } from './traits.ts'
+import { setupAllowance, type TrialSpec } from './trial/index.ts'
 import type {
-  AttemptMeta,
   EnvVars,
   EvalOptions,
   EvalSource,
@@ -70,10 +70,11 @@ import type {
   ResolvedGateway,
   RunContext,
   TraitFilter,
+  TrialMeta,
 } from './types.ts'
 import { type CaseWhere, type PickedPairs, pickPairs } from './where.ts'
 
-/** Lets the attempt's own eval timer fire before the engine's backstop, so the message and cleanup are its own. */
+/** Lets the trial's own eval timer fire before the engine's backstop, so the message and cleanup are its own. */
 const GRACE_MS = 5_000
 
 /** One eval as declared: its name, mode, enclosing groups (outermost first) and own options. */
@@ -97,37 +98,45 @@ export type EvalDeclaration = {
 /** Where the eval is planned: the run, the eval file, and how many evals the file planned before it. */
 export type PlanContext = Pick<
   RunContext,
-  'config' | 'profile' | 'runs' | 'tags' | 'traits' | 'concurrency' | 'completed' | 'cursorEfforts'
+  | 'config'
+  | 'profile'
+  | 'trials'
+  | 'tags'
+  | 'traits'
+  | 'concurrency'
+  | 'completed'
+  | 'cursorEfforts'
 > & {
   /** The eval file's path, absolute. */
   file: string | undefined
   /** Its place among the file's planned evals, for the scheduler's tie-break. */
   order: number
-  /** Where the attempts' sandboxes run; this machine when unset. */
+  /** Where the trials' sandboxes run; this machine when unset. */
   target?: Target
 }
 
-/** One test to register: an attempt, or the one entry that stands for a skipped eval. */
+/** One test to register: a trial, or the one entry that stands for a skipped eval. */
 export type PlannedTest = {
   name: string
   mode: TestMode
-  attempt: AttemptMeta
+  trial: TrialMeta
   /** The engine's backstop timeout; none for a skipped eval. */
   timeout?: number
-  /** What the attempt needs before it starts; none for a skipped eval. */
+  /** What the trial needs before it starts; none for a skipped eval. */
   gate?: Gate
-  /** How the attempt runs; none for a skipped eval. */
-  spec?: AttemptSpec
+  /** How the trial runs; none for a skipped eval. */
+  spec?: TrialSpec
 }
 
 function configLevel(config: ResolvedConfig): Cascading {
-  const { runs, bestOf } = config.runs !== undefined ? runsOf(config.runs) : { runs: undefined }
+  const { trials, bestOf } =
+    config.trials !== undefined ? trialsOf(config.trials) : { trials: undefined }
   return {
     harness: config.harness,
     sandbox: config.sandbox,
     environments: config.environments,
     compare: undefined,
-    runs,
+    trials,
     bestOf,
     target: config.target,
     env: config.env,
@@ -150,7 +159,7 @@ export type PlannedEval = {
   /** `null` when the run's tags leave the eval out (it isn't counted in `order`). */
   tests: PlannedTest[] | null
   harnesses: string[]
-  /** The trait keys its control environments define, for the run-wide `--trait` check. */
+  /** The trait keys its baseline environments define, for the run-wide `--trait` check. */
   traits: string[]
   /** What `where` kept and left out of this case; unset without `where`. */
   picked?: Omit<PickedPairs, 'kept'>
@@ -168,7 +177,7 @@ export function planEval(declaration: EvalDeclaration, ctx: PlanContext): Planne
   ]
   const cascaded = cascade(configLevel(ctx.config), levels, where, {
     profile: ctx.profile,
-    runs: ctx.runs,
+    trials: ctx.trials,
     skipped: declaration.mode === 'skip' || declaration.mode === 'todo',
     pooled: (declaration.family?.cases ?? 0) >= 2,
   })
@@ -185,7 +194,7 @@ export function planEval(declaration: EvalDeclaration, ctx: PlanContext): Planne
     ...resolved,
     harness: resolved.harness.map((h) => withDefaultEffort(h, ctx.cursorEfforts)),
   })
-  const traits = controlTraitKeys(declared)
+  const traits = baselineTraitKeys(declared)
   const filters = traitFilters(ctx.traits, ctx.profile)
   const traitSkip =
     filters.length > 0 && !resolvedEval.skip && !pickTraits(declared, filters).kept.length
@@ -196,10 +205,10 @@ export function planEval(declaration: EvalDeclaration, ctx: PlanContext): Planne
   // `where`'s refusals and the pairs it leaves out don't depend on the trait filters.
   if (traitSkip && declaration.where) picks.push(pickPairs(declaration.where, declared))
   let traitExcluded: string[] = []
-  const pick = (attempts: PlannedAttempt[]) => {
-    let kept = attempts
+  const pick = (trials: PlannedTrial[]) => {
+    let kept = trials
     if (declaration.where) {
-      const picked = pickPairs(declaration.where, attempts)
+      const picked = pickPairs(declaration.where, trials)
       picks.push(picked)
       kept = picked.kept
     }
@@ -218,9 +227,9 @@ export function planEval(declaration: EvalDeclaration, ctx: PlanContext): Planne
     tests = planTests(declaration, ctx, where, { ...narrowed, skip }, pick)
   }
   if (traitExcluded.length) {
-    // A completed attempt's plan is a copy that shares its notes.
-    for (const t of tests) t.attempt.plan.traitExcluded = traitExcluded
-    const notes = new Set(tests.map((t) => t.attempt.plan.notes))
+    // A completed trial's plan is a copy that shares its notes.
+    for (const t of tests) t.trial.plan.traitExcluded = traitExcluded
+    const notes = new Set(tests.map((t) => t.trial.plan.notes))
     if (!allLeftOut) for (const list of notes) list.push(leftOut())
   }
   const [picked] = picks
@@ -229,10 +238,10 @@ export function planEval(declaration: EvalDeclaration, ctx: PlanContext): Planne
   return { tests, harnesses, traits, picked: { excluded, cells, keptCells } }
 }
 
-/** Why an eval none of whose control environments the trait filters match doesn't run. */
-function noCellLeft(attempts: readonly PlannedAttempt[], filters: readonly TraitFilter[]): string {
+/** Why an eval none of whose baseline environments the trait filters match doesn't run. */
+function noCellLeft(trials: readonly PlannedTrial[], filters: readonly TraitFilter[]): string {
   const envs = [
-    ...new Set(attempts.filter((a) => a.cell.role === 'control').map((a) => a.cell.environment)),
+    ...new Set(trials.filter((a) => a.cell.role === 'baseline').map((a) => a.cell.environment)),
   ]
   return `no cell left: ${filtersLabel(filters)} ${filters.length === 1 ? 'matches' : 'match'} none of ${envs.join(', ')}`
 }
@@ -242,7 +251,7 @@ function planTests(
   ctx: PlanContext,
   where: string,
   resolvedEval: ResolvedEval,
-  pick: (attempts: PlannedAttempt[]) => PlannedAttempt[],
+  pick: (trials: PlannedTrial[]) => PlannedTrial[],
 ): PlannedTest[] {
   const { name, mode, groups: enclosing } = declaration
   const groups = enclosing.map((g) => g.name)
@@ -293,7 +302,7 @@ function planTests(
           return { ...harness, gateway: route.name }
         })
         .map((harness) => withDefaultEffort(harness, ctx.cursorEfforts))
-  const plannedAttempts = resolvedEval.skip
+  const plannedTrials = resolvedEval.skip
     ? []
     : pick(
         expand({ ...resolved, harness: routed }, vertex, (s) =>
@@ -309,13 +318,13 @@ function planTests(
           case: caseHash(
             caseJson,
             process.env,
-            secretValues(resolved.env, resolvedEval.skip ? expand(resolved) : plannedAttempts),
+            secretValues(resolved.env, resolvedEval.skip ? expand(resolved) : plannedTrials),
           ),
         }),
     options: optionsHash([...enclosing.map((g) => g.options), declaration.options]),
   }
-  let judge: AttemptMeta['judge']
-  if (plannedAttempts.length) {
+  let judge: TrialMeta['judge']
+  if (plannedTrials.length) {
     try {
       const gateway = resolveModelGateway(
         resolved.judge.model,
@@ -343,16 +352,16 @@ function planTests(
     }
   }
   if (ctx.config.secrets.unbrokered === 'error') {
-    const [first] = unbrokered(resolved.env, plannedAttempts)
+    const [first] = unbrokered(resolved.env, plannedTrials)
     if (first) throw new UsageError(unbrokeredError(first, where, ctx.config.file))
-    const [plain] = plainHeaders(plannedAttempts)
+    const [plain] = plainHeaders(plannedTrials)
     if (plain) throw new UsageError(plainHeaderError(plain, where, ctx.config.file))
-    const [plainVar] = plainEnv(resolved.env, plannedAttempts)
+    const [plainVar] = plainEnv(resolved.env, plannedTrials)
     if (plainVar) throw new UsageError(plainEnvError(plainVar, where, ctx.config.file))
   }
   const pluginNotes: string[] = []
-  const pluginLabels = new Map<PlannedAttempt, string[]>()
-  for (const planned of plannedAttempts) {
+  const pluginLabels = new Map<PlannedTrial, string[]>()
+  for (const planned of plannedTrials) {
     const why = unenforceable(planned.egress, planned.sandbox, where)
     if (why) throw new UsageError(why)
     const on = `${where} on ${harnessId(planned.harness)}`
@@ -376,7 +385,7 @@ function planTests(
     ...declaration.family,
   }
   const harnessBy = resolved.sources?.agents ?? ctx.config.file
-  const plan = evalPlan(resolvedEval, plannedAttempts, { configFile: ctx.config.file, file: path })
+  const plan = evalPlan(resolvedEval, plannedTrials, { configFile: ctx.config.file, file: path })
   // OpenRouter's fallbacks reach only reeval's own calls; the plan says so where they're on.
   if (gatewayNotes.length && openRouterFallbacks(gateways)) {
     gatewayNotes.push(
@@ -387,7 +396,7 @@ function planTests(
   const placedNotes = provider
     ? [
         ...new Set(
-          plannedAttempts.flatMap((a) =>
+          plannedTrials.flatMap((a) =>
             a.sandbox.kind === provider.kind
               ? [`sandbox: ${a.cell.sandbox} on ${providerLabel(provider)}`]
               : a.sandbox.kind === 'fake'
@@ -400,14 +409,14 @@ function planTests(
       ]
     : []
   plan.notes.push(...gatewayNotes, ...pluginNotes, ...placedNotes)
-  const setByOf = (planned: PlannedAttempt) => ({
+  const setByOf = (planned: PlannedTrial) => ({
     sandbox: sandboxSetBy(planned, resolved, ctx.config.file),
     harness: harnessBy,
   })
   if (resolvedEval.skip) {
     const [first] = expand(resolved)
     if (!first) return []
-    const attempt: AttemptMeta = {
+    const trial: TrialMeta = {
       name,
       groups,
       tags: resolved.tags,
@@ -427,10 +436,10 @@ function planTests(
       plan,
       ...(family ? { family } : {}),
     }
-    return [{ name: `${name} [${attemptId(first.cell.key, 1)}]`, mode: 'skip', attempt }]
+    return [{ name: `${name} [${trialId(first.cell.key, 1)}]`, mode: 'skip', trial }]
   }
   const cells: string[] = []
-  return plannedAttempts.map((planned) => {
+  return plannedTrials.map((planned) => {
     if (!cells.includes(planned.cell.key)) cells.push(planned.cell.key)
     const workspace = workspaceOf(planned.environment.layers)
     const files = filesOf(planned.environment.layers)
@@ -442,10 +451,10 @@ function planTests(
         }
       : setByOf(planned)
     const id = evalId(rankFile, [...groups, name])
-    const key = attemptKey(id, planned.cell.key, planned.n)
+    const key = trialKey(id, planned.cell.key, planned.n)
     const done = ctx.completed?.includes(key)
     const skip = done ? 'already completed in this run' : undefined
-    const attempt: AttemptMeta = {
+    const trial: TrialMeta = {
       name,
       groups,
       tags: resolved.tags,
@@ -477,9 +486,9 @@ function planTests(
       ...(judge ? { judge } : {}),
     }
     return {
-      name: `${name} [${attemptId(planned.cell.key, planned.n)}]`,
+      name: `${name} [${trialId(planned.cell.key, planned.n)}]`,
       mode: skip ? 'skip' : mode,
-      attempt,
+      trial,
       timeout: skip
         ? undefined
         : // A longer backstop would fire at once.
@@ -487,7 +496,7 @@ function planTests(
       gate: skip
         ? undefined
         : {
-            limits: attemptLimits(planned, ctx.concurrency),
+            limits: trialLimits(planned, ctx.concurrency),
             rank: {
               eval: id,
               file: rankFile,
@@ -515,22 +524,22 @@ function planTests(
 }
 
 /**
- * The values of the `secret()` variables the attempts read. The record masks them once the run
+ * The values of the `secret()` variables the trials read. The record masks them once the run
  * has planned, and the case hash is taken here, before that, so it masks them itself.
  */
-function secretValues(env: EnvVars, attempts: readonly PlannedAttempt[]): string[] {
-  const names = new Set(attempts.flatMap((a) => secretVarsIn(env, a)))
+function secretValues(env: EnvVars, trials: readonly PlannedTrial[]): string[] {
+  const names = new Set(trials.flatMap((a) => secretVarsIn(env, a)))
   return [...names].flatMap((name) => process.env[name] ?? [])
 }
 
 /**
- * What the plan can tell of an attempt's plugins before any is fetched: a build outside Docker, a
+ * What the plan can tell of a trial's plugins before any is fetched: a build outside Docker, a
  * local plugin's content, and the harness's refusal, as a refusal; the commands that fetch a
  * package at start, as notes under `proxy` and `allow-all`; and a label for each plugin. Git and npm plugins
- * are read when the attempt resolves its environment, which refuses them the same way.
+ * are read when the trial resolves its environment, which refuses them the same way.
  */
 function planPlugins(
-  planned: PlannedAttempt,
+  planned: PlannedTrial,
   root: string,
 ): { refusal?: string; notes: string[]; labels: string[] } {
   const { layers } = planned.environment
@@ -561,8 +570,8 @@ function planPlugins(
 }
 
 /** The run-wide cap, plus the sandbox provider's and harness's own caps when they set one. */
-function attemptLimits(planned: PlannedAttempt, concurrency: number): Limits {
-  const limits: Limits = { attempts: concurrency }
+function trialLimits(planned: PlannedTrial, concurrency: number): Limits {
+  const limits: Limits = { trials: concurrency }
   const { sandbox, harness } = planned
   const cap = providerLimit(sandbox)
   if (cap) limits[`sandbox:${sandboxProvider(sandbox)}`] = cap

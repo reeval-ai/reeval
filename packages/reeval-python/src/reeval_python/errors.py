@@ -16,9 +16,9 @@ class ReevalCallError(Exception):
 
 
 class EvalError(Exception):
-    """Raised by an eval's body to stop the attempt before it's graded: the attempt didn't get
-    far enough. It fails the attempt as any exception the body raises does, and reads back
-    better: `reason` is the attempt's headline and `meta`, a JSON object, is recorded beside it.
+    """Raised by an eval's body to stop the trial before it's graded: the trial didn't get
+    far enough. It fails the trial as any exception the body raises does, and reads back
+    better: `reason` is the trial's headline and `meta`, a JSON object, is recorded beside it.
     `raise EvalError(...) from exc` keeps what caused it."""
 
     def __init__(self, reason: str, *, meta: dict[str, Any] | None = None) -> None:
@@ -36,8 +36,8 @@ class EvalError(Exception):
         self.meta = meta
 
 
-class AttemptAborted(BaseException):  # noqa: N818
-    """reeval aborted the attempt (its timeout ran out, or the run was canceled): every call the
+class TrialAborted(BaseException):  # noqa: N818
+    """reeval aborted the trial (its timeout ran out, or the run was canceled): every call the
     body makes from then on raises this. A `BaseException`, so `except Exception` can't keep a
     body running that reeval has already given up on."""
 

@@ -3,7 +3,7 @@
 // a Dockerfile or `install` built on the machine. A reused machine has it already.
 import { setTimeout as sleep } from 'node:timers/promises'
 import { docker, ImageBuildError, imageInfo, type RemoteEngine } from '@reeval/sandbox-docker'
-import { attemptDebug } from '../debug/attempt.ts'
+import { trialDebug } from '../debug/trial.ts'
 import { pluginBuildId } from '../environment/plugins.ts'
 import type { DockerSandboxDescriptor, HarnessDescriptor, PluginSource } from '../types.ts'
 import { createBuilds, imageHarness, type PreparedImage, prepareImage } from './prepare.ts'
@@ -45,7 +45,7 @@ export function recipeCaused(error: unknown, message: string): boolean {
   return REFUSED.test(message)
 }
 
-/** A recipe's config failure in this worker, so its other attempts fail without building again. */
+/** A recipe's config failure in this worker, so its other trials fail without building again. */
 const failed = new Map<string, PrepareError>()
 /** Each machine's image per recipe in this worker, so its slots prepare it once between them. */
 const prepared = new Map<string, Promise<PreparedImage>>()
@@ -94,7 +94,7 @@ async function prepare(
   engine: RemoteEngine,
   signal: AbortSignal,
 ): Promise<PreparedImage> {
-  const debug = attemptDebug()
+  const debug = trialDebug()
   const log = (line: string) => debug?.log('container', line)
   const retry = async <T>(step: () => Promise<T>): Promise<T> => {
     for (let i = 0; ; i++) {

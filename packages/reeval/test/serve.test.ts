@@ -3,6 +3,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { type AddressInfo, connect, createServer } from 'node:net'
 import { test } from 'node:test'
+import { allocatePort, PORT_RANGE } from '../src/capture/index.ts'
 import {
   awaitListening,
   decide,
@@ -14,8 +15,7 @@ import {
   SETTLE_MS,
   type ServeProbe,
   servePort,
-} from '../src/attempt/serve.ts'
-import { allocatePort, PORT_RANGE } from '../src/capture/index.ts'
+} from '../src/trial/serve.ts'
 
 const linux = process.platform === 'linux' ? false : 'reads /proc'
 

@@ -1,7 +1,7 @@
 // Effort next to lift: tool calls, agent time, tokens and cost per cell, and a variant's against
-// its control. Pass rate can't tell a skill that makes the agent 4× cheaper from no skill at
+// its baseline. Pass rate can't tell a skill that makes the agent 4× cheaper from no skill at
 // all when both pass, so effort is reported with its own test and verdict.
-import type { AttemptRecord, EvalEntry } from '../history/types.ts'
+import type { EvalEntry, TrialRecord } from '../history/types.ts'
 import { mannWhitney, median, minimumP, quantile } from '../stats.ts'
 import type { TimeSplit } from '../types.ts'
 import { formatTokens, totalTokens } from '../usage.ts'
@@ -10,65 +10,65 @@ import { formatUsd } from './cost.ts'
 /** Below this two-sided p, an effort difference is an effect. */
 export const EFFORT_ALPHA = 0.05
 
-/** Some counted attempts reported no usage. Not a verdict; never printed as one. */
+/** Some counted trials reported no usage. Not a verdict; never printed as one. */
 export const TOKENS_UNREPORTED = 'some cells did not report usage'
 
 export type EffortSample = {
   tools: number
-  /** Model calls (`activity.llmCalls`); omitted when the attempt's harness didn't count them. */
+  /** Model calls (`activity.llmCalls`); omitted when the trial's harness didn't count them. */
   llmCalls?: number
   agentMs: number
   /** Calls to the agent's file-editing tools (`activity.fileEdits`). */
   fileEdits: number
   /** Files the workspace diff changed, however the agent changed them. */
   filesChanged: number
-  /** Total tokens when this attempt reported usage; omitted when the harness dropped it. */
+  /** Total tokens when this trial reported usage; omitted when the harness dropped it. */
   tokens?: number
-  /** Where its agent time went; omitted for an attempt recorded without it. */
+  /** Where its agent time went; omitted for a trial recorded without it. */
   split?: TimeSplit
-  /** The agent's cost in US dollars (`cost.usd`); omitted when the attempt has none. */
+  /** The agent's cost in US dollars (`cost.usd`); omitted when the trial has none. */
   usd?: number
 }
 type Spread = { median: number; q1: number; q3: number }
-/** One cell's effort over its counted attempts (passes and fails; infra errors and skips aren't). */
+/** One cell's effort over its counted trials (passes and fails; infra errors and skips aren't). */
 export type CellEffort = {
   n: number
   tools: Spread
-  /** Over the counted attempts that counted their model calls; omitted when none did. */
+  /** Over the counted trials that counted their model calls; omitted when none did. */
   llmCalls?: Spread
   agentMs: Spread
   /** Median file edits: edit tool calls, not the files the diff changed (`filesChanged`). */
   fileEdits: number
   /** Median files the workspace diff changed. */
   filesChanged: number
-  /** Over the counted attempts that reported usage; omitted when none did. */
+  /** Over the counted trials that reported usage; omitted when none did. */
   tokens?: Spread
   /**
-   * Median model, tool, waiting and other time over the counted attempts that have a split;
+   * Median model, tool, waiting and other time over the counted trials that have a split;
    * omitted when none does. `modelMs` is null when any of them saw no model calls.
    */
   split?: TimeSplit
-  /** The agent's cost in US dollars over the counted attempts that have one; omitted when none does. */
+  /** The agent's cost in US dollars over the counted trials that have one; omitted when none does. */
   usd?: Spread
 }
 
 /**
  * `fewer` / `more`: the exact rank test's p is below `EFFORT_ALPHA`. `noise`: it isn't.
- * `insufficient`: too few attempts for the test to ever reach it (2 against 2 can't). Never
+ * `insufficient`: too few trials for the test to ever reach it (2 against 2 can't). Never
  * means a harness dropped usage.
  */
 export type EffortVerdict = 'fewer' | 'more' | 'noise' | 'insufficient'
 
 export type EffortContrast = {
   variant: CellEffort
-  control: CellEffort
-  /** Variant median over control median; null when the control's is 0. */
+  baseline: CellEffort
+  /** Variant median over baseline median; null when the baseline's is 0. */
   toolsRatio: number | null
   agentMsRatio: number | null
   agentMsDelta: number
   toolsP: number | null
   agentMsP: number | null
-  /** The variant's and control's tool-call ranges don't overlap. */
+  /** The variant's and baseline's tool-call ranges don't overlap. */
   separated: boolean
   /** Their agent-time ranges don't overlap. */
   timeSeparated: boolean
@@ -79,21 +79,21 @@ export type EffortContrast = {
   timeVerdict: EffortVerdict
   /**
    * Token medians' ratio when both sides have at least one usage sample; null when the
-   * control's is 0 or the token test was omitted.
+   * baseline's is 0 or the token test was omitted.
    */
   tokensRatio: number | null
   tokensP: number | null
   /**
-   * Rank-test verdict on the attempts that reported usage. Null when either side has no
+   * Rank-test verdict on the trials that reported usage. Null when either side has no
    * token sample — omitted, not `insufficient`.
    */
   tokensVerdict: EffortVerdict | null
-  /** Set when some counted attempts on either side reported no usage. Not a verdict. */
+  /** Set when some counted trials on either side reported no usage. Not a verdict. */
   tokensNote?: typeof TOKENS_UNREPORTED
 }
 
 export const effortSample = (
-  a: Pick<AttemptRecord, 'activity' | 'timings' | 'usage' | 'changedFiles' | 'timeSplit' | 'cost'>,
+  a: Pick<TrialRecord, 'activity' | 'timings' | 'usage' | 'changedFiles' | 'timeSplit' | 'cost'>,
 ): EffortSample => ({
   tools: a.activity.tools,
   ...(a.activity.llmCalls != null ? { llmCalls: a.activity.llmCalls } : {}),
@@ -106,10 +106,10 @@ export const effortSample = (
 })
 
 /** The files the workspace diff changed, a collapsed directory counting each of its files. */
-export const filesChanged = (files: AttemptRecord['changedFiles']) =>
+export const filesChanged = (files: TrialRecord['changedFiles']) =>
   files.reduce((n, f) => n + (f.count ?? 1), 0)
 
-const counted = (a: Pick<AttemptRecord, 'outcome'>) => a.outcome === 'pass' || a.outcome === 'fail'
+const counted = (a: Pick<TrialRecord, 'outcome'>) => a.outcome === 'pass' || a.outcome === 'fail'
 
 const spread = (values: number[]): Spread => ({
   median: median(values) ?? 0,
@@ -117,7 +117,7 @@ const spread = (values: number[]): Spread => ({
   q3: quantile(values, 0.75) ?? 0,
 })
 
-/** Token totals from the attempts that reported usage; empty when none did. */
+/** Token totals from the trials that reported usage; empty when none did. */
 export const tokenValues = (samples: EffortSample[]): number[] =>
   samples.flatMap((s) => (s.tokens === undefined ? [] : [s.tokens]))
 
@@ -154,7 +154,7 @@ export function effortOf(samples: EffortSample[]): CellEffort | null {
 }
 
 /**
- * The verdict of an exact rank test of `xs` (variant) against `ys` (control). Its direction is
+ * The verdict of an exact rank test of `xs` (variant) against `ys` (baseline). Its direction is
  * the test's (which side ranks lower), not the medians', which can be equal or disagree.
  */
 export function effortVerdict(
@@ -175,15 +175,15 @@ const apart = (xs: number[], ys: number[]) =>
   Math.max(...xs) < Math.min(...ys) || Math.min(...xs) > Math.max(...ys)
 
 /**
- * The fewest attempts a side for "no overlap" to say anything: at 3 against 3 one ordering in
+ * The fewest trials a side for "no overlap" to say anything: at 3 against 3 one ordering in
  * ten separates by chance; at 1 against 1 every pair of unequal values does.
  */
 export const DIRECTIONAL_MIN = 3
 
 /**
- * The fewest runs per cell whose effort test can reach `EFFORT_ALPHA` (4 against 4: p = 2/70).
+ * The fewest trials per cell whose effort test can reach `EFFORT_ALPHA` (4 against 4: p = 2/70).
  */
-export const EFFORT_MIN_RUNS = (() => {
+export const EFFORT_MIN_TRIALS = (() => {
   let n = 1
   while (minimumP(n, n) >= EFFORT_ALPHA) n++
   return n
@@ -196,7 +196,7 @@ export type EffortMetric = 'tools' | 'agentS' | 'tokens'
  * `DIRECTIONAL_MIN` a side or more: a direction, not an effect.
  */
 export function directional(c: EffortContrast): EffortMetric[] {
-  if (Math.min(c.variant.n, c.control.n) < DIRECTIONAL_MIN) return []
+  if (Math.min(c.variant.n, c.baseline.n) < DIRECTIONAL_MIN) return []
   const out: EffortMetric[] = []
   if (c.separated && c.verdict === 'insufficient') out.push('tools')
   if (c.timeSeparated && c.timeVerdict === 'insufficient') out.push('agentS')
@@ -206,28 +206,28 @@ export function directional(c: EffortContrast): EffortMetric[] {
 
 export function contrastEffort(
   variant: EffortSample[],
-  control: EffortSample[],
+  baseline: EffortSample[],
 ): EffortContrast | null {
   const v = effortOf(variant)
-  const c = effortOf(control)
+  const c = effortOf(baseline)
   if (!v || !c) return null
   const tools = effortVerdict(
     variant.map((s) => s.tools),
-    control.map((s) => s.tools),
+    baseline.map((s) => s.tools),
   )
   const time = effortVerdict(
     variant.map((s) => s.agentMs),
-    control.map((s) => s.agentMs),
+    baseline.map((s) => s.agentMs),
   )
   const vTok = tokenValues(variant)
-  const cTok = tokenValues(control)
+  const cTok = tokenValues(baseline)
   // Both sides need at least one usage sample. Missing usage is not `insufficient`.
   const tokens = vTok.length && cTok.length ? effortVerdict(vTok, cTok) : null
   const reported = vTok.length + cTok.length
-  const unreported = reported > 0 && reported < variant.length + control.length
+  const unreported = reported > 0 && reported < variant.length + baseline.length
   return {
     variant: v,
-    control: c,
+    baseline: c,
     toolsRatio: ratio(v.tools.median, c.tools.median),
     agentMsRatio: ratio(v.agentMs.median, c.agentMs.median),
     agentMsDelta: v.agentMs.median - c.agentMs.median,
@@ -235,11 +235,11 @@ export function contrastEffort(
     agentMsP: time.p,
     separated: apart(
       variant.map((s) => s.tools),
-      control.map((s) => s.tools),
+      baseline.map((s) => s.tools),
     ),
     timeSeparated: apart(
       variant.map((s) => s.agentMs),
-      control.map((s) => s.agentMs),
+      baseline.map((s) => s.agentMs),
     ),
     tokensSeparated: tokens ? apart(vTok, cTok) : null,
     verdict: tools.verdict,
@@ -251,16 +251,16 @@ export function contrastEffort(
   }
 }
 
-/** The counted attempts of one cell of an eval, as effort samples. */
-export const cellSamples = (e: Pick<EvalEntry, 'attempts'>, cellKey: string): EffortSample[] =>
-  e.attempts.filter((a) => a.cell === cellKey && counted(a)).map(effortSample)
+/** The counted trials of one cell of an eval, as effort samples. */
+export const cellSamples = (e: Pick<EvalEntry, 'trials'>, cellKey: string): EffortSample[] =>
+  e.trials.filter((a) => a.cell === cellKey && counted(a)).map(effortSample)
 
-export const cellEffort = (e: Pick<EvalEntry, 'attempts'>, cellKey: string) =>
+export const cellEffort = (e: Pick<EvalEntry, 'trials'>, cellKey: string) =>
   effortOf(cellSamples(e, cellKey))
 
-/** A variant cell's effort against its control's, in the same run; null for controls. */
+/** A variant cell's effort against its baseline's, in the same run; null for baselines. */
 export function cellContrast(
-  e: Pick<EvalEntry, 'attempts' | 'cells'>,
+  e: Pick<EvalEntry, 'trials' | 'cells'>,
   cellKey: string,
 ): EffortContrast | null {
   const cell = e.cells.find((c) => c.key === cellKey)
@@ -308,7 +308,7 @@ export const VERDICT_TEXT: Record<EffortVerdict, (what: string) => string> = {
   fewer: (what) => `fewer ${what}`,
   more: (what) => `more ${what}`,
   noise: () => 'within noise',
-  insufficient: () => 'too few attempts to test',
+  insufficient: () => 'too few trials to test',
 }
 
 const toolsVerdictText = (c: EffortContrast): string =>
@@ -328,41 +328,41 @@ const tokensVerdictText = (c: EffortContrast): string => {
 }
 
 /**
- * `tools 5 vs 43 (×0.11), agent 21s vs 46s (×0.47): too few attempts to test` for a variant
- * against its control; with enough attempts, `fewer tool calls (p = 0.029)`. Tokens fold in
+ * `tools 5 vs 43 (×0.11), agent 21s vs 46s (×0.47): too few trials to test` for a variant
+ * against its baseline; with enough trials, `fewer tool calls (p = 0.029)`. Tokens fold in
  * when both sides have usage samples; they are omitted (not `insufficient`) when either does not.
  * A metric too small to test whose ranges don't overlap says so: `(×0.37, no overlap)`. Agent
  * times both under a tenth of a second have no ratio: `agent <0.1s vs <0.1s`.
  */
 export function effortLabel(c: EffortContrast): string {
-  const [va, ca] = [c.variant.agentMs.median, c.control.agentMs.median]
+  const [va, ca] = [c.variant.agentMs.median, c.baseline.agentMs.median]
   const tiny = bothUnderATenth(va, ca)
   const apartOn = new Set(directional(c).filter((m) => !(tiny && m === 'agentS')))
   const r = (metric: EffortMetric, value: number | null) =>
     `(${formatRatio(value)}${apartOn.has(metric) ? ', no overlap' : ''})`
-  const tools = `tools ${formatCount(c.variant.tools.median)} vs ${formatCount(c.control.tools.median)} ${r('tools', c.toolsRatio)}`
+  const tools = `tools ${formatCount(c.variant.tools.median)} vs ${formatCount(c.baseline.tools.median)} ${r('tools', c.toolsRatio)}`
   const time = `agent ${formatSeconds(va)} vs ${formatSeconds(ca)}${tiny ? '' : ` ${r('agentS', c.agentMsRatio)}`}`
   const parts = [tools, time]
-  if (c.variant.llmCalls && c.control.llmCalls) {
-    const [vl, cl] = [c.variant.llmCalls.median, c.control.llmCalls.median]
+  if (c.variant.llmCalls && c.baseline.llmCalls) {
+    const [vl, cl] = [c.variant.llmCalls.median, c.baseline.llmCalls.median]
     parts.push(`LLM calls ${formatCount(vl)} vs ${formatCount(cl)} (${formatRatio(ratio(vl, cl))})`)
   }
-  if (c.tokensVerdict !== null && c.variant.tokens && c.control.tokens) {
+  if (c.tokensVerdict !== null && c.variant.tokens && c.baseline.tokens) {
     parts.push(
-      `tokens ${formatTokens(c.variant.tokens.median)} vs ${formatTokens(c.control.tokens.median)} ${r('tokens', c.tokensRatio)}`,
+      `tokens ${formatTokens(c.variant.tokens.median)} vs ${formatTokens(c.baseline.tokens.median)} ${r('tokens', c.tokensRatio)}`,
     )
   }
-  if (c.variant.usd && c.control.usd) {
-    const [vu, cu] = [c.variant.usd.median, c.control.usd.median]
+  if (c.variant.usd && c.baseline.usd) {
+    const [vu, cu] = [c.variant.usd.median, c.baseline.usd.median]
     parts.push(`cost ${formatUsd(vu)} vs ${formatUsd(cu)} (${formatRatio(ratio(vu, cu))})`)
   }
-  const n = apartOn.size ? ` (n = ${c.variant.n} vs ${c.control.n})` : ''
+  const n = apartOn.size ? ` (n = ${c.variant.n} vs ${c.baseline.n})` : ''
   return `${parts.join(', ')}: ${toolsVerdictText(c)}${tokensVerdictText(c)}${n}`
 }
 
 /**
  * One cell's effort on its own: `tools 43 · agent 46s`, plus LLM calls, tokens and cost when any
- * attempt reported them.
+ * trial reported them.
  */
 export const effortSummary = (
   e: Pick<CellEffort, 'tools' | 'llmCalls' | 'agentMs' | 'tokens' | 'usd'>,

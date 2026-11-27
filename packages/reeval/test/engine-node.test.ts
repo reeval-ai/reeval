@@ -11,7 +11,7 @@ import type { Exit, Spawn, WorkerProcess } from '../src/engine/pool.ts'
 import { type FromWorker, PROTOCOL, type ToWorker, type WireTest } from '../src/engine/protocol.ts'
 import type { CollectedPlan, EngineOptions } from '../src/engine/types.ts'
 import { FAILURE_CAP } from '../src/text.ts'
-import type { AttemptMeta, RunContext } from '../src/types.ts'
+import type { RunContext, TrialMeta } from '../src/types.ts'
 import type { ReevalEvent } from '../src/ui/events.ts'
 import { tempDir } from './helpers.ts'
 
@@ -76,7 +76,7 @@ function fakeSpawn(
   return { spawn, spawned }
 }
 
-const attempt = (name: string, extra: Partial<AttemptMeta> = {}) =>
+const trial = (name: string, extra: Partial<TrialMeta> = {}) =>
   ({
     name,
     groups: [],
@@ -84,9 +84,9 @@ const attempt = (name: string, extra: Partial<AttemptMeta> = {}) =>
     n: 1,
     plan: {},
     ...extra,
-  }) as unknown as AttemptMeta
+  }) as unknown as TrialMeta
 
-const cell = (key: string) => ({ cell: { key } }) as Partial<AttemptMeta>
+const cell = (key: string) => ({ cell: { key } }) as Partial<TrialMeta>
 
 function project(files: string[]) {
   const root = tempDir('node')
@@ -197,18 +197,18 @@ describe('runEngine: collecting and the plan', () => {
     assert.equal(r.noFiles, true)
   })
 
-  test('the plan: attempts by file then declaration, skipped evals once each, todos, and filters', async () => {
+  test('the plan: trials by file then declaration, skipped evals once each, todos, and filters', async () => {
     const { run } = project(['evals/b.eval.ts', 'evals/a.eval.ts'])
     const tests = {
       'a.eval.ts': [
-        test0(0, 'x [fake/-/fake#1]', { attempt: attempt('x') }),
-        test0(1, 'x [fake/-/fake#2]', { attempt: attempt('x', { n: 2 }) }),
+        test0(0, 'x [fake/-/fake#1]', { trial: trial('x') }),
+        test0(1, 'x [fake/-/fake#2]', { trial: trial('x', { n: 2 }) }),
         test0(2, 'parked [fake/-/fake#1]', {
           mode: 'skip',
-          attempt: attempt('parked', { plan: { skip: true } } as never),
+          trial: trial('parked', { plan: { skip: true } } as never),
         }),
-        test0(3, 'y [fake/-/fake#1]', { mode: 'skip', attempt: attempt('y') }),
-        test0(4, 'y [fake/-/fake#2]', { mode: 'skip', attempt: attempt('y', { n: 2 }) }),
+        test0(3, 'y [fake/-/fake#1]', { mode: 'skip', trial: trial('y') }),
+        test0(4, 'y [fake/-/fake#2]', { mode: 'skip', trial: trial('y', { n: 2 }) }),
       ],
       'b.eval.ts': [test0(0, 'later', { mode: 'todo', groups: ['g'] })],
     }
@@ -341,11 +341,11 @@ describe('runEngine: files that fail to load', () => {
 describe('runEngine: running', () => {
   const two = {
     'a.eval.ts': [
-      test0(0, 'one [fake/-/fake#1]', { attempt: attempt('one') }),
+      test0(0, 'one [fake/-/fake#1]', { trial: trial('one') }),
       test0(1, 'skipped', { mode: 'skip' }),
       test0(2, 'placeholder', { mode: 'todo' }),
     ],
-    'b.eval.ts': [test0(0, 'two [fake/-/fake#1]', { attempt: attempt('two', { groups: ['g'] }) })],
+    'b.eval.ts': [test0(0, 'two [fake/-/fake#1]', { trial: trial('two', { groups: ['g'] }) })],
   }
 
   test('events and results: by file then declaration, todos flagged, durations rounded', async () => {
@@ -422,27 +422,27 @@ describe('runEngine: running', () => {
     )
     const planned = events
       .flatMap((e) => (e.type === 'collected' ? e.evals : []))
-      .flatMap((e) => (e.attempt ? [e.attempt.name] : []))
+      .flatMap((e) => (e.trial ? [e.trial.name] : []))
     assert.deepEqual(
       planned.sort(),
       ['one', 'two'],
-      'each collected test carries its planned attempt',
+      'each collected test carries its planned trial',
     )
   })
 
-  test('a declared skip is flagged, and an attempt a resume skips because it completed is not', async () => {
+  test('a declared skip is flagged, and a trial a resume skips because it completed is not', async () => {
     const { run } = project(['evals/a.eval.ts', 'evals/b.eval.ts'])
     const tests = {
       'a.eval.ts': [
-        test0(0, 'parked [fake/-/fake#1]', { mode: 'skip', attempt: attempt('parked') }),
+        test0(0, 'parked [fake/-/fake#1]', { mode: 'skip', trial: trial('parked') }),
         test0(1, 'done [fake/-/fake#1]', {
           mode: 'skip',
-          attempt: attempt('done', { plan: { skip: 'already completed in this run' } } as never),
+          trial: trial('done', { plan: { skip: 'already completed in this run' } } as never),
         }),
       ],
       'b.eval.ts': [
-        test0(0, 'kept [fake/-/fake#1]', { attempt: attempt('kept') }),
-        test0(1, 'lost [fake/-/fake#1]', { attempt: attempt('lost') }),
+        test0(0, 'kept [fake/-/fake#1]', { trial: trial('kept') }),
+        test0(1, 'lost [fake/-/fake#1]', { trial: trial('lost') }),
       ],
     }
     // b's worker dies before it collects, so its tests are the plan's, with the completed one skipped.
@@ -498,23 +498,23 @@ describe('runEngine: running', () => {
     assert.equal(none.noFiles, true)
   })
 
-  test('--cell on a whole variant cell also runs its control, on its harness and sandbox', async () => {
+  test('--cell on a whole variant cell also runs its baseline, on its harness and sandbox', async () => {
     const { run } = project(['evals/a.eval.ts'])
-    const arm = (index: number, key: string, role: string, n = 1) => {
+    const environment = (index: number, key: string, role: string, n = 1) => {
       const [harness, , sandbox] = key.split('/')
       return test0(index, `x [${key}#${n}]`, {
-        attempt: attempt('x', { cell: { key, role, harness, sandbox }, n } as never),
+        trial: trial('x', { cell: { key, role, harness, sandbox }, n } as never),
       })
     }
     const tests = {
       'a.eval.ts': [
-        arm(0, 'h/base/s', 'control'),
-        arm(1, 'h/base/s', 'control', 2),
-        arm(2, 'h/skill/s', 'variant'),
-        arm(3, 'h/skill/s', 'variant', 2),
-        arm(4, 'h/doc/s', 'variant'),
-        arm(5, 'g/base/s', 'control'),
-        arm(6, 'g/skill/s', 'variant'),
+        environment(0, 'h/base/s', 'baseline'),
+        environment(1, 'h/base/s', 'baseline', 2),
+        environment(2, 'h/skill/s', 'variant'),
+        environment(3, 'h/skill/s', 'variant', 2),
+        environment(4, 'h/doc/s', 'variant'),
+        environment(5, 'g/base/s', 'baseline'),
+        environment(6, 'g/skill/s', 'variant'),
         test0(7, 'later', { mode: 'todo' }),
       ],
     }
@@ -540,22 +540,22 @@ describe('runEngine: running', () => {
       'h/skill/s#1',
       'h/skill/s#2',
     ])
-    assert.deepEqual(await planned(['h/skill/s#2']), ['h/skill/s#2'], 'one attempt runs alone')
+    assert.deepEqual(await planned(['h/skill/s#2']), ['h/skill/s#2'], 'one trial runs alone')
   })
 
-  test('--cell runs only that cell key or attempt id, and skips attempts with no cell', async () => {
+  test('--cell runs only that cell key or trial id, and skips trials with no cell', async () => {
     const { run } = project(['evals/a.eval.ts'])
-    const arm = (index: number, key: string, role: string, n = 1) => {
+    const environment = (index: number, key: string, role: string, n = 1) => {
       const [harness, , sandbox] = key.split('/')
       return test0(index, `x [${key}#${n}]`, {
-        attempt: attempt('x', { cell: { key, role, harness, sandbox }, n } as never),
+        trial: trial('x', { cell: { key, role, harness, sandbox }, n } as never),
       })
     }
     const tests = {
       'a.eval.ts': [
-        arm(0, 'h/base/s', 'control'),
-        arm(1, 'h/base/s', 'control', 2),
-        arm(2, 'h/skill/s', 'variant'),
+        environment(0, 'h/base/s', 'baseline'),
+        environment(1, 'h/base/s', 'baseline', 2),
+        environment(2, 'h/skill/s', 'variant'),
         test0(3, 'todo', { mode: 'todo' }),
       ],
     }
@@ -593,9 +593,9 @@ describe('runEngine: running', () => {
   test('a part not on disk matches eval ids, never a cell or a file path', async () => {
     const { run } = project(['evals/fake/a.eval.ts', 'evals/b.eval.ts', 'evals/fake.eval.ts'])
     const tests = {
-      'a.eval.ts': [test0(0, 'fake/a [left#1]', { attempt: attempt('fake/a', cell('left')) })],
-      'b.eval.ts': [test0(0, 'b [fake#1]', { attempt: attempt('b', cell('fake')) })],
-      'fake.eval.ts': [test0(0, 'fake [left#1]', { attempt: attempt('fake', cell('left')) })],
+      'a.eval.ts': [test0(0, 'fake/a [left#1]', { trial: trial('fake/a', cell('left')) })],
+      'b.eval.ts': [test0(0, 'b [fake#1]', { trial: trial('b', cell('fake')) })],
+      'fake.eval.ts': [test0(0, 'fake [left#1]', { trial: trial('fake', cell('left')) })],
     }
     const r = await engine({ run, filters: ['fake'] }, fakeSpawn(passing(tests)).spawn)
     assert.deepEqual(r.evals.map((e) => e.key).sort(), ['fake # left#1', 'fake/a # left#1'])
@@ -604,8 +604,8 @@ describe('runEngine: running', () => {
   test('a path on disk is only a path: it collects only the files it names', async () => {
     const { root, run } = project(['evals/fake/a.eval.ts', 'evals/b.eval.ts', 'evals/c.eval.ts'])
     const tests = {
-      'a.eval.ts': [test0(0, 'alpha [left#1]', { attempt: attempt('alpha', cell('left')) })],
-      'b.eval.ts': [test0(0, 'beta [fake#1]', { attempt: attempt('beta', cell('fake')) })],
+      'a.eval.ts': [test0(0, 'alpha [left#1]', { trial: trial('alpha', cell('left')) })],
+      'b.eval.ts': [test0(0, 'beta [fake#1]', { trial: trial('beta', cell('fake')) })],
     }
     for (const filter of [join(root, 'evals/b.eval.ts'), join(root, 'evals/fake')]) {
       const { spawn, spawned } = fakeSpawn(passing(tests))
@@ -651,7 +651,7 @@ describe('runEngine: running', () => {
         ctl.exit()
         return
       }
-      const limits = { attempts: 1 }
+      const limits = { trials: 1 }
       ctl.emit({
         t: 'request',
         id: '1',
@@ -885,7 +885,7 @@ describe('runEngine: running', () => {
       spawned.filter((s) => !s.endsWith('collect')),
       ['a.eval.ts:0'],
     )
-    // As under Vitest, the attempt the cancel cut short is skipped; its record says aborted.
+    // As under Vitest, the trial the cancel cut short is skipped; its record says aborted.
     assert.deepEqual(
       r.evals.map((e) => [e.id, e.state, e.meta]),
       [['a', 'skipped', { late: true }]],
@@ -936,7 +936,7 @@ describe('runEngine: running', () => {
     )
   })
 
-  test('a worker that dies mid-file fails its unfinished attempts and reports why', async () => {
+  test('a worker that dies mid-file fails its unfinished trials and reports why', async () => {
     const { run } = project(['evals/a.eval.ts'])
     const released: Array<[string, string | undefined]> = []
     const tests = [
@@ -986,7 +986,7 @@ describe('runEngine: running', () => {
     assert.equal(events.filter((e) => e.type === 'eval-end').length, 2)
   })
 
-  test('the heartbeat beats as the files start, names the attempts in progress until each ends or its worker exits, and ends with one done beat', async () => {
+  test('the heartbeat beats as the files start, names the trials in progress until each ends or its worker exits, and ends with one done beat', async () => {
     const { run } = project(['evals/a.eval.ts', 'evals/b.eval.ts'])
     const tests = {
       'a.eval.ts': [test0(0, 'one'), test0(1, 'two')],
@@ -1037,7 +1037,7 @@ describe('runEngine: running', () => {
     assert.deepEqual(states, ['one,two', 'one,two,three', 'two,three', 'three'])
   })
 
-  test('a file that fails to load on its second pass fails its selected attempts with the load error', async () => {
+  test('a file that fails to load on its second pass fails its selected trials with the load error', async () => {
     const { run } = project(['evals/a.eval.ts', 'evals/b.eval.ts'])
     const tests = [test0(0, 'one'), test0(1, 'skipped', { mode: 'skip' }), test0(2, 'filtered out')]
     const events: ReevalEvent[] = []
@@ -1066,7 +1066,7 @@ describe('runEngine: running', () => {
     assert.deepEqual(seen.sort(), ['evals/a.eval.ts', 'evals/b.eval.ts'])
   })
 
-  test('a worker that dies before its second pass collects fails the selected attempts', async () => {
+  test('a worker that dies before its second pass collects fails the selected trials', async () => {
     const { run } = project(['evals/a.eval.ts'])
     const { spawn } = fakeSpawn((ctl) => {
       if (ctl.init.select) return ctl.exit({ code: null, signal: 'SIGKILL' })
@@ -1083,7 +1083,7 @@ describe('runEngine: running', () => {
     )
   })
 
-  test("a resume's completed attempts stay skipped when the file fails to load on its second pass", async () => {
+  test("a resume's completed trials stay skipped when the file fails to load on its second pass", async () => {
     const { run } = project(['evals/a.eval.ts'])
     run.completed = ['done']
     const events: ReevalEvent[] = []

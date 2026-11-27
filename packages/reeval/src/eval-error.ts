@@ -1,4 +1,4 @@
-import { notJson } from './attempt/observe.ts'
+import { notJson } from './trial/observe.ts'
 import type { JSONValue } from './types.ts'
 
 /** `new EvalError({ … })`: why the task stopped, the facts that show it, and what caused it. */
@@ -12,9 +12,9 @@ export type EvalErrorOptions = {
 }
 
 /**
- * Thrown by an eval's task to stop the attempt before it's graded: the attempt didn't get far
- * enough. It fails the attempt as any error the task throws does, and reads back better: its
- * `reason` is the attempt's headline and its `meta` is recorded beside it.
+ * Thrown by an eval's task to stop the trial before it's graded: the trial didn't get far
+ * enough. It fails the trial as any error the task throws does, and reads back better: its
+ * `reason` is the trial's headline and its `meta` is recorded beside it.
  */
 // biome-ignore lint/suspicious/noShadowRestrictedNames: reeval's EvalError stands in for the global one
 export class EvalError extends Error {

@@ -6,7 +6,7 @@ const math = defineEnvironment('math', ({ directory }) => ({ files: directory('.
 
 export default defineEval({
   environment: math,
-  // Every attempt must score 1, so a broken run fails and `reeval compare` can call it a regression.
+  // Every trial must score 1, so a broken run fails and `reeval compare` can call it a regression.
   target: regression(1),
   graders: [hasFile('src/math.js', /export function multiply/), succeeded('node --test')],
   task: async (c) => {

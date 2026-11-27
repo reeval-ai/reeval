@@ -30,7 +30,7 @@ const withJq = defineEnvironment('jq', ({ directory }) => ({
 }))
 ```
 
-Before any attempt starts, reeval builds this `install` layer on the sandbox image if it is missing, so every attempt has the CLI. For more information about adding a tool to the image, see [Add toolchains](/configuration/environments/toolchains).
+Before any trial starts, reeval builds this `install` layer on the sandbox image if it is missing, so every trial has the CLI. For more information about adding a tool to the image, see [Add toolchains](/configuration/environments/toolchains).
 
 The `project/orders.json` file has five orders, and two of them have a total over 100.
 
@@ -57,7 +57,7 @@ export default defineEval({
 })
 ```
 
-`c.exec` runs a command in the sandbox after `c.send` returns. The task confirms the image has `jq`, and throws an `EvalError`, which fails the attempt, when it doesn't. The task observes what the harness's script prints, and the `observed` grader compares it with the expected count. For more information about `c.exec` and graders, see [Assertions](/evaluations/grading/assertions).
+`c.exec` runs a command in the sandbox after `c.send` returns. The task confirms the image has `jq`, and throws an `EvalError`, which fails the trial, when it doesn't. The task observes what the harness's script prints, and the `observed` grader compares it with the expected count. For more information about `c.exec` and graders, see [Assertions](/evaluations/grading/assertions).
 
 To check the commands the harness ran during the turn, use the `ran` grader. For more information, see [Check what the agent did](/evaluations/grading/assertions#check-what-the-agent-did).
 
@@ -84,7 +84,7 @@ docker+0ab0e263 · cursor + install · 1 eval
   ✓ install 1 command  reeval-install:1d7d61958ab1a130  (ready: built (15642b46f47f))
 ```
 
-Any edit to the command list builds a new layer. Install commands never see secrets or the workspace; put per-attempt steps in the environment's `setup`. For more information, see [Run setup commands](/configuration/environments/setup-commands).
+Any edit to the command list builds a new layer. Install commands never see secrets or the workspace; put per-trial steps in the environment's `setup`. For more information, see [Run setup commands](/configuration/environments/setup-commands).
 
 </Step>
 </Steps>

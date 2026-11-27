@@ -1,7 +1,7 @@
 # with-concurrency
 
-**Shows:** running attempts in parallel. The agent adds `multiply(a, b)` to a small package, eight
-times. `concurrency: 4` in the config runs four attempts at once, and `--concurrency` (or
+**Shows:** running trials in parallel. The agent adds `multiply(a, b)` to a small package, eight
+times. `concurrency: 4` in the config runs four trials at once, and `--concurrency` (or
 `REEVAL_CONCURRENCY`) overrides it for one run, so you can compare wall times.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -18,7 +18,7 @@ pnpm eval
 [`fake-agent/`](./fake-agent) fixture into the workspace to mimic what an agent would produce, so the
 graders have something to grade; here each turn takes two seconds, as a stand-in for an agent's
 work. `pnpm eval --profile claude-code` runs the same eval on Claude Code, and `--profile <name>`
-on any other agent in [`examples/profiles.ts`](../profiles.ts). With a real agent each attempt is
+on any other agent in [`examples/profiles.ts`](../profiles.ts). With a real agent each trial is
 a Docker container, so the Docker VM's CPUs and memory bound how many help.
 
 **Copying it out of the repo:** `reeval.config.ts` imports `../profiles.ts`. Copy
@@ -33,14 +33,14 @@ REEVAL v0.31.0
   ➜  Run:       20261126T080738Z_…
   ➜  Agent:     fake
   ➜  Sandbox:   fake
-  ➜  Scope:     1 eval file · 1 eval · 1 cell · 8 attempts
+  ➜  Scope:     1 eval file · 1 eval · 1 cell · 8 trials
   ➜  Est. Time: ~2s (concurrency: 4) · ~8s (serial)
   ➜  Record:    .reeval/runs/20261126T080738Z_….json
 
   ◆  Running...
 
 with-concurrency.eval.ts
-  · with-concurrency  mean 100% · 8/8 runs at 100% (pass@8)  capability(1)
+  · with-concurrency  mean 100% · 8/8 trials at 100% (pass@8)  capability(1)
 
 Done in 12s · 1 eval · 1 report only
 ```
@@ -49,7 +49,7 @@ Done in 12s · 1 eval · 1 report only
 $ pnpm reeval run --concurrency 1
 …
 with-concurrency.eval.ts
-  · with-concurrency  mean 100% · 8/8 runs at 100% (pass@8)  capability(1)
+  · with-concurrency  mean 100% · 8/8 trials at 100% (pass@8)  capability(1)
 
 Done in 28s · 1 eval · 1 report only
 ```
@@ -61,4 +61,4 @@ Done in 28s · 1 eval · 1 report only
 | [`fake-agent/`](./fake-agent) | What the fake agent copies into the workspace |
 | [`reeval.config.ts`](./reeval.config.ts) | The slow fake agent, `concurrency`, and the real agents from `../profiles.ts` |
 
-How reeval schedules attempts, and its default, is in [Run evaluations](../../docs/evaluations/runs/running.mdx).
+How reeval schedules trials, and its default, is in [Run evaluations](../../docs/evaluations/runs/running.mdx).

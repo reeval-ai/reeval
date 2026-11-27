@@ -1,3 +1,3 @@
 import { defineEval } from 'reeval'
 
-export default defineEval({ runs: 3, task: async () => {} })
+export default defineEval({ trials: 3, task: async () => {} })

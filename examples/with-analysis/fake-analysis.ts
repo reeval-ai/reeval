@@ -6,7 +6,7 @@ type Digest = { facts: { id: string; kind: string; cells?: { pass: string }[] }[
 export function output(digest: Digest) {
   const pass = digest.facts.find((f) => f.kind === 'pass@1')
   const all = pass?.cells?.every((c) => c.pass.split('/')[0] === c.pass.split('/')[1])
-  const text = all ? 'The agent adds a tested multiply on every try.' : 'Some tries fail.'
+  const text = all ? 'The agent adds a tested multiply on every trial.' : 'Some trials fail.'
   return {
     tldr: text,
     whatHappened: [],
@@ -14,6 +14,6 @@ export function output(digest: Digest) {
     why: [],
     anomalies: [],
     actions: [],
-    confidence: { overall: 'medium', why: 'A few attempts, on a fake agent.' },
+    confidence: { overall: 'medium', why: 'A few trials, on a fake agent.' },
   }
 }

@@ -1,9 +1,9 @@
-no profile · 1 evals · 5 cells · 5 attempts
-e  claude-code:claude-sonnet-5[tools=bash+read][commands=d451cef4]/-/docker  control  gated any  ×1  effort medium
-   opencode:claude-sonnet-5[tools=bash+read][commands=d451cef4]/-/docker     control  gated any  ×1  effort medium
-   pi:claude-sonnet-5[tools=bash+read][commands=d451cef4]/-/docker           control  gated any  ×1  effort medium
-   codex:gpt-5.6-luna[systemPrompt=344070f0]/-/docker                        control  gated any  ×1  effort medium
-   goose:gemini-3.8-flash[instructions=f6f345ce]/-/docker                    control  gated any  ×1  effort medium
+no profile · 1 evals · 5 cells · 5 trials
+e  claude-code:claude-sonnet-5[tools=bash+read][commands=d451cef4]/-/docker  baseline  gated any  ×1  effort medium
+   opencode:claude-sonnet-5[tools=bash+read][commands=d451cef4]/-/docker     baseline  gated any  ×1  effort medium
+   pi:claude-sonnet-5[tools=bash+read][commands=d451cef4]/-/docker           baseline  gated any  ×1  effort medium
+   codex:gpt-5.6-luna[systemPrompt=344070f0]/-/docker                        baseline  gated any  ×1  effort medium
+   goose:gemini-3.8-flash[instructions=f6f345ce]/-/docker                    baseline  gated any  ×1  effort medium
 excluded: —
 image docker · claude-code · 1 evals
   base  reeval-sandbox:claude-code-1.0.176-patch.3b2ddb94  (reeval's image: pulled or built when missing or when its key changed)

@@ -24,7 +24,7 @@ graders have something to grade; its script then runs `npm test` as the agent, w
 [`profiles.ts`](../profiles.ts) into the example and import it from `./profiles.ts`, or inline the
 one profile you need.
 
-**What to look at:** `pnpm eval -v` traces the attempt: the agent's edits and its own `npm test`,
+**What to look at:** `pnpm eval -v` traces the trial: the agent's edits and its own `npm test`,
 then the eval's commands and grades:
 
 ```text

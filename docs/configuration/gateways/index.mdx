@@ -30,8 +30,8 @@ npx reeval run --dry-run
 ```
 
 ```text
-eval                 agents     variants  runs  attempts  notes
-evals/a.eval.ts › x  2          —         1     2         gateway: claude-code:claude-sonnet-5 → vercel · gateway: cursor:composer-2.5 → direct
+eval                 agents  variants  trials  total  notes
+evals/a.eval.ts › x  2       —         1       2      gateway: claude-code:claude-sonnet-5 → vercel · gateway: cursor:composer-2.5 → direct
 ```
 
 For a runnable project that also sends the judge through Vercel AI Gateway, see [`with-vercel-gateway`](https://github.com/reeval-ai/reeval/tree/main/examples/with-vercel-gateway).

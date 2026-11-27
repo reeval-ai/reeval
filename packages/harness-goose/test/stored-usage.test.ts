@@ -15,7 +15,7 @@ import {
 } from '../src/goose-usage.ts'
 
 type Row = Record<string, number | string | null>
-/** Goose 1.56.0's `usage_ledger`, captured from a two-turn attempt, with each turn's wire totals. */
+/** Goose 1.56.0's `usage_ledger`, captured from a two-turn trial, with each turn's wire totals. */
 const captured = JSON.parse(
   readFileSync(new URL('./fixtures/usage-ledger.json', import.meta.url), 'utf8'),
 ) as {

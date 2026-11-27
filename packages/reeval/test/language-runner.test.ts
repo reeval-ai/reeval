@@ -91,7 +91,7 @@ test('a JSON object on stdout that is no message is shown, not taken as one', as
     fakeRunner(`
       send({ t: 'hello', protocol: ${RUNNER_PROTOCOL}, sdk: 'fake', version: '1', runtime: 'node' })
       lines.on('line', () => {
-        send({ type: 'done', attempt: 'a#1' })
+        send({ type: 'done', trial: 'a#1' })
         send({ id: '1', call: 'exec', key: 'k' })
         send({ t: 'log', text: 'no stream' })
         send({ type: 'done', key: 'k' })
@@ -112,7 +112,7 @@ test('a message that is not JSON ends the session with an error instead of waiti
     fakeRunner(`
       send({ t: 'hello', protocol: ${RUNNER_PROTOCOL}, sdk: 'fake', version: '1', runtime: 'node' })
       lines.on('line', () => {
-        process.stdout.write('{"t": "declared", "file": "x", "tree": {"attempts": NaN}}\\n')
+        process.stdout.write('{"t": "declared", "file": "x", "tree": {"trials": NaN}}\\n')
         setInterval(() => {}, 1_000)
       })
     `),
@@ -143,7 +143,7 @@ test('a runner whose hello is not JSON says so', async () => {
 
 const noShebang = process.platform === 'win32' && "Windows can't start a script by its shebang"
 
-test('an attempt that starts after its runner has gone fails at once', {
+test('a trial that starts after its runner has gone fails at once', {
   skip: noShebang,
 }, async () => {
   const runner = `#!${process.execPath}
@@ -174,7 +174,7 @@ require('node:readline').createInterface({ input: process.stdin }).on('line', (l
     ['first', 'second'].map((name) => [
       name,
       'infra',
-      'The language runner stopped mid-attempt: it exited (code 3)',
+      'The language runner stopped mid-trial: it exited (code 3)',
     ]),
   )
 })
@@ -258,7 +258,7 @@ test('projectUsesUv is true when pyproject.toml or uv.lock exists', () => {
   assert.equal(projectUsesUv(root), true)
 })
 
-test('an AgentError the attempt host forwards comes back as one, so it records as infra', () => {
+test('an AgentError the trial host forwards comes back as one, so it records as infra', () => {
   const { name, message } = new AgentError('opencode takes no SSE MCP server')
   const back = errorFrom({ name, message })
   assert.ok(back instanceof AgentError)

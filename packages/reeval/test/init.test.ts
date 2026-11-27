@@ -107,7 +107,7 @@ describe('reeval init', () => {
     assert.equal(run.code, 0, run.stdout + run.stderr)
     assert.match(
       run.stdout,
-      /^evals\/greet\.eval\.ts\n└─ · greet {2}mean 100% · 1\/1 run at 100% \(pass@1\) {2}capability\(1\)$/m,
+      /^evals\/greet\.eval\.ts\n└─ · greet {2}mean 100% · 1\/1 trial at 100% \(pass@1\) {2}capability\(1\)$/m,
     )
   })
 

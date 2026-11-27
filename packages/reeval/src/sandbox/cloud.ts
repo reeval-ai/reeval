@@ -39,17 +39,17 @@ const TYPES: Record<CloudMachineSize, string> = {
 }
 
 /**
- * The spec under the service's layout: its machine type, reuse and attempts per machine, in place
- * of the eval's `size`, `reuse` and `attemptsPerMachine`. Null for a layout it can't read.
+ * The spec under the service's layout: its machine type, reuse and trials per machine, in place
+ * of the eval's `size`, `reuse` and `trialsPerMachine`. Null for a layout it can't read.
  */
 function cloudLayout(spec: VmSpec, layout: unknown): VmSpec | null {
-  const l = layout as { reuse?: unknown; attemptsPerMachine?: unknown; machineType?: unknown }
+  const l = layout as { reuse?: unknown; trialsPerMachine?: unknown; machineType?: unknown }
   if (
     !l ||
     typeof l !== 'object' ||
     typeof l.reuse !== 'boolean' ||
-    !Number.isInteger(l.attemptsPerMachine) ||
-    (l.attemptsPerMachine as number) < 1 ||
+    !Number.isInteger(l.trialsPerMachine) ||
+    (l.trialsPerMachine as number) < 1 ||
     typeof l.machineType !== 'string' ||
     !l.machineType
   ) {
@@ -62,7 +62,7 @@ function cloudLayout(spec: VmSpec, layout: unknown): VmSpec | null {
     type,
     size,
     reuse: l.reuse,
-    attemptsPerMachine: l.attemptsPerMachine as number,
+    trialsPerMachine: l.trialsPerMachine as number,
   }
 }
 
@@ -96,8 +96,8 @@ export const cloudSpec = (sandbox: CloudSandboxDescriptor): VmSpec => {
     size,
     ...(sandbox.maxConcurrent !== undefined && { maxConcurrent: sandbox.maxConcurrent }),
     ...(sandbox.reuse !== undefined && { reuse: sandbox.reuse }),
-    ...(sandbox.attemptsPerMachine !== undefined && {
-      attemptsPerMachine: sandbox.attemptsPerMachine,
+    ...(sandbox.trialsPerMachine !== undefined && {
+      trialsPerMachine: sandbox.trialsPerMachine,
     }),
   }
 }

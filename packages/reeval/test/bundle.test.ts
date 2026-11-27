@@ -161,7 +161,7 @@ const outcomes = (run: RunRecord) =>
     fingerprint: e.fingerprint,
     sources: e.sources,
     outcome: e.outcome,
-    attempts: e.attempts.map((a) => ({
+    trials: e.trials.map((a) => ({
       key: a.key,
       outcome: a.outcome,
       turns: a.turns.map((t) => [t.prompt, t.status, t.text]),
@@ -179,7 +179,7 @@ describe('reeval bundle', () => {
     file = join(tempDir('bundle-out'), 'project.tar.gz')
     const made = await runCli(dir, ['bundle', '--out', file])
     assert.equal(made.code, 0, made.stderr)
-    assert.match(made.stdout, /Bundled 5 files .* for 1 attempt/)
+    assert.match(made.stdout, /Bundled 5 files .* for 1 trial/)
     assert.match(made.stdout, /left out \.env \(CHECK_TOKEN\)/)
     entries = entriesOf(file)
   })
@@ -194,7 +194,7 @@ describe('reeval bundle', () => {
       'skills/guide/SKILL.md',
     ])
     const manifest = manifestOf(entries)
-    assert.equal(manifest.schemaVersion, 1)
+    assert.equal(manifest.schemaVersion, 2)
     assert.deepEqual(manifest.features, [
       'brokered-model-calls',
       'heartbeat',
@@ -237,13 +237,13 @@ describe('reeval bundle', () => {
     const extracted = /running .* in (\S+), where its \.reeval\/ stays/.exec(there.stdout)?.[1]
     assert.ok(extracted?.startsWith(tmp), there.stdout)
     assert.deepEqual(outcomes(readRun(extracted).run), outcomes(readRun(dir).run))
-    const [attempt] = outcomes(readRun(extracted).run)[0]?.attempts ?? []
-    assert.equal(attempt?.outcome, 'pass')
-    assert.deepEqual(attempt?.grades, [['answers-42', 1]])
+    const [trial] = outcomes(readRun(extracted).run)[0]?.trials ?? []
+    assert.equal(trial?.outcome, 'pass')
+    assert.deepEqual(trial?.grades, [['answers-42', 1]])
     assert.equal(readRun(extracted).run.git, null, 'a bundle made outside git records no commit')
   })
 
-  test('refuses a file that differs from its manifest, before any attempt', async () => {
+  test('refuses a file that differs from its manifest, before any trial', async () => {
     const tmp = extractRoot()
     const changed = entries.map((e) =>
       e.path === 'data/answer.txt' && e.type === 'file' ? { ...e, data: Buffer.from('41\n') } : e,
@@ -285,7 +285,7 @@ describe('reeval bundle', () => {
     })
     assert.equal(r.code, 2)
     assert.match(r.stderr, /doesn't plan here as it did where it was bundled, so nothing ran/)
-    assert.match(r.stderr, /plan: totals\.attempts:\n {6}bundled: 1\n {6}here: {4}2\n/)
+    assert.match(r.stderr, /plan: totals\.trials:\n {6}bundled: 1\n {6}here: {4}2\n/)
     assert.doesNotMatch(r.stdout, /Run:/)
   })
 
@@ -638,7 +638,7 @@ describe('reeval bundle', () => {
         phase: 'running',
         planned: 1,
         counts: { done: 0, passed: 0, failed: 0, errored: 0, skipped: 0, running: 0 },
-        attempts: [],
+        trials: [],
         invocation: run.invocation,
       })}\n`,
     )
@@ -659,9 +659,9 @@ describe('reeval bundle', () => {
     const after = readRun(resumed).run
     assert.equal(after.runId, run.runId)
     assert.equal(after.status, 'complete')
-    const [kept] = after.evals[0]?.attempts ?? []
+    const [kept] = after.evals[0]?.trials ?? []
     assert.equal(kept?.outcome, 'pass')
-    assert.equal(kept?.startedAt, run.evals[0]?.attempts[0]?.startedAt, 'the attempt was kept')
+    assert.equal(kept?.startedAt, run.evals[0]?.trials[0]?.startedAt, 'the trial was kept')
     assert.ok(!existsSync(join(state, stream)), 'the event stream moved too')
     assert.ok(!existsSync(staging))
     assert.ok(!existsSync(join(resumed, '.reeval', 'staging', run.runId)), 'assembled')
@@ -739,7 +739,7 @@ describe('reeval bundle', () => {
 
   test("--resume keeps a staged pass and the scratch record's, and runs the rest again", async () => {
     const three = join(tempDir('bundle-out'), 'three.tar.gz')
-    const made = await runCli(dir, ['bundle', '--runs', '3', '--out', three])
+    const made = await runCli(dir, ['bundle', '--trials', '3', '--out', three])
     assert.equal(made.code, 0, made.stderr)
     const tmp = extractRoot()
     const first = await runCli(tempDir('bundle-fresh'), ['run', '--bundle', three], {
@@ -749,13 +749,13 @@ describe('reeval bundle', () => {
     const extracted = /running .* in (\S+), where its \.reeval\/ stays/.exec(first.stdout)?.[1]
     assert.ok(extracted, first.stdout)
     const { run } = readRun(extracted)
-    const [one, two, rest] = run.evals[0]?.attempts ?? []
+    const [one, two, rest] = run.evals[0]?.trials ?? []
     assert.ok(one && two && rest)
-    // The scratch record holds attempt 1, the staging attempt 2, and nothing holds attempt 3.
+    // The scratch record holds trial 1, the staging trial 2, and nothing holds trial 3.
     const state = tempDir('bundle-state')
     const runs = join(state, '.reeval', 'runs')
     mkdirSync(runs, { recursive: true })
-    const evals = run.evals.map((e) => ({ ...e, attempts: e.attempts.slice(0, 1) }))
+    const evals = run.evals.map((e) => ({ ...e, trials: e.trials.slice(0, 1) }))
     writeFileSync(
       join(runs, `${run.runId}.json`),
       JSON.stringify({ ...run, status: 'interrupted', evals }),
@@ -788,14 +788,14 @@ describe('reeval bundle', () => {
     assert.ok(resumed, r.stdout)
     const after = readRun(resumed).run
     assert.equal(after.status, 'complete')
-    const attempts = after.evals[0]?.attempts ?? []
+    const trials = after.evals[0]?.trials ?? []
     assert.deepEqual(
-      attempts.map((a) => a.outcome),
+      trials.map((a) => a.outcome),
       ['pass', 'pass', 'pass'],
     )
-    assert.equal(attempts[0]?.startedAt, one.startedAt, "the scratch record's pass is kept")
-    assert.equal(attempts[1]?.startedAt, two.startedAt, 'the staged pass is kept')
-    assert.notEqual(attempts[2]?.startedAt, rest.startedAt, 'attempt 3 ran again')
+    assert.equal(trials[0]?.startedAt, one.startedAt, "the scratch record's pass is kept")
+    assert.equal(trials[1]?.startedAt, two.startedAt, 'the staged pass is kept')
+    assert.notEqual(trials[2]?.startedAt, rest.startedAt, 'trial 3 ran again')
     assert.match(readFileSync(events, 'utf8'), /"resumed":2/)
   })
 
@@ -1065,9 +1065,9 @@ describe('symbolic links in a skill folder', () => {
 })
 
 describe("a bundle's plan where it runs", () => {
-  const cell = (effort: string | null) => ({ harness: 'cursor:composer-2.5', effort, runs: 1 })
+  const cell = (effort: string | null) => ({ harness: 'cursor:composer-2.5', effort, trials: 1 })
   const plan = (notes: string[], effort: string | null = null, more: string[] = []) => ({
-    totals: { evals: 1, attempts: 1 },
+    totals: { evals: 1, trials: 1 },
     evals: [{ id: 'e', notes: [...notes, ...more], cells: [cell(effort)] }],
   })
   const manifest = (p: ReturnType<typeof plan>) => ({ project: '', plan: p }) as BundleManifest

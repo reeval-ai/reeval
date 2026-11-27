@@ -25,7 +25,7 @@ in [`examples/profiles.ts`](../profiles.ts).
 one profile you need.
 
 **What to look at:** the grade lines in `pnpm eval -v`. The judge sees only the stored run of
-`node summary.js`, its exit code and output, which the attempt's `execs.jsonl` also keeps:
+`node summary.js`, its exit code and output, which the trial's `execs.jsonl` also keeps:
 
 ```text
 [judge#1 fake] 08:06:26 check     grade succeeded:node summary.js score 1 (4ms)

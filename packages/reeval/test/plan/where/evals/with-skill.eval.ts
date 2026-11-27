@@ -17,9 +17,9 @@ const fits = ({
   environment: { traits: { stack?: unknown } }
 }) => q.stacks.includes(environment.traits.stack as string)
 
-// The control's answer holds for its variant: q3 runs on neither arm.
+// The baseline's answer holds for its variant: q3 runs on neither environment.
 export default defineEval({
-  compare: { control: next, variants: [skilled] },
+  compare: { baseline: next, variants: [skilled] },
   cases: questions,
   where: fits,
   task: async () => {},

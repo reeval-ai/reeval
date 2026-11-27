@@ -6,5 +6,5 @@ export default defineConfig({
   agents: fakeAgent(),
   sandbox: fakeSandbox(),
   cloud: true,
-  profiles: { here: { cloud: false }, there: { defaults: { runs: 2 } } },
+  profiles: { here: { cloud: false }, there: { defaults: { trials: 2 } } },
 })

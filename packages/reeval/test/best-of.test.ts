@@ -1,5 +1,5 @@
-// `runs: { bestOf }` in the worker (src/best-of.ts): which side each attempt counts on, when a
-// cell stops, and that a cell's later attempts wait for its earlier ones while other cells run.
+// `trials: { bestOf }` in the worker (src/best-of.ts): which side each trial counts on, when a
+// cell stops, and that a cell's later trials wait for its earlier ones while other cells run.
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import { bestOfCell, sideOf, undecided } from '../src/best-of.ts'
@@ -12,7 +12,7 @@ import { tempDir } from './helpers.ts'
 const meta = (outcome: string) => ({ outcome }) as unknown as EvalMeta
 
 describe('best of', () => {
-  test("an attempt counts on its record's side, else its state's; an infra error on neither", () => {
+  test("a trial counts on its record's side, else its state's; an infra error on neither", () => {
     assert.equal(sideOf({ state: 'passed' }), 'pass')
     assert.equal(sideOf({ state: 'failed' }), 'fail')
     assert.equal(sideOf({ state: 'skipped' }), null)
@@ -29,7 +29,7 @@ describe('best of', () => {
     assert.equal(undecided(['pass', null, 'fail'], 5), true)
   })
 
-  test('only the attempts past the majority wait, and each runs while the cell is undecided', async () => {
+  test('only the trials past the majority wait, and each runs while the cell is undecided', async () => {
     const cell = bestOfCell(5)
     assert.equal(cell(1).ready, undefined)
     assert.equal(cell(3).ready, undefined)
@@ -49,7 +49,7 @@ describe('best of', () => {
     assert.equal(await third, false)
   })
 
-  test("a cell's later attempt starts after its earlier ones settle, while another cell runs", async () => {
+  test("a cell's later trial starts after its earlier ones settle, while another cell runs", async () => {
     const order: string[] = []
     const gates: Record<string, () => void> = {}
     const body = (name: string, pass: boolean) => async (h: TestHandle) => {

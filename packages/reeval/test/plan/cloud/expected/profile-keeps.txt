@@ -1,4 +1,4 @@
-profile there (--profile) · 1 evals · 1 cells · 2 attempts
-a  fake/-/fake  control  gated any  ×2
+profile there (--profile) · 1 evals · 1 cells · 2 trials
+a  fake/-/fake  baseline  gated any  ×2
 excluded: —
 target cloud

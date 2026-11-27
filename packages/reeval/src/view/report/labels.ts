@@ -18,7 +18,7 @@ export const VERDICT_LABEL = {
   helped: 'Helped',
   'made-worse': 'Made worse',
   'within-noise': 'Within noise',
-  'too-few-runs': 'Too few runs',
+  'too-few-trials': 'Too few trials',
   fewer: 'Fewer',
   more: 'More',
 } as const

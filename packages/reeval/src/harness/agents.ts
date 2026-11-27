@@ -132,7 +132,7 @@ export const isAgentKind = (kind: unknown): kind is AgentKind =>
 
 /**
  * A server as the plan knows it: its names, literal values and each `secret.template`'s text. A
- * host secret's value is read when the attempt starts, so the plan has it as `''`.
+ * host secret's value is read when the trial starts, so the plan has it as `''`.
  */
 function plannedMcpServer(s: McpServer): ResolvedMcpServer {
   const literal = (values: Record<string, string | Secret | SecretTemplate>) =>
@@ -150,7 +150,7 @@ function plannedMcpServer(s: McpServer): ResolvedMcpServer {
 /**
  * Why a harness's agent can't take the environment's MCP servers (Goose, OpenCode, pi and Codex
  * take no `mcp.sse`; OpenCode would substitute a `{env:…}` or `{file:…}` in a name or value), in the
- * agent's own words, so the plan refuses them before any attempt starts; undefined when it can.
+ * agent's own words, so the plan refuses them before any trial starts; undefined when it can.
  */
 export function refusedMcp(
   harness: HarnessDescriptor,
@@ -174,7 +174,7 @@ export function refusedMcp(
 }
 
 /**
- * Why a harness's agent can't share a machine with `slots - 1` other attempts: its bridge takes
+ * Why a harness's agent can't share a machine with `slots - 1` other trials: its bridge takes
  * the one port every session exposes. Undefined when it can.
  */
 export function refusedSharedMachine(
@@ -188,7 +188,7 @@ export function refusedSharedMachine(
       ? (harness.layout ?? 'cursor')
       : undefined
   if (!kind || !AGENTS[kind].bridgePort) return undefined
-  return `${kind}'s bridge listens on a fixed port in the machine, so it runs one attempt per machine: set attemptsPerMachine: 1 for it (got ${slots})`
+  return `${kind}'s bridge listens on a fixed port in the machine, so it runs one trial per machine: set trialsPerMachine: 1 for it (got ${slots})`
 }
 
 /** The first host variable a plugin MCP server reads (`${VAR}`), as `VAR`; undefined for none. */
@@ -376,7 +376,7 @@ export function refusedPlugins(
 
 /**
  * A real agent's catalog entry, with what its model's provider decides, or its gateway's route:
- * on Vertex, the attempt's `vertex()` settings decide the project and region.
+ * on Vertex, the trial's `vertex()` settings decide the project and region.
  */
 export function agentFor(h: AgentHarnessDescriptor, vertex?: VertexSettings): Agent {
   const agent = AGENTS[h.kind]
@@ -428,7 +428,7 @@ export function layoutOf(descriptor: HarnessDescriptor): Layout {
 
 /**
  * The hosts a harness's agent is known to try in a session with or without plugins; a fake agent
- * with `layout` expects that agent's. On Vertex, the attempt's `vertex()` settings pick the route.
+ * with `layout` expects that agent's. On Vertex, the trial's `vertex()` settings pick the route.
  */
 export function expectedBlockedFor(
   descriptor: HarnessDescriptor,

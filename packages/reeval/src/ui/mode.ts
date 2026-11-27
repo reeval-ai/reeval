@@ -4,10 +4,10 @@ import { UsageError } from '../config.ts'
 import { isOneOf } from '../object.ts'
 
 export type UiMode = 'plain' | 'agent'
-/** `stream` prints every line as it happens; `grouped` prints each attempt as one block. */
+/** `stream` prints every line as it happens; `grouped` prints each trial as one block. */
 export type LogOrder = 'stream' | 'grouped'
 export type LogPrefix = 'task' | 'none'
-/** Which attempts get their detail lines: all, failing ones only, or none. */
+/** Which trials get their detail lines: all, failing ones only, or none. */
 export type OutputLogs = 'full' | 'errors-only' | 'none'
 
 export type OutputOptions = {
@@ -16,7 +16,7 @@ export type OutputOptions = {
   statusLine: boolean
   /**
    * The status list you can browse with the arrow keys, during the run and after it: where the
-   * status line would be, with a TTY to read keys from and no attempt logs asked for.
+   * status line would be, with a TTY to read keys from and no trial logs asked for.
    */
   interactive: boolean
   logOrder: LogOrder
@@ -118,7 +118,7 @@ export function resolveOutput(input: {
   ] as const)
   const logOrder: LogOrder = order && order !== 'auto' ? order : ci ? 'grouped' : 'stream'
 
-  // As in Turborepo, GitHub Actions' group headers name the attempt, so lines inside drop it.
+  // As in Turborepo, GitHub Actions' group headers name the trial, so lines inside drop it.
   const prefix = pick('--log-prefix', flags.logPrefix ?? env.REEVAL_LOG_PREFIX, [
     'task',
     'none',
@@ -131,7 +131,7 @@ export function resolveOutput(input: {
     'errors-only',
     'none',
   ] as const)
-  // The status list at the end says how each eval went, so attempt logs print only when asked for.
+  // The status list at the end says how each eval went, so trial logs print only when asked for.
   const outputLogs: OutputLogs = logs && logs !== 'auto' ? logs : flags.verbose ? 'full' : 'none'
 
   // GitHub Actions renders ANSI color even though stdout isn't a TTY.

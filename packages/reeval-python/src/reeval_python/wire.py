@@ -1,4 +1,4 @@
-"""Map public Python values to attempt-protocol wire shapes (internal)."""
+"""Map public Python values to trial-protocol wire shapes (internal)."""
 
 from __future__ import annotations
 

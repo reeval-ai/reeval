@@ -268,16 +268,16 @@ describe('linuxShell', () => {
   })
 
   test("a command without a signal of its own stops on the session's", async () => {
-    const attempt = new AbortController()
+    const trial = new AbortController()
     const own = new AbortController()
     const { calls, run } = recorder()
-    const s = session(linux(run, attempt.signal))
+    const s = session(linux(run, trial.signal))
     await s.run({ command: 'a' })
     await s.run({ command: 'b', abortSignal: own.signal })
     await s.readTextFile({ path: 'f' })
     assert.deepEqual(
       calls.map((c) => c.signal),
-      [attempt.signal, own.signal, attempt.signal],
+      [trial.signal, own.signal, trial.signal],
     )
   })
 })

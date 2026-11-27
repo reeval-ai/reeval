@@ -16,7 +16,7 @@ type Ctx = {
 const EXAMPLES = [
   'reeval query lift',
   `reeval query "SELECT eval_key, variant, points, lo, hi FROM lift WHERE within_noise = 0"`,
-  `reeval query "SELECT * FROM failing_attempts WHERE skill = 'house-greeting' AND model LIKE 'composer%'"`,
+  `reeval query "SELECT * FROM failing_trials WHERE skill = 'house-greeting' AND model LIKE 'composer%'"`,
   `reeval query "SELECT eval_key, cell_key, first_seen, flaky_runs FROM flaky_cells"`,
   `reeval query "SELECT run_id, eval_key, changed FROM drift ORDER BY run_id DESC LIMIT 20"`,
   `reeval query "SELECT eval_key, outcome FROM evals WHERE run_id = :run" --run last`,
@@ -123,7 +123,7 @@ const FROM_TRAJECTORIES = [
 ]
 
 /**
- * A note when `sql` reads a view or table built from trajectories and some attempts that made tool
+ * A note when `sql` reads a view or table built from trajectories and some trials that made tool
  * calls (in `run`, when given) have none recorded, so they're missing from it rather than idle.
  */
 function trajectoryCoverage(db: HistoryDb, sql: string, run?: string): string | undefined {
@@ -131,14 +131,14 @@ function trajectoryCoverage(db: HistoryDb, sql: string, run?: string): string | 
   if (!names.length) return undefined
   const [row] = db.query(
     `SELECT COUNT(*) AS called, COALESCE(SUM(EXISTS (SELECT 1 FROM tool_calls t
-      WHERE t.run_id = a.run_id AND t.attempt_key = a.key)), 0) AS read
-    FROM attempts a WHERE a.tools > 0${run === undefined ? '' : ' AND a.run_id = ?'}`,
+      WHERE t.run_id = a.run_id AND t.trial_key = a.key)), 0) AS read
+    FROM trials a WHERE a.tools > 0${run === undefined ? '' : ' AND a.run_id = ?'}`,
     run === undefined ? [] : [run],
   ).rows
   const called = Number(row?.called ?? 0)
   const read = Number(row?.read ?? 0)
   if (read === called) return undefined
-  return `note: ${names.join(', ')} ${names.length === 1 ? 'covers' : 'cover'} ${read} of the ${called} attempts that made tool calls; the others have no trajectory to read. A run recorded below history.artifacts: 'all' keeps none for a passing attempt ('evidence', the default, keeps them for failed ones only).`
+  return `note: ${names.join(', ')} ${names.length === 1 ? 'covers' : 'cover'} ${read} of the ${called} trials that made tool calls; the others have no trajectory to read. A run recorded below history.artifacts: 'all' keeps none for a passing trial ('evidence', the default, keeps them for failed ones only).`
 }
 
 /** The run id `ref` names in history.db: `last` (or `latest`) by started_at, an id or a unique prefix. */

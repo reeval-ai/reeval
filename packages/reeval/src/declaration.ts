@@ -20,7 +20,7 @@ export type DeclaredGroup = {
   children: DeclaredNode[]
 }
 
-/** An `evaluate`: one eval, planned into a test per attempt. */
+/** An `evaluate`: one eval, planned into a test per trial. */
 export type DeclaredEval = {
   type: 'eval'
   /** The eval's name, as passed to `evaluate` (a case's, for an eval with `cases`). */
@@ -33,7 +33,7 @@ export type DeclaredEval = {
   source: DeclaredSource
   /** Set on each case of an eval with `cases`: its template, index and the list's length. */
   family?: DeclaredFamily
-  /** `reeval/graders`' built-ins the eval grades each attempt with, as data. */
+  /** `reeval/graders`' built-ins the eval grades each trial with, as data. */
   graders?: BuiltinGraderData[]
 }
 

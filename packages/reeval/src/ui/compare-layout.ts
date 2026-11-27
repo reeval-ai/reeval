@@ -241,7 +241,7 @@ type CheckState = 'pass' | 'fail' | 'not run'
 
 /**
  * A check's state in one cell. A comparable eval runs the same checks on both sides, so a check
- * the cell never recorded is one no attempt reached: not run, never a failure.
+ * the cell never recorded is one no trial reached: not run, never a failure.
  */
 function stateOf(k: CheckResult | undefined): CheckState {
   if (!k || k.outcome.status === 'not run') return 'not run'
@@ -337,7 +337,7 @@ function flips(
   }
   const label = labeler(
     pairs.map(([, h]) => h),
-    ['harness', 'arm', 'sandbox'],
+    ['harness', 'environment', 'sandbox'],
   )
   return pairs.flatMap(([b, h]) => {
     const items = rows(b, h, 4)
@@ -352,7 +352,7 @@ const idRow = (c: Colors, side: 'base' | 'head', id: string, outcome?: Shown | n
 
 /**
  * `gate  passRate 0.5 → all  base would fail under it`: a changed gate, and base's outcome with
- * its recorded attempts scored under head's gate.
+ * its recorded trials scored under head's gate.
  */
 function gateRows(c: Colors, row: CompareRow): Item[] {
   if (!row.gate) return []

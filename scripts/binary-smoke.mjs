@@ -137,7 +137,7 @@ if (values.docker) {
   check('reeval image build', image.status === 0)
   const r = reeval(fixture, ['run'], env)
   check(
-    'a Docker attempt behind the gateway',
+    'a Docker trial behind the gateway',
     r.status === 1 && outcome(r) === '2 evals · 1 on target · 1 below',
   )
 }

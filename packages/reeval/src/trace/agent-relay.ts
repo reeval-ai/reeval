@@ -1,5 +1,5 @@
 // The agent export's side in the run's main process: each worker's agent spans go on to the
-// export, and an attempt whose worker exits before it ends gets its agent span, ended as an error,
+// export, and a trial whose worker exits before it ends gets its agent span, ended as an error,
 // so the turns it already sent have a parent.
 import type { AgentSpan } from './agent-spans.ts'
 
@@ -22,7 +22,7 @@ export function agentRelay(send: (span: AgentSpan) => void, canceled: () => bool
       const held = open.get(owner)
       open.delete(owner)
       if (!exit) return
-      // A cancel's attempt is a failure the run caused, as its record says, not an infra error.
+      // A cancel's trial is a failure the run caused, as its record says, not an infra error.
       const stopped = canceled()
       for (const span of held?.values() ?? []) {
         send({
@@ -37,7 +37,7 @@ export function agentRelay(send: (span: AgentSpan) => void, canceled: () => bool
             code: 'error',
             message: stopped
               ? `The run was canceled (the engine worker exited: ${exit})`
-              : `The engine worker exited before the attempt ended (${exit})`,
+              : `The engine worker exited before the trial ended (${exit})`,
           },
         })
       }

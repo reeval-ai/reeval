@@ -18,14 +18,14 @@ import { UsageError } from '../src/errors.ts'
 import { fileEvalId } from '../src/eval-id.ts'
 import { unfoldCases } from '../src/history/cases.ts'
 import type {
-  AttemptRecord,
   CellRecord,
   EvalEntry,
   RunInvocation,
   RunRecord,
+  TrialRecord,
 } from '../src/history/types.ts'
 import { RefError } from '../src/history/views.ts'
-import { attemptKey, recordFileName } from '../src/ids.ts'
+import { recordFileName, trialKey } from '../src/ids.ts'
 
 const INCLUDE = ['evals/**/*.eval.ts', 'evals/**/*.eval.py'] as const
 const evalKey = (file: string) => fileEvalId(INCLUDE, file)
@@ -33,9 +33,9 @@ const evalKey = (file: string) => fileEvalId(INCLUDE, file)
 import {
   completedKeysFor,
   HOLDER_FILE,
-  isCompletedAttempt,
-  isKeptAttempt,
-  keptAttempts,
+  isCompletedTrial,
+  isKeptTrial,
+  keptTrials,
   noteRetries,
   prepareResume,
   readCurrent,
@@ -80,25 +80,25 @@ function writeLiveStaging(
       phase: 'running',
       planned: 0,
       counts: { done: 0, passed: 0, failed: 0, errored: 0, skipped: 0, running: 0 },
-      attempts: [],
+      trials: [],
     })}\n`,
   )
 }
 
-describe('isCompletedAttempt', () => {
+describe('isCompletedTrial', () => {
   test('pass, fail and infra count; skipped and aborted do not', () => {
-    assert.equal(isCompletedAttempt('pass', null), true)
-    assert.equal(isCompletedAttempt('fail', null), true)
-    assert.equal(isCompletedAttempt('infra_error', { kind: 'infra' }), true)
-    assert.equal(isCompletedAttempt('skipped', null), false)
-    assert.equal(isCompletedAttempt('fail', { kind: 'aborted' }), false)
+    assert.equal(isCompletedTrial('pass', null), true)
+    assert.equal(isCompletedTrial('fail', null), true)
+    assert.equal(isCompletedTrial('infra_error', { kind: 'infra' }), true)
+    assert.equal(isCompletedTrial('skipped', null), false)
+    assert.equal(isCompletedTrial('fail', { kind: 'aborted' }), false)
   })
 
   test('a resume keeps a pass or a fail, and runs an infra error again', () => {
-    assert.equal(isKeptAttempt('pass', null), true)
-    assert.equal(isKeptAttempt('fail', null), true)
-    assert.equal(isKeptAttempt('infra_error', { kind: 'infra' }), false)
-    assert.equal(isKeptAttempt('fail', { kind: 'aborted' }), false)
+    assert.equal(isKeptTrial('pass', null), true)
+    assert.equal(isKeptTrial('fail', null), true)
+    assert.equal(isKeptTrial('infra_error', { kind: 'infra' }), false)
+    assert.equal(isKeptTrial('fail', { kind: 'aborted' }), false)
   })
 })
 
@@ -267,10 +267,10 @@ describe('resolveResume', () => {
 })
 
 describe('retryCounts', () => {
-  const record = (attempts: Array<Partial<AttemptRecord>>) =>
-    ({ evals: [{ attempts }] }) as unknown as RunRecord
+  const record = (trials: Array<Partial<TrialRecord>>) =>
+    ({ evals: [{ trials }] }) as unknown as RunRecord
   const down = { kind: 'infra', message: 'down' }
-  test('an attempt a cancel stopped or aborted counts as not finished, not as an error', () => {
+  test('a trial a cancel stopped or aborted counts as not finished, not as an error', () => {
     const before = record([
       { key: 'a', outcome: 'infra_error', error: down, startedAt: 't0' },
       { key: 'b', outcome: 'infra_error', error: down, startedAt: 't0' },
@@ -292,13 +292,13 @@ describe('retryCounts', () => {
     assert.deepEqual(counts, { retried: 4, skipped: 2, infra_error: 1, pass: 1 })
     assert.equal(
       retryLine(counts),
-      "retried 4 errored attempts: 1 now passes, 0 fail, 1 still errors, 2 didn't finish",
+      "retried 4 errored trials: 1 now passes, 0 fail, 1 still errors, 2 didn't finish",
     )
   })
 })
 
 describe('noteRetries', () => {
-  test("keeps each errored attempt's earlier errors once, from staging and the record", async () => {
+  test("keeps each errored trial's earlier errors once, from staging and the record", async () => {
     const p = await project('retry-note', { 'reeval.config.ts': fakeConfig() })
     const staging = writeStoppedStaging(p.dir, SEEDED_RUN_ID)
     const key = `${evalKey('evals/done.eval.ts')} # fake/-/docker#1`
@@ -306,7 +306,7 @@ describe('noteRetries', () => {
     const previous = {
       evals: [
         {
-          attempts: [
+          trials: [
             {
               key,
               outcome: 'infra_error',
@@ -345,7 +345,7 @@ describe('noteRetries', () => {
 describe('completedKeysFor and prepareResume', () => {
   test('reads completed keys from leftover staging', async () => {
     const p = await project('resume-keys', { 'reeval.config.ts': fakeConfig() })
-    const key = attemptKey(evalKey('evals/done.eval.ts'), 'fake/-/docker', 1)
+    const key = trialKey(evalKey('evals/done.eval.ts'), 'fake/-/docker', 1)
     writeStoppedStaging(p.dir, SEEDED_RUN_ID, [
       { file: 'evals/done.eval.ts', cell: 'fake/-/docker' },
     ])
@@ -356,10 +356,10 @@ describe('completedKeysFor and prepareResume', () => {
     assert.deepEqual([...keys], [key])
   })
 
-  test('keptAttempts: the previous assemble wins, else the staged record without a duration', async () => {
+  test('keptTrials: the previous assemble wins, else the staged record without a duration', async () => {
     const p = await project('resume-kept', { 'reeval.config.ts': fakeConfig() })
-    const staged = attemptKey(evalKey('evals/staged.eval.ts'), 'fake/-/docker', 1)
-    const both = attemptKey(evalKey('evals/both.eval.ts'), 'fake/-/docker', 1)
+    const staged = trialKey(evalKey('evals/staged.eval.ts'), 'fake/-/docker', 1)
+    const both = trialKey(evalKey('evals/both.eval.ts'), 'fake/-/docker', 1)
     const staging = writeStoppedStaging(p.dir, SEEDED_RUN_ID, [
       { file: 'evals/staged.eval.ts', cell: 'fake/-/docker' },
       { file: 'evals/both.eval.ts', cell: 'fake/-/docker' },
@@ -367,14 +367,14 @@ describe('completedKeysFor and prepareResume', () => {
     const previous = {
       evals: [
         {
-          attempts: [
+          trials: [
             { key: both, outcome: 'fail', error: null, startedAt: null, durationMs: 42 },
             { key: 'aborted', outcome: 'fail', error: { kind: 'aborted' }, durationMs: 1 },
           ],
         },
       ],
     } as unknown as RunRecord
-    const kept = keptAttempts([staged, both, 'aborted', 'missing'], staging, previous)
+    const kept = keptTrials([staged, both, 'aborted', 'missing'], staging, previous)
     assert.deepEqual(Object.fromEntries(kept), {
       [staged]: { outcome: 'pass', startedAt: '2026-01-01T00:00:00.000Z', durationMs: null },
       [both]: { outcome: 'fail', startedAt: null, durationMs: 42 },
@@ -444,7 +444,7 @@ describe('completedKeysFor and prepareResume', () => {
 })
 
 describe('reeval run --resume', () => {
-  test('reuses the leftover id, skips a completed attempt and runs the rest', async () => {
+  test('reuses the leftover id, skips a completed trial and runs the rest', async () => {
     const p = await project('resume-run', twoEvals)
     writeStoppedStaging(p.dir, SEEDED_RUN_ID, [
       { file: 'evals/done.eval.ts', cell: 'fake/fake/fake' },
@@ -458,13 +458,13 @@ describe('reeval run --resume', () => {
     const done = run.evals.find((e) => e.name === 'done')
     const leftover = run.evals.find((e) => e.name === 'leftover')
     assert.equal(done?.outcome, 'pass')
-    assert.equal(done?.attempts[0]?.startedAt, '2026-01-01T00:00:00.000Z')
+    assert.equal(done?.trials[0]?.startedAt, '2026-01-01T00:00:00.000Z')
     assert.equal(leftover?.outcome, 'pass')
-    assert.notEqual(leftover?.attempts[0]?.startedAt, '2026-01-01T00:00:00.000Z')
+    assert.notEqual(leftover?.trials[0]?.startedAt, '2026-01-01T00:00:00.000Z')
     assert.equal(readCurrent(p.dir), SEEDED_RUN_ID)
   })
 
-  test('a completed attempt keeps its outcome when the file fails to load for the rest', async () => {
+  test('a completed trial keeps its outcome when the file fails to load for the rest', async () => {
     const p = await project('resume-load-error', {
       'reeval.config.ts': fakeConfig(),
       'evals/done.eval.ts': `import { defineEval } from 'reeval'
@@ -484,7 +484,7 @@ export default defineEval({ async task() {} })
     const r = await runCli(p.dir, ['run', '--resume', SEEDED_RUN_ID, '--ui', 'plain'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
     assert.deepEqual(
-      readRun(p.dir).run.evals.map((e) => [e.name, e.outcome, e.attempts[0]?.error?.message]),
+      readRun(p.dir).run.evals.map((e) => [e.name, e.outcome, e.trials[0]?.error?.message]),
       [
         ['done', 'pass', undefined],
         ['leftover', 'fail', 'fixture service unavailable'],
@@ -492,7 +492,7 @@ export default defineEval({ async task() {} })
     )
   })
 
-  test("keeps a kept attempt's capture and the page facts beside it", async () => {
+  test("keeps a kept trial's capture and the page facts beside it", async () => {
     const server = `require('node:http')
   .createServer((_, res) => {
     res.writeHead(404, { 'content-type': 'text/html' })
@@ -520,7 +520,7 @@ export default defineEval({
     const r = await runCli(p.dir, ['run', '--resume', run.runId, '--ui', 'plain'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const resumed = readRun(p.dir)
-    const art = resumed.run.evals[0]?.attempts[0]?.files.artifacts?.[0]
+    const art = resumed.run.evals[0]?.trials[0]?.files.artifacts?.[0]
     assert.equal(art?.name, 'home')
     assert.equal(art?.capture?.status, 404)
     const page = art?.capture?.page
@@ -658,7 +658,7 @@ describe('the staging sweep', () => {
     const { run } = readRun(p.dir, { back: 1 })
     assert.equal(run.runId, SEEDED_RUN_ID)
     const kept = run.evals.find((e) => e.name === 'done')
-    assert.equal(kept?.attempts[0]?.startedAt, '2026-01-01T00:00:00.000Z')
+    assert.equal(kept?.trials[0]?.startedAt, '2026-01-01T00:00:00.000Z')
   })
 
   test('--dry-run sweeps nothing, even staging no run can resume', async () => {
@@ -695,7 +695,7 @@ describe('reeval run --resume keeps how the run was started', () => {
   const evals = {
     'reeval.config.ts': fakeConfig(),
     'evals/one.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ runs: 2, async task() {} })
+export default defineEval({ trials: 2, async task() {} })
 `,
     'evals/two.eval.ts': `import { defineEval } from 'reeval'
 export default defineEval({ async task() {} })
@@ -713,7 +713,7 @@ export default defineEval({ async task() {} })
   type Plan = {
     concurrency: number
     warnings: string[]
-    totals: { evals: number; attempts: number }
+    totals: { evals: number; trials: number }
   }
   const dryPlan = async (dir: string, args: string[] = []) => {
     const r = await runCli(dir, ['run', '--resume', SEEDED_RUN_ID, ...args, '--dry-run', '--json'])
@@ -721,14 +721,14 @@ export default defineEval({ async task() {} })
     return JSON.parse(r.stdout) as Plan
   }
 
-  test('an interrupted record finishes at the --runs and --concurrency it started with', async () => {
+  test('an interrupted record finishes at the --trials and --concurrency it started with', async () => {
     const p = await project('resume-runs', evals)
-    const first = await runCli(p.dir, ['run', 'one', '--runs', '3', '--concurrency', '2'])
+    const first = await runCli(p.dir, ['run', 'one', '--trials', '3', '--concurrency', '2'])
     assert.equal(first.code, 0, first.stdout + first.stderr)
     const { run } = readRun(p.dir)
-    assert.deepEqual(run.invocation, { runs: 3, concurrency: 2, filters: ['one'], tags: [] })
+    assert.deepEqual(run.invocation, { trials: 3, concurrency: 2, filters: ['one'], tags: [] })
     for (const e of run.evals) {
-      e.attempts = e.attempts.map((a) => (a.n > 1 ? { ...a, outcome: 'skipped', error: null } : a))
+      e.trials = e.trials.map((a) => (a.n > 1 ? { ...a, outcome: 'skipped', error: null } : a))
     }
     const scratch = join(p.dir, '.reeval', 'runs', `${run.runId}.json`)
     writeFileSync(scratch, JSON.stringify({ ...run, status: 'interrupted' }))
@@ -737,7 +737,7 @@ export default defineEval({ async task() {} })
     const resumed = readRun(p.dir).run
     assert.equal(resumed.runId, run.runId)
     assert.deepEqual(
-      resumed.evals.map((e) => [e.name, e.attempts.map((a) => a.outcome)]),
+      resumed.evals.map((e) => [e.name, e.trials.map((a) => a.outcome)]),
       [['one', ['pass', 'pass', 'pass']]],
     )
     assert.equal(resumed.config.concurrency, 2)
@@ -746,30 +746,30 @@ export default defineEval({ async task() {} })
 
   test('a quit without a record plans from its progress file', async () => {
     const p = await project('resume-quit-settings', evals)
-    quitStaging(p.dir, { runs: 2, concurrency: 3, filters: ['two'], tags: [] })
+    quitStaging(p.dir, { trials: 2, concurrency: 3, filters: ['two'], tags: [] })
     const plan = await dryPlan(p.dir)
     assert.equal(plan.totals.evals, 1)
-    assert.equal(plan.totals.attempts, 2)
+    assert.equal(plan.totals.trials, 2)
     assert.equal(plan.concurrency, 3)
   })
 
-  test('another --runs or profile is refused, naming what the run started with', async () => {
+  test('another --trials or profile is refused, naming what the run started with', async () => {
     const p = await project('resume-conflict', evals)
-    quitStaging(p.dir, { runs: 2, filters: [], tags: [] })
-    const runs = await runCli(p.dir, ['run', '--resume', SEEDED_RUN_ID, '--runs', '1'])
+    quitStaging(p.dir, { trials: 2, filters: [], tags: [] })
+    const runs = await runCli(p.dir, ['run', '--resume', SEEDED_RUN_ID, '--trials', '1'])
     assert.equal(runs.code, 2, runs.stdout + runs.stderr)
-    assert.match(runs.stderr, new RegExp(`run ${SEEDED_RUN_ID} was started with --runs 2`))
+    assert.match(runs.stderr, new RegExp(`run ${SEEDED_RUN_ID} was started with --trials 2`))
     const profile = await runCli(p.dir, ['run', '--resume', SEEDED_RUN_ID, '--profile', 'ci'])
     assert.equal(profile.code, 2, profile.stdout + profile.stderr)
     assert.match(profile.stderr, /was started without a profile/)
-    assert.equal((await dryPlan(p.dir, ['--runs', '2'])).totals.attempts, 4)
+    assert.equal((await dryPlan(p.dir, ['--trials', '2'])).totals.trials, 4)
   })
 
   test('a run with no profile resumes with none, whatever picks one now', async () => {
     const p = await project('resume-no-profile', {
       ...evals,
       'reeval.config.ts': fakeConfig({
-        extra: `profiles: { wide: { defaults: { runs: 4 } } }, defaultProfile: { ci: 'wide' },`,
+        extra: `profiles: { wide: { defaults: { trials: 4 } } }, defaultProfile: { ci: 'wide' },`,
       }),
     })
     quitStaging(p.dir, { filters: [], tags: [] })
@@ -779,7 +779,7 @@ export default defineEval({ async task() {} })
     assert.equal(ci.code, 0, ci.stdout + ci.stderr)
     const plan = JSON.parse(ci.stdout) as Plan & { profile: unknown }
     assert.equal(plan.profile, null)
-    assert.equal(plan.totals.attempts, 3)
+    assert.equal(plan.totals.trials, 3)
     writeFileSync(join(p.dir, '.env.local'), 'REEVAL_PROFILE=wide\n')
     const env = await run({ CI: '' })
     assert.equal(env.code, 2, env.stdout + env.stderr)
@@ -789,11 +789,11 @@ export default defineEval({ async task() {} })
   test('a run an older reeval started plans from the flags given, with a note', async () => {
     const p = await project('resume-older', evals)
     writeStoppedStaging(p.dir, SEEDED_RUN_ID)
-    const plan = await dryPlan(p.dir, ['--runs', '3'])
-    assert.equal(plan.totals.attempts, 6)
+    const plan = await dryPlan(p.dir, ['--trials', '3'])
+    assert.equal(plan.totals.trials, 6)
     assert.ok(
       plan.warnings.includes(
-        `run ${SEEDED_RUN_ID} saved no --runs, profile or filters, so this resume plans with the ones given now`,
+        `run ${SEEDED_RUN_ID} saved no --trials, profile or filters, so this resume plans with the ones given now`,
       ),
       plan.warnings.join('\n'),
     )
@@ -819,7 +819,7 @@ export default defineEval({ async task() {} })
     assert.equal(r.code, 0, r.stdout + r.stderr)
     const { run } = readRun(dir)
     for (const e of run.evals) {
-      e.attempts = e.attempts.map((a) => ({ ...a, outcome: 'skipped', error: null }))
+      e.trials = e.trials.map((a) => ({ ...a, outcome: 'skipped', error: null }))
     }
     const scratch = join(dir, '.reeval', 'runs', `${run.runId}.json`)
     writeFileSync(scratch, JSON.stringify({ ...run, status: 'interrupted' }))
@@ -855,24 +855,24 @@ export default defineEval({ async task() {} })
     assert.deepEqual(savedFilters(root, [outside, 'one', '.'], root), ['..', 'one', '.'])
   })
 
-  test('a filtered resume keeps the attempts it leaves out as not run, and the run incomplete', async () => {
+  test('a filtered resume keeps the trials it leaves out as not run, and the run incomplete', async () => {
     const p = await project('resume-filter-left-out', split)
     const run = await interrupted(p.dir, p.dir, [])
     const dry = await runCli(p.dir, ['run', '--resume', run.runId, 'a/one', '--dry-run', '--json'])
     assert.equal(dry.code, 0, dry.stdout + dry.stderr)
     assert.ok(
       (JSON.parse(dry.stdout) as { warnings: string[] }).warnings.includes(
-        `1 attempt run ${run.runId} planned isn't in this resume's filters: it stays not run and the run stays incomplete. reeval run --resume ${run.runId} runs it`,
+        `1 trial run ${run.runId} planned isn't in this resume's filters: it stays not run and the run stays incomplete. reeval run --resume ${run.runId} runs it`,
       ),
       dry.stdout,
     )
     const r = await runCli(p.dir, ['run', '--resume', run.runId, 'a/one', '--ui', 'plain'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.match(r.stdout, /Incomplete: 1 attempt this resume’s filters left out is not run/)
+    assert.match(r.stdout, /Incomplete: 1 trial this resume’s filters left out is not run/)
     const filtered = readRun(p.dir).run
     assert.equal(filtered.status, 'interrupted')
     const outcomes = (record: RunRecord) =>
-      record.evals.map((e) => [e.name, e.attempts.map((a) => a.outcome)])
+      record.evals.map((e) => [e.name, e.trials.map((a) => a.outcome)])
     assert.deepEqual(outcomes(filtered), [
       ['a/one', ['pass']],
       ['b/two', ['skipped']],
@@ -886,10 +886,7 @@ export default defineEval({ async task() {} })
       ['a/one', ['pass']],
       ['b/two', ['pass']],
     ])
-    assert.equal(
-      finished.evals[0]?.attempts[0]?.startedAt,
-      filtered.evals[0]?.attempts[0]?.startedAt,
-    )
+    assert.equal(finished.evals[0]?.trials[0]?.startedAt, filtered.evals[0]?.trials[0]?.startedAt)
   })
 
   test('a filtered resume counts skipped evals as done, and says an incomplete run is not recorded', async () => {
@@ -909,7 +906,7 @@ export default defineEval({ async task() {} })
     const scratch = join(p.dir, '.reeval', 'runs', `${pending.runId}.json`)
     const run: RunRecord = JSON.parse(readFileSync(scratch, 'utf8'))
     for (const e of run.evals) {
-      if (e.name === 'b/two') e.attempts = e.attempts.map((a) => ({ ...a, outcome: 'pass' }))
+      if (e.name === 'b/two') e.trials = e.trials.map((a) => ({ ...a, outcome: 'pass' }))
     }
     writeFileSync(scratch, JSON.stringify(run))
     const r = await runCli(p.dir, ['run', '--resume', run.runId, 'evals/a', '--ui', 'plain'])
@@ -953,7 +950,7 @@ import { next, vite } from './env.ts'
 export default defineEval({
   environment: [next, vite],
   cases: [{ key: 'next' }, { key: 'vite' }, { key: 'both' }],
-  runs: 2,
+  trials: 2,
   target: regression(),
   where: ({ case: { key: k }, environment }) => k === 'both' || environment.traits.stack === k,
   async task(_c, { key: k }) { if (k === 'next') throw new Error('next fails') },
@@ -968,7 +965,7 @@ export default defineEval({
         verdict: e.verdict,
         excluded: e.excluded,
         cells: e.cells.map((c) => [c.key, c.outcome, c.pass, c.fail, c.skipped]),
-        attempts: e.attempts.map((a) => [a.key, a.outcome]),
+        trials: e.trials.map((a) => [a.key, a.outcome]),
       })),
       families: r.families?.map(({ lifts, ...f }) => f),
       summary: r.summary,
@@ -982,7 +979,7 @@ export default defineEval({
     assert.equal((await runCli(p.dir, ['run', '--ui', 'plain'])).code, 1)
     const started = readRun(p.dir).run
     for (const e of started.evals) {
-      e.attempts = e.attempts.map((a) => ({ ...a, outcome: 'skipped', error: null }))
+      e.trials = e.trials.map((a) => ({ ...a, outcome: 'skipped', error: null }))
     }
     const scratch = join(p.dir, '.reeval', 'runs', `${started.runId}.json`)
     writeFileSync(scratch, JSON.stringify({ ...started, status: 'interrupted' }))
@@ -992,7 +989,7 @@ export default defineEval({
     assert.equal(part.status, 'interrupted')
     const vite = part.evals.find((e) => e.name === 'fam#vite')
     assert.deepEqual(
-      vite?.attempts.map((a) => a.outcome),
+      vite?.trials.map((a) => a.outcome),
       ['skipped', 'skipped'],
     )
     assert.deepEqual(vite?.excluded, [{ case: 'vite', environment: 'next-app' }])
@@ -1020,14 +1017,14 @@ import { fakeSandbox } from 'reeval/sandbox'
 const sandbox = fakeSandbox({ dir: new URL('../sandboxes', import.meta.url) })
 const next = defineEnvironment('next-app', { sandbox, traits: { stack: 'next' } })
 const vite = defineEnvironment('vite-app', { sandbox, traits: { stack: 'vite' } })
-export default defineEval({ environment: [next, vite], runs: 2, async task() {} })
+export default defineEval({ environment: [next, vite], trials: 2, async task() {} })
 `,
     })
     assert.equal((await runCli(p.dir, ['run', '--ui', 'plain', '--trait', 'stack=next'])).code, 0)
     const started = readRun(p.dir).run
     assert.deepEqual(started.invocation?.traits, ['stack=next'])
     for (const e of started.evals) {
-      e.attempts = e.attempts.map((a) => ({ ...a, outcome: 'skipped', error: null }))
+      e.trials = e.trials.map((a) => ({ ...a, outcome: 'skipped', error: null }))
     }
     const scratch = join(p.dir, '.reeval', 'runs', `${started.runId}.json`)
     writeFileSync(scratch, JSON.stringify({ ...started, status: 'interrupted' }))
@@ -1067,7 +1064,7 @@ export default defineEval({ skip: true, async task() {} })
         ],
       )
       for (const e of run.evals) {
-        if (e.name === 'b/two') e.attempts = e.attempts.map((a) => ({ ...a, outcome: 'pass' }))
+        if (e.name === 'b/two') e.trials = e.trials.map((a) => ({ ...a, outcome: 'pass' }))
         if (!marked) delete e.skip
       }
       writeFileSync(scratch, JSON.stringify(run))
@@ -1090,11 +1087,11 @@ export default defineEval({ skip: true, async task() {} })
         filter,
       )
     }
-    // Without the marker (a record from before it), the skip can't be told from a pending attempt.
+    // Without the marker (a record from before it), the skip can't be told from a pending trial.
     const old = await seed(false)
     const r = await runCli(p.dir, ['run', '--resume', old, 'evals/a', '--ui', 'plain'])
     assert.equal(r.code, 0, r.stdout + r.stderr)
-    assert.match(r.stdout, /Incomplete: 1 attempt this resume’s filters left out is not run/)
+    assert.match(r.stdout, /Incomplete: 1 trial this resume’s filters left out is not run/)
     const left = readRun(p.dir).run
     assert.equal(left.status, 'interrupted')
     const shown = await runCli(p.dir, ['show', left.runId])
@@ -1118,8 +1115,8 @@ export default defineEval({ async task() {} })
     const file = 'evals/three.eval.ts'
     const staging = writeStoppedStaging(p.dir, SEEDED_RUN_ID, [{ file, cell }])
     const liveFile = join(staging, 'live.json')
-    const attempt = (evalFile: string, status: string) => ({
-      key: attemptKey(evalKey(evalFile), cell, 1),
+    const trial = (evalFile: string, status: string) => ({
+      key: trialKey(evalKey(evalFile), cell, 1),
       evalId: evalKey(evalFile),
       name: evalKey(evalFile),
       file: evalFile,
@@ -1135,10 +1132,10 @@ export default defineEval({ async task() {} })
         ...JSON.parse(readFileSync(liveFile, 'utf8')),
         invocation: { filters: [], tags: [] },
         planned: 3,
-        attempts: [
-          attempt('evals/one.eval.ts', 'queued'),
-          attempt('evals/two.eval.ts', 'running'),
-          attempt('evals/three.eval.ts', 'pass'),
+        trials: [
+          trial('evals/one.eval.ts', 'queued'),
+          trial('evals/two.eval.ts', 'running'),
+          trial('evals/three.eval.ts', 'pass'),
         ],
       }),
     )
@@ -1149,7 +1146,7 @@ export default defineEval({ async task() {} })
     const { run } = readRun(p.dir)
     assert.equal(run.status, 'interrupted')
     assert.deepEqual(
-      run.evals.map((e) => [e.name, e.attempts.map((a) => [a.cell, a.outcome])]),
+      run.evals.map((e) => [e.name, e.trials.map((a) => [a.cell, a.outcome])]),
       [
         ['one', [[cell, 'fail']]],
         ['two', [[cell, 'skipped']]],
@@ -1172,12 +1169,12 @@ export default defineEval({ async task() {} })
     )
   })
 
-  test('--runs that is not a count gets the usual error', async () => {
+  test('--trials that is not a count gets the usual error', async () => {
     const p = await project('resume-runs-nan', evals)
-    quitStaging(p.dir, { runs: 2, filters: [], tags: [] })
-    const r = await runCli(p.dir, ['run', '--resume', SEEDED_RUN_ID, '--runs', 'abc'])
+    quitStaging(p.dir, { trials: 2, filters: [], tags: [] })
+    const r = await runCli(p.dir, ['run', '--resume', SEEDED_RUN_ID, '--trials', 'abc'])
     assert.equal(r.code, 2, r.stdout + r.stderr)
-    assert.match(r.stderr, /--runs must be a whole number of at least 1 \(got abc\)/)
+    assert.match(r.stderr, /--trials must be a whole number of at least 1 \(got abc\)/)
   })
 
   test('a saved profile the config no longer defines names the resumed run', async () => {
@@ -1228,7 +1225,7 @@ describe('resumeSettings', () => {
 })
 
 describe('reeval run --resume of a budget-stopped record', () => {
-  // Both arms of `gated` pass, so its lift of 0 fails minLift 0.5; its pairwise question is
+  // Both environments of `gated` pass, so its lift of 0 fails minLift 0.5; its pairwise question is
   // answered over both runs. The run completes and is then rewritten as a budget stop.
   const budgeted = {
     'reeval.config.ts': `
@@ -1257,20 +1254,20 @@ export const skilled = base.extendEnvironment('skilled', ({ skill }) => ({
     'evals/gated.eval.ts': `import { defineEval, regression } from 'reeval'
 import { base, skilled } from './envs.ts'
 export default defineEval({
-  runs: 2,
+  trials: 2,
   target: regression(),
-  compare: { control: base, variants: [skilled], minLift: 0.5 },
+  compare: { baseline: base, variants: [skilled], minLift: 0.5 },
   questions: [{ question: 'Which is cleaner?', across: 'environment', diff: true }],
   async task(c) { await c.send('go') },
 })
 `,
     'evals/slow.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ runs: 2, async task(c) { await c.send('x') } })
+export default defineEval({ trials: 2, async task(c) { await c.send('x') } })
 `,
   }
 
-  /** A finished run rewritten as a budget stop that never started the attempts `cut` picks. */
-  async function stopped(name: string, cut: (e: EvalEntry, a: AttemptRecord) => boolean) {
+  /** A finished run rewritten as a budget stop that never started the trials `cut` picks. */
+  async function stopped(name: string, cut: (e: EvalEntry, a: TrialRecord) => boolean) {
     const p = await project(name, budgeted)
     const r = await runCli(p.dir, ['run', '--ui', 'plain'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
@@ -1283,7 +1280,7 @@ export default defineEval({ runs: 2, async task(c) { await c.send('x') } })
     assert.ok(gated.answers[0].input)
     run.status = 'budget'
     for (const e of run.evals) {
-      e.attempts = e.attempts.map((a) =>
+      e.trials = e.trials.map((a) =>
         cut(e, a) ? { ...a, outcome: 'skipped', error: null, files: {}, checks: [] } : a,
       )
     }
@@ -1325,7 +1322,7 @@ export default defineEval({ runs: 2, async task(c) { await c.send('x') } })
     assertKept(dir, first, second)
     assert.equal(r.code, 1, r.stdout + r.stderr)
     const slow = second.evals.find((e) => e.name === 'slow')
-    assert.ok(slow?.attempts.every((a) => a.outcome === 'pass'))
+    assert.ok(slow?.trials.every((a) => a.outcome === 'pass'))
     const file = (e: EvalEntry | undefined) =>
       e?.sources.find((s) => s.path === 'evals/slow.eval.ts')?.sha256
     const edited = createHash('sha256')
@@ -1348,7 +1345,7 @@ export default defineEval({ runs: 2, async task(c) { await c.send('x') } })
     assert.deepEqual(cells?.map(meta), was?.map(meta))
   })
 
-  test('stays budget-stopped while a filtered resume leaves attempts out', async () => {
+  test('stays budget-stopped while a filtered resume leaves trials out', async () => {
     const { dir, first } = await stopped(
       'resume-budget-left-out',
       (e, a) => e.name === 'slow' || (a.cell.includes('skilled') && a.n === 2),
@@ -1359,14 +1356,14 @@ export default defineEval({ runs: 2, async task(c) { await c.send('x') } })
     assert.equal(second.status, 'budget')
     const slow = second.evals.find((e) => e.name === 'slow')
     assert.deepEqual(
-      slow?.attempts.map((a) => a.outcome),
+      slow?.trials.map((a) => a.outcome),
       ['skipped', 'skipped'],
     )
     const gated = second.evals.find((e) => e.name === 'gated')
-    assert.ok(gated?.attempts.every((a) => a.outcome === 'pass'))
+    assert.ok(gated?.trials.every((a) => a.outcome === 'pass'))
   })
 
-  test('asks a pairwise question again over the kept and new attempts', async () => {
+  test('asks a pairwise question again over the kept and new trials', async () => {
     const { dir, first } = await stopped(
       'resume-budget-mixed',
       (e, a) => e.name === 'gated' && a.cell.includes('skilled') && a.n === 2,
@@ -1379,7 +1376,7 @@ export default defineEval({ runs: 2, async task(c) { await c.send('x') } })
     const r = await runCli(dir, ['run', '--resume', first.runId, '--ui', 'plain'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
     const gated = readRun(dir).run.evals.find((e) => e.name === 'gated')
-    assert.equal(gated?.attempts.filter((a) => a.outcome === 'pass').length, 4)
+    assert.equal(gated?.trials.filter((a) => a.outcome === 'pass').length, 4)
     const fingerprints = (e: EvalEntry | undefined) => e?.cells.map((c) => [c.key, c.fingerprint])
     assert.deepEqual(fingerprints(gated), fingerprints(was))
     const answer = gated?.answers?.[0]
@@ -1388,7 +1385,7 @@ export default defineEval({ runs: 2, async task(c) { await c.send('x') } })
       answer?.votes.map((v) => [v.run, v.a, v.b, v.swapped]),
       was?.answers?.[0]?.votes.map((v) => [v.run, v.a, v.b, v.swapped]),
     )
-    // The kept attempts' turns, diff and checks reach the model as they did the first time.
+    // The kept trials' turns, diff and checks reach the model as they did the first time.
     assert.deepEqual(asked(runs, answer?.input?.path), before)
   })
 })
@@ -1440,14 +1437,10 @@ export default defineEval({ async task(c) { await c.send('hi'); assert.equal(1, 
   }
   const outage = { env: { FAIL: '1' } }
   const scratchOf = (dir: string, runId: string) => join(dir, '.reeval', 'runs', `${runId}.json`)
-  const attemptsOf = (run: RunRecord) =>
+  const trialsOf = (run: RunRecord) =>
     [...run.evals]
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map((e) => [
-        e.name,
-        e.attempts[0]?.outcome,
-        e.attempts[0]?.retries?.map((r) => r.error.message),
-      ])
+      .map((e) => [e.name, e.trials[0]?.outcome, e.trials[0]?.retries?.map((r) => r.error.message)])
 
   test('runs the infra errors again into the same run, keeping each error in retries', async () => {
     const p = await project('retry-run', failing)
@@ -1457,18 +1450,15 @@ export default defineEval({ async task(c) { await c.send('hi'); assert.equal(1, 
     const r = await runCli(p.dir, ['run', '--retry-errors', '--ui', 'plain'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
     assert.match(r.stdout, /resumed, 2 errors to retry/)
-    assert.match(r.stdout, /^retried 2 errored attempts: 1 now passes, 1 fails, 0 still error$/m)
+    assert.match(r.stdout, /^retried 2 errored trials: 1 now passes, 1 fails, 0 still error$/m)
     const { run } = readRun(p.dir)
     assert.equal(run.runId, before.runId)
     assert.equal(run.status, 'complete')
-    assert.deepEqual(attemptsOf(run), [
+    assert.deepEqual(trialsOf(run), [
       ['fails', 'fail', ['agent start refused']],
       ['passes', 'pass', ['agent start refused']],
     ])
-    assert.equal(
-      run.evals[0]?.attempts[0]?.retries?.[0]?.at,
-      before.evals[0]?.attempts[0]?.startedAt,
-    )
+    assert.equal(run.evals[0]?.trials[0]?.retries?.[0]?.at, before.evals[0]?.trials[0]?.startedAt)
     const shown = await runCli(p.dir, ['query', 'runs', '--json'])
     assert.match(shown.stdout, /"pass": 1/)
     const again = await runCli(p.dir, ['run', '--retry-errors', run.runId])
@@ -1489,7 +1479,7 @@ export default defineEval({ async task(c) { await c.send('hi'); assert.equal(1, 
     assert.equal(r.code, 1, r.stdout + r.stderr)
     const { run } = readRun(p.dir, { history: 'evals/.history' })
     assert.equal(run.artifacts, 'all', "history.artifacts' default doesn't replace --artifacts all")
-    const passed = run.evals.find((e) => e.name === 'passes')?.attempts[0]
+    const passed = run.evals.find((e) => e.name === 'passes')?.trials[0]
     assert.equal(passed?.outcome, 'pass')
     assert.ok(passed?.files.trajectory, 'the passing retry keeps its trajectory')
   })
@@ -1499,8 +1489,8 @@ export default defineEval({ async task(c) { await c.send('hi'); assert.equal(1, 
     const first = await runCli(p.dir, ['run'])
     assert.equal(first.code, 1, first.stdout + first.stderr)
     const { run } = readRun(p.dir)
-    const passed = run.evals.find((e) => e.name === 'passes')?.attempts[0]
-    const failed = run.evals.find((e) => e.name === 'fails')?.attempts[0]
+    const passed = run.evals.find((e) => e.name === 'passes')?.trials[0]
+    const failed = run.evals.find((e) => e.name === 'fails')?.trials[0]
     assert.ok(passed && failed)
     Object.assign(passed, { outcome: 'infra_error', error: { kind: 'infra', message: 'down' } })
     // An hour between the run and its retry, which the run's duration doesn't count.
@@ -1519,17 +1509,17 @@ export default defineEval({ async task(c) { await c.send('hi'); assert.equal(1, 
     writeFileSync(scratchOf(p.dir, run.runId), JSON.stringify(run))
     const r = await runCli(p.dir, ['run', '--retry-errors', '--ui', 'plain'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(r.stdout, /retried 1 errored attempt: 1 now passes, 0 fail, 0 still error/)
+    assert.match(r.stdout, /retried 1 errored trial: 1 now passes, 0 fail, 0 still error/)
     const { run: after } = readRun(p.dir)
     assert.deepEqual(after.plan, run.plan)
     assert.deepEqual(after.git, run.git)
     assert.equal(after.stack.reeval, run.stack.reeval)
     assert.ok(after.durationMs >= run.durationMs, `${after.durationMs}`)
     assert.ok(after.durationMs < run.durationMs + 600_000, `${after.durationMs}`)
-    const kept = after.evals.find((e) => e.name === 'fails')?.attempts[0]
+    const kept = after.evals.find((e) => e.name === 'fails')?.trials[0]
     assert.equal(kept?.startedAt, failed.startedAt)
     assert.equal(kept?.retries, undefined)
-    assert.deepEqual(after.evals.find((e) => e.name === 'passes')?.attempts[0]?.retries, [
+    assert.deepEqual(after.evals.find((e) => e.name === 'passes')?.trials[0]?.retries, [
       { error: { kind: 'infra', message: 'down' }, at: passed.startedAt },
     ])
   })
@@ -1612,8 +1602,8 @@ export default defineEval({ async task() {} })
     writeFileSync(scratchOf(p.dir, run.runId), JSON.stringify({ ...run, status: 'interrupted' }))
     const r = await runCli(p.dir, ['run', '--resume', '--ui', 'plain'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(r.stdout, /retried 2 errored attempts: 1 now passes, 1 fails/)
-    assert.deepEqual(attemptsOf(readRun(p.dir).run), [
+    assert.match(r.stdout, /retried 2 errored trials: 1 now passes, 1 fails/)
+    assert.deepEqual(trialsOf(readRun(p.dir).run), [
       ['fails', 'fail', ['agent start refused']],
       ['passes', 'pass', ['agent start refused']],
     ])
@@ -1631,35 +1621,35 @@ export default defineEval({ async task() {} })
     const history = JSON.parse(
       readFileSync(join(p.dir, 'evals', '.history', `${run.runId}.json`), 'utf8'),
     ) as RunRecord
-    assert.deepEqual(attemptsOf(history), [
+    assert.deepEqual(trialsOf(history), [
       ['fails', 'fail', ['agent start refused']],
       ['passes', 'pass', ['agent start refused']],
     ])
   })
 
-  test('a best-of attempt the run skipped stays skipped', async () => {
+  test('a best-of trial the run skipped stays skipped', async () => {
     const p = await project('retry-best-of', {
       ...failing,
       'evals/best.eval.ts': `import { defineEval } from 'reeval'
-export default defineEval({ runs: { bestOf: 3 }, async task(c) { await c.send('hi') } })
+export default defineEval({ trials: { bestOf: 3 }, async task(c) { await c.send('hi') } })
 `,
     })
     const first = await runCli(p.dir, ['run', '--concurrency', '1'])
     assert.equal(first.code, 1, first.stdout + first.stderr)
     const { run } = readRun(p.dir)
-    const best = run.evals.find((e) => e.name === 'best')?.attempts
+    const best = run.evals.find((e) => e.name === 'best')?.trials
     assert.deepEqual(
       best?.map((a) => a.outcome),
       ['pass', 'pass', 'skipped'],
     )
-    const passed = run.evals.find((e) => e.name === 'passes')?.attempts[0]
+    const passed = run.evals.find((e) => e.name === 'passes')?.trials[0]
     assert.ok(passed)
     Object.assign(passed, { outcome: 'infra_error', error: { kind: 'infra', message: 'down' } })
     writeFileSync(scratchOf(p.dir, run.runId), JSON.stringify(run))
     const r = await runCli(p.dir, ['run', '--retry-errors', '--ui', 'plain'])
     assert.equal(r.code, 1, r.stdout + r.stderr)
-    assert.match(r.stdout, /retried 1 errored attempt: 1 now passes/)
-    const after = readRun(p.dir).run.evals.find((e) => e.name === 'best')?.attempts
+    assert.match(r.stdout, /retried 1 errored trial: 1 now passes/)
+    const after = readRun(p.dir).run.evals.find((e) => e.name === 'best')?.trials
     assert.deepEqual(
       after?.map((a) => [a.outcome, a.startedAt]),
       best?.map((a) => [a.outcome, a.startedAt]),
@@ -1714,7 +1704,7 @@ export default defineEval({ runs: { bestOf: 3 }, async task(c) { await c.send('h
     const history = JSON.parse(
       readFileSync(join(p.dir, 'evals', '.history', `${run.runId}.json`), 'utf8'),
     ) as RunRecord
-    assert.deepEqual(attemptsOf(history), [
+    assert.deepEqual(trialsOf(history), [
       ['fails', 'fail', ['agent start refused']],
       ['passes', 'pass', ['agent start refused']],
     ])
@@ -1756,7 +1746,7 @@ describe('reeval run --resume of a --retry-errors a Ctrl-C stopped', () => {
     const { run } = readRun(p.dir)
     for (const e of run.evals) {
       if (e.name === 'fails') continue
-      for (const a of e.attempts) Object.assign(a, { outcome: 'infra_error', error: down })
+      for (const a of e.trials) Object.assign(a, { outcome: 'infra_error', error: down })
     }
     run.startedAt = new Date(Date.parse(run.startedAt) - 3_600_000).toISOString()
     run.git = git
@@ -1794,7 +1784,7 @@ describe('reeval run --resume of a --retry-errors a Ctrl-C stopped', () => {
     assert.equal(done.stack.reeval, run.stack.reeval)
     assert.equal(done.retriedAt?.length, 1)
     assert.ok(done.durationMs < run.durationMs + 600_000, `${done.durationMs}`)
-    const of = (name: string) => done.evals.find((e) => e.name === name)?.attempts[0]
+    const of = (name: string) => done.evals.find((e) => e.name === name)?.trials[0]
     assert.equal(of('slow')?.outcome, 'pass')
     assert.deepEqual(
       of('slow')?.retries?.map((x) => x.error.message),
@@ -1802,7 +1792,7 @@ describe('reeval run --resume of a --retry-errors a Ctrl-C stopped', () => {
     )
     assert.equal(
       of('fails')?.startedAt,
-      run.evals.find((e) => e.name === 'fails')?.attempts[0]?.startedAt,
+      run.evals.find((e) => e.name === 'fails')?.trials[0]?.startedAt,
     )
   })
 
@@ -1852,11 +1842,11 @@ describe('reeval run --resume of a --retry-errors a kill stopped', () => {
     const { run } = readRun(p.dir)
     for (const e of run.evals) {
       if (e.name === 'fails') continue
-      for (const a of e.attempts) Object.assign(a, { outcome: 'infra_error', error: down })
+      for (const a of e.trials) Object.assign(a, { outcome: 'infra_error', error: down })
     }
     run.startedAt = new Date(Date.parse(run.startedAt) - 3_600_000).toISOString()
     writeFileSync(scratchOf(p.dir, run.runId), JSON.stringify(run))
-    const passKey = run.evals.find((e) => e.name === 'passes')?.attempts[0]?.key ?? ''
+    const passKey = run.evals.find((e) => e.name === 'passes')?.trials[0]?.key ?? ''
     const staged = join(p.dir, '.reeval', 'staging', run.runId, 'evals', recordFileName(passKey))
     const passed = () => {
       try {
@@ -1882,7 +1872,7 @@ describe('reeval run --resume of a --retry-errors a kill stopped', () => {
     return { p, run }
   }
 
-  test('keeps the attempt that passed in staging before the kill', {
+  test('keeps the trial that passed in staging before the kill', {
     skip: noSignals,
   }, async () => {
     const { p, run } = await killedRetry('retry-kill-staged')
@@ -1890,7 +1880,7 @@ describe('reeval run --resume of a --retry-errors a kill stopped', () => {
     assert.equal(r.code, 1, r.stdout + r.stderr)
     const { run: done } = readRun(p.dir)
     assert.equal(done.runId, run.runId)
-    const passes = done.evals.find((e) => e.name === 'passes')?.attempts[0]
+    const passes = done.evals.find((e) => e.name === 'passes')?.trials[0]
     assert.equal(passes?.outcome, 'pass')
     assert.deepEqual(
       passes?.retries?.map((x) => x.error.message),

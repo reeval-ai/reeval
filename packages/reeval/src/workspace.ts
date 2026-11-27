@@ -1,6 +1,6 @@
-// Git workspaces on the host: before any attempt, the CLI fetches each repository the planned
-// attempts start from into a cache under `.reeval/cache/git`, resolves its ref to a commit once for
-// the run, and exports the tree (or one directory of it) as a tarball the attempts copy in. The
+// Git workspaces on the host: before any trial, the CLI fetches each repository the planned
+// trials start from into a cache under `.reeval/cache/git`, resolves its ref to a commit once for
+// the run, and exports the tree (or one directory of it) as a tarball the trials copy in. The
 // sandbox never sees the repository, its remote or the credentials that fetched it.
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
@@ -14,10 +14,10 @@ import { PrepareError, type PrepareFailure } from './sandbox/provider.ts'
 import { hostEnv } from './secrets-file.ts'
 import type { Cell, GitWorkspace } from './types.ts'
 
-/** What an attempt copies in: the commit the ref resolved to, its tree, and the tarball of it. */
+/** What a trial copies in: the commit the ref resolved to, its tree, and the tarball of it. */
 export type PreparedWorkspace = { commit: string; tree: string; tar: string }
 
-/** One attempt's workspace, and the environment that set it, for messages. */
+/** One trial's workspace, and the environment that set it, for messages. */
 export type WorkspaceUse = { workspace: GitWorkspace; environment: string }
 
 /** A workspace that couldn't be prepared; `usage` when fixing it means changing the eval. */
@@ -280,7 +280,7 @@ function fetchError(
   }
 }
 
-/** A workspace's outcome: what attempts copy in, or the failure every attempt that needs it gets. */
+/** A workspace's outcome: what trials copy in, or the failure every trial that needs it gets. */
 export type WorkspaceOutcome =
   | { ok: true; workspace: GitWorkspace; prepared: PreparedWorkspace }
   | { ok: false; workspace: GitWorkspace; failure: PrepareFailure; label: string; setBy: string[] }
@@ -301,8 +301,8 @@ function tokenEnv(url: string, token: string): NodeJS.ProcessEnv {
 }
 
 /**
- * Prepares every distinct workspace `uses` need, before any attempt, and writes the outcomes for
- * the run's workers. A workspace that fails fails only the attempts that use it.
+ * Prepares every distinct workspace `uses` need, before any trial, and writes the outcomes for
+ * the run's workers. A workspace that fails fails only the trials that use it.
  */
 export async function prepareWorkspaces(
   uses: WorkspaceUse[],
@@ -375,33 +375,36 @@ export async function prepareWorkspaces(
   return outcomes
 }
 
-type ArmUse = {
+type EnvironmentUse = {
   id: string
-  attempt: { cell: Cell; workspace?: GitWorkspace }
+  trial: { cell: Cell; workspace?: GitWorkspace }
 }
 
 /**
- * Compare arms whose workspaces are different repositories, refs or paths that resolved to the
- * same tree, one line per arm: such a compare can't see a change to the tree.
+ * Compare environments whose workspaces are different repositories, refs or paths that resolved to the
+ * same tree, one line per environment: such a compare can't see a change to the tree.
  */
-export function sameTreeArms(uses: ArmUse[], outcomes: WorkspaceOutcome[]): string[] {
+export function sameTreeEnvironments(
+  uses: EnvironmentUse[],
+  outcomes: WorkspaceOutcome[],
+): string[] {
   const trees = new Map<string, string>()
   for (const o of outcomes) if (o.ok) trees.set(workspaceKey(o.workspace), o.prepared.tree)
-  const controls = new Map<string, { name: string; workspace: GitWorkspace }>()
-  for (const { id, attempt: a } of uses) {
-    if (a.cell.role !== 'control' || !a.workspace) continue
-    controls.set(`${id}\0${a.cell.harness}`, { name: a.cell.environment, workspace: a.workspace })
+  const baselines = new Map<string, { name: string; workspace: GitWorkspace }>()
+  for (const { id, trial: a } of uses) {
+    if (a.cell.role !== 'baseline' || !a.workspace) continue
+    baselines.set(`${id}\0${a.cell.harness}`, { name: a.cell.environment, workspace: a.workspace })
   }
   const out = new Set<string>()
-  for (const { id, attempt: a } of uses) {
-    const control = controls.get(`${id}\0${a.cell.harness}`)
-    if (a.cell.role !== 'variant' || !a.workspace || !control) continue
-    const [mine, theirs] = [workspaceKey(a.workspace), workspaceKey(control.workspace)]
+  for (const { id, trial: a } of uses) {
+    const baseline = baselines.get(`${id}\0${a.cell.harness}`)
+    if (a.cell.role !== 'variant' || !a.workspace || !baseline) continue
+    const [mine, theirs] = [workspaceKey(a.workspace), workspaceKey(baseline.workspace)]
     const tree = trees.get(mine)
     if (mine === theirs || !tree || tree !== trees.get(theirs)) continue
     const label = (w: GitWorkspace) => `git(${JSON.stringify(workspaceLabel(w))})`
     out.add(
-      `warning: compare in ${id}: ${a.cell.environment} and ${control.name} start from the same tree (${tree.slice(0, 12)}): ${label(a.workspace)} and ${label(control.workspace)} resolve to it, so the lift can't show a change to the workspace. Check the refs the arms read.`,
+      `warning: compare in ${id}: ${a.cell.environment} and ${baseline.name} start from the same tree (${tree.slice(0, 12)}): ${label(a.workspace)} and ${label(baseline.workspace)} resolve to it, so the lift can't show a change to the workspace. Check the refs the environments read.`,
     )
   }
   return [...out]
@@ -417,7 +420,7 @@ type Entry =
 const read = new Map<string, Record<string, Entry> | null>()
 
 /**
- * The workspace an attempt copies in, as the CLI prepared it for the run; undefined if it didn't.
+ * The workspace a trial copies in, as the CLI prepared it for the run; undefined if it didn't.
  * A workspace that failed throws its failure as a {@link PrepareError}, as a sandbox's does.
  */
 export function preparedWorkspace(
@@ -438,7 +441,7 @@ export function preparedWorkspace(
   if ('failure' in entry) {
     throw new PrepareError({
       ...entry.failure,
-      message: `${entry.failure.message}\n(the workspace git(${JSON.stringify(entry.label)}), set by ${entry.setBy.join(', ')}, failed to prepare before the run started; every attempt that needs it fails with this)`,
+      message: `${entry.failure.message}\n(the workspace git(${JSON.stringify(entry.label)}), set by ${entry.setBy.join(', ')}, failed to prepare before the run started; every trial that needs it fails with this)`,
     })
   }
   return entry.prepared

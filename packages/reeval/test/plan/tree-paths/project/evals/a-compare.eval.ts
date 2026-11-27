@@ -8,6 +8,6 @@ const built = defineEnvironment('built', {
 const own = defineEnvironment('own', { sandbox: docker({ dockerfile: './images/Dockerfile' }) })
 
 export default defineEval({
-  compare: { control: built, variants: [own] },
+  compare: { baseline: built, variants: [own] },
   task: async () => {},
 })

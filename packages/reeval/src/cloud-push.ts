@@ -123,7 +123,7 @@ async function archiveFiles(
   const { runId } = entry
   await refuseRunning(config, runId)
   const skip = flags['skip-secret-scan'] ? { skipSecretScan: true } : {}
-  // `.reeval/runs` keeps every attempt's files whatever the run was recorded at, so its copy
+  // `.reeval/runs` keeps every trial's files whatever the run was recorded at, so its copy
   // gives any level, but only while it's the run history has: a retry or resume can leave it
   // otherwise. The history folder's copy is limited to the recorded level.
   let built: Exclude<Awaited<ReturnType<typeof leveledArchiveFiles>>, { mismatch: string }> | null =

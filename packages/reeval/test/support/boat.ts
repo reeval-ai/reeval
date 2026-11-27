@@ -5,7 +5,7 @@
 // call needs the key as a bearer token. Where its sandboxes run is up to `machines`: an SSH VM in a
 // container (`startSshVm`, ssh-vm.ts), or an address nothing listens on (`unreachableMachines`),
 // for the lifecycle without Docker. Each answers with a `machineIp` in IPv6's documentation range
-// ({@link NO_ROUTE_IP}), which no host reaches, so every attempt falls back to the endpoint as one
+// ({@link NO_ROUTE_IP}), which no host reaches, so every trial falls back to the endpoint as one
 // on a host without IPv6 does. `boatSandboxesLeft` asks the real one, for the contract's rows in
 // boat().
 import { randomBytes } from 'node:crypto'

@@ -1,11 +1,11 @@
 // A cell's gate as compare and the history read it: its label, its fingerprint part, and the
-// outcome its attempts give under it. Browser-safe, so the studio re-scores a run as the CLI does.
+// outcome its trials give under it. Browser-safe, so the studio re-scores a run as the CLI does.
 import type {
-  AttemptRecord,
   CellRecord,
   FingerprintParts,
   HistoryCell,
   ScoreSummary,
+  TrialRecord,
 } from '../history/types.ts'
 import type { CellGate, Outcome } from '../types.ts'
 
@@ -27,9 +27,9 @@ export function worstOutcome(outcomes: Outcome[]): Outcome {
   return outcomes.length ? 'pass' : 'skipped'
 }
 
-/** How the counted attempts scored; an attempt without a score counts 1 for a pass, 0 for a fail. */
-export function scoresOf(attempts: ReadonlyArray<Pick<AttemptRecord, 'outcome' | 'score'>>) {
-  const counted = attempts.filter((a) => a.outcome === 'pass' || a.outcome === 'fail')
+/** How the counted trials scored; a trial without a score counts 1 for a pass, 0 for a fail. */
+export function scoresOf(trials: ReadonlyArray<Pick<TrialRecord, 'outcome' | 'score'>>) {
+  const counted = trials.filter((a) => a.outcome === 'pass' || a.outcome === 'fail')
   if (!counted.length) return { meanScore: null, passAtK: null, passHatK: null }
   const sum = counted.reduce((s, a) => s + (a.score ?? (a.outcome === 'pass' ? 1 : 0)), 0)
   return {
@@ -59,9 +59,9 @@ export const passRateOf = (outcomes: Outcome[]) => {
 }
 
 /**
- * A cell's outcome by its gate. `'all'` needs every counted attempt to pass, `'any'` one, and
+ * A cell's outcome by its gate. `'all'` needs every counted trial to pass, `'any'` one, and
  * `{ passRate }` the mean score (the pass share without one, as in a `bestOf` cell) to reach it;
- * it is an infra error only when nothing counted. `'none'` takes the worst attempt.
+ * it is an infra error only when nothing counted. `'none'` takes the worst trial.
  */
 export function cellOutcome(
   outcomes: Outcome[],
@@ -81,7 +81,7 @@ type Tallied = Pick<
   'gate' | 'outcome' | 'pass' | 'fail' | 'infraError' | 'skipped' | 'canceled' | 'scores' | 'bestOf'
 >
 
-/** The cell's attempts, less the fails the run's interrupt canceled, which the agent didn't fail. */
+/** The cell's trials, less the fails the run's interrupt canceled, which the agent didn't fail. */
 const outcomesOf = (c: Tallied): Outcome[] => [
   ...Array<Outcome>(c.pass).fill('pass'),
   ...Array<Outcome>(c.fail - (c.canceled ?? 0)).fill('fail'),
@@ -99,7 +99,7 @@ function meanUncanceled(c: Tallied): number | null | undefined {
 }
 
 /**
- * A cell's recorded attempts scored under another gate. A cell its own gate passes but that
+ * A cell's recorded trials scored under another gate. A cell its own gate passes but that
  * failed anyway fell short of its `minLift`, which no gate changes, so it still fails.
  */
 export function rescore(c: Tallied, gate: CellGate): Outcome {

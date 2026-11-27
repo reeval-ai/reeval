@@ -12,10 +12,10 @@ import {
   splitRunReport,
 } from '../src/view/report/index.ts'
 
-// The with-layouts golden (14 evals, 57 attempts) is a 142 KB report whose index is 32 KB: the
-// header, integrity, rollup, roster and each eval's headline. Its evals' blocks and the attempt
+// The with-layouts golden (14 evals, 57 trials) is a 142 KB report whose index is 32 KB: the
+// header, integrity, rollup, roster and each eval's headline. Its evals' blocks and the trial
 // index, which grow with the run, are in the details. The bound leaves room for a few more evals
-// and integrity issues, and fails once a per-eval block or the attempt rows leak into the index.
+// and integrity issues, and fails once a per-eval block or the trial rows leak into the index.
 const INDEX_BOUND = 40 * 1024
 
 const golden = (): RunReport =>
@@ -31,7 +31,7 @@ function roundTrips(report: RunReport, what: string) {
   const joined = joinRunReport(index, details)
   assert.deepEqual(joined, report, what)
   assert.equal(JSON.stringify(joined), JSON.stringify(report), `${what}: keys in the same order`)
-  assert.equal('attempts' in index, false, what)
+  assert.equal('trials' in index, false, what)
   assert.deepEqual(
     index.evals.map((e) => e.id),
     report.evals.map((e) => e.id),
@@ -40,10 +40,10 @@ function roundTrips(report: RunReport, what: string) {
   for (const d of details) {
     assert.equal(d.runId, report.runId, what)
     assert.ok(
-      d.attempts.every((a) => a.evalId === d.eval.id),
+      d.trials.every((a) => a.evalId === d.eval.id),
       `${what}: ${d.eval.id}'s rows are its own`,
     )
-    assert.equal(index.evals.find((e) => e.id === d.eval.id)?.attempts, d.attempts.length, what)
+    assert.equal(index.evals.find((e) => e.id === d.eval.id)?.trials, d.trials.length, what)
   }
   return { index, details }
 }
@@ -91,10 +91,10 @@ describe('splitRunReport', () => {
     roundTrips(buildRunReport(record, { evals: [key] }), 'one eval')
   })
 
-  test('refuses an eval id used twice, an attempt row naming no eval, or rows out of order', () => {
+  test('refuses an eval id used twice, a trial row naming no eval, or rows out of order', () => {
     const report = golden()
     const orphan = structuredClone(report)
-    ;(orphan.attempts[0] as RunReport['attempts'][number]).evalId = 'no such eval'
+    ;(orphan.trials[0] as RunReport['trials'][number]).evalId = 'no such eval'
     assert.throws(() => splitRunReport(orphan), /names eval no such eval/)
     const twice = structuredClone(report)
     twice.evals[1] = {
@@ -103,7 +103,7 @@ describe('splitRunReport', () => {
     }
     assert.throws(() => splitRunReport(twice), /is in the report twice/)
     const shuffled = structuredClone(report)
-    shuffled.attempts.reverse()
+    shuffled.trials.reverse()
     assert.throws(() => splitRunReport(shuffled), /out of the index's order/)
   })
 })

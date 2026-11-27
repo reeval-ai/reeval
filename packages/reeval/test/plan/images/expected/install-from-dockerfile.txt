@@ -1,5 +1,5 @@
-no profile · 1 evals · 1 cells · 1 attempts
-own-dockerfile  fake/own/docker:docker  control  gated any  ×1
+no profile · 1 evals · 1 cells · 1 trials
+own-dockerfile  fake/own/docker:docker  baseline  gated any  ×1
 excluded: —
 image docker:docker · cursor · 1 evals
   dockerfile docker/Dockerfile  reeval-dockerfile:docker-aa7db6046f2e12f3  (docker build (layer cache), tagged by content hash)

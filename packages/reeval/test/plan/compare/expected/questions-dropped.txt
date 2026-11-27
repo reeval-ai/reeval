@@ -1,13 +1,13 @@
-profile off (--profile) · 3 evals · 8 cells · 20 attempts
-questions/one     a/base/docker     control          gated any  ×1  compare off (profile off) · 1 pairwise question off (profile off)
-                  b/base/docker     control          gated any  ×1
-questions/pinned  a/base/docker     control          ungated    ×4  runs 4 (compare default) · pinned: compare
+profile off (--profile) · 3 evals · 8 cells · 20 trials
+questions/one     a/base/docker     baseline         gated any  ×1  compare off (profile off) · 1 pairwise question off (profile off)
+                  b/base/docker     baseline         gated any  ×1
+questions/pinned  a/base/docker     baseline         ungated    ×4  trials 4 (compare default) · pinned: compare
                   a/skilled/docker  variant skilled  gated any  ×4
-                  b/base/docker     control          ungated    ×4
+                  b/base/docker     baseline         ungated    ×4
                   b/skilled/docker  variant skilled  gated any  ×4
                   question: Which is shorter? · shows diff · environment · 8 pairs · no language model
-questions/two     a/base/docker     control          gated any  ×1  compare off (profile off) · 1 pairwise question off (profile off) · 1 pairwise question narrowed (profile off)
-                  b/base/docker     control          gated any  ×1
+questions/two     a/base/docker     baseline         gated any  ×1  compare off (profile off) · 1 pairwise question off (profile off) · 1 pairwise question narrowed (profile off)
+                  b/base/docker     baseline         gated any  ×1
                   question: Which handles state more cleanly? · shows diff · agent · 1 pair · no language model
 excluded: —
 image docker · cursor · 3 evals

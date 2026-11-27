@@ -1,5 +1,5 @@
 {"case":"exec-env","about":"commands with variables of their own: in the foreground and in the background","options":{}}
-{"reeval":{"type":"start","attempt":{"id":"fake/-/fake#1","cell":{"key":"fake/-/fake","harness":"fake","environment":"-","sandbox":"fake","role":"control"},"n":1},"file":"evals/exec-env.eval.ts","body":"b1"}}
+{"reeval":{"type":"start","trial":{"id":"fake/-/fake#1","cell":{"key":"fake/-/fake","harness":"fake","environment":"-","sandbox":"fake","role":"baseline"},"n":1},"file":"evals/exec-env.eval.ts","body":"b1"}}
 {"runner":{"id":"1","call":{"op":"exec","command":"printf %s \"$GREETING\"","env":{"GREETING":"hello"}}}}
 {"reeval":{"id":"1","ok":true,"op":"exec","result":{"exitCode":0,"stdout":"hello","stderr":""}}}
 {"runner":{"id":"2","call":{"op":"exec","command":"printf %s \"$WHO\" > who.txt","background":true,"env":{"WHO":"background"}}}}

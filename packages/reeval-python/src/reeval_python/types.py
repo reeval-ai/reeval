@@ -1,4 +1,4 @@
-"""Typed results for attempt calls (public, not wire-shaped)."""
+"""Typed results for trial calls (public, not wire-shaped)."""
 
 from __future__ import annotations
 

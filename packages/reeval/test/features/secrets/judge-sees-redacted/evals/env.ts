@@ -1,5 +1,5 @@
 import { writeFileSync } from 'node:fs'
-import { type AttemptContext, defineEnvironment } from 'reeval'
+import { defineEnvironment, type TrialContext } from 'reeval'
 import { judge } from 'reeval/graders'
 import { fakeJudge } from 'reeval/judge'
 import { docker, fakeSandbox } from 'reeval/sandbox'
@@ -19,7 +19,7 @@ export const tokens = defineEnvironment('tokens', ({ secret }) => ({
 }))
 
 /** The agent prints its secret and a check prints the checks' one. */
-export async function printTokens(c: AttemptContext) {
+export async function printTokens(c: TrialContext) {
   await c.send('print AGENT_TOKEN')
   await c.exec('printf %s "$CHECK_TOKEN"')
 }

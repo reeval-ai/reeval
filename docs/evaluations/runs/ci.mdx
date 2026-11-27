@@ -47,11 +47,11 @@ The `ubuntu-latest` runner includes the container runtime the sandbox uses. `fet
 
 The run step's id is `reeval`. At the start of the run, the `reeval run` command writes `run-id=<id>` to `GITHUB_OUTPUT` and appends `run <id>` to `GITHUB_STEP_SUMMARY`.
 
-When the run finishes, the `reeval run` command appends the run's `summary.md` file to the job summary. A failed run receives that file too. With `GITHUB_ACTIONS` set, a failing attempt stays expanded in the log and adds an error annotation on its evaluation file.
+When the run finishes, the `reeval run` command appends the run's `summary.md` file to the job summary. A failed run receives that file too. With `GITHUB_ACTIONS` set, a failing trial stays expanded in the log and adds an error annotation on its evaluation file.
 
 The `reeval run` command exits 1 when an evaluation fails. The step lets that code through so the later `reeval compare` step decides, because an evaluation that already failed on the base commit is not a regression. Any other non-zero code, such as 2 for a usage error or 3 for an infrastructure error, fails the job here.
 
-A control, or a cell under a target that only reports, such as the default `capability()`, can fail on a run that exits 0. A `budget.duration` stop counts as a failed run. For more information about exit codes, see [Exit codes](/reference/cli#exit-codes).
+A baseline, or a cell under a target that only reports, such as the default `capability()`, can fail on a run that exits 0. A `budget.duration` stop counts as a failed run. For more information about exit codes, see [Exit codes](/reference/cli#exit-codes).
 
 </Step>
 <Step title="Add the API key">

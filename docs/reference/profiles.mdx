@@ -13,10 +13,10 @@ import { defineConfig } from '{{ pkg }}'
 export default defineConfig({
   profiles: {
     nightly: {
-      defaults: { runs: 3 },
-      limit: { runs: 1, compare: false },
+      defaults: { trials: 3 },
+      limit: { trials: 1, compare: false },
       judge: { model: 'typesafe-ai/jev-1.14.0' },
-      budget: { attempts: 80, duration: '2h' },
+      budget: { trials: 80, duration: '2h' },
       record: 'always',
       tags: ['nightly'],
     },
@@ -28,7 +28,7 @@ export default defineConfig({
   Named profile objects.
 </Property>
 
-reeval applies the `reeval.config.ts` file, then `defaults`, then each eval, then `limit`. `defaults.judge` wins over the profile `judge` in that `defaults` step. `--runs` then replaces `runs`.
+reeval applies the `reeval.config.ts` file, then `defaults`, then each eval, then `limit`. `defaults.judge` wins over the profile `judge` in that `defaults` step. `--trials` then replaces `trials`.
 
 For more information about the per-key cascade, see [The cascade](/reference/options#the-cascade).
 
@@ -39,36 +39,36 @@ For more information about sizing a run with a profile, see [Size runs with prof
 `defaults` applies before each eval. `defaults.agents` replaces the eval's own `agents` unless the eval sets `pin: ['agents']`; the plan notes `agents set by the eval` when the eval keeps its own list. A later `agents` on the eval can replace or edit `defaults.agents`.
 
 <Property name="defaults" type="ProfileDefaults" optional>
-  `agents`, `sandbox`, `environments`, `runs`, `target`, `env`, `egress`, `judge`, `capture`, `question`, and `timeout`.
+  `agents`, `sandbox`, `environments`, `trials`, `target`, `env`, `egress`, `judge`, `capture`, `question`, and `timeout`.
 </Property>
 
 For more information about those keys, see [Options reference](/reference/options).
 
 ## `limit`
 
-`limit` narrows `runs`, `compare`, `agents`, and the cells by `traits` after the eval. `pin` on the eval names keys that stay as resolved.
+`limit` narrows `trials`, `compare`, `agents`, and the cells by `traits` after the eval. `pin` on the eval names keys that stay as resolved.
 
 <Property name="limit" type="ProfileLimit" optional>
-  The plan notes a cut, as in `runs 3 → 1 (profile nightly)`. It notes protected keys that `limit` also sets, as in `pinned: compare, runs`.
+  The plan notes a cut, as in `trials 3 → 1 (profile nightly)`. It notes protected keys that `limit` also sets, as in `pinned: compare, trials`.
 </Property>
 
 For more information about `pin`, see [Options reference](/reference/options#pin).
 
-### `runs`
+### `trials`
 
-<Property name="runs" type="number" optional>
-  A whole number of at least 1. reeval lowers `runs` only when the resolved value is higher, and turns a `{ bestOf: n }` with `n` above it into this fixed count. `--runs` replaces `runs` after the cap, including when `pin` lists `runs`.
+<Property name="trials" type="number" optional>
+  A whole number of at least 1. reeval lowers `trials` only when the resolved value is higher, and turns a `{ bestOf: n }` with `n` above it into this fixed count. `--trials` replaces `trials` after the cap, including when `pin` lists `trials`.
 </Property>
 
 ### `compare`
 
 <Property name="compare" type="false | { maxVariants: number }" optional>
-  `false` drops the variants and runs the control. `{ maxVariants: n }` keeps the first `n` variants. `n` is a whole number of at least 0.
+  `false` drops the variants and runs the baseline. `{ maxVariants: n }` keeps the first `n` variants. `n` is a whole number of at least 0.
 </Property>
 
-`limit.compare` applies when the resolved evaluation has `compare`, whether a group, a profile's `defaults`, the config or the evaluation set it. After `false` or `{ maxVariants: 0 }`, the control gates like an evaluation without `compare`. The plan notes `compare off (profile nightly)` or `variants 4 → 1 (profile nightly)`.
+`limit.compare` applies when the resolved evaluation has `compare`, whether a group, a profile's `defaults`, the config or the evaluation set it. After `false` or `{ maxVariants: 0 }`, the baseline gates like an evaluation without `compare`. The plan notes `compare off (profile nightly)` or `variants 4 → 1 (profile nightly)`.
 
-A pairwise question needs two attempts that differ in a factor it varies. When the limit leaves none of its factors varying, the plan notes `1 pairwise question off (profile nightly)`, or `2 pairwise questions off (profile nightly)` for two. When it leaves some, the question keeps those and the plan notes `1 pairwise question narrowed (profile nightly)`, or `2 pairwise questions narrowed (profile nightly)` for two.
+A pairwise question needs two trials that differ in a factor it varies. When the limit leaves none of its factors varying, the plan notes `1 pairwise question off (profile nightly)`, or `2 pairwise questions off (profile nightly)` for two. When it leaves some, the question keeps those and the plan notes `1 pairwise question narrowed (profile nightly)`, or `2 pairwise questions narrowed (profile nightly)` for two.
 
 ### `agents`
 
@@ -89,12 +89,12 @@ profiles: {
 ```
 
 <Property name="traits" type="Record<string, string | string[]>" optional>
-  The cells to keep, by their environment's traits. A cell matches a key when its trait is the value, or one of a list's, or a list trait contains it. Every key must match. With `compare`, a cell goes by its control's traits, so every variant runs with its control or not at all.
+  The cells to keep, by their environment's traits. A cell matches a key when its trait is the value, or one of a list's, or a list trait contains it. Every key must match. With `compare`, a cell goes by its baseline's traits, so every variant runs with its baseline or not at all.
 </Property>
 
 `limit.traits` applies after `where`, together with [`--trait`](/reference/cli#filtering-cells-by-trait), and `pin` doesn't protect from it. The plan notes `profiles.next.limit.traits.stack leaves out vite-app`. An evaluation, or a case, left with no cell is skipped: `no cell left: profiles.next.limit.traits.stack matches none of vite-app`.
 
-reeval exits with code 2 for a value that isn't a string or a non-empty list of strings, and for a key that no control environment of the selected evaluations defines, with the closest key it does define.
+reeval exits with code 2 for a value that isn't a string or a non-empty list of strings, and for a key that no baseline environment of the selected evaluations defines, with the closest key it does define.
 
 ## `judge`
 
@@ -110,13 +110,13 @@ For more information about judge fields, see [Options reference](/reference/opti
 
 `budget` merges key by key over the config `budget`. A set key replaces the config value. An omitted key keeps it.
 
-<Property name="budget" type="{ attempts?: number, duration?: Duration }" optional>
+<Property name="budget" type="{ trials?: number, duration?: Duration }" optional>
   reeval exits with code 2 for `usd`, `tokens`, or any other key.
 </Property>
 
-### `attempts`
+### `trials`
 
-<Property name="attempts" type="number" optional>
+<Property name="trials" type="number" optional>
   A whole number of at least 1. reeval exits with code 2 before the run starts when the plan is over the cap, unless `--force` is set. The header's `Scope:` line shows the cap, as in `(budget: 5 ✗)`.
 </Property>
 
@@ -128,7 +128,7 @@ For more information about judge fields, see [Options reference](/reference/opti
 
 The header's `Scope:` line appends the duration, as in `(budget: 5 ✗, 2h)`.
 
-The timer starts when the first attempt starts. At the cap, running attempts finish and queued attempts are skipped. The record status is `budget`, and the run fails.
+The timer starts when the first trial starts. At the cap, running trials finish and queued trials are skipped. The record status is `budget`, and the run fails.
 
 ## `record`
 

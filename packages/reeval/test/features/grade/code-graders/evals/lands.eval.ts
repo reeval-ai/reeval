@@ -2,7 +2,7 @@ import { defineEval } from 'reeval'
 import { plain } from './env.ts'
 import { answers, masked, observed, ran, turns } from './graders.ts'
 
-// Graders read the attempt once the task returns: its kept files, observations, execs and turns.
+// Graders read the trial once the task returns: its kept files, observations, execs and turns.
 export default defineEval({
   environment: plain,
   graders: [answers(42), masked, observed, ran, turns],

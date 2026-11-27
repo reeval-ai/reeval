@@ -1,7 +1,7 @@
-// An attempt on a pooled VM in a container of an image recipe's image, one that the saved snapshot
+// A trial on a pooled VM in a container of an image recipe's image, one that the saved snapshot
 // the VM started from holds, or that the VM's Docker pulls or builds: the VM's docker CLI, over SSH,
 // runs it as `docker()` runs one locally, so the egress gateway is its only way out and each
-// attempt on a shared machine has a network of its own. A slot's reset is the next attempt's new
+// trial on a shared machine has a network of its own. A slot's reset is the next trial's new
 // container.
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -14,13 +14,13 @@ import {
   sizeBytes,
   sshEngine,
 } from '@reeval/sandbox-docker'
-import { attemptDebug } from '../debug/attempt.ts'
+import { trialDebug } from '../debug/trial.ts'
 import { registerSecret } from '../redact.ts'
 import type {
-  AttemptImage,
   BoatSandboxDescriptor,
   CloudSandboxDescriptor,
   SandboxBase,
+  TrialImage,
 } from '../types.ts'
 import { containerSandbox } from './docker.ts'
 import type { SandboxOptions } from './index.ts'
@@ -34,7 +34,7 @@ import { InfraError, type NetworkSandbox, RunStopped } from './types.ts'
 /** How long a machine started from the snapshot may take to have the image ready in its Docker. */
 const IMAGE_WAIT_MS = 4 * 60_000
 const IMAGE_POLL_MS = 2_000
-/** How many machines an attempt tries when a reused one's Docker doesn't answer. */
+/** How many machines a trial tries when a reused one's Docker doesn't answer. */
 const SETUP_TRIES = 3
 
 /** Where a machine's image comes from: the snapshot it starts from, and how its Docker gets it. */
@@ -48,7 +48,7 @@ export type VmImageSource = {
     engine: RemoteEngine,
     machine: PooledSshMachine,
     signal: AbortSignal,
-  ): Promise<{ ref: string; image?: AttemptImage; plugins?: BuiltPlugin[] }>
+  ): Promise<{ ref: string; image?: TrialImage; plugins?: BuiltPlugin[] }>
 }
 
 /** The image `base`'s snapshot holds, which its machine's Docker has once it has booted. */
@@ -57,7 +57,7 @@ export const fromSnapshot = (base: SandboxBase): VmImageSource => ({
   async ready(engine, _machine, signal) {
     const waited = await untilImage(engine, base.image, signal)
     if (waited >= 1000) {
-      attemptDebug()?.log(
+      trialDebug()?.log(
         'container',
         `${base.image} ready in its Docker after ${Math.round(waited / 1000)}s`,
       )
@@ -137,7 +137,7 @@ async function untilImage(
 }
 
 /**
- * One attempt in a container of `source`'s image on a slot of `descriptor`'s pool. A reused
+ * One trial in a container of `source`'s image on a slot of `descriptor`'s pool. A reused
  * machine whose Docker can't get the image is dropped and another leased, up to 3 times.
  */
 export async function createVmContainerSandbox(
@@ -146,14 +146,14 @@ export async function createVmContainerSandbox(
   options: SandboxOptions,
   o: VmContainerOptions,
 ): Promise<NetworkSandbox> {
-  const debug = attemptDebug()
+  const debug = trialDebug()
   for (let tries = 1; ; tries++) {
     const dir = await mkdtemp(join(tmpdir(), `reeval-${o.sandbox}-ssh-`))
     const lease = await leaseMachine(
       {
         sandbox: descriptor,
         runId: options.runId,
-        ...(options.attempt !== undefined && { attempt: options.attempt }),
+        ...(options.trial !== undefined && { trial: options.trial }),
         root: process.cwd(),
         ttlSeconds: Math.ceil(options.timeoutMs / 1000) + TTL_MARGIN_S,
         ...(source.snapshot && { image: source.snapshot }),
@@ -171,7 +171,7 @@ export async function createVmContainerSandbox(
       'container',
       lease.start
         ? `created ${info.id} (${info.name}, ${info.size})${source.snapshot ? ` from snapshot ${source.snapshot}` : ''} in ${lease.start.ms}ms; slot ${lease.slot}`
-        : `${lease.reused ? 'reused' : 'shared'} ${info.id} (${info.name}, ${info.size}); slot ${lease.slot}${lease.reused ? `, its attempt ${lease.reused + 1}` : ''}`,
+        : `${lease.reused ? 'reused' : 'shared'} ${info.id} (${info.name}, ${info.size}); slot ${lease.slot}${lease.reused ? `, its trial ${lease.reused + 1}` : ''}`,
     )
     for (const lost of lease.lost) debug?.log('container', lostLine(lost))
     const engine = sshEngine(
@@ -207,14 +207,14 @@ export async function createVmContainerSandbox(
     try {
       // The machine's slots share it evenly.
       const capacity = await dockerCapacity(engine)
-      const slots = info.attemptsPerMachine ?? descriptor.attemptsPerMachine ?? 1
+      const slots = info.trialsPerMachine ?? descriptor.trialsPerMachine ?? 1
       const limits = slotLimits(
         capacity && {
           memoryBytes: Math.floor(capacity.memoryBytes / slots),
           cpus: Math.round((capacity.cpus / slots) * 100) / 100,
         },
         asked,
-        (line) => debug?.log('container', `${info.id}: the attempt's ${line}`),
+        (line) => debug?.log('container', `${info.id}: the trial's ${line}`),
       )
       sandbox = await containerSandbox(options, {
         image: image.ref,

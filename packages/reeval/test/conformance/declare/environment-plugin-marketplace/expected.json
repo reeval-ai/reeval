@@ -42,7 +42,7 @@
       "children": [
         {
           "type": "eval",
-          "name": "entries read at the attempt",
+          "name": "entries read at the trial",
           "mode": "run",
           "options": {},
           "body": "b1",

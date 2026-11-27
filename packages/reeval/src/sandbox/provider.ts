@@ -1,4 +1,4 @@
-// The contract a sandbox provider meets before any attempt starts: check it can work, then make
+// The contract a sandbox provider meets before any trial starts: check it can work, then make
 // each distinct environment the plan needs, and class every failure so reeval's generic layer
 // (preflight.ts) can order, retry, cache and scope them the same way for every provider.
 import type { HarnessDescriptor, PluginSource, SandboxDescriptor } from '../types.ts'
@@ -39,7 +39,7 @@ export class PrepareError extends InfraError {
   }
 }
 
-/** What an attempt starts from: a provider's own JSON, e.g. Docker's image ref and id. */
+/** What a trial starts from: a provider's own JSON, e.g. Docker's image ref and id. */
 export type PreparedHandle = { [key: string]: unknown } | null
 
 export type PrepareContext = {
@@ -74,13 +74,13 @@ export interface SandboxProvider<D extends SandboxDescriptor = SandboxDescriptor
    */
   checkTargets?(sandboxes: D[], ctx: Pick<PrepareContext, 'signal' | 'log'>): Promise<void>
   /**
-   * Attempts whose sandbox, harness and built plugins give the same key share one prepared
+   * Trials whose sandbox, harness and built plugins give the same key share one prepared
    * environment.
    */
   key(sandbox: D, harness: HarnessDescriptor, plugins?: readonly PluginSource[]): string
   /**
    * Builds, pulls or provisions the environment, with the plugins that have a `build` built into
-   * it, and returns what attempts start from.
+   * it, and returns what trials start from.
    */
   prepare(
     sandbox: D,

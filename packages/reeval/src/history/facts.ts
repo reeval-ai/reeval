@@ -28,10 +28,10 @@ import { TOOL_CLASSES } from './tool-class.ts'
 import type { CheckTally, FingerprintParts } from './types.ts'
 
 /**
- * Counted attempts, pooled over comparable runs, before a cell with mixed outcomes is `flaky`;
+ * Counted trials, pooled over comparable runs, before a cell with mixed outcomes is `flaky`;
  * below it the cell is `mixed`: it passed and failed, too few times to call it flaky.
  */
-export const FLAKY_MIN_ATTEMPTS = 6
+export const FLAKY_MIN_TRIALS = 6
 /** A failing verdict this close to its threshold points at the judge, not the agent. */
 export const JUDGE_MARGIN = 0.1
 
@@ -42,8 +42,8 @@ CREATE TABLE effort_m (
   agent_s_median REAL, agent_s_q1 REAL, agent_s_q3 REAL, file_edits_median REAL,
   files_changed_median REAL,
   tokens_median REAL, tokens_q1 REAL, tokens_q3 REAL, cost_usd_median REAL,
-  control_key TEXT, control_n INTEGER, control_tools_median REAL, control_agent_s_median REAL,
-  control_tokens_median REAL, control_cost_usd_median REAL,
+  baseline_key TEXT, baseline_n INTEGER, baseline_tools_median REAL, baseline_agent_s_median REAL,
+  baseline_tokens_median REAL, baseline_cost_usd_median REAL,
   tools_ratio REAL, agent_s_ratio REAL, agent_s_delta REAL, tokens_ratio REAL,
   tools_p REAL, agent_s_p REAL, tokens_p REAL,
   separated INTEGER, time_separated INTEGER, tokens_separated INTEGER,
@@ -51,7 +51,7 @@ CREATE TABLE effort_m (
   context_calls_median REAL, dependency_calls_median REAL, web_calls_median REAL,
   verify_calls_median REAL, workspace_calls_median REAL,
   model_s_median REAL, tool_s_median REAL, waiting_s_median REAL, other_s_median REAL,
-  llm_calls_median REAL, control_llm_calls_median REAL
+  llm_calls_median REAL, baseline_llm_calls_median REAL
 );
 CREATE TABLE contrasts_m (
   run_id TEXT, eval_key TEXT, agent TEXT, sandbox TEXT, a_key TEXT, b_key TEXT,
@@ -65,7 +65,7 @@ CREATE TABLE contrasts_m (
 CREATE TABLE factor_effects_m (
   factor TEXT, level TEXT, baseline TEXT, context TEXT, tier TEXT, run_id TEXT, eval_key TEXT,
   strata INTEGER, runs INTEGER, variant_pass INTEGER, variant_counted INTEGER,
-  control_pass INTEGER, control_counted INTEGER, points REAL, lo REAL, hi REAL,
+  baseline_pass INTEGER, baseline_counted INTEGER, points REAL, lo REAL, hi REAL,
   within_noise INTEGER, pass_verdict TEXT, small_sample INTEGER, tools_ratio REAL, tools_ratios TEXT,
   agent_s_ratio REAL, tools_p REAL, consistent INTEGER, separated INTEGER, effort_verdict TEXT,
   tokens_ratio REAL, tokens_p REAL, tokens_verdict TEXT, tokens_note TEXT,
@@ -74,7 +74,7 @@ CREATE TABLE factor_effects_m (
 CREATE TABLE flaky_m (
   eval_key TEXT, cell_key TEXT, case_key TEXT, fingerprint TEXT, runs INTEGER, flaky_runs INTEGER,
   first_seen TEXT, last_seen TEXT, pass INTEGER, counted INTEGER, infra_error INTEGER,
-  pass_at_1 REAL, lo REAL, hi REAL, verdict TEXT, cause TEXT, min_attempts INTEGER
+  pass_at_1 REAL, lo REAL, hi REAL, verdict TEXT, cause TEXT, min_trials INTEGER
 );
 CREATE TABLE drift_m (
   run_id TEXT, prev_run_id TEXT, eval_key TEXT, cell_key TEXT, changed TEXT,
@@ -82,7 +82,7 @@ CREATE TABLE drift_m (
 );
 CREATE TABLE check_streaks_m (
   eval_key TEXT, cell_key TEXT, label TEXT, fingerprint TEXT, branch TEXT, runs INTEGER,
-  fails INTEGER, streak_runs INTEGER, streak_tries INTEGER, streak_since TEXT, last_run TEXT,
+  fails INTEGER, streak_runs INTEGER, streak_trials INTEGER, streak_since TEXT, last_run TEXT,
   ended_by TEXT
 );
 `
@@ -138,7 +138,7 @@ type Cell = {
   infra_error: number
 } & Record<(typeof PARTS)[number][1], string | null>
 
-type Attempt = {
+type Trial = {
   run_id: string
   eval_key: string
   cell_key: string
@@ -209,8 +209,8 @@ function passCols(v: Side, c: Side): Row {
   return {
     variant_pass: v.pass,
     variant_counted: v.counted,
-    control_pass: c.pass,
-    control_counted: c.counted,
+    baseline_pass: c.pass,
+    baseline_counted: c.counted,
     points: round3(lift.points),
     lo: round3(lift.low),
     hi: round3(lift.high),
@@ -334,32 +334,32 @@ export function deriveFacts(db: DatabaseSync): void {
       'SELECT c.*, r.started_at FROM cells c JOIN runs r USING (run_id) ORDER BY c.run_id, c.rowid',
     ),
   )
-  const attempts = rowsOf<Attempt>(
+  const trials = rowsOf<Trial>(
     db.prepare(
       `SELECT run_id, eval_key, cell_key, key, outcome, error_kind, case_key, tools, agent_ms, file_edits, files_changed,
         input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, reasoning_tokens,
         model_ms, tool_ms, waiting_ms, other_ms, cost_usd, llm_calls
-       FROM attempts ORDER BY run_id, rowid`,
+       FROM trials ORDER BY run_id, rowid`,
     ),
   )
   const nearThreshold = new Set(
-    rowsOf<{ run_id: string; attempt_key: string }>(
+    rowsOf<{ run_id: string; trial_key: string }>(
       db.prepare(
-        `SELECT DISTINCT run_id, attempt_key FROM judgements WHERE verdict = 'fail' AND ABS(score - threshold) <= ${JUDGE_MARGIN}`,
+        `SELECT DISTINCT run_id, trial_key FROM judgements WHERE verdict = 'fail' AND ABS(score - threshold) <= ${JUDGE_MARGIN}`,
       ),
-    ).map((r) => `${r.run_id}\0${r.attempt_key}`),
+    ).map((r) => `${r.run_id}\0${r.trial_key}`),
   )
   const diffs = new Map(
     // An empty diff leaves the agent's answer as its only work, which this doesn't compare.
-    rowsOf<{ run_id: string; attempt_key: string; sha256: string | null }>(
+    rowsOf<{ run_id: string; trial_key: string; sha256: string | null }>(
       db.prepare(
-        `SELECT run_id, attempt_key, sha256 FROM artifacts WHERE kind = 'diff' AND bytes > 0`,
+        `SELECT run_id, trial_key, sha256 FROM artifacts WHERE kind = 'diff' AND bytes > 0`,
       ),
-    ).flatMap((r) => (r.sha256 ? [[`${r.run_id}\0${r.attempt_key}`, r.sha256] as const] : [])),
+    ).flatMap((r) => (r.sha256 ? [[`${r.run_id}\0${r.trial_key}`, r.sha256] as const] : [])),
   )
   const samples = new Map<string, EffortSample[]>()
-  const byCell = new Map<string, Attempt[]>()
-  for (const a of attempts) {
+  const byCell = new Map<string, Trial[]>()
+  for (const a of trials) {
     const id = cellId(a.run_id, a.eval_key, a.cell_key)
     byCell.set(id, [...(byCell.get(id) ?? []), a])
     if (a.outcome !== 'pass' && a.outcome !== 'fail') continue
@@ -404,17 +404,17 @@ export function deriveFacts(db: DatabaseSync): void {
   const find = (run: string, evalKey: string, key: string) =>
     cells.find((c) => c.run_id === run && c.eval_key === evalKey && c.key === key)
 
-  // Tool calls by class per counted attempt, for each cell's per-class medians. An attempt counts
+  // Tool calls by class per counted trial, for each cell's per-class medians. A trial counts
   // when its calls were read from its trajectory or its record says it made none (a turnless one
   // has no trajectory), with 0 for each class it made no calls in; one whose record has calls but
-  // whose trajectory couldn't be read stays out. Null for a cell with no attempt that counts.
+  // whose trajectory couldn't be read stays out. Null for a cell with no trial that counts.
   const classCounts = new Map<string, Map<string, number>>()
-  for (const r of rowsOf<{ run_id: string; attempt_key: string; class: string; n: number }>(
+  for (const r of rowsOf<{ run_id: string; trial_key: string; class: string; n: number }>(
     db.prepare(
-      'SELECT run_id, attempt_key, class, COUNT(*) AS n FROM tool_calls GROUP BY run_id, attempt_key, class',
+      'SELECT run_id, trial_key, class, COUNT(*) AS n FROM tool_calls GROUP BY run_id, trial_key, class',
     ),
   )) {
-    const id = `${r.run_id}\0${r.attempt_key}`
+    const id = `${r.run_id}\0${r.trial_key}`
     const m = classCounts.get(id) ?? new Map<string, number>()
     m.set(r.class, r.n)
     classCounts.set(id, m)
@@ -435,11 +435,11 @@ export function deriveFacts(db: DatabaseSync): void {
     )
   }
 
-  // effort: every cell, and a variant against its control in the same run.
+  // effort: every cell, and a variant against its baseline in the same run.
   const effortRows: Row[] = cells.map((c) => {
     const own = effortOf(side(c).samples)
-    const control = c.lift_vs ? find(c.run_id, c.eval_key, c.lift_vs) : undefined
-    const vs = control ? contrastEffort(side(c).samples, side(control).samples) : null
+    const baseline = c.lift_vs ? find(c.run_id, c.eval_key, c.lift_vs) : undefined
+    const vs = baseline ? contrastEffort(side(c).samples, side(baseline).samples) : null
     return {
       run_id: c.run_id,
       eval_key: c.eval_key,
@@ -461,12 +461,12 @@ export function deriveFacts(db: DatabaseSync): void {
       tokens_q1: own?.tokens?.q1 ?? null,
       tokens_q3: own?.tokens?.q3 ?? null,
       cost_usd_median: own?.usd?.median ?? null,
-      control_key: control?.key ?? null,
-      control_n: vs?.control.n ?? null,
-      control_tools_median: vs?.control.tools.median ?? null,
-      control_agent_s_median: vs ? s1(vs.control.agentMs.median) : null,
-      control_tokens_median: vs?.control.tokens?.median ?? null,
-      control_cost_usd_median: vs?.control.usd?.median ?? null,
+      baseline_key: baseline?.key ?? null,
+      baseline_n: vs?.baseline.n ?? null,
+      baseline_tools_median: vs?.baseline.tools.median ?? null,
+      baseline_agent_s_median: vs ? s1(vs.baseline.agentMs.median) : null,
+      baseline_tokens_median: vs?.baseline.tokens?.median ?? null,
+      baseline_cost_usd_median: vs?.baseline.usd?.median ?? null,
       tools_ratio: r4(vs?.toolsRatio ?? null),
       agent_s_ratio: r4(vs?.agentMsRatio ?? null),
       agent_s_delta: vs ? s1(vs.agentMsDelta) : null,
@@ -487,12 +487,12 @@ export function deriveFacts(db: DatabaseSync): void {
       waiting_s_median: own?.split ? s1(own.split.waitingMs) : null,
       other_s_median: own?.split ? s1(own.split.otherMs) : null,
       llm_calls_median: own?.llmCalls?.median ?? null,
-      control_llm_calls_median: vs?.control.llmCalls?.median ?? null,
+      baseline_llm_calls_median: vs?.baseline.llmCalls?.median ?? null,
     }
   })
   insertAll(db, 'effort_m', effortRows)
 
-  // contrasts: each pair of arms on one harness and sandbox, when an eval has two variants or more.
+  // contrasts: each pair of environments on one harness and sandbox, when an eval has two variants or more.
   const checkRows = rowsOf<{
     run_id: string
     eval_key: string
@@ -559,7 +559,7 @@ export function deriveFacts(db: DatabaseSync): void {
         pass_verdict: pass.pass_verdict ?? null,
         small_sample: pass.small_sample ?? null,
         a_tools_median: e?.variant.tools.median ?? null,
-        b_tools_median: e?.control.tools.median ?? null,
+        b_tools_median: e?.baseline.tools.median ?? null,
         tools_ratio: r4(e?.toolsRatio ?? null),
         tools_p: r4(e?.toolsP ?? null),
         separated: e ? (e.separated ? 1 : 0) : null,
@@ -581,7 +581,7 @@ export function deriveFacts(db: DatabaseSync): void {
   }
   insertAll(db, 'contrasts_m', contrastRows)
 
-  // Controlled contrasts: a variant against its control, and a harness or model against the
+  // Controlled contrasts: a variant against its baseline, and a harness or model against the
   // eval's first one, on the same environment and sandbox.
   const pairs: Pair[] = []
   const groups = new Map<string, Cell[]>()
@@ -591,18 +591,18 @@ export function deriveFacts(db: DatabaseSync): void {
   }
   for (const group of groups.values()) {
     for (const v of group) {
-      const control = v.lift_vs ? group.find((c) => c.key === v.lift_vs) : undefined
-      if (!control) continue
+      const baseline = v.lift_vs ? group.find((c) => c.key === v.lift_vs) : undefined
+      if (!baseline) continue
       pairs.push({
         factor: 'environment',
         level: v.variant ?? v.environment,
-        baseline: 'control',
+        baseline: 'baseline',
         context: v.agent,
         run: v.run_id,
         evalKey: v.eval_key,
-        pool: `${v.comparable}\0${control.comparable}`,
+        pool: `${v.comparable}\0${baseline.comparable}`,
         v: side(v),
-        c: side(control),
+        c: side(baseline),
       })
     }
     const bySetup = new Map<string, Cell[]>()
@@ -618,7 +618,7 @@ export function deriveFacts(db: DatabaseSync): void {
           factor: other.agent_kind === base.agent_kind ? 'model' : 'agent',
           level: other.agent,
           baseline: base.agent,
-          context: other.variant ?? 'control',
+          context: other.variant ?? 'baseline',
           run: other.run_id,
           evalKey: other.eval_key,
           pool: `${other.comparable}\0${base.comparable}`,
@@ -726,7 +726,7 @@ export function deriveFacts(db: DatabaseSync): void {
     }
   }
 
-  // Paired: each variant of an eval with cases against its control over the cases of one run,
+  // Paired: each variant of an eval with cases against its baseline over the cases of one run,
   // each case a paired sample, as its record computed it.
   const caseLifts = rowsOf<Record<(typeof CASE_LIFT_COLUMNS)[number], SQLInputValue>>(
     db.prepare(`SELECT ${CASE_LIFT_COLUMNS.join(', ')} FROM case_lift_m`),
@@ -735,7 +735,7 @@ export function deriveFacts(db: DatabaseSync): void {
     factorRows.push({
       factor: 'environment',
       level: f.variant,
-      baseline: 'control',
+      baseline: 'baseline',
       context: f.agent,
       tier: 'paired',
       run_id: f.run_id,
@@ -768,7 +768,7 @@ export function deriveFacts(db: DatabaseSync): void {
     series.set(id, [...(series.get(id) ?? []), c])
   }
   const contextOf = db.prepare(
-    'SELECT path, sha256 FROM attempt_context WHERE run_id = ? AND attempt_key = ?',
+    'SELECT path, sha256 FROM trial_context WHERE run_id = ? AND trial_key = ?',
   )
   const cellContext = (c: Cell) => {
     const files = new Map<string, string>()
@@ -808,7 +808,7 @@ export function deriveFacts(db: DatabaseSync): void {
         noise: real.length === 0 ? 1 : 0,
         real_changed: real.join(' ') || null,
       })
-      // The gate scores the attempts but doesn't change them: a policy change, not an effect.
+      // The gate scores the trials but doesn't change them: a policy change, not an effect.
       const effects = real.filter((part) => part !== 'gate')
       if (effects.length === 0) continue
       // Observed over time: what changed between two runs of the same cell.
@@ -871,7 +871,7 @@ export function deriveFacts(db: DatabaseSync): void {
   type Unit = {
     cell: Cell
     caseKey: string | null
-    attempts: Attempt[]
+    trials: Trial[]
     pass: number
     fail: number
     infra: number
@@ -885,7 +885,7 @@ export function deriveFacts(db: DatabaseSync): void {
           return {
             cell: c,
             caseKey,
-            attempts: list,
+            trials: list,
             pass: list.filter((a) => a.outcome === 'pass').length,
             fail: list.filter((a) => a.outcome === 'fail').length,
             infra: list.filter((a) => a.outcome === 'infra_error').length,
@@ -895,7 +895,7 @@ export function deriveFacts(db: DatabaseSync): void {
           {
             cell: c,
             caseKey: null,
-            attempts: all,
+            trials: all,
             pass: c.pass,
             fail: c.fail,
             infra: c.infra_error,
@@ -913,11 +913,11 @@ export function deriveFacts(db: DatabaseSync): void {
     if (!(pass > 0 && fail > 0)) continue
     const first = list[0] as Unit
     const infra = list.reduce((n, u) => n + u.infra, 0)
-    const failing = list.flatMap((u) => u.attempts.filter((a) => a.outcome === 'fail'))
+    const failing = list.flatMap((u) => u.trials.filter((a) => a.outcome === 'fail'))
     const w = wilson(pass, pass + fail)
     const passedDiffs = new Set(
       list.flatMap((u) =>
-        u.attempts.flatMap((a) => {
+        u.trials.flatMap((a) => {
           const sha = a.outcome === 'pass' && diffs.get(`${a.run_id}\0${a.key}`)
           return sha ? [sha] : []
         }),
@@ -954,9 +954,9 @@ export function deriveFacts(db: DatabaseSync): void {
       pass_at_1: round3(pass / (pass + fail)),
       lo: round3(w.low),
       hi: round3(w.high),
-      verdict: pass + fail >= FLAKY_MIN_ATTEMPTS ? 'flaky' : 'mixed',
+      verdict: pass + fail >= FLAKY_MIN_TRIALS ? 'flaky' : 'mixed',
       cause,
-      min_attempts: FLAKY_MIN_ATTEMPTS,
+      min_trials: FLAKY_MIN_TRIALS,
     })
   }
   flakyRows.sort((a, b) => String(a.first_seen).localeCompare(String(b.first_seen)))
@@ -982,7 +982,7 @@ type StreakCheck = {
 /**
  * check_streaks: each check per cell, comparable fingerprint and branch, over recorded runs only:
  * how many of its newest runs in a row it passed without a fail or an error (on a variant, only
- * runs where its control passed it too, `both-pass`), the tries those runs counted, and the run
+ * runs where its baseline passed it too, `both-pass`), the tries those runs counted, and the run
  * that ended it. A run that never reached the check neither extends nor ends the streak.
  */
 function checkStreaks(db: DatabaseSync): Row[] {
@@ -1004,7 +1004,7 @@ function checkStreaks(db: DatabaseSync): Row[] {
   for (const list of series.values()) {
     const first = list[0] as StreakCheck
     let streakRuns = 0
-    let streakTries = 0
+    let streakTrials = 0
     let since: string | null = null
     let endedBy: string | null = null
     for (const k of [...list].reverse()) {
@@ -1016,7 +1016,7 @@ function checkStreaks(db: DatabaseSync): Row[] {
         break
       }
       streakRuns++
-      streakTries += k.pass
+      streakTrials += k.pass
       since = k.run_id
     }
     rows.push({
@@ -1028,7 +1028,7 @@ function checkStreaks(db: DatabaseSync): Row[] {
       runs: list.length,
       fails: list.reduce((n, k) => n + k.fail, 0),
       streak_runs: streakRuns,
-      streak_tries: streakTries,
+      streak_trials: streakTrials,
       streak_since: since,
       last_run: list.at(-1)?.run_id ?? null,
       ended_by: endedBy,

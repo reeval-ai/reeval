@@ -1,4 +1,4 @@
-// `reeval/graders`: built-in graders over what each attempt records, for an eval's or the
+// `reeval/graders`: built-in graders over what each trial records, for an eval's or the
 // config's `graders`, and `judge()`, a question for reeval's judge, for an eval's. Each is named
 // `<kind>:<main argument>`.
 export {

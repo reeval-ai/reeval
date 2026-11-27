@@ -6,11 +6,11 @@ const withHouseGreeting = defineEnvironment('with-house-greeting', ({ skill }) =
   skills: [skill.local('../skills/house-greeting')],
 }))
 
-// Both arms write greet.js, so the first pairwise question has votes and the second fails at the
-// model. Each attempt is asked the last two on its own: one picks from choices, one answers in
+// Both environments write greet.js, so the first pairwise question has votes and the second fails at the
+// model. Each trial is asked the last two on its own: one picks from choices, one answers in
 // words. One grader is named and one keeps its default name. Two values are observed.
 export default defineEval({
-  compare: { control: plain, variants: [withHouseGreeting] },
+  compare: { baseline: plain, variants: [withHouseGreeting] },
   questions: [
     {
       question: 'Which greeting reads more like our house style?',
@@ -21,7 +21,7 @@ export default defineEval({
     { question: 'Does the greeting use the house style?', choices: ['yes', 'no'], diff: true },
     { question: 'How did the agent pick its greeting?', trajectory: true },
   ],
-  graders: [hasFile('greet.js', { name: 'writes greet.js' }), hasFile('greet.js', /=>/)],
+  graders: [hasFile('greet.js', { name: 'writes-greet.js' }), hasFile('greet.js', /=>/)],
   task: async (c) => {
     await c.send('Write greet.js that greets in our house style.')
     const greet = (await c.readFile('greet.js')) ?? ''

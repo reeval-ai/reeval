@@ -1,7 +1,7 @@
-import { type AttemptContext, defineGrader, type GraderContext } from 'reeval'
+import { defineGrader, type GraderContext, type TrialContext } from 'reeval'
 import { observed, ran } from 'reeval/graders'
 import { execOf } from 'reeval/graders/match'
-import { arms, type Target } from './environments.ts'
+import { environments, type Target } from './environments.ts'
 
 /** The pre-release reeval the sandbox has; the user would install it from npm. */
 export const INSTALL =
@@ -11,7 +11,7 @@ export const INSTALL =
 /** What the graders read of `reeval run --dry-run --json`: its evals, by name with their cells' roles. */
 type Plan = { evals: { name: string; roles: string[] }[] }
 
-async function plan(c: AttemptContext): Promise<Plan | null> {
+async function plan(c: TrialContext): Promise<Plan | null> {
   const r = await c.exec('./node_modules/.bin/reeval run --dry-run --json 2>/dev/null')
   try {
     if (r.exitCode !== 0) return null
@@ -33,7 +33,7 @@ export const HARNESS_KEY =
 
 export const evalFiles = "find evals -name '*.eval.ts' 2>/dev/null | sort"
 
-export const evalList = async (c: AttemptContext) => (await c.exec(evalFiles)).stdout.trim()
+export const evalList = async (c: TrialContext) => (await c.exec(evalFiles)).stdout.trim()
 export const names = (text: string) => text.split('\n').filter(Boolean)
 
 /** The `eval-sources` exec's output: every eval file the agent left, concatenated. */
@@ -43,7 +43,7 @@ export const sourcesOf = (c: GraderContext) => execOf(c, 'eval-sources')?.stdout
  * The task every target shares: the first turn, whose `created` evals it observes, then the
  * answer, then the plan, the eval sources and how many evals were there before.
  */
-export async function setUp(c: AttemptContext, answer: string, before: string[] = []) {
+export async function setUp(c: TrialContext, answer: string, before: string[] = []) {
   const first = await c.send(`Set up reeval here.${INSTALL}`)
   const created = names(await evalList(c)).filter((f) => !before.includes(f))
   c.observe('evals-before-answer', created)
@@ -74,4 +74,4 @@ export const shared = [
   }),
 ]
 
-export const target = (t: Target) => ({ compare: arms(t) })
+export const target = (t: Target) => ({ compare: environments(t) })

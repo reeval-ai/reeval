@@ -362,7 +362,7 @@ describe('the Claude Code harness', () => {
         ANTHROPIC_API_KEY: 'api',
       },
     )
-    // A refused key names the variable the attempt took it from.
+    // A refused key names the variable the trial took it from.
     assert.equal(
       await withHostEnv({ CLAUDE_CODE_OAUTH_TOKEN: 'oat' }, async () =>
         authHint(agent, 'HTTP 401'),
@@ -2811,7 +2811,7 @@ describe('token usage and the served model, from any harness', () => {
     assert.equal(served, 'gemini-3.8-flash-low')
   })
 
-  test("Antigravity: a three-turn attempt counts each turn's own calls once", async () => {
+  test("Antigravity: a three-turn trial counts each turn's own calls once", async () => {
     // A real agy 1.4.4 conversation, one process per turn, each resuming the first. The Gemini
     // API's usageMetadata for its eight model calls sums to 66021 uncached prompt tokens,
     // 254217 cached and 413 output: what agy's last result reports as its running total.
@@ -2860,7 +2860,7 @@ describe('token usage and the served model, from any harness', () => {
   })
 
   test("Cursor: a turn's tokens are what Cursor's usage export billed for it", async () => {
-    // Three composer-2.5[fast=false] attempts on @cursor/sdk 1.0.40: each row of Cursor's usage
+    // Three composer-2.5[fast=false] trials on @cursor/sdk 1.0.40: each row of Cursor's usage
     // export (uncached input, cache read, output, total) next to the SDK's usage for that run.
     // The SDK's totalTokens counts the cache reads twice, so it isn't the billed total.
     const rows = [
@@ -2952,10 +2952,10 @@ describe('token usage and the served model, from any harness', () => {
   })
 })
 
-describe("each harness's image serves its attempts' bootstrap", () => {
-  // An attempt that asks for another bootstrap than its image baked reinstalls the CLI at start,
+describe("each harness's image serves its trials' bootstrap", () => {
+  // A trial that asks for another bootstrap than its image baked reinstalls the CLI at start,
   // where a restricted egress policy refuses the download.
-  const ATTEMPTS: Record<(typeof BAKED_HARNESSES)[number], readonly AgentHarnessDescriptor[]> = {
+  const TRIALS: Record<(typeof BAKED_HARNESSES)[number], readonly AgentHarnessDescriptor[]> = {
     cursor: [cursor({ model: 'composer-2.5' })],
     'claude-code': [claudeCode({ model: 'claude-sonnet-5-5' })],
     antigravity: [antigravity({ model: 'gemini-3.8-flash' })],
@@ -3007,7 +3007,7 @@ describe("each harness's image serves its attempts' bootstrap", () => {
   for (const harness of BAKED_HARNESSES) {
     test(`${harness}, at no effort, the default effort and its own`, async () => {
       const baked = await setupOf(harness).recipe()
-      for (const unset of ATTEMPTS[harness]) {
+      for (const unset of TRIALS[harness]) {
         const efforts = [unset, withDefaultEffort(unset)]
         if (takesEffort(unset)) efforts.push({ ...unset, effort: 'high' })
         for (const descriptor of efforts) {

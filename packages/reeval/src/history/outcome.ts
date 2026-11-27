@@ -6,7 +6,7 @@ type Merged = Pick<EvalRecord, 'error'> & { outcome: Outcome }
 
 /** The engine and the worker's record can disagree, e.g. when a timeout fails the eval first. */
 export function mergeOutcome(e: EngineEval, record: EvalRecord | null): Merged {
-  // A resume skips a completed attempt: keep the staged (or previous) outcome, including pass.
+  // A resume skips a completed trial: keep the staged (or previous) outcome, including pass.
   if (e.state === 'skipped' && record) return { outcome: record.outcome, error: record.error }
   if (e.state === 'skipped') return { outcome: 'skipped', error: null }
   // An unhandled mid-turn error is reclassified to infra_error without throwing, so the engine

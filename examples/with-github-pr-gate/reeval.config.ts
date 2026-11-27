@@ -9,7 +9,7 @@ const fakeFile = (path: string) =>
 
 export default defineConfig({
   include: ['*.eval.ts'],
-  // Any attempt that misses fails the run, and so the pull request's check.
+  // Any trial that misses fails the run, and so the pull request's check.
   target: regression(),
   // A scripted agent that copies ./fake-agent's files into the workspace, so the graders run
   // without keys or Docker.
@@ -21,13 +21,13 @@ export default defineConfig({
     text: 'I added multiply(a, b) to src/math.js and a test for it.',
   }),
   sandbox: fakeSandbox(),
-  // In CI the run is recorded and `pr` applies: Claude Code in Docker, one attempt per cell.
+  // In CI the run is recorded and `pr` applies: Claude Code in Docker, one trial per cell.
   record: 'ci',
   defaultProfile: { ci: 'pr' },
   // The real agents: `--profile claude-code`, or any other in ../profiles.ts. An example's own
   // profiles go beside them.
   profiles: {
     ...profiles,
-    pr: { ...profiles['claude-code'], limit: { runs: 1 }, budget: { attempts: 20 } },
+    pr: { ...profiles['claude-code'], limit: { trials: 1 }, budget: { trials: 20 } },
   },
 })

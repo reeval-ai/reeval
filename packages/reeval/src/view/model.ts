@@ -1,11 +1,11 @@
 import { sampleReasons } from '../compare/pairs.ts'
 import type {
-  AttemptRecord,
   CellRecord,
   EvalEntry,
   HistoryCell,
   HistoryEntry,
   RunRecord,
+  TrialRecord,
 } from '../history/types.ts'
 import { blocks } from '../target.ts'
 import { plural } from '../text.ts'
@@ -84,24 +84,24 @@ export const shortSha = (sha: string | null | undefined) => (sha ? sha.slice(0, 
 export const reasoningLabel = (ms: number | null) => (ms === null ? 'n/a' : formatDuration(ms))
 
 /**
- * An attempt's effort: tool calls, its model calls when counted, then the files the workspace diff
+ * A trial's effort: tool calls, its model calls when counted, then the files the workspace diff
  * changed, which counts a file the shell wrote, then the calls to the agent's edit tools, which
  * doesn't.
  */
 export function activityLabel(
-  a: Pick<AttemptRecord['activity'], 'tools' | 'fileEdits'> &
-    Partial<Pick<AttemptRecord['activity'], 'llmCalls'>>,
+  a: Pick<TrialRecord['activity'], 'tools' | 'fileEdits'> &
+    Partial<Pick<TrialRecord['activity'], 'llmCalls'>>,
   changed: number,
 ): string {
   const calls = a.llmCalls == null ? '' : ` · ${plural(a.llmCalls, 'LLM call')}`
   return `${plural(a.tools, 'tool call')}${calls} · ${plural(changed, 'file')} changed · ${plural(a.fileEdits, 'edit tool call')}`
 }
 
-// ── Runs list ────────────────────────────────────────────────────────────────────────────────
+// ── Trials list ────────────────────────────────────────────────────────────────────────────────
 
 /**
- * A run's outcome, which `reeval run`'s exit code is read from: an error outside any attempt, a
- * failed eval whose target blocks or a budget stop fails the run, while a compare's controls and
+ * A run's outcome, which `reeval run`'s exit code is read from: an error outside any trial, a
+ * failed eval whose target blocks or a budget stop fails the run, while a compare's baselines and
  * an eval whose target doesn't block (`capability()`, the default) don't. An interrupted run is `skipped`, whatever ran; a resume its filters left
  * `interrupted` exits on its outcome as if it were complete.
  */
@@ -136,12 +136,12 @@ function andList(items: readonly string[]): string {
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
 }
 
-/** Distinct judge labels that failed on a counted attempt, in first-seen order. */
+/** Distinct judge labels that failed on a counted trial, in first-seen order. */
 export function failedJudgeLabels(record: Pick<RunRecord, 'evals'>): string[] {
   const seen = new Set<string>()
   const items: { key: string; question: string }[] = []
   for (const e of record.evals) {
-    for (const a of e.attempts) {
+    for (const a of e.trials) {
       if (a.outcome !== 'pass' && a.outcome !== 'fail') continue
       for (const j of a.judgements) {
         if (j.verdict !== 'fail' || seen.has(j.key)) continue
@@ -163,9 +163,9 @@ export function runLead(record: Pick<RunRecord, 'summary' | 'evals'>): string {
   const counted = pass + fail
   const judges = failedJudgeLabels(record)
   const parts: string[] = []
-  if (counted === 0) parts.push('No counted attempts')
+  if (counted === 0) parts.push('No counted trials')
   else {
-    parts.push(`${pass} of ${counted} counted attempts passed`)
+    parts.push(`${pass} of ${counted} counted trials passed`)
     if (fail > 0) {
       parts.push(
         judges.length
@@ -183,7 +183,7 @@ export function runLead(record: Pick<RunRecord, 'summary' | 'evals'>): string {
 export type RunRow = {
   entry: HistoryEntry
   passed: number
-  /** Attempts that reached a verdict or errored; skips excluded. */
+  /** Trials that reached a verdict or errored; skips excluded. */
   total: number
   /** Passes and fails, the denominator of the run's pass@1. */
   counted: number
@@ -232,7 +232,7 @@ export function runRows(entries: HistoryEntry[]): RunRow[] {
 
 // ── Run detail ───────────────────────────────────────────────────────────────────────────────
 
-/** Attempt counts; `missed` is ungated cells' failures, which `fail` leaves out. */
+/** Trial counts; `missed` is ungated cells' failures, which `fail` leaves out. */
 export type Tally = { pass: number; fail: number; missed: number; infra: number; skipped: number }
 
 export type TreeNode =
@@ -240,11 +240,11 @@ export type TreeNode =
   | { kind: 'eval'; key: string; name: string; tally: Tally; eval: EvalEntry }
 
 const tallyOf = (e: EvalEntry): Tally => ({
-  pass: e.attempts.filter((a) => a.outcome === 'pass').length,
-  fail: e.attempts.filter((a) => a.outcome === 'fail' && !isUngatedMiss(e, a)).length,
-  missed: e.attempts.filter((a) => isUngatedMiss(e, a)).length,
-  infra: e.attempts.filter((a) => a.outcome === 'infra_error').length,
-  skipped: e.attempts.filter((a) => a.outcome === 'skipped').length,
+  pass: e.trials.filter((a) => a.outcome === 'pass').length,
+  fail: e.trials.filter((a) => a.outcome === 'fail' && !isUngatedMiss(e, a)).length,
+  missed: e.trials.filter((a) => isUngatedMiss(e, a)).length,
+  infra: e.trials.filter((a) => a.outcome === 'infra_error').length,
+  skipped: e.trials.filter((a) => a.outcome === 'skipped').length,
 })
 
 const addTally = (a: Tally, b: Tally): Tally => ({
@@ -257,7 +257,7 @@ const addTally = (a: Tally, b: Tally): Tally => ({
 
 const ZERO: Tally = { pass: 0, fail: 0, missed: 0, infra: 0, skipped: 0 }
 
-/** Files, then groups, then evals, each with attempt counts; failing branches sort first. */
+/** Files, then groups, then evals, each with trial counts; failing branches sort first. */
 export function evalTree(record: Pick<RunRecord, 'evals'>): TreeNode[] {
   const root: Extract<TreeNode, { kind: 'group' }> = {
     kind: 'group',
@@ -306,7 +306,8 @@ export type CellRow = {
   overrides: string[]
   /** The reasoning effort the harness factory asked for; null when it left it unset. */
   reasoningEffort: string | null
-  runs: number
+  /** Trials the cell planned; with `bestOf`, the most it runs. */
+  trialCount: number
   pass: number
   fail: number
   infraError: number
@@ -314,24 +315,24 @@ export type CellRow = {
   /** pass@1: passes over passes and fails. */
   passAt1: number | null
   outcome: Outcome
-  /** A variant's lift over its control, in whole points (from the record), else null. */
+  /** A variant's lift over its baseline, in whole points (from the record), else null. */
   lift: number | null
   /** Its 95% interval in whole points, and whether that spans 0. */
   liftInterval: { lo: number; hi: number; withinNoise: boolean } | null
   /** The interval's lower bound is below the compare's `minLift`. */
   belowMinLift: boolean
-  /** Median tool calls, agent time and tokens over the cell's counted attempts. */
+  /** Median tool calls, agent time and tokens over the cell's counted trials. */
   effort: CellEffort | null
-  /** A variant's effort against its control, with the rank test's verdict. */
-  effortVsControl: EffortContrast | null
-  /** Per-key judge pass/counted over this cell's counted attempts. */
+  /** A variant's effort against its baseline, with the rank test's verdict. */
+  effortVsBaseline: EffortContrast | null
+  /** Per-key judge pass/counted over this cell's counted trials. */
   judgeRates: JudgeKeyRate[]
-  /** Sum of counted attempts' tokens; null when none reported. */
+  /** Sum of counted trials' tokens; null when none reported. */
   usage: TokenUsage | null
-  attempts: AttemptRecord[]
+  trials: TrialRecord[]
 }
 
-/** One row per cell: controls and variants, with each variant's recorded lift. */
+/** One row per cell: baselines and variants, with each variant's recorded lift. */
 export function cellRows(e: EvalEntry): CellRow[] {
   return e.cells.map((cell) => ({
     key: cell.key,
@@ -343,7 +344,7 @@ export function cellRows(e: EvalEntry): CellRow[] {
     gate: cell.gate,
     overrides: cell.overrides,
     reasoningEffort: cell.effort ?? null,
-    runs: cell.runs,
+    trialCount: cell.trials,
     pass: cell.pass,
     fail: cell.fail,
     infraError: cell.infraError,
@@ -360,10 +361,10 @@ export function cellRows(e: EvalEntry): CellRow[] {
       : null,
     belowMinLift: cell.lift?.minLift !== undefined && cell.lift.interval.lo < cell.lift.minLift,
     effort: cellEffort(e, cell.key),
-    effortVsControl: cellContrast(e, cell.key),
+    effortVsBaseline: cellContrast(e, cell.key),
     judgeRates: cellJudgeRates(e, cell.key),
     usage: cellUsage(e, cell.key),
-    attempts: e.attempts.filter((a) => a.cell === cell.key),
+    trials: e.trials.filter((a) => a.cell === cell.key),
   }))
 }
 
@@ -376,7 +377,7 @@ export type AnswerRow = {
   model: string
   votes: number
   ties: number
-  /** Arms against each other on one harness, then harnesses against each other on one arm. */
+  /** Environments against each other on one harness, then harnesses against each other on one environment. */
   within: AnswerRate[]
   across: AnswerRate[]
   /** Why some or all of its votes are missing: the model call failed. */
@@ -411,31 +412,31 @@ export function answerRows(e: Pick<EvalEntry, 'answers'>): AnswerRow[] {
   })
 }
 
-/** One attempt's answer to a question asked of it on its own. */
-export type AttemptAnswerItem = {
-  /** The attempt's id, `<cell key>#<n>`. */
-  attempt: string
+/** One trial's answer to a question asked of it on its own. */
+export type TrialAnswerItem = {
+  /** The trial's id, `<cell key>#<n>`. */
+  trial: string
   outcome: Outcome
   choice: string | null
   text: string
   error: string | null
-  /** `questions/<n>.json` in the attempt's directory: what the model was sent; null when not kept. */
+  /** `questions/<n>.json` in the trial's directory: what the model was sent; null when not kept. */
   input: string | null
 }
 
-export type AttemptAnswerRow = {
+export type TrialAnswerRow = {
   question: string
   /** The model that answered: as served, when the provider said, else as configured. */
   model: string
-  /** How many attempts picked each choice, in the question's order; null on a free-text question. */
+  /** How many trials picked each choice, in the question's order; null on a free-text question. */
   choices: Array<{ choice: string; n: number }> | null
-  answers: AttemptAnswerItem[]
+  answers: TrialAnswerItem[]
 }
 
-/** One row per question asked of each attempt on its own, in first-asked order. */
-export function attemptAnswerRows(e: Pick<EvalEntry, 'attempts'>): AttemptAnswerRow[] {
-  const rows = new Map<string, AttemptAnswerRow>()
-  for (const a of e.attempts) {
+/** One row per question asked of each trial on its own, in first-asked order. */
+export function trialAnswerRows(e: Pick<EvalEntry, 'trials'>): TrialAnswerRow[] {
+  const rows = new Map<string, TrialAnswerRow>()
+  for (const a of e.trials) {
     for (const q of a.answers ?? []) {
       const row = rows.get(q.question) ?? {
         question: q.question,
@@ -447,7 +448,7 @@ export function attemptAnswerRows(e: Pick<EvalEntry, 'attempts'>): AttemptAnswer
       const picked = q.error === undefined && row.choices?.find((c) => c.choice === q.choice)
       if (picked) picked.n++
       row.answers.push({
-        attempt: a.id,
+        trial: a.id,
         outcome: a.outcome,
         choice: q.choice ?? null,
         text: q.text,
@@ -459,16 +460,16 @@ export function attemptAnswerRows(e: Pick<EvalEntry, 'attempts'>): AttemptAnswer
   return [...rows.values()]
 }
 
-/** Whether an eval needs the cells table: several cells, or several runs of one. */
+/** Whether an eval needs the cells table: several cells, or several trials of one. */
 export const isMatrix = (e: Pick<EvalEntry, 'cells'>) =>
-  e.cells.length > 1 || e.cells.some((c) => c.runs > 1)
+  e.cells.length > 1 || e.cells.some((c) => c.trials > 1)
 
 // ── Eval history ─────────────────────────────────────────────────────────────────────────────
 
 export type EvalHistoryPoint = {
   run: HistoryEntry
   outcome: Outcome
-  /** pass@1 over the gated cells' attempts. */
+  /** pass@1 over the gated cells' trials. */
   passAt1: number | null
   cells: HistoryCell[]
   /** A cell's fingerprint differs from the last run that had that cell. */
@@ -521,7 +522,7 @@ export type CompareViewRow = {
 }
 
 const meanScore = (e: EvalEntry | undefined) => {
-  const scores = e?.attempts.flatMap((a) => a.judgements.map((j) => j.score)) ?? []
+  const scores = e?.trials.flatMap((a) => a.judgements.map((j) => j.score)) ?? []
   return scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null
 }
 
@@ -537,31 +538,31 @@ export const COMPARE_ORDER: CompareStatus[] = [
 ]
 
 /**
- * Whether some of an eval's cells aren't gated (`gate: 'none'`, e.g. a compare's controls). Its pass@1 then covers fewer attempts than its pass count, so
+ * Whether some of an eval's cells aren't gated (`gate: 'none'`, e.g. a compare's baselines). Its pass@1 then covers fewer trials than its pass count, so
  * the eval line labels it `gated`: `2/4 · pass@1 100% gated`.
  */
 export const hasUngatedCells = (cells: readonly Pick<HistoryCell, 'gate'>[]) =>
   cells.some((c) => c.gate === 'none')
 
 /**
- * An expected miss: a failed attempt in an ungated cell (a control, by default). It's reported
+ * An expected miss: a failed trial in an ungated cell (a baseline, by default). It's reported
  * apart from failures, since it fails neither its eval nor the run.
  */
 export const isUngatedMiss = (
   e: { cells: readonly Pick<HistoryCell, 'key' | 'gate'>[] },
-  a: Pick<AttemptRecord, 'cell' | 'outcome' | 'error'>,
+  a: Pick<TrialRecord, 'cell' | 'outcome' | 'error'>,
 ) =>
   a.outcome === 'fail' &&
   a.error?.kind !== 'aborted' &&
   e.cells.find((c) => c.key === a.cell)?.gate === 'none'
 
 /**
- * The outcome an eval's mark shows. A pass needs a counted (passed or failed) attempt and no infra
+ * The outcome an eval's mark shows. A pass needs a counted (passed or failed) trial and no infra
  * error: a gate that lets those through, such as `gate: 'none'`, still shows `!`, not `✓`.
  */
-export function evalMarkOutcome(e: Pick<EvalEntry, 'outcome' | 'attempts'>): Outcome {
+export function evalMarkOutcome(e: Pick<EvalEntry, 'outcome' | 'trials'>): Outcome {
   if (e.outcome !== 'pass') return e.outcome
-  const ran = e.attempts.filter((a) => a.outcome !== 'skipped')
+  const ran = e.trials.filter((a) => a.outcome !== 'skipped')
   const infra = ran.some((a) => a.outcome === 'infra_error')
   return infra || (ran.length > 0 && !ran.some((a) => a.outcome === 'pass' || a.outcome === 'fail'))
     ? 'infra_error'
@@ -672,9 +673,8 @@ export function trajectoryItems(lines: TrajectoryLine[]): TrajectoryItem[] {
 export const findEval = (record: Pick<RunRecord, 'evals'>, slug: string) =>
   record.evals.find((e) => e.slug === slug)
 
-export const findAttempt = (e: EvalEntry, attemptId: string) =>
-  e.attempts.find((a) => a.id === attemptId)
+export const findTrial = (e: EvalEntry, trialId: string) => e.trials.find((a) => a.id === trialId)
 
-/** The attempt to open by default: the first failure, else the first attempt. */
-export const defaultAttempt = (e: EvalEntry) =>
-  e.attempts.find((a) => a.outcome === 'fail' || a.outcome === 'infra_error') ?? e.attempts[0]
+/** The trial to open by default: the first failure, else the first trial. */
+export const defaultTrial = (e: EvalEntry) =>
+  e.trials.find((a) => a.outcome === 'fail' || a.outcome === 'infra_error') ?? e.trials[0]

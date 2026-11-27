@@ -8,12 +8,12 @@ export default defineConfig({
   defaultProfile: { ci: 'pr' },
   profiles: {
     pr: {
-      limit: { runs: 1, compare: false, agents: ['a'] },
-      budget: { attempts: 5 },
+      limit: { trials: 1, compare: false, agents: ['a'] },
+      budget: { trials: 5 },
       tags: ['!nightly-only'],
     },
     nightly: {
-      defaults: { runs: 3, agents: [fakeAgent({ id: 'a' }), fakeAgent({ id: 'b' })] },
+      defaults: { trials: 3, agents: [fakeAgent({ id: 'a' }), fakeAgent({ id: 'b' })] },
     },
   },
 })

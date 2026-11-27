@@ -45,8 +45,8 @@ import {
 
 const count = () => z.number().int().min(1)
 
-/** `runs`: a count, or `{ bestOf }` with an odd count of 3 or more. */
-const runs = () =>
+/** `trials`: a count, or `{ bestOf }` with an odd count of 3 or more. */
+const trials = () =>
   z.union([
     count(),
     z.strictObject({
@@ -74,7 +74,7 @@ const harnessList = z.union([harnessDescriptorSchema, z.array(harnessDescriptorS
 const environmentList = z.union([environmentDataSchema, z.array(environmentDataSchema).min(1)])
 
 export const budgetSchema = z.strictObject({
-  attempts: count().optional(),
+  trials: count().optional(),
   duration: durationSchema.optional(),
 })
 
@@ -122,7 +122,7 @@ export const profileDefaultsDataSchema = z.strictObject({
   agents: harnessList.optional(),
   sandbox: declaredSandboxSchema.optional(),
   environments: environmentList.optional(),
-  runs: runs().optional(),
+  trials: trials().optional(),
   target: targetSchema.optional(),
   env: envVarsSchema.optional(),
   egress: egressSchema.optional(),
@@ -135,7 +135,7 @@ export const profileDefaultsDataSchema = z.strictObject({
 })
 
 export const profileLimitSchema = z.strictObject({
-  runs: count().optional(),
+  trials: count().optional(),
   compare: z
     .union([z.literal(false), z.strictObject({ maxVariants: z.number().int().min(0) })])
     .optional(),
@@ -191,7 +191,7 @@ export const reevalConfigDataSchema = z.strictObject({
   agents: harnessList.optional(),
   sandbox: declaredSandboxSchema.optional(),
   environments: environmentList.optional(),
-  runs: runs().optional(),
+  trials: trials().optional(),
   target: targetSchema.optional(),
   env: envVarsSchema.optional(),
   egress: egressSchema.optional(),
@@ -307,7 +307,8 @@ export function configDataProblem(value: unknown, file: string): string | undefi
   const v = valueAt(value, issue.path)
   if (issue.code === 'unrecognized_keys') {
     const key = issue.keys[0] as string
-    const near = closest(key, keysAt(reevalConfigDataSchema, issue.path, value))
+    const near =
+      key === 'runs' ? 'trials' : closest(key, keysAt(reevalConfigDataSchema, issue.path, value))
     const hint = near ? ` Did you mean "${near}"?` : ''
     return `Unknown option "${key}" in ${at}.${hint}`
   }

@@ -1,4 +1,4 @@
-// Runs one eval file's collected attempts in its worker, all at once: each waits for the
+// Runs one eval file's collected trials in its worker, all at once: each waits for the
 // scheduler's lease, then runs on its own timer, with its console output routed to it through
 // async context.
 import { AsyncLocalStorage } from 'node:async_hooks'
@@ -30,7 +30,7 @@ export type Reporter = {
 
 /**
  * An error as it crosses to the main process: its diff computed, then plain data, masked here,
- * where the secrets an attempt registered (`c.exec`'s own `env`) are known. The values the diff
+ * where the secrets a trial registered (`c.exec`'s own `env`) are known. The values the diff
  * is made from are masked before it is: it splits a value around what changed.
  */
 export function serializeError(error: unknown): SerializedError {
@@ -61,9 +61,9 @@ const CONSOLE = {
   error: 'stderr',
 } as const
 
-const currentAttempt = new AsyncLocalStorage<number>()
+const currentTrial = new AsyncLocalStorage<number>()
 
-/** Sends console output, masked, to the attempt that wrote it, or to the file when no attempt did. */
+/** Sends console output, masked, to the trial that wrote it, or to the file when no trial did. */
 export function routeConsole(reporter: Reporter): void {
   const target = globalThis.console
   for (const [method, stream] of Object.entries(CONSOLE) as [
@@ -72,7 +72,7 @@ export function routeConsole(reporter: Reporter): void {
   ][]) {
     target[method] = (...args: unknown[]) =>
       reporter.log(
-        currentAttempt.getStore(),
+        currentTrial.getStore(),
         Date.now(),
         stream,
         redactSecrets(`${format(...args)}\n`),
@@ -83,16 +83,16 @@ export function routeConsole(reporter: Reporter): void {
 export type RunOptions = {
   file: string
   stagingDir: string
-  /** Aborts every attempt: the run was canceled. */
+  /** Aborts every trial: the run was canceled. */
   signal: AbortSignal
   reporter: Reporter
-  /** Called once every attempt that runs has asked for its lease, or is awaiting its `ready`. */
+  /** Called once every trial that runs has asked for its lease, or is awaiting its `ready`. */
   onReady: () => void
 }
 
 /**
  * Runs the tests in `select` whose mode is `run`, and reports the others as skipped. Resolves
- * when every attempt has finished, its cleanup included (a timed-out attempt reports its result
+ * when every trial has finished, its cleanup included (a timed-out trial reports its result
  * at the timeout, then keeps its lease until its sandbox is gone).
  */
 export async function runTests(
@@ -157,7 +157,7 @@ async function runTest(
     timeout.signal.addEventListener('abort', () => reject(timeout.signal.reason), { once: true })
   })
   const ms = options.timeout
-  // Fails the attempt and aborts its body, which keeps its lease until it has cleaned up.
+  // Fails the trial and aborts its body, which keeps its lease until it has cleaned up.
   const backstop = ms
     ? backstopTimer(ms, () => {
         const error = new TimeoutError(`Eval timed out after ${ms / 1000}s`)
@@ -167,12 +167,12 @@ async function runTest(
   let reported = false
   let meta: EvalMeta | undefined
   const run = () =>
-    currentAttempt.run(index, () =>
+    currentTrial.run(index, () =>
       test.body({
         file,
         signal: AbortSignal.any([signal, timeout.signal]),
         setMeta: (next) => {
-          // Masked here, where the attempt's own secrets are known: labels are the eval's words.
+          // Masked here, where the trial's own secrets are known: labels are the eval's words.
           meta = redactValue(next)
           if (reported) reporter.meta(index, next)
         },
@@ -191,7 +191,7 @@ async function runTest(
   } catch (error) {
     finish({ state: 'failed', errors: [serializeError(error)] })
   }
-  // A timeout reports the attempt failed before its body has cleaned up and set its last meta.
+  // A timeout reports the trial failed before its body has cleaned up and set its last meta.
   bodies.add(cleanedUp.then(() => options.settled?.({ state, ...(meta ? { meta } : {}) })))
 
   function finish(result: Omit<WireResult, 'durationMs'>) {

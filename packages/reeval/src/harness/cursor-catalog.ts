@@ -142,8 +142,8 @@ export function cursorEfforts(
   return out
 }
 
-/** A planned attempt's eval and harness, for {@link checkCursorCatalog}. */
-type Planned = { attempt: { name: string; groups: string[]; harness: HarnessDescriptor } }
+/** A planned trial's eval and harness, for {@link checkCursorCatalog}. */
+type Planned = { trial: { name: string; groups: string[]; harness: HarnessDescriptor } }
 
 /**
  * Checks every planned Cursor harness against `catalog` and returns what it says of their
@@ -155,8 +155,8 @@ export function checkCursorCatalog(
 ): CursorEfforts {
   const models = new Set<string>()
   const seen = new Set<string>()
-  for (const { attempt } of planned) {
-    const h = attempt.harness
+  for (const { trial } of planned) {
+    const h = trial.harness
     if (h.kind !== 'cursor') continue
     models.add(h.model)
     const id = harnessId(h)
@@ -164,7 +164,7 @@ export function checkCursorCatalog(
     seen.add(id)
     const problem = cursorCatalogProblem(h, catalog)
     if (problem) {
-      const where = `eval ${[...attempt.groups, attempt.name].join(' › ')}`
+      const where = `eval ${[...trial.groups, trial.name].join(' › ')}`
       throw new UsageError(`${where} on ${id}: ${problem}`)
     }
   }

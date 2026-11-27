@@ -906,7 +906,7 @@ test("runJourney names a { wait } step's timeout as the capture's", async () => 
   )
 })
 
-/** Where the sign-out app's controls are: the profile's sign-out button and the sign-in form. */
+/** Where the sign-out app's baselines are: the profile's sign-out button and the sign-in form. */
 const SIGN_OUT = { x: 600, y: 50 }
 const SIGN_IN: Array<[string, object]> = [
   ['click', { x: 200, y: 115 }],
@@ -956,7 +956,7 @@ test('runJourney ends an instruction on the move the model marks final, so a sig
   const prompts: string[] = []
   const { session, dispatched } = signOutApp()
   const result = await journey(session, signOutModel(prompts), [
-    "Once the profile screen for the signed-in user is visible, sign out using the app's sign-out control.",
+    "Once the profile screen for the signed-in user is visible, sign out using the app's sign-out baseline.",
   ])
   assert.deepEqual(dispatched, [{ type: 'click', ...SIGN_OUT, final: true }])
   assert.equal(result.moves, 1)

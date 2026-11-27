@@ -32,7 +32,7 @@ export type CompareRow = {
   changes?: string[]
   /**
    * When the cells' gate changed but nothing else did: each side's gate, and base's outcome with
-   * its recorded attempts scored under head's gate. `status` compares that with head, so a flip
+   * its recorded trials scored under head's gate. `status` compares that with head, so a flip
    * the gate alone explains is `gate`, not `regressed` or `fixed`.
    */
   gate?: { base: string; head: string; rescored: Outcome }
@@ -46,7 +46,7 @@ export type CompareRow = {
   /** Each side's mean score, pass@k and pass^k over the target's cells, null where it has none. */
   scores?: { base: ScoreSummary | null; head: ScoreSummary | null }
   /**
-   * The sides whose `fail` is only attempts the run's interrupt canceled, which `reeval show`
+   * The sides whose `fail` is only trials the run's interrupt canceled, which `reeval show`
    * reads as `canceled`. Such an eval is never `regressed` or `fixed`: it's `drift`.
    */
   canceled?: Array<'base' | 'head'>
@@ -286,7 +286,7 @@ const sameCell = (b: FingerprintedCell, h: FingerprintedCell) =>
     withoutGate(b.fingerprintParts) === withoutGate(h.fingerprintParts))
 
 /** Whether two runs of an eval ran the same cells, each comparable. */
-/** Whether a grader the eval's attempts were graded with differs, outside fingerprints too. */
+/** Whether a grader the eval's trials were graded with differs, outside fingerprints too. */
 function gradersChanged(b: ComparableEval, h: ComparableEval): boolean {
   if (!b.graders || !h.graders) return false
   const names = new Set([...Object.keys(b.graders), ...Object.keys(h.graders)])
@@ -305,7 +305,7 @@ function sameEval(b: ComparableEval, h: ComparableEval): boolean {
 
 /**
  * When the gate of a cell both sides ran changed: each side's gates, and base's outcome over
- * those cells with each one's attempts scored under head's gate.
+ * those cells with each one's trials scored under head's gate.
  */
 function gateChange(base: Cells, head: Cells): CompareRow['gate'] | undefined {
   const before = new Map(base.map((c) => [c.key, c]))
@@ -337,8 +337,8 @@ function outcomeOf(cells: ReadonlyArray<Pick<HistoryCell, 'gate' | 'outcome'>>):
 type Cells = ComparableEval['cells']
 
 /**
- * Whether a failing eval failed only on attempts the run's interrupt canceled: every failed
- * attempt in a gated cell was cut short, so the agent didn't fail it (`reeval show`'s `canceled`).
+ * Whether a failing eval failed only on trials the run's interrupt canceled: every failed
+ * trial in a gated cell was cut short, so the agent didn't fail it (`reeval show`'s `canceled`).
  */
 const canceledOn = (outcome: Outcome | null, cells: Cells) => {
   const gated = cells.filter((c) => c.gate !== 'none')

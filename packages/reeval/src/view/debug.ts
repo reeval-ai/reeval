@@ -1,17 +1,17 @@
 /**
- * An attempt's local debug data, as `reeval run` writes it to `.reeval/debug/<runId>/<eval>/<cell>/<n>/`
+ * A trial's local debug data, as `reeval run` writes it to `.reeval/debug/<runId>/<eval>/<cell>/<n>/`
  * and `reeval studio` serves it. Browser-safe. Never part of a record or the history folder.
  *
  *   debug.log        the `-v` trace, one line per event, always written
  *   requests.ndjson  one line per egress gateway request, always written
- *   trace.ndjson     raw payloads (`-vv`), written when the attempt fails or with `-vv`
+ *   trace.ndjson     raw payloads (`-vv`), written when the trial fails or with `-vv`
  */
 
 export const DEBUG_LOG = 'debug.log'
 export const REQUESTS_FILE = 'requests.ndjson'
 export const TRACE_FILE = 'trace.ndjson'
 
-/** What part of the attempt a line is about, in the order an attempt goes through them. */
+/** What part of the trial a line is about, in the order a trial goes through them. */
 export const DEBUG_PHASES = [
   'plan',
   'image',
@@ -38,7 +38,7 @@ export type DebugLine = {
   detail?: string
 }
 
-/** One raw trace entry: `ms` is since the attempt started. */
+/** One raw trace entry: `ms` is since the trial started. */
 export type TraceEntry = { at: string; ms: number; phase: DebugPhase; kind: string; data: unknown }
 
 /** One request through the egress gateway, or one tunnel it passed through without reading. */
@@ -70,7 +70,7 @@ export type DebugRequest = {
   requestEffort?: string
 }
 
-/** What the studio's Debug tab shows for one attempt. */
+/** What the studio's Debug tab shows for one trial. */
 export type DebugView = {
   lines: Array<{ at: string; phase: string; text: string }>
   requests: DebugRequest[]

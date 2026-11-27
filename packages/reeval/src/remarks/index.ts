@@ -134,9 +134,9 @@ function historyOf(
     streak: (evalKey, cellKey, label, fingerprint) =>
       branch === null
         ? null
-        : one<{ runs: number; tries: number }>(
+        : one<{ runs: number; trials: number }>(
             db,
-            `SELECT streak_runs AS runs, streak_tries AS tries FROM check_streaks
+            `SELECT streak_runs AS runs, streak_trials AS trials FROM check_streaks
              WHERE eval_key = ? AND cell_key = ? AND label = ? AND fingerprint = ? AND branch = ?`,
             [at(evalKey).evalKey, cellKey, label, fingerprint, branch],
           ),
@@ -237,10 +237,10 @@ function locator(root: string) {
  */
 function needlesOf(entry: EvalEntry): Array<string | null> {
   const labels = entry.cells.flatMap((c) => (c.checks ?? []).map((k) => k.label))
-  const servers = entry.attempts.flatMap((a) =>
+  const servers = entry.trials.flatMap((a) =>
     a.turns.flatMap((t) => (t.mcpStartup ?? []).map((m) => m.server.split(':')[0] as string)),
   )
-  const secrets = entry.attempts.flatMap((a) => (a.setupProcesses ?? []).flatMap((p) => p.secrets))
+  const secrets = entry.trials.flatMap((a) => (a.setupProcesses ?? []).flatMap((p) => p.secrets))
   return [null, ...new Set([...labels, ...servers, ...secrets])]
 }
 
@@ -268,7 +268,7 @@ export async function remarksOf(config: ResolvedConfig, record: RunRecord): Prom
         const into = caseOf.get(entry.id)
         const e = (into && evalOf.get(into.evalKey)) ?? entry
         const cell = e.cells.find((c) => c.key === cellKey)
-        return cell ? comparableFingerprint(cell, e.attempts) : ''
+        return cell ? comparableFingerprint(cell, e.trials) : ''
       },
       locate: loc.locate,
     }
@@ -283,7 +283,7 @@ export async function remarksOf(config: ResolvedConfig, record: RunRecord): Prom
 export function remarksDoc(record: RunRecord, remarks: Remark[]): RunRemarks {
   return {
     kind: 'reeval-remarks',
-    schemaVersion: 1,
+    schemaVersion: 2,
     runId: record.runId,
     createdAt: new Date().toISOString(),
     remarks,

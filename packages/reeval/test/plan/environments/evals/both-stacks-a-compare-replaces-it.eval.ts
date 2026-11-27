@@ -7,6 +7,6 @@ const python = defineEnvironment('python', { env: { STACK: 'python' } })
 const plain = defineEnvironment('plain', {})
 
 export default defineEval({
-  compare: { control: plain, variants: [next] },
+  compare: { baseline: plain, variants: [next] },
   task: async () => {},
 })

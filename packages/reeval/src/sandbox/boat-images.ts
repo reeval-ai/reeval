@@ -45,14 +45,14 @@ import { InfraError } from './types.ts'
 /** What reeval itself puts in a VM image beside the recipe's; a change rebuilds every snapshot. */
 const VM_IMAGE_REVISION = 1
 
-/** What an attempt starts from: the saved snapshot, and the image in it. */
+/** What a trial starts from: the saved snapshot, and the image in it. */
 export type BoatImage = {
   snapshot: string
   /** The recipe's content key, which names the snapshot. */
   key: string
   /** False when a base couldn't be resolved, so the key names its tag, not its content. */
   pinned: boolean
-  /** The image in the VM's Docker that attempts run in: {@link vmImageRef} of the key. */
+  /** The image in the VM's Docker that trials run in: {@link vmImageRef} of the key. */
   imageRef: string
   /** Its id and harness CLI version, known when this run built it. */
   imageId: string | null

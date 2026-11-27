@@ -5,7 +5,7 @@ import { notes, prompts, trimmed } from './probes.ts'
 
 // The edit-and-run task again, on the row's harness with `effort` set (REEVAL_CONTRACT_EFFORT):
 // contract.test.ts checks every model call it made carried the effort where the model takes it,
-// and that the edit-and-run attempt's, without it, didn't. Tagged so a row with no effort to
+// and that the edit-and-run trial's, without it, didn't. Tagged so a row with no effort to
 // check leaves it out with --tag '!effort'.
 export default defineEval({
   environment: notes,

@@ -10,7 +10,7 @@ export type BundleArgs = {
   profile?: string
   tags: string[]
   traits: string[]
-  runs?: string
+  trials?: string
 }
 
 /** One file in the bundle, by its path in the archive. */
@@ -59,7 +59,7 @@ export type BundleGit = {
 }
 
 export type BundleManifest = {
-  schemaVersion: 1
+  schemaVersion: 2
   /** The reeval that wrote it. */
   reeval: string
   createdAt: string
@@ -107,10 +107,10 @@ export type BundleManifest = {
    * agent and from its own calls go to the secrets file's filler, which swaps in the value, and a
    * `brokered` or `filled` one with no hosts, which
    * goes where each use sends it; `vm-waits`, its `cloud()` waiting on a refused machine start for as long as the
-   * service asks and stopping its attempts only when the service ends the run; `vm-layout`, its
-   * `cloud()` starting the machine type and attempts per machine the service gives, giving back a
-   * machine the service reclaims, and ending its attempts when the service ends the run;
-   * `heartbeat`, its event stream's heartbeat lines naming the attempts in progress and the machines
+   * service asks and stopping its trials only when the service ends the run; `vm-layout`, its
+   * `cloud()` starting the machine type and trials per machine the service gives, giving back a
+   * machine the service reclaims, and ending its trials when the service ends the run;
+   * `heartbeat`, its event stream's heartbeat lines naming the trials in progress and the machines
    * it holds (`REEVAL_EVENTS_HEARTBEAT`); `resume`, its `reeval run --bundle <file> --resume <run>`
    * continuing the bundle's run from that run's `.reeval/` state in the current directory. Another
    * reeval may list others.

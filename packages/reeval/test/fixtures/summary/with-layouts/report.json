@@ -1,5 +1,5 @@
 {
-  "reportVersion": 4,
+  "reportVersion": 5,
   "runId": "20261020T205330Z_da3d797_cursor-agent_1k52",
   "single": false,
   "header": {
@@ -14,7 +14,7 @@
       "subset": false,
       "configKey": "20046482a8869074cc92a287684012ae8d185e05d93e7449c6a3b749b96aa926"
     },
-    "runsPerCell": null,
+    "trialsPerCell": null,
     "wall": {
       "value": 1754,
       "text": "2s"
@@ -44,7 +44,7 @@
     {
       "kind": "unreported-usage",
       "severity": "warn",
-      "text": "3 counted attempts reported no token usage; token medians omit them.",
+      "text": "3 counted trials reported no token usage; token medians omit them.",
       "evalId": "evals/family.eval.ts › adds a button that builds",
       "cites": [
         {
@@ -74,7 +74,7 @@
     {
       "kind": "unreported-usage",
       "severity": "warn",
-      "text": "8 counted attempts reported no token usage; token medians omit them.",
+      "text": "8 counted trials reported no token usage; token medians omit them.",
       "evalId": "evals/family.eval.ts › greets in the house style",
       "cites": [
         {
@@ -122,7 +122,7 @@
     {
       "kind": "unreported-usage",
       "severity": "warn",
-      "text": "2 counted attempts reported no token usage; token medians omit them.",
+      "text": "2 counted trials reported no token usage; token medians omit them.",
       "evalId": "evals/harnesses.eval.ts › greets in the house style on each agent",
       "cites": [
         {
@@ -147,7 +147,7 @@
     {
       "kind": "unreported-usage",
       "severity": "warn",
-      "text": "16 counted attempts reported no token usage; token medians omit them.",
+      "text": "16 counted trials reported no token usage; token medians omit them.",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "cites": [
         {
@@ -242,7 +242,7 @@
     {
       "kind": "unreported-usage",
       "severity": "warn",
-      "text": "12 counted attempts reported no token usage; token medians omit them.",
+      "text": "12 counted trials reported no token usage; token medians omit them.",
       "evalId": "evals/measure.eval.ts › greets in the house style",
       "cites": [
         {
@@ -310,7 +310,7 @@
     {
       "kind": "unreported-usage",
       "severity": "warn",
-      "text": "8 counted attempts reported no token usage; token medians omit them.",
+      "text": "8 counted trials reported no token usage; token medians omit them.",
       "evalId": "evals/measure.eval.ts › keeps the plain greeting",
       "cites": [
         {
@@ -365,7 +365,7 @@
     {
       "kind": "unreported-usage",
       "severity": "warn",
-      "text": "2 counted attempts reported no token usage; token medians omit them.",
+      "text": "2 counted trials reported no token usage; token medians omit them.",
       "evalId": "evals/measure.eval.ts › greets once",
       "cites": [
         {
@@ -383,7 +383,7 @@
     {
       "kind": "unreported-usage",
       "severity": "warn",
-      "text": "1 counted attempt reported no token usage; token medians omit them.",
+      "text": "1 counted trial reported no token usage; token medians omit them.",
       "evalId": "evals/results.eval.ts › writes greet.js",
       "cites": [
         {
@@ -396,7 +396,7 @@
     {
       "kind": "unreported-usage",
       "severity": "warn",
-      "text": "1 counted attempt reported no token usage; token medians omit them.",
+      "text": "1 counted trial reported no token usage; token medians omit them.",
       "evalId": "evals/results.eval.ts › greets in French",
       "cites": [
         {
@@ -409,7 +409,7 @@
     {
       "kind": "unreported-usage",
       "severity": "warn",
-      "text": "2 counted attempts reported no token usage; token medians omit them.",
+      "text": "2 counted trials reported no token usage; token medians omit them.",
       "evalId": "evals/results.eval.ts › explains why greet.js fails",
       "cites": [
         {
@@ -427,7 +427,7 @@
     {
       "kind": "unreported-usage",
       "severity": "warn",
-      "text": "1 counted attempt reported no token usage; token medians omit them.",
+      "text": "1 counted trial reported no token usage; token medians omit them.",
       "evalId": "evals/results.eval.ts › reads the fixture repo",
       "cites": [
         {
@@ -446,7 +446,7 @@
         "name": "adds a $name button that builds",
         "anchor": "adds-a-name-button-that-builds",
         "shapes": ["task"],
-        "design": "3 prompts, 1 coding harness, 3 attempts",
+        "design": "3 prompts, 1 coding harness, 3 trials",
         "primary": "67% passed",
         "medianTokens": {
           "value": null,
@@ -458,7 +458,7 @@
         "name": "greets %s in the house style",
         "anchor": "greets-s-in-the-house-style",
         "shapes": ["ab"],
-        "design": "4 prompts, 1 coding harness, 2 arms, 8 attempts",
+        "design": "4 prompts, 1 coding harness, 2 environments, 8 trials",
         "primary": "with-skill vs plain: +100 pts pass rate (100% vs 0%)",
         "medianTokens": {
           "value": null,
@@ -470,7 +470,7 @@
         "name": "greets in the house style on each agent",
         "anchor": "greets-in-the-house-style-on-each-agent",
         "shapes": ["task"],
-        "design": "2 coding harnesses, 2 attempts",
+        "design": "2 coding harnesses, 2 trials",
         "primary": "50% passed",
         "medianTokens": {
           "value": null,
@@ -482,7 +482,7 @@
         "name": "learns the house style from the skill",
         "anchor": "learns-the-house-style-from-the-skill",
         "shapes": ["ab"],
-        "design": "2 coding harnesses, 2 arms, 16 attempts",
+        "design": "2 coding harnesses, 2 environments, 16 trials",
         "primary": "with-skill vs plain: +50 pts pass rate (50% vs 0%)",
         "medianTokens": {
           "value": null,
@@ -494,7 +494,7 @@
         "name": "greets in the house style",
         "anchor": "greets-in-the-house-style",
         "shapes": ["ab"],
-        "design": "1 coding harness, 3 arms, 12 attempts",
+        "design": "1 coding harness, 3 environments, 12 trials",
         "primary": "with-skill vs plain: +100 pts pass rate (100% vs 0%)",
         "medianTokens": {
           "value": null,
@@ -506,7 +506,7 @@
         "name": "keeps the plain greeting",
         "anchor": "keeps-the-plain-greeting",
         "shapes": ["ab"],
-        "design": "1 coding harness, 2 arms, 8 attempts",
+        "design": "1 coding harness, 2 environments, 8 trials",
         "primary": "with-skill vs plain: -100 pts pass rate (0% vs 100%)",
         "medianTokens": {
           "value": null,
@@ -518,7 +518,7 @@
         "name": "greets once",
         "anchor": "greets-once",
         "shapes": ["ab"],
-        "design": "1 coding harness, 2 arms, 2 attempts",
+        "design": "1 coding harness, 2 environments, 2 trials",
         "primary": "with-skill vs plain: +100 pts pass rate (100% vs 0%)",
         "medianTokens": {
           "value": null,
@@ -530,7 +530,7 @@
         "name": "writes greet.js",
         "anchor": "writes-greetjs",
         "shapes": ["task"],
-        "design": "1 coding harness, 1 attempt",
+        "design": "1 coding harness, 1 trial",
         "primary": "100% passed",
         "medianTokens": {
           "value": null,
@@ -542,7 +542,7 @@
         "name": "greets in French",
         "anchor": "greets-in-french",
         "shapes": ["task"],
-        "design": "1 coding harness, 1 attempt",
+        "design": "1 coding harness, 1 trial",
         "primary": "0% passed",
         "medianTokens": {
           "value": null,
@@ -554,7 +554,7 @@
         "name": "explains why greet.js fails",
         "anchor": "explains-why-greetjs-fails",
         "shapes": ["task"],
-        "design": "1 coding harness, 2 attempts",
+        "design": "1 coding harness, 2 trials",
         "primary": "50% passed",
         "medianTokens": {
           "value": null,
@@ -566,8 +566,8 @@
         "name": "reads the fixture repo",
         "anchor": "reads-the-fixture-repo",
         "shapes": ["task"],
-        "design": "1 coding harness, 1 attempt",
-        "primary": "mean 0% · 0/1 run at 100% · regression(1)",
+        "design": "1 coding harness, 1 trial",
+        "primary": "mean 0% · 0/1 trial at 100% · regression(1)",
         "medianTokens": {
           "value": null,
           "text": "not reported"
@@ -578,7 +578,7 @@
         "name": "starts its sandbox",
         "anchor": "starts-its-sandbox",
         "shapes": ["task"],
-        "design": "1 coding harness, 1 attempt",
+        "design": "1 coding harness, 1 trial",
         "primary": "infra error · regression(1)",
         "medianTokens": {
           "value": null,
@@ -590,7 +590,7 @@
         "name": "greets in Welsh",
         "anchor": "greets-in-welsh",
         "shapes": ["task"],
-        "design": "1 coding harness, 0 attempts",
+        "design": "1 coding harness, 0 trials",
         "primary": "skipped",
         "medianTokens": {
           "value": null,
@@ -602,7 +602,7 @@
         "name": "greets in Klingon",
         "anchor": "greets-in-klingon",
         "shapes": ["task"],
-        "design": "1 coding harness, 0 attempts",
+        "design": "1 coding harness, 0 trials",
         "primary": "todo",
         "medianTokens": {
           "value": null,
@@ -619,7 +619,7 @@
       "effort": null,
       "servedModels": [],
       "gateway": null,
-      "attempts": 1
+      "trials": 1
     },
     {
       "harness": "fake",
@@ -627,7 +627,7 @@
       "effort": null,
       "servedModels": [],
       "gateway": null,
-      "attempts": 38
+      "trials": 38
     },
     {
       "harness": "learner",
@@ -635,7 +635,7 @@
       "effort": null,
       "servedModels": [],
       "gateway": null,
-      "attempts": 8
+      "trials": 8
     },
     {
       "harness": "skilled",
@@ -643,7 +643,7 @@
       "effort": null,
       "servedModels": [],
       "gateway": null,
-      "attempts": 1
+      "trials": 1
     },
     {
       "harness": "terse",
@@ -651,7 +651,7 @@
       "effort": null,
       "servedModels": [],
       "gateway": null,
-      "attempts": 9
+      "trials": 9
     }
   ],
   "evals": [
@@ -661,11 +661,11 @@
       "name": "adds a $name button that builds",
       "file": "evals/family.eval.ts",
       "shapes": ["task"],
-      "design": "3 prompts, 1 coding harness, 3 attempts",
+      "design": "3 prompts, 1 coding harness, 3 trials",
       "headline": {
         "task": "adds a $name button that builds",
         "kicker": null,
-        "fairness": "too-few-runs",
+        "fairness": "too-few-trials",
         "primary": {
           "kind": "pass-rate",
           "rate": {
@@ -683,7 +683,7 @@
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "2 of 3 counted attempts passed on all 3 assertions. 1 coding harness."
+        "foot": "2 of 3 counted trials passed on all 3 assertions. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -867,7 +867,7 @@
               "n": 3,
               "text": "1 of 3"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A2",
                 "key": "evals/family.eval.ts › adds a double button that builds # fake/-/fake#1",
@@ -884,7 +884,7 @@
               "n": 3,
               "text": "1 of 3"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A2",
                 "key": "evals/family.eval.ts › adds a double button that builds # fake/-/fake#1",
@@ -917,7 +917,7 @@
       "name": "greets %s in the house style",
       "file": "evals/family.eval.ts",
       "shapes": ["ab"],
-      "design": "4 prompts, 1 coding harness, 2 arms, 8 attempts",
+      "design": "4 prompts, 1 coding harness, 2 environments, 8 trials",
       "headline": {
         "task": "greets %s in the house style",
         "kicker": "with-skill against the plain baseline",
@@ -966,12 +966,12 @@
           },
           "others": []
         },
-        "foot": "n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts."
+        "foot": "n = 4 vs 4 counted trials. 95% CI +31 pts to +100 pts."
       },
       "insights": [],
       "primary": {
         "kind": "comparison",
-        "arms": [
+        "environments": [
           {
             "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "label": "plain",
@@ -994,7 +994,7 @@
         "uniformLead": null,
         "summary": [
           {
-            "arm": "plain",
+            "environment": "plain",
             "rate": {
               "k": 0,
               "n": 4,
@@ -1110,7 +1110,7 @@
             }
           },
           {
-            "arm": "with-skill",
+            "environment": "with-skill",
             "rate": {
               "k": 4,
               "n": 4,
@@ -1250,7 +1250,7 @@
             }
           }
         ],
-        "assertionsByArm": [
+        "assertionsByEnvironment": [
           {
             "label": "house greeting",
             "matcher": "toSucceed",
@@ -1291,7 +1291,7 @@
         "effortByHarness": [
           {
             "harness": "fake",
-            "arm": "plain",
+            "environment": "plain",
             "rate": {
               "k": 0,
               "n": 4,
@@ -1404,7 +1404,7 @@
           },
           {
             "harness": "fake",
-            "arm": "with-skill",
+            "environment": "with-skill",
             "rate": {
               "k": 4,
               "n": 4,
@@ -1549,7 +1549,7 @@
               "n": 8,
               "text": "4 of 8"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A4",
                 "key": "evals/family.eval.ts › greets Ada in the house style # fake/plain/fake#1",
@@ -1581,7 +1581,7 @@
               "n": 8,
               "text": "4 of 8"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A4",
                 "key": "evals/family.eval.ts › greets Ada in the house style # fake/plain/fake#1",
@@ -1629,11 +1629,11 @@
       "name": "greets in the house style on each agent",
       "file": "evals/harnesses.eval.ts",
       "shapes": ["task"],
-      "design": "2 coding harnesses, 2 attempts",
+      "design": "2 coding harnesses, 2 trials",
       "headline": {
         "task": "greets in the house style on each agent",
         "kicker": null,
-        "fairness": "too-few-runs",
+        "fairness": "too-few-trials",
         "primary": {
           "kind": "pass-rate",
           "rate": {
@@ -1651,7 +1651,7 @@
           "harnesses": 2,
           "outcome": "passed"
         },
-        "foot": "1 of 2 counted attempts passed on all 3 assertions. 2 coding harnesses."
+        "foot": "1 of 2 counted trials passed on all 3 assertions. 2 coding harnesses."
       },
       "insights": [],
       "primary": {
@@ -2021,7 +2021,7 @@
               "n": 2,
               "text": "1 of 2"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A13",
                 "key": "evals/harnesses.eval.ts › greets in the house style on each agent # terse/-/fake#1",
@@ -2038,7 +2038,7 @@
               "n": 2,
               "text": "1 of 2"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A13",
                 "key": "evals/harnesses.eval.ts › greets in the house style on each agent # terse/-/fake#1",
@@ -2071,7 +2071,7 @@
       "name": "learns the house style from the skill",
       "file": "evals/harnesses.eval.ts",
       "shapes": ["ab"],
-      "design": "2 coding harnesses, 2 arms, 16 attempts",
+      "design": "2 coding harnesses, 2 environments, 16 trials",
       "headline": {
         "task": "learns the house style from the skill",
         "kicker": "with-skill against the plain baseline",
@@ -2120,12 +2120,12 @@
           },
           "others": []
         },
-        "foot": "n = 8 vs 8 counted attempts. 95% CI +7 pts to +78 pts."
+        "foot": "n = 8 vs 8 counted trials. 95% CI +7 pts to +78 pts."
       },
       "insights": [],
       "primary": {
         "kind": "comparison",
-        "arms": [
+        "environments": [
           {
             "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "label": "plain",
@@ -2148,7 +2148,7 @@
         "uniformLead": null,
         "summary": [
           {
-            "arm": "plain",
+            "environment": "plain",
             "rate": {
               "k": 0,
               "n": 8,
@@ -2264,7 +2264,7 @@
             }
           },
           {
-            "arm": "with-skill",
+            "environment": "with-skill",
             "rate": {
               "k": 4,
               "n": 8,
@@ -2404,7 +2404,7 @@
             }
           }
         ],
-        "assertionsByArm": [
+        "assertionsByEnvironment": [
           {
             "label": "house greeting",
             "matcher": "toSucceed",
@@ -2445,7 +2445,7 @@
         "effortByHarness": [
           {
             "harness": "learner",
-            "arm": "plain",
+            "environment": "plain",
             "rate": {
               "k": 0,
               "n": 4,
@@ -2558,7 +2558,7 @@
           },
           {
             "harness": "learner",
-            "arm": "with-skill",
+            "environment": "with-skill",
             "rate": {
               "k": 4,
               "n": 4,
@@ -2687,7 +2687,7 @@
           },
           {
             "harness": "terse",
-            "arm": "plain",
+            "environment": "plain",
             "rate": {
               "k": 0,
               "n": 4,
@@ -2800,7 +2800,7 @@
           },
           {
             "harness": "terse",
-            "arm": "with-skill",
+            "environment": "with-skill",
             "rate": {
               "k": 0,
               "n": 4,
@@ -2945,7 +2945,7 @@
               "n": 16,
               "text": "12 of 16"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A14",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#1",
@@ -3017,7 +3017,7 @@
               "n": 16,
               "text": "12 of 16"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A14",
                 "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#1",
@@ -3105,7 +3105,7 @@
       "name": "greets in the house style",
       "file": "evals/measure.eval.ts",
       "shapes": ["ab"],
-      "design": "1 coding harness, 3 arms, 12 attempts",
+      "design": "1 coding harness, 3 environments, 12 trials",
       "headline": {
         "task": "greets in the house style",
         "kicker": "with-skill against the plain baseline",
@@ -3182,12 +3182,12 @@
             }
           ]
         },
-        "foot": "n = 4 vs 4 counted attempts. 95% CI +31 pts to +100 pts."
+        "foot": "n = 4 vs 4 counted trials. 95% CI +31 pts to +100 pts."
       },
       "insights": [],
       "primary": {
         "kind": "comparison",
-        "arms": [
+        "environments": [
           {
             "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "label": "plain",
@@ -3219,7 +3219,7 @@
         "uniformLead": null,
         "summary": [
           {
-            "arm": "plain",
+            "environment": "plain",
             "rate": {
               "k": 0,
               "n": 4,
@@ -3335,7 +3335,7 @@
             }
           },
           {
-            "arm": "with-skill",
+            "environment": "with-skill",
             "rate": {
               "k": 4,
               "n": 4,
@@ -3475,7 +3475,7 @@
             }
           },
           {
-            "arm": "with-doc",
+            "environment": "with-doc",
             "rate": {
               "k": 0,
               "n": 4,
@@ -3615,7 +3615,7 @@
             }
           }
         ],
-        "assertionsByArm": [
+        "assertionsByEnvironment": [
           {
             "label": "writes greet.js",
             "matcher": "toHaveFile",
@@ -3803,7 +3803,7 @@
         "effortByHarness": [
           {
             "harness": "fake",
-            "arm": "plain",
+            "environment": "plain",
             "rate": {
               "k": 0,
               "n": 4,
@@ -3916,7 +3916,7 @@
           },
           {
             "harness": "fake",
-            "arm": "with-skill",
+            "environment": "with-skill",
             "rate": {
               "k": 4,
               "n": 4,
@@ -4045,7 +4045,7 @@
           },
           {
             "harness": "fake",
-            "arm": "with-doc",
+            "environment": "with-doc",
             "rate": {
               "k": 0,
               "n": 4,
@@ -4190,7 +4190,7 @@
               "n": 12,
               "text": "8 of 12"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A18",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#1",
@@ -4242,7 +4242,7 @@
               "n": 12,
               "text": "8 of 12"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A18",
                 "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#1",
@@ -4310,7 +4310,7 @@
       "name": "keeps the plain greeting",
       "file": "evals/measure.eval.ts",
       "shapes": ["ab"],
-      "design": "1 coding harness, 2 arms, 8 attempts",
+      "design": "1 coding harness, 2 environments, 8 trials",
       "headline": {
         "task": "keeps the plain greeting",
         "kicker": "with-skill against the plain baseline",
@@ -4359,12 +4359,12 @@
           },
           "others": []
         },
-        "foot": "n = 4 vs 4 counted attempts. 95% CI -100 pts to -31 pts."
+        "foot": "n = 4 vs 4 counted trials. 95% CI -100 pts to -31 pts."
       },
       "insights": [],
       "primary": {
         "kind": "comparison",
-        "arms": [
+        "environments": [
           {
             "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "label": "plain",
@@ -4387,7 +4387,7 @@
         "uniformLead": null,
         "summary": [
           {
-            "arm": "plain",
+            "environment": "plain",
             "rate": {
               "k": 4,
               "n": 4,
@@ -4503,7 +4503,7 @@
             }
           },
           {
-            "arm": "with-skill",
+            "environment": "with-skill",
             "rate": {
               "k": 0,
               "n": 4,
@@ -4643,7 +4643,7 @@
             }
           }
         ],
-        "assertionsByArm": [
+        "assertionsByEnvironment": [
           {
             "label": "says hello",
             "matcher": "toSucceed",
@@ -4684,7 +4684,7 @@
         "effortByHarness": [
           {
             "harness": "fake",
-            "arm": "plain",
+            "environment": "plain",
             "rate": {
               "k": 4,
               "n": 4,
@@ -4797,7 +4797,7 @@
           },
           {
             "harness": "fake",
-            "arm": "with-skill",
+            "environment": "with-skill",
             "rate": {
               "k": 0,
               "n": 4,
@@ -4942,7 +4942,7 @@
               "n": 8,
               "text": "4 of 8"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A22",
                 "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#1",
@@ -4974,7 +4974,7 @@
               "n": 8,
               "text": "4 of 8"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A22",
                 "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#1",
@@ -5022,11 +5022,11 @@
       "name": "greets once",
       "file": "evals/measure.eval.ts",
       "shapes": ["ab"],
-      "design": "1 coding harness, 2 arms, 2 attempts",
+      "design": "1 coding harness, 2 environments, 2 trials",
       "headline": {
         "task": "greets once",
         "kicker": "with-skill against the plain baseline",
-        "fairness": "too-few-runs",
+        "fairness": "too-few-trials",
         "primary": {
           "kind": "lift",
           "baseline": {
@@ -5071,12 +5071,12 @@
           },
           "others": []
         },
-        "foot": "n = 1 vs 1 counted attempts. 95% CI -12 pts to +100 pts. 1 per side is below 4, so this cannot come back helped or made worse."
+        "foot": "n = 1 vs 1 counted trials. 95% CI -12 pts to +100 pts. 1 per side is below 4, so this cannot come back helped or made worse."
       },
       "insights": [],
       "primary": {
         "kind": "comparison",
-        "arms": [
+        "environments": [
           {
             "id": "sha256:eca09e8f139fb2456ce711a4f177ce81d9a5fdef6f8cdc80e9746ba8c5a9aae9",
             "label": "plain",
@@ -5099,7 +5099,7 @@
         "uniformLead": null,
         "summary": [
           {
-            "arm": "plain",
+            "environment": "plain",
             "rate": {
               "k": 0,
               "n": 1,
@@ -5215,7 +5215,7 @@
             }
           },
           {
-            "arm": "with-skill",
+            "environment": "with-skill",
             "rate": {
               "k": 1,
               "n": 1,
@@ -5237,7 +5237,7 @@
               "hi": 1,
               "text": "-12 pts to +100 pts"
             },
-            "verdict": "too-few-runs",
+            "verdict": "too-few-trials",
             "verdictScope": "pass-rate",
             "measures": {
               "tokens": {
@@ -5355,7 +5355,7 @@
             }
           }
         ],
-        "assertionsByArm": [
+        "assertionsByEnvironment": [
           {
             "label": "house greeting",
             "matcher": "toSucceed",
@@ -5396,7 +5396,7 @@
         "effortByHarness": [
           {
             "harness": "fake",
-            "arm": "plain",
+            "environment": "plain",
             "rate": {
               "k": 0,
               "n": 1,
@@ -5509,7 +5509,7 @@
           },
           {
             "harness": "fake",
-            "arm": "with-skill",
+            "environment": "with-skill",
             "rate": {
               "k": 1,
               "n": 1,
@@ -5654,7 +5654,7 @@
               "n": 2,
               "text": "1 of 2"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A23",
                 "key": "evals/measure.eval.ts › greets once # fake/plain/fake#1",
@@ -5671,7 +5671,7 @@
               "n": 2,
               "text": "1 of 2"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A23",
                 "key": "evals/measure.eval.ts › greets once # fake/plain/fake#1",
@@ -5704,11 +5704,11 @@
       "name": "writes greet.js",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
-      "design": "1 coding harness, 1 attempt",
+      "design": "1 coding harness, 1 trial",
       "headline": {
         "task": "writes greet.js",
         "kicker": null,
-        "fairness": "too-few-runs",
+        "fairness": "too-few-trials",
         "primary": {
           "kind": "pass-rate",
           "rate": {
@@ -5726,7 +5726,7 @@
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "1 of 1 counted attempts passed on all 1 assertions. 1 coding harness."
+        "foot": "1 of 1 counted trials passed on all 1 assertions. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -5872,11 +5872,11 @@
       "name": "greets in French",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
-      "design": "1 coding harness, 1 attempt",
+      "design": "1 coding harness, 1 trial",
       "headline": {
         "task": "greets in French",
         "kicker": null,
-        "fairness": "too-few-runs",
+        "fairness": "too-few-trials",
         "primary": {
           "kind": "pass-rate",
           "rate": {
@@ -5894,7 +5894,7 @@
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "0 of 1 counted attempts passed on all 2 assertions. 1 coding harness."
+        "foot": "0 of 1 counted trials passed on all 2 assertions. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -6053,7 +6053,7 @@
               "n": 1,
               "text": "1 of 1"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A26",
                 "key": "evals/results.eval.ts › greets in French # fake/-/fake#1",
@@ -6070,7 +6070,7 @@
               "n": 1,
               "text": "1 of 1"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A26",
                 "key": "evals/results.eval.ts › greets in French # fake/-/fake#1",
@@ -6103,11 +6103,11 @@
       "name": "explains why greet.js fails",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
-      "design": "1 coding harness, 2 attempts",
+      "design": "1 coding harness, 2 trials",
       "headline": {
         "task": "explains why greet.js fails",
         "kicker": null,
-        "fairness": "too-few-runs",
+        "fairness": "too-few-trials",
         "primary": {
           "kind": "pass-rate",
           "rate": {
@@ -6125,7 +6125,7 @@
           "harnesses": 1,
           "outcome": "passed"
         },
-        "foot": "1 of 2 counted attempts passed on all 2 assertions. 1 coding harness."
+        "foot": "1 of 2 counted trials passed on all 2 assertions. 1 coding harness."
       },
       "insights": [],
       "primary": {
@@ -6284,7 +6284,7 @@
               "n": 2,
               "text": "1 of 2"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A39",
                 "key": "evals/results.eval.ts › explains why greet.js fails # fake/-/fake#2",
@@ -6301,7 +6301,7 @@
               "n": 2,
               "text": "1 of 2"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A39",
                 "key": "evals/results.eval.ts › explains why greet.js fails # fake/-/fake#2",
@@ -6334,18 +6334,18 @@
       "name": "reads the fixture repo",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
-      "design": "1 coding harness, 1 attempt",
+      "design": "1 coding harness, 1 trial",
       "headline": {
         "task": "reads the fixture repo",
         "kicker": null,
         "fairness": "clear",
         "primary": {
           "kind": "target",
-          "result": "mean 0% · 0/1 run at 100%",
+          "result": "mean 0% · 0/1 trial at 100%",
           "target": "regression(1)",
           "standing": "fail"
         },
-        "foot": "Below target. 1 counted attempt, 1 coding harness."
+        "foot": "Below target. 1 counted trial, 1 coding harness."
       },
       "insights": [],
       "primary": null,
@@ -6365,7 +6365,7 @@
               "n": 1,
               "text": "1 of 1"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A28",
                 "key": "evals/results.eval.ts › reads the fixture repo # fake/-/fake#1",
@@ -6398,7 +6398,7 @@
       "name": "starts its sandbox",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
-      "design": "1 coding harness, 1 attempt",
+      "design": "1 coding harness, 1 trial",
       "headline": {
         "task": "starts its sandbox",
         "kicker": null,
@@ -6409,7 +6409,7 @@
           "target": "regression(1)",
           "standing": "infra"
         },
-        "foot": "No attempt counted: each ended in an infra error."
+        "foot": "No trial counted: each ended in an infra error."
       },
       "insights": [],
       "primary": null,
@@ -6429,11 +6429,11 @@
               "n": 1,
               "text": "1 of 1"
             },
-            "attempts": [
+            "trials": [
               {
                 "id": "A29",
                 "key": "evals/results.eval.ts › starts its sandbox # broken/-/fake#1",
-                "href": "#attempt-evals-results-eval-ts-starts-its-sandbox-broken-fake-1-4c10815a"
+                "href": "#trial-evals-results-eval-ts-starts-its-sandbox-broken-fake-1-4c10815a"
               }
             ]
           }
@@ -6462,7 +6462,7 @@
       "name": "greets in Welsh",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
-      "design": "1 coding harness, 0 attempts",
+      "design": "1 coding harness, 0 trials",
       "headline": {
         "task": "greets in Welsh",
         "kicker": null,
@@ -6505,7 +6505,7 @@
       "name": "greets in Klingon",
       "file": "evals/results.eval.ts",
       "shapes": ["task"],
-      "design": "1 coding harness, 0 attempts",
+      "design": "1 coding harness, 0 trials",
       "headline": {
         "task": "greets in Klingon",
         "kicker": null,
@@ -6591,13 +6591,13 @@
     "record": "../20261020T205330Z_da3d797_cursor-agent_1k52.json",
     "warnings": []
   },
-  "attempts": [
+  "trials": [
     {
       "id": "A1",
       "key": "evals/family.eval.ts › adds a reset button that builds # fake/-/fake#1",
       "evalId": "evals/family.eval.ts › adds a button that builds",
       "harness": "fake",
-      "arm": "-",
+      "environment": "-",
       "case": "reset",
       "outcome": "pass",
       "reclassified": false,
@@ -6638,7 +6638,7 @@
       "key": "evals/family.eval.ts › adds a double button that builds # fake/-/fake#1",
       "evalId": "evals/family.eval.ts › adds a button that builds",
       "harness": "fake",
-      "arm": "-",
+      "environment": "-",
       "case": "double",
       "outcome": "fail",
       "reclassified": false,
@@ -6679,7 +6679,7 @@
       "key": "evals/family.eval.ts › adds a clear button that builds # fake/-/fake#1",
       "evalId": "evals/family.eval.ts › adds a button that builds",
       "harness": "fake",
-      "arm": "-",
+      "environment": "-",
       "case": "clear",
       "outcome": "pass",
       "reclassified": false,
@@ -6720,7 +6720,7 @@
       "key": "evals/family.eval.ts › greets Ada in the house style # fake/plain/fake#1",
       "evalId": "evals/family.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "plain",
+      "environment": "plain",
       "case": "Ada",
       "outcome": "fail",
       "reclassified": false,
@@ -6761,7 +6761,7 @@
       "key": "evals/family.eval.ts › greets Ada in the house style # fake/with-skill/fake#1",
       "evalId": "evals/family.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": "Ada",
       "outcome": "pass",
       "reclassified": false,
@@ -6802,7 +6802,7 @@
       "key": "evals/family.eval.ts › greets Grace in the house style # fake/plain/fake#1",
       "evalId": "evals/family.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "plain",
+      "environment": "plain",
       "case": "Grace",
       "outcome": "fail",
       "reclassified": false,
@@ -6843,7 +6843,7 @@
       "key": "evals/family.eval.ts › greets Grace in the house style # fake/with-skill/fake#1",
       "evalId": "evals/family.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": "Grace",
       "outcome": "pass",
       "reclassified": false,
@@ -6884,7 +6884,7 @@
       "key": "evals/family.eval.ts › greets Linus in the house style # fake/plain/fake#1",
       "evalId": "evals/family.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "plain",
+      "environment": "plain",
       "case": "Linus",
       "outcome": "fail",
       "reclassified": false,
@@ -6925,7 +6925,7 @@
       "key": "evals/family.eval.ts › greets Linus in the house style # fake/with-skill/fake#1",
       "evalId": "evals/family.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": "Linus",
       "outcome": "pass",
       "reclassified": false,
@@ -6966,7 +6966,7 @@
       "key": "evals/family.eval.ts › greets Edsger in the house style # fake/plain/fake#1",
       "evalId": "evals/family.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "plain",
+      "environment": "plain",
       "case": "Edsger",
       "outcome": "fail",
       "reclassified": false,
@@ -7007,7 +7007,7 @@
       "key": "evals/family.eval.ts › greets Edsger in the house style # fake/with-skill/fake#1",
       "evalId": "evals/family.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": "Edsger",
       "outcome": "pass",
       "reclassified": false,
@@ -7048,7 +7048,7 @@
       "key": "evals/harnesses.eval.ts › greets in the house style on each agent # skilled/-/fake#1",
       "evalId": "evals/harnesses.eval.ts › greets in the house style on each agent",
       "harness": "skilled",
-      "arm": "-",
+      "environment": "-",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -7089,7 +7089,7 @@
       "key": "evals/harnesses.eval.ts › greets in the house style on each agent # terse/-/fake#1",
       "evalId": "evals/harnesses.eval.ts › greets in the house style on each agent",
       "harness": "terse",
-      "arm": "-",
+      "environment": "-",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7130,7 +7130,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#1",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "learner",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7171,7 +7171,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/with-skill/fake#1",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "learner",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -7212,7 +7212,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#1",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "terse",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7253,7 +7253,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#1",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "terse",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7294,7 +7294,7 @@
       "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#1",
       "evalId": "evals/measure.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7335,7 +7335,7 @@
       "key": "evals/measure.eval.ts › greets in the house style # fake/with-skill/fake#1",
       "evalId": "evals/measure.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -7376,7 +7376,7 @@
       "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#1",
       "evalId": "evals/measure.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "with-doc",
+      "environment": "with-doc",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7417,7 +7417,7 @@
       "key": "evals/measure.eval.ts › keeps the plain greeting # fake/plain/fake#1",
       "evalId": "evals/measure.eval.ts › keeps the plain greeting",
       "harness": "fake",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -7458,7 +7458,7 @@
       "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#1",
       "evalId": "evals/measure.eval.ts › keeps the plain greeting",
       "harness": "fake",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7499,7 +7499,7 @@
       "key": "evals/measure.eval.ts › greets once # fake/plain/fake#1",
       "evalId": "evals/measure.eval.ts › greets once",
       "harness": "fake",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7540,7 +7540,7 @@
       "key": "evals/measure.eval.ts › greets once # fake/with-skill/fake#1",
       "evalId": "evals/measure.eval.ts › greets once",
       "harness": "fake",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -7581,7 +7581,7 @@
       "key": "evals/results.eval.ts › writes greet.js # fake/-/fake#1",
       "evalId": "evals/results.eval.ts › writes greet.js",
       "harness": "fake",
-      "arm": "-",
+      "environment": "-",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -7622,7 +7622,7 @@
       "key": "evals/results.eval.ts › greets in French # fake/-/fake#1",
       "evalId": "evals/results.eval.ts › greets in French",
       "harness": "fake",
-      "arm": "-",
+      "environment": "-",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7663,7 +7663,7 @@
       "key": "evals/results.eval.ts › explains why greet.js fails # fake/-/fake#1",
       "evalId": "evals/results.eval.ts › explains why greet.js fails",
       "harness": "fake",
-      "arm": "-",
+      "environment": "-",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -7704,7 +7704,7 @@
       "key": "evals/results.eval.ts › reads the fixture repo # fake/-/fake#1",
       "evalId": "evals/results.eval.ts › reads the fixture repo",
       "harness": "fake",
-      "arm": "-",
+      "environment": "-",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7745,7 +7745,7 @@
       "key": "evals/results.eval.ts › starts its sandbox # broken/-/fake#1",
       "evalId": "evals/results.eval.ts › starts its sandbox",
       "harness": "broken",
-      "arm": "-",
+      "environment": "-",
       "case": null,
       "outcome": "infra_error",
       "reclassified": false,
@@ -7773,14 +7773,14 @@
         "captures": [],
         "questions": []
       },
-      "href": "#attempt-evals-results-eval-ts-starts-its-sandbox-broken-fake-1-4c10815a"
+      "href": "#trial-evals-results-eval-ts-starts-its-sandbox-broken-fake-1-4c10815a"
     },
     {
       "id": "A30",
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#2",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "learner",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7821,7 +7821,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/with-skill/fake#2",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "learner",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -7862,7 +7862,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#2",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "terse",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7903,7 +7903,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#2",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "terse",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7944,7 +7944,7 @@
       "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#2",
       "evalId": "evals/measure.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -7985,7 +7985,7 @@
       "key": "evals/measure.eval.ts › greets in the house style # fake/with-skill/fake#2",
       "evalId": "evals/measure.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -8026,7 +8026,7 @@
       "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#2",
       "evalId": "evals/measure.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "with-doc",
+      "environment": "with-doc",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8067,7 +8067,7 @@
       "key": "evals/measure.eval.ts › keeps the plain greeting # fake/plain/fake#2",
       "evalId": "evals/measure.eval.ts › keeps the plain greeting",
       "harness": "fake",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -8108,7 +8108,7 @@
       "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#2",
       "evalId": "evals/measure.eval.ts › keeps the plain greeting",
       "harness": "fake",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8149,7 +8149,7 @@
       "key": "evals/results.eval.ts › explains why greet.js fails # fake/-/fake#2",
       "evalId": "evals/results.eval.ts › explains why greet.js fails",
       "harness": "fake",
-      "arm": "-",
+      "environment": "-",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8190,7 +8190,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#3",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "learner",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8231,7 +8231,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/with-skill/fake#3",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "learner",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -8272,7 +8272,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#3",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "terse",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8313,7 +8313,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#3",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "terse",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8354,7 +8354,7 @@
       "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#3",
       "evalId": "evals/measure.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8395,7 +8395,7 @@
       "key": "evals/measure.eval.ts › greets in the house style # fake/with-skill/fake#3",
       "evalId": "evals/measure.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -8436,7 +8436,7 @@
       "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#3",
       "evalId": "evals/measure.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "with-doc",
+      "environment": "with-doc",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8477,7 +8477,7 @@
       "key": "evals/measure.eval.ts › keeps the plain greeting # fake/plain/fake#3",
       "evalId": "evals/measure.eval.ts › keeps the plain greeting",
       "harness": "fake",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -8518,7 +8518,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/plain/fake#4",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "learner",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8559,7 +8559,7 @@
       "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#3",
       "evalId": "evals/measure.eval.ts › keeps the plain greeting",
       "harness": "fake",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8600,7 +8600,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # learner/with-skill/fake#4",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "learner",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -8641,7 +8641,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/plain/fake#4",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "terse",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8682,7 +8682,7 @@
       "key": "evals/harnesses.eval.ts › learns the house style from the skill # terse/with-skill/fake#4",
       "evalId": "evals/harnesses.eval.ts › learns the house style from the skill",
       "harness": "terse",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8723,7 +8723,7 @@
       "key": "evals/measure.eval.ts › greets in the house style # fake/plain/fake#4",
       "evalId": "evals/measure.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8764,7 +8764,7 @@
       "key": "evals/measure.eval.ts › greets in the house style # fake/with-skill/fake#4",
       "evalId": "evals/measure.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -8805,7 +8805,7 @@
       "key": "evals/measure.eval.ts › greets in the house style # fake/with-doc/fake#4",
       "evalId": "evals/measure.eval.ts › greets in the house style",
       "harness": "fake",
-      "arm": "with-doc",
+      "environment": "with-doc",
       "case": null,
       "outcome": "fail",
       "reclassified": false,
@@ -8846,7 +8846,7 @@
       "key": "evals/measure.eval.ts › keeps the plain greeting # fake/plain/fake#4",
       "evalId": "evals/measure.eval.ts › keeps the plain greeting",
       "harness": "fake",
-      "arm": "plain",
+      "environment": "plain",
       "case": null,
       "outcome": "pass",
       "reclassified": false,
@@ -8887,7 +8887,7 @@
       "key": "evals/measure.eval.ts › keeps the plain greeting # fake/with-skill/fake#4",
       "evalId": "evals/measure.eval.ts › keeps the plain greeting",
       "harness": "fake",
-      "arm": "with-skill",
+      "environment": "with-skill",
       "case": null,
       "outcome": "fail",
       "reclassified": false,

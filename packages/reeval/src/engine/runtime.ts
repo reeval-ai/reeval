@@ -1,8 +1,8 @@
-// What `evaluate`, `group` and an attempt use of the engine, whichever engine runs the file:
+// What `evaluate`, `group` and a trial use of the engine, whichever engine runs the file:
 // the worker's engine installs itself here before it loads an eval file.
 import { UsageError } from '../errors.ts'
 import type { Limits, Rank } from '../scheduler/core.ts'
-import type { AttemptMeta, EvalMeta, RunContext } from '../types.ts'
+import type { EvalMeta, RunContext, TrialMeta } from '../types.ts'
 import type { Progress } from '../ui/events.ts'
 import type { DebugLine } from '../view/debug.ts'
 
@@ -18,19 +18,19 @@ export type TestHandle = {
 
 export type TestMode = 'run' | 'skip' | 'only' | 'todo'
 
-/** What an attempt needs before it starts: leases on these resources, in this place in line. */
+/** What a trial needs before it starts: leases on these resources, in this place in line. */
 export type Gate = { limits: Limits; rank: Rank }
 
 export type TestOptions = {
-  /** The attempt's own timeout, from its lease; none for placeholders. */
+  /** The trial's own timeout, from its lease; none for placeholders. */
   timeout?: number
   mode: TestMode
-  attempt?: AttemptMeta
-  /** The leases the attempt waits for when it's ready to start; none for placeholders. */
+  trial?: TrialMeta
+  /** The leases the trial waits for when it's ready to start; none for placeholders. */
   gate?: Gate
   /**
-   * Awaited before the attempt asks for its leases: `false` skips it unrun. A best-of cell's
-   * later attempts wait here for the earlier ones, so they hold no lease while they wait.
+   * Awaited before the trial asks for its leases: `false` skips it unrun. A best-of cell's
+   * later trials wait here for the earlier ones, so they hold no lease while they wait.
    */
   ready?: () => Promise<boolean>
   /** Called once the test is done with, run or not: after its body settles, when it had one. */
@@ -52,7 +52,7 @@ export type Engine = {
   collectingFile(): string | undefined
   /**
    * The harness ids a declared eval runs on before a profile's limit, tags or not, and the trait
-   * keys its control environments define, when the tags select it.
+   * keys its baseline environments define, when the tags select it.
    */
   declarePlanned(harnesses: readonly string[], traits: readonly string[]): void
 }

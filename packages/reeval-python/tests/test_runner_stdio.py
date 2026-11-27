@@ -1,4 +1,4 @@
-"""The runner as reeval starts it: messages on stdin/stdout, prints routed to their attempt."""
+"""The runner as reeval starts it: messages on stdin/stdout, prints routed to their trial."""
 
 from __future__ import annotations
 

@@ -9,7 +9,7 @@ const files = (state: unknown) =>
     (p) => p.type === 'file',
   )
 
-// artifacts: true sends every capture the attempt took, in the order it took them.
+// artifacts: true sends every capture the trial took, in the order it took them.
 export default defineEval({
   environment: ui,
   graders: [

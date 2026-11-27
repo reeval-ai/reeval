@@ -1,4 +1,4 @@
-// `reeval export`: a run as its archive zip, or each attempt in an exporter's format.
+// `reeval export`: a run as its archive zip, or each trial in an exporter's format.
 import { mkdir, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { CommandError, pick } from './commands.ts'
@@ -44,25 +44,25 @@ export async function exportCommand(ctx: Ctx, refs: string[]): Promise<number> {
   const out = resolve(flags.out ?? `${runId}.${format}`)
   let written = 0
   let skipped = 0
-  for (const attempt of run.evals.flatMap((e) => e.attempts)) {
-    const path = attempt.files.trajectory?.path
-    const lines = path ? await trajectoryLines(config, run, attempt) : null
+  for (const trial of run.evals.flatMap((e) => e.trials)) {
+    const path = trial.files.trajectory?.path
+    const lines = path ? await trajectoryLines(config, run, trial) : null
     if (!path || !lines) {
-      if (attempt.startedAt) skipped++
+      if (trial.startedAt) skipped++
       continue
     }
     const file = join(out, dirname(path), exporter.file)
     await mkdir(dirname(file), { recursive: true })
-    await writeFile(file, exporter.render(run, attempt, lines))
+    await writeFile(file, exporter.render(run, trial, lines))
     written++
   }
   if (!written) {
     throw new CommandError(
-      `${runId} kept no trajectory for any attempt (recorded with --artifacts failures or none?)`,
+      `${runId} kept no trajectory for any trial (recorded with --artifacts failures or none?)`,
     )
   }
   const note = skipped
-    ? ` (${skipped} started ${skipped === 1 ? 'attempt' : 'attempts'} kept no trajectory)`
+    ? ` (${skipped} started ${skipped === 1 ? 'trial' : 'trials'} kept no trajectory)`
     : ''
   ctx.out(`Wrote ${written} ${exporter.file} to ${fromCwd(out)}${note}`)
   return 0

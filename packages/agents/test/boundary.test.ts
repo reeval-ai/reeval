@@ -26,7 +26,7 @@ const DEPENDENCIES = new Set([
 
 /** Types and classes named for one of reeval's eval concepts: the word, then the next word. */
 const EVAL_PREFIX =
-  /^(Attempt|Eval|Evaluation|Judge|Bundle|Gate|Matcher|Cell|RunRecord|Assertion)(?![a-z])/
+  /^(Trial|Eval|Evaluation|Judge|Bundle|Gate|Matcher|Cell|RunRecord|Assertion)(?![a-z])/
 /** reeval's own plan names; a harness's plan (a permission mode, a plan tool) stays allowed. */
 const EVAL_PLAN_NAMES = new Set([
   'Plan',
@@ -44,7 +44,7 @@ const EVAL_PLAN_NAMES = new Set([
   'PlanQuestion',
   'PlanRow',
   'Planned',
-  'PlannedAttempt',
+  'PlannedTrial',
   'PlannedEgress',
   'PlannedEval',
   'PlannedItem',
@@ -192,7 +192,7 @@ test('the checks refuse what they are meant to', () => {
     `/// <reference lib="es2023" />`,
     `/// <reference types='reeval/view' />`,
     `import { a } from '../index.ts'`,
-    `import type { Attempt } from '../../../reeval/src/types.ts'`,
+    `import type { Trial } from '../../../reeval/src/types.ts'`,
     `import { type RunRecord } from 'reeval'`,
     `import{b}from'reeval/view'`,
     `export{c}from'reeval/judge'`,
@@ -216,7 +216,7 @@ test('the checks refuse what they are meant to', () => {
     `// import { gone } from 'commented-out'`,
     `/* export * from 'also-commented-out' */`,
     `const s = "import { no } from 'in-a-string'"`,
-    `export type AttemptOptions = {}`,
+    `export type TrialOptions = {}`,
     `export type PlannedEgress = {}`,
     `export const brokerToken = 1`,
     `export { j as JudgeModel, type HarnessResult }`,
@@ -265,7 +265,7 @@ test('the checks refuse what they are meant to', () => {
     'GatewayB',
     'SubstitutionC',
     'GatewayAlias',
-    'AttemptOptions',
+    'TrialOptions',
     'PlannedEgress',
     'brokerToken',
     'JudgeModel',

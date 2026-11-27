@@ -4,17 +4,17 @@
 
 import type { RunInvocation } from '../history/types.ts'
 import { isOneOf } from '../object.ts'
-import { fillDefaults } from './record.ts'
+import { fillDefaults, upgradedLiveProgress } from './record.ts'
 
 /** The progress file's name inside the run's staging directory. */
 export const LIVE_FILE = 'live.json'
-export const LIVE_SCHEMA_VERSION = 1
+export const LIVE_SCHEMA_VERSION = 2
 
-/** Where an attempt is: waiting, running, or finished with its outcome. */
+/** Where a trial is: waiting, running, or finished with its outcome. */
 export type LiveStatus = 'queued' | 'running' | 'pass' | 'fail' | 'infra_error' | 'skipped'
 
-export type LiveAttempt = {
-  /** The attempt key, `<eval id> # <cell key>#<n>`, as in the record. */
+export type LiveTrial = {
+  /** The trial key, `<eval id> # <cell key>#<n>`, as in the record. */
   key: string
   evalId: string
   name: string
@@ -27,7 +27,7 @@ export type LiveAttempt = {
   durationMs: number | null
 }
 
-/** Attempts finished, and of those how many passed, failed or errored; and how many are running. */
+/** Trials finished, and of those how many passed, failed or errored; and how many are running. */
 export type LiveCounts = {
   done: number
   passed: number
@@ -37,11 +37,11 @@ export type LiveCounts = {
   running: number
 }
 
-/** What the run is doing: running attempts, canceling them, or assembling its record. */
+/** What the run is doing: running trials, canceling them, or assembling its record. */
 export type LivePhase = 'running' | 'cancelling' | 'finishing'
 
 export type LiveProgress = {
-  schemaVersion: 1
+  schemaVersion: 2
   runId: string
   startedAt: string
   /** The `reeval run` process and the host it runs on, so a killed run can be told apart. */
@@ -52,7 +52,7 @@ export type LiveProgress = {
   phase: LivePhase
   planned: number
   counts: LiveCounts
-  attempts: LiveAttempt[]
+  trials: LiveTrial[]
   /** How the run was started, for a `--resume` after a quit that wrote no record. */
   invocation?: RunInvocation
   /**
@@ -72,9 +72,9 @@ export type LiveIndex = { runs: LiveRun[] }
 export const FINISHED: readonly LiveStatus[] = ['pass', 'fail', 'infra_error', 'skipped']
 export const isFinished = (status: LiveStatus) => FINISHED.includes(status)
 
-export function liveCounts(attempts: readonly Pick<LiveAttempt, 'status'>[]): LiveCounts {
+export function liveCounts(trials: readonly Pick<LiveTrial, 'status'>[]): LiveCounts {
   const count = (...statuses: LiveStatus[]) =>
-    attempts.filter((a) => statuses.includes(a.status)).length
+    trials.filter((a) => statuses.includes(a.status)).length
   return {
     done: count(...FINISHED),
     passed: count('pass'),
@@ -94,7 +94,7 @@ const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinit
 const orNull = <T>(v: unknown, is: (x: unknown) => x is T): v is T | null | undefined =>
   v === null || v === undefined || is(v)
 
-function readableAttempt(v: unknown): LiveAttempt | null {
+function readableTrial(v: unknown): LiveTrial | null {
   if (!isObj(v)) return null
   const { key, evalId, name, file, cell, n, status, startedAt, durationMs } = v
   if (!str(key) || !str(evalId) || !str(name) || !str(file) || !str(cell) || !num(n)) return null
@@ -118,14 +118,14 @@ const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(str)
 /** A saved invocation, or undefined when it isn't one; its numbers are whole and at least 1. */
 export function readableInvocation(v: unknown): RunInvocation | undefined {
   if (!isObj(v)) return undefined
-  const { runs, profile, concurrency, filters, tags, traits, events } = v
+  const { trials, profile, concurrency, filters, tags, traits, events } = v
   const count = (n: unknown) => n === undefined || (Number.isInteger(n) && (n as number) >= 1)
-  if (!count(runs) || !count(concurrency) || !(profile === undefined || str(profile)))
+  if (!count(trials) || !count(concurrency) || !(profile === undefined || str(profile)))
     return undefined
   if (!strings(filters) || !strings(tags)) return undefined
   if (!(traits === undefined || strings(traits))) return undefined
   return {
-    ...(runs === undefined ? {} : { runs: runs as number }),
+    ...(trials === undefined ? {} : { trials: trials as number }),
     ...(profile === undefined ? {} : { profile }),
     ...(concurrency === undefined ? {} : { concurrency: concurrency as number }),
     filters,
@@ -137,15 +137,18 @@ export function readableInvocation(v: unknown): RunInvocation | undefined {
 
 /**
  * A progress file as the studio reads it, or null when it isn't one it can read: half-written,
- * corrupt, or from a newer reeval. Counts are recomputed from the attempts, never trusted.
+ * corrupt, or from a newer reeval. Counts are recomputed from the trials, never trusted.
  */
 export function readableLiveProgress(value: unknown): LiveProgress | null {
+  if (!isObj(value) || typeof value.schemaVersion !== 'number') return null
+  if (value.schemaVersion > LIVE_SCHEMA_VERSION) return null
+  value = upgradedLiveProgress(value)
   if (!isObj(value) || value.schemaVersion !== LIVE_SCHEMA_VERSION) return null
   fillDefaults('live-progress', value)
-  const { runId, startedAt, pid, host, heartbeatAt, phase, attempts } = value
+  const { runId, startedAt, pid, host, heartbeatAt, phase, trials } = value
   if (!str(runId) || !str(startedAt) || !str(host) || !str(heartbeatAt) || !num(pid)) return null
-  if (!isOneOf(PHASES, phase) || !Array.isArray(attempts)) return null
-  const list = attempts.map(readableAttempt)
+  if (!isOneOf(PHASES, phase) || !Array.isArray(trials)) return null
+  const list = trials.map(readableTrial)
   if (!list.every((a) => a !== null)) return null
   const invocation = readableInvocation(value.invocation)
   return {
@@ -158,7 +161,7 @@ export function readableLiveProgress(value: unknown): LiveProgress | null {
     phase,
     planned: list.length,
     counts: liveCounts(list),
-    attempts: list,
+    trials: list,
     ...(invocation ? { invocation } : {}),
     ...(str(value.events) ? { events: value.events } : {}),
   }

@@ -29,20 +29,17 @@ export type {
   JudgeSpec,
 } from './grade/types.ts'
 export type {
-  AttemptRecord,
   CellRecord,
   EvalEntry,
   ExecLine,
   FamilyRecord,
   RunRecord,
+  TrialRecord,
 } from './history/types.ts'
 export type { ShellCommand } from './shell-commands.ts'
 export { shellCommands } from './shell-commands.ts'
 export { capability, regression } from './target.ts'
 export type {
-  AttemptAnswer,
-  AttemptContext,
-  AttemptFailure,
   BackgroundHandle,
   Budget,
   Capture,
@@ -118,6 +115,9 @@ export type {
   StatusRange,
   Target,
   TrajectoryEvent,
+  TrialAnswer,
+  TrialContext,
+  TrialFailure,
   Turn,
   TurnData,
   Viewport,

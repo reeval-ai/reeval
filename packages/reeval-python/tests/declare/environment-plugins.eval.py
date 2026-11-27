@@ -25,7 +25,7 @@ pinned = fetched.extend(
 
 
 def remote_plugins():
-    @evaluate("git and npm read at the attempt")
+    @evaluate("git and npm read at the trial")
     def git_and_npm(c): ...
 
     @evaluate("a child adds another", {"environments": pinned})

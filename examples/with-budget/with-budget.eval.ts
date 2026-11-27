@@ -6,7 +6,7 @@ const math = defineEnvironment('math', ({ directory }) => ({ files: directory('.
 
 export default defineEval({
   environment: math,
-  runs: 3,
+  trials: 3,
   graders: [hasFile('src/math.js', /export function multiply/), succeeded('node --test')],
   task: async (c) => {
     await c.send('Add a multiply(a, b) function to src/math.js, with a test in test/math.test.js.')

@@ -23,7 +23,7 @@ const throwsRangeError = defineGrader('throws-range-error', ({ file }) => ({
 }))
 
 export default defineEval({
-  compare: { control: math, variants: [withSkill, withDoc] },
+  compare: { baseline: math, variants: [withSkill, withDoc] },
   graders: [throwsRangeError],
   task: async (c) => {
     await c.send('Add a divide(a, b) function to src/math.js.')

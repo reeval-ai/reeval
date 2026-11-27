@@ -71,7 +71,7 @@ Name the files the task is about, such as `test.js` and `readme.md`. Leave out t
 
 Each entry in `graders` is a grader. Its name, such as `separators-work`, names its row in the result. For more information about every kind of assertion, see [Assertions](/evaluations/grading/assertions).
 
-To measure a change, such as a skill, replace `environment` with `compare`. For more information about the control, the variant, and the effect, see [Measure lift against a control](/results/compare/lift).
+To measure a change, such as a skill, replace `environment` with `compare`. For more information about the baseline, the variant, and the effect, see [Measure lift against a baseline](/results/compare/lift).
 
 </Step>
 <Step title="Verify with the `reeval run --dry-run` command">
@@ -82,7 +82,7 @@ Plan the run with the `reeval run --dry-run` command:
 npx reeval run --dry-run
 ```
 
-The `reeval run --dry-run` command plans the run without starting a sandbox or a harness, so it needs no API key. The header counts the evaluations, cells, and attempts, and estimates the time:
+The `reeval run --dry-run` command plans the run without starting a sandbox or a harness, so it needs no API key. The header counts the evaluations, cells, and trials, and estimates the time:
 
 ```text
 REEVAL v0.16.1  dry run
@@ -90,7 +90,7 @@ REEVAL v0.16.1  dry run
   ➜  Run:       20261029T204616Z_e6be7d1_cursor-agent_v23d
   ➜  Harness:   cursor:composer-2.5 (effort: not checked)
   ➜  Sandbox:   docker
-  ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 attempt
+  ➜  Scope:     1 eval file · 1 eval · 1 cell · 1 trial
   ➜  Est. Time: ~3m 00s (serial)
 ```
 
@@ -99,11 +99,11 @@ A table below the header lists each evaluation by its file id. If the evaluation
 </Step>
 </Steps>
 
-To start the attempts, run the same command without `--dry-run`. For the runnable project, see [`with-existing-codebase`](https://github.com/reeval-ai/reeval/tree/main/examples/with-existing-codebase).
+To start the trials, run the same command without `--dry-run`. For the runnable project, see [`with-existing-codebase`](https://github.com/reeval-ai/reeval/tree/main/examples/with-existing-codebase).
 
 ## Send the task
 
-The prompt in `c.send()` is what each attempt sends to the agent, in a fresh sandbox, after the environment is in place. For the definition, see [Task](/reference/glossary#task).
+The prompt in `c.send()` is what each trial sends to the agent, in a fresh sandbox, after the environment is in place. For the definition, see [Task](/reference/glossary#task).
 
 ```ts title="evals/camelcase/separators.eval.ts"
 await c.send('Add a separators option to camelCase: …')
@@ -113,7 +113,7 @@ For more information about a task over several prompts, see [Turns](/evaluations
 
 ## Set a timeout
 
-The `timeout` option limits each attempt, and it defaults to `'15m'`. The clock starts after the setup commands finish. An attempt that reaches the timeout fails. In the `evals/camelcase/separators.eval.ts` file, add `timeout` to the spec:
+The `timeout` option limits each trial, and it defaults to `'15m'`. The clock starts after the setup commands finish. A trial that reaches the timeout fails. In the `evals/camelcase/separators.eval.ts` file, add `timeout` to the spec:
 
 ```ts title="evals/camelcase/separators.eval.ts"
 export default defineEval({

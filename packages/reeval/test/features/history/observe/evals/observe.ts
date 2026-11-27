@@ -1,7 +1,7 @@
-import type { AttemptContext } from 'reeval'
+import type { TrialContext } from 'reeval'
 
 /** What the agent installed, observed before and after its turn; `orm` is observed twice. */
-export async function observeInstall(c: AttemptContext): Promise<void> {
+export async function observeInstall(c: TrialContext): Promise<void> {
   c.observe('orm', 'none yet')
   await c.send('add a database layer')
   const deps: Record<string, string> =

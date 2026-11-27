@@ -1,6 +1,6 @@
 {
   "harness": "antigravity",
-  "attempts": [
+  "trials": [
     {
       "eval": "audit",
       "turns": [

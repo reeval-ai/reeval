@@ -90,7 +90,7 @@ export function jwtExpiry(token: string): Date | undefined {
 
 /**
  * Why the run can't use Vercel's key, or undefined when it can: `VERCEL_OIDC_TOKEN` lasts about
- * 12 hours, and a run that starts on an expired one fails every attempt.
+ * 12 hours, and a run that starts on an expired one fails every trial.
  */
 export function vercelCredentialProblem(
   env: NodeJS.ProcessEnv = process.env,

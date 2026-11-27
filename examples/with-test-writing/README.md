@@ -26,11 +26,11 @@ one profile you need.
 
 **What to look at:** `pnpm eval --profile canary` runs a fake agent whose one test passes but
 never tries two units together, so the mutant gets through, and the required grader scores the
-attempt 0:
+trial 0:
 
 ```text
 with-test-writing.eval.ts
-  ✗ with-test-writing  mean 0% · 0/1 run at 100%  regression(1)
+  ✗ with-test-writing  mean 0% · 0/1 trial at 100%  regression(1)
     #1  0%  catches-the-mutant 0% (required)
     …
 ```

@@ -141,7 +141,7 @@ export const SANDBOX_STATE = '/var/lib/reeval'
 export const BRIDGE_PORT = 24210
 
 /**
- * Where one attempt lives on a Linux machine that runs several at once: its own user, home,
+ * Where one trial lives on a Linux machine that runs several at once: its own user, home,
  * working root, state directory and egress proxy port. Slot 0 is the layout every container has.
  */
 export type SlotLayout = {

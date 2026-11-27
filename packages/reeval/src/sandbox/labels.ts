@@ -7,15 +7,15 @@ const composeName = (text: string) =>
 
 /**
  * Docker Compose's labels, which Docker Desktop groups containers under: the run as the project,
- * the attempt as the service. Nothing runs `docker compose` on them; `docker compose ls` lists
+ * the trial as the service. Nothing runs `docker compose` on them; `docker compose ls` lists
  * only containers with a config hash, and warns about one without config files.
  */
-export function composeLabels(runId: string, attempt?: string): Record<string, string> {
+export function composeLabels(runId: string, trial?: string): Record<string, string> {
   return {
     'com.docker.compose.project': composeName(runId),
     'com.docker.compose.project.config_files': '',
     'com.docker.compose.config-hash': '',
-    ...(attempt !== undefined && { 'com.docker.compose.service': composeName(attempt) }),
+    ...(trial !== undefined && { 'com.docker.compose.service': composeName(trial) }),
   }
 }
 

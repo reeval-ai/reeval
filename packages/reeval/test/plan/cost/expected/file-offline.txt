@@ -1,15 +1,15 @@
-no profile · 2 evals · 4 cells · 8 attempts
-fixes-bug  cursor:composer-2.5/-/docker          control  gated any  ×2  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on claude-code:claude-sonnet-5
-           claude-code:claude-sonnet-5/-/docker  control  gated any  ×2  effort medium
-greets     cursor:composer-2.5/-/docker          control  gated any  ×2  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on claude-code:claude-sonnet-5
-           claude-code:claude-sonnet-5/-/docker  control  gated any  ×2  effort medium
+no profile · 2 evals · 4 cells · 8 trials
+fixes-bug  cursor:composer-2.5/-/docker          baseline  gated any  ×2  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on claude-code:claude-sonnet-5
+           claude-code:claude-sonnet-5/-/docker  baseline  gated any  ×2  effort medium
+greets     cursor:composer-2.5/-/docker          baseline  gated any  ×2  effort: cursor:composer-2.5 not checked against Cursor's model catalog (CURSOR_API_KEY isn't set) · efforts differ: not checked on cursor:composer-2.5; medium on claude-code:claude-sonnet-5
+           claude-code:claude-sonnet-5/-/docker  baseline  gated any  ×2  effort medium
 excluded: —
 image docker · cursor · 2 evals
   base  reeval-sandbox:cursor-0.1.9  (reeval's image: pulled or built when missing or when its key changed)
 image docker · claude-code · 2 evals
   base  reeval-sandbox:claude-code-1.0.176-patch.3b2ddb94  (reeval's image: pulled or built when missing or when its key changed)
 cost  $0.32–2.10 priced (composer-2.5 only) at prices.json (models.dev unreachable, next try in 60m); claude-sonnet-5: 1.2–8.1M tokens, google/gemini-3.8-flash: up to 496k tokens, no list price · no history, rough
-prices prices.json over models.dev: — · unpriced claude-sonnet-5 1212000–8080000, google/gemini-3.8-flash 0–496000 · past 0 runs, 0 attempts
+prices prices.json over models.dev: — · unpriced claude-sonnet-5 1212000–8080000, google/gemini-3.8-flash 0–496000 · past 0 runs, 0 trials
   fixes-bug  cursor:composer-2.5/-/docker          composer-2.5     judge google/gemini-3.8-flash  typical  ×2  agent 606000–4040000 tokens $0.162–1.05  judge 0–124000 tokens $—
   fixes-bug  claude-code:claude-sonnet-5/-/docker  claude-sonnet-5  judge google/gemini-3.8-flash  typical  ×2  agent 606000–4040000 tokens $—           judge 0–124000 tokens $—
   greets     cursor:composer-2.5/-/docker          composer-2.5     judge google/gemini-3.8-flash  typical  ×2  agent 606000–4040000 tokens $0.162–1.05  judge 0–124000 tokens $—

@@ -1,21 +1,20 @@
 // The terminal's output while a run goes, append-only for CI, pipes and `| tee`: the run header
 // as the interactive list prints it, a progress line on a timer, then the status list once the
-// run ends, failures expanded. With `--output-logs`, each attempt's logs in Turborepo's stream and
+// run ends, failures expanded. With `--output-logs`, each trial's logs in Turborepo's stream and
 // grouped log orders too, and on a TTY one status line under them that's rewritten in place.
 import { plural } from '../text.ts'
 import type { SandboxWarning } from '../types.ts'
 import { suiteResult } from '../view/suite.ts'
 import { type Colors, colors, stripAnsi } from './colors.ts'
 import type {
-  AttemptRef,
   EvalResult,
   OutputStream,
   Progress,
   ReevalEvent,
   Renderer,
+  TrialRef,
 } from './events.ts'
 import {
-  attemptAxes,
   debugLines,
   errorCheck,
   failureLines,
@@ -24,6 +23,7 @@ import {
   outcomeOf,
   phaseOf,
   progressLine,
+  trialAxes,
 } from './format.ts'
 import { noticeLines, PrepareLines, planLines, startLine } from './header.ts'
 import { LiveList, listLines, progressText } from './list.ts'
@@ -35,7 +35,7 @@ export type RendererOptions = {
   out: OutputStream
   colors: Colors
   output: OutputOptions
-  /** The harness name in prefixes when an attempt doesn't say, e.g. `cursor`. */
+  /** The harness name in prefixes when a trial doesn't say, e.g. `cursor`. */
   harness: string
   now?: () => number
   /** Off in tests, which call `tick()` themselves. */
@@ -59,7 +59,7 @@ const STARTS: Partial<Record<Progress['kind'], Progress['kind'][]>> = {
   'browser-download': ['browser-download'],
 }
 
-type Attempt = {
+type Trial = {
   key: string
   id: string
   /** `[greet#1 cursor]` without color. */
@@ -100,7 +100,7 @@ export class PlainRenderer implements Renderer {
   readonly #o: RendererOptions
   readonly #c: Colors
   readonly #tags = new Tagger()
-  readonly #running = new Map<string, Attempt>()
+  readonly #running = new Map<string, Trial>()
   readonly #now: () => number
   #queued = new Set<string>()
   #runStartedAt = 0
@@ -111,9 +111,9 @@ export class PlainRenderer implements Renderer {
   /** On a TTY: the status line is drawn under everything else, and redrawn after each write. */
   readonly #live: boolean
   #status = ''
-  /** Tries collected (not skipped), as many as the plan has, and the tries that ended. */
-  readonly #tries = new Set<string>()
-  #plannedTries = 0
+  /** Trials collected (not skipped), as many as the plan has, and the trials that ended. */
+  readonly #trials = new Set<string>()
+  #plannedTrials = 0
   readonly #ended = new Set<string>()
   readonly #list: LiveList
   #lastProgress = 0
@@ -139,14 +139,14 @@ export class PlainRenderer implements Renderer {
   }
 
   /**
-   * `7 evals · 12/28 tries`: what the plan runs (or what's collected, when that's more) and how
-   * many tries ended.
+   * `7 evals · 12/28 trials`: what the plan runs (or what's collected, when that's more) and how
+   * many trials ended.
    */
   #drawStatus() {
-    if (!this.#live || !this.#tries.size) return
+    if (!this.#live || !this.#trials.size) return
     const { total } = this.#list.counts()
-    const tries = Math.max(this.#plannedTries, this.#tries.size)
-    const status = this.#c.dim(`${plural(total, 'eval')} · ${this.#ended.size}/${tries} tries`)
+    const trials = Math.max(this.#plannedTrials, this.#trials.size)
+    const status = this.#c.dim(`${plural(total, 'eval')} · ${this.#ended.size}/${trials} trials`)
     if (status === this.#status) return
     this.#o.out.write(`${CLEAR}${status}`)
     this.#status = status
@@ -158,18 +158,18 @@ export class PlainRenderer implements Renderer {
     this.#status = ''
   }
 
-  #attempt(ref: AttemptRef, startedAt: number): Attempt {
-    const n = ref.attempt?.n ?? 1
-    const label = `[${this.#tags.label(ref.id, n)} ${attemptAxes(ref.attempt, this.#o.harness)}]`
-    const ungated = ref.attempt?.gate === 'none'
+  #trial(ref: TrialRef, startedAt: number): Trial {
+    const n = ref.trial?.n ?? 1
+    const label = `[${this.#tags.label(ref.id, n)} ${trialAxes(ref.trial, this.#o.harness)}]`
+    const ungated = ref.trial?.gate === 'none'
     return { key: ref.key, id: ref.id, label, startedAt, lines: [], last: undefined, ungated }
   }
 
-  #prefix(a: Pick<Attempt, 'label'>) {
+  #prefix(a: Pick<Trial, 'label'>) {
     return this.#c.tag(a.label)(a.label)
   }
 
-  #detail(a: Attempt, line: Line, prefixed: boolean) {
+  #detail(a: Trial, line: Line, prefixed: boolean) {
     const body = line.debug
       ? `  ${line.text}`
       : `  ${this.#c.dim(offset(line.at - a.startedAt))} ${line.text}`
@@ -180,8 +180,8 @@ export class PlainRenderer implements Renderer {
     return this.#o.output.logOrder === 'stream' && this.#o.output.outputLogs === 'full'
   }
 
-  #add(a: Attempt, line: Line) {
-    // A warning prints as it happens, whatever `--output-logs` shows of the attempt's block.
+  #add(a: Trial, line: Line) {
+    // A warning prints as it happens, whatever `--output-logs` shows of the trial's block.
     if (line.kind === 'warning' && !this.#streaming) {
       this.#write(this.#detail(a, line, true))
       return
@@ -201,7 +201,7 @@ export class PlainRenderer implements Renderer {
       }
       case 'plan':
         this.#list.planned(e.header.evals)
-        this.#plannedTries = e.header.attempts
+        this.#plannedTrials = e.header.trials
         for (const line of planLines(c, e, this.#columns)) this.#write(line)
         if (this.#o.output.githubActions) for (const w of e.sandboxWarnings ?? []) this.#annotate(w)
         return
@@ -211,12 +211,12 @@ export class PlainRenderer implements Renderer {
         for (const x of e.evals) {
           if (x.skipped) continue
           this.#queued.add(x.key)
-          this.#tries.add(x.key)
+          this.#trials.add(x.key)
         }
         this.#drawStatus()
         return
       case 'eval-start': {
-        const a = this.#attempt(e, e.at)
+        const a = this.#trial(e, e.at)
         this.#list.start(e)
         a.last = e
         this.#queued.delete(e.key)
@@ -265,7 +265,7 @@ export class PlainRenderer implements Renderer {
       case 'eval-end':
         this.#list.end(e.result)
         this.#end(e.result, e.at)
-        if (this.#tries.has(e.result.key)) this.#ended.add(e.result.key)
+        if (this.#trials.has(e.result.key)) this.#ended.add(e.result.key)
         this.#drawStatus()
         return
       case 'prepare': {
@@ -318,18 +318,18 @@ export class PlainRenderer implements Renderer {
   }
 
   /**
-   * An ended attempt's logs, as `--output-logs` picks: grouped, its block under a `▶` header;
+   * An ended trial's logs, as `--output-logs` picks: grouped, its block under a `▶` header;
    * streamed, only its error lines, since the rest already printed. A sandbox that failed to
-   * prepare was annotated once, for all its attempts.
+   * prepare was annotated once, for all its trials.
    */
   #end(result: EvalResult, at: number) {
     const c = this.#c
-    const a = this.#running.get(result.key) ?? this.#attempt(result, at - result.durationMs)
+    const a = this.#running.get(result.key) ?? this.#trial(result, at - result.durationMs)
     this.#running.delete(result.key)
     this.#queued.delete(result.key)
     const outcome = outcomeOf(result)
     const failed = outcome !== 'pass' && outcome !== 'skipped'
-    const ungated = failed && result.attempt?.gate === 'none'
+    const ungated = failed && result.trial?.gate === 'none'
     const missed = ungated && outcome === 'fail'
     const { outputLogs, githubActions, logPrefix } = this.#o.output
 
@@ -351,7 +351,7 @@ export class PlainRenderer implements Renderer {
     const lines = a.lines.filter((l) => l.kind !== 'cleanup').sort((x, y) => x.at - y.at)
     const prefixed = logPrefix === 'task'
 
-    // Like Turborepo on GitHub Actions: passing attempts collapse into a group, failing ones
+    // Like Turborepo on GitHub Actions: passing trials collapse into a group, failing ones
     // stay expanded.
     const head = `${this.#prefix(a)} ${c.dim('▶')} ${result.id}`
     const group = githubActions && showDetail && (!failed || missed)
@@ -362,7 +362,7 @@ export class PlainRenderer implements Renderer {
     for (const line of errors) this.#write(prefixed ? `${this.#prefix(a)}  ${line}` : ` ${line}`)
     if (group) this.#write('::endgroup::')
     if (githubActions && failed && !ungated && !result.meta?.prepare) {
-      const which = result.attempt?.label ? ` [${result.attempt.label}]` : ''
+      const which = result.trial?.label ? ` [${result.trial.label}]` : ''
       const title = ghEscape(`${result.id}${which}`, true)
       const checks = (result.meta?.failedChecks ?? []).filter((x) => x.at)
       // An `expect` failure doesn't end the body: each failed check is annotated on its own line.
@@ -373,7 +373,7 @@ export class PlainRenderer implements Renderer {
           `::error file=${ghEscape(file, true)},line=${line},title=${label}::${ghEscape(x.message)}`,
         )
       }
-      // The attempt's own error, unless it's one of those checks.
+      // The trial's own error, unless it's one of those checks.
       const shown = errorCheck(result)
       if (!shown?.at) {
         // The annotation is titled with the eval, so it carries only the message, without `✗ failed`.
@@ -392,8 +392,8 @@ export class PlainRenderer implements Renderer {
   }
 
   /**
-   * Every `heartbeatMs` while attempts run. Without attempt logs, how many evals are done; with
-   * them, each running attempt's phase, when nothing printed for that long.
+   * Every `heartbeatMs` while trials run. Without trial logs, how many evals are done; with
+   * them, each running trial's phase, when nothing printed for that long.
    */
   tick(now = this.#now()): void {
     const { heartbeatMs, outputLogs } = this.#o.output

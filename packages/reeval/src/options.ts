@@ -55,7 +55,7 @@ import {
   sandboxHelpers,
   sandboxKind,
 } from './sandbox/kinds.ts'
-import { COMPARE_RUNS } from './stats.ts'
+import { COMPARE_TRIALS } from './stats.ts'
 import { blocks, DEFAULT_TARGET, targetGate, targetLabel } from './target.ts'
 import type {
   CaptureOptions,
@@ -85,11 +85,11 @@ import type {
   ResolvedProfile,
   ResolvedSnapshot,
   Revision,
-  Runs,
   SandboxDescriptor,
   SandboxWarning,
   SnapshotOption,
   Target,
+  Trials,
 } from './types.ts'
 
 /** Every eval/group option key `checkOptions` accepts. The feature matrix holds each to an inventory entry. */
@@ -98,7 +98,7 @@ export const EVAL_OPTION_KEYS = [
   'sandbox',
   'environments',
   'compare',
-  'runs',
+  'trials',
   'target',
   'env',
   'egress',
@@ -126,11 +126,13 @@ const SUGGEST: Record<string, string> = {
   baseline: 'compare',
   control: 'compare',
   variants: 'compare',
-  repeat: 'runs',
-  repeats: 'runs',
-  iterations: 'runs',
-  trials: 'runs',
-  bestOf: 'runs',
+  runs: 'trials',
+  repeat: 'trials',
+  repeats: 'trials',
+  iterations: 'trials',
+  attempts: 'trials',
+  tries: 'trials',
+  bestOf: 'trials',
   secrets: 'env',
   vars: 'env',
   network: 'egress',
@@ -162,7 +164,7 @@ export function checkTarget(value: unknown, where: string): void {
   const problem = targetProblem(value, where)
   if (problem) throw new UsageError(problem)
 }
-const PINNABLE: PinnableKey[] = ['agents', 'runs', 'compare']
+const PINNABLE: PinnableKey[] = ['agents', 'trials', 'compare']
 
 const ID = /^[A-Za-z0-9._:@+\-=[\]]+$/
 
@@ -198,7 +200,7 @@ export const sandboxProvider = (s: SandboxDescriptor): string => sandboxKind(s).
 
 export { sandboxId }
 
-/** The planned attempts' sandboxes by id, once each, or `fallback`'s when none is planned. */
+/** The planned trials' sandboxes by id, once each, or `fallback`'s when none is planned. */
 export function plannedSandboxIds(
   planned: SandboxDescriptor[],
   fallback: SandboxDescriptor,
@@ -245,7 +247,7 @@ export function refuseIllegalCompare(
 ): void {
   if (options.compare === false) {
     throw new UsageError(
-      `compare: false can't be set in ${where}. A profile turns compare off with limit.compare: false, which runs the control and strips the variants. On a group or eval, omit compare or pass compare: { control, variants }.`,
+      `compare: false can't be set in ${where}. A profile turns compare off with limit.compare: false, which runs the baseline and strips the variants. On a group or eval, omit compare or pass compare: { baseline, variants }.`,
     )
   }
   if (options.environments !== undefined && options.compare !== undefined) {
@@ -254,7 +256,7 @@ export function refuseIllegalCompare(
       : options.environments
     const name = isObjectLike(first) && typeof first.name === 'string' ? first.name : 'app'
     throw new UsageError(
-      `${where} sets both environments and compare. With compare, the control is compare.control: move it there, as compare: { control: ${name}, variants: [...] }.`,
+      `${where} sets both environments and compare. With compare, the baseline is compare.baseline: move it there, as compare: { baseline: ${name}, variants: [...] }.`,
     )
   }
 }
@@ -263,38 +265,38 @@ const isRevision = (value: unknown): value is Revision =>
   (typeof value === 'number' && Number.isSafeInteger(value)) ||
   (typeof value === 'string' && value.trim() !== '')
 
-/** `runs: 3` or `runs: { bestOf: 5 }`, refused in the words of whichever it was meant to be. */
-function checkRuns(runs: unknown, where: string): void {
-  if (typeof runs === 'number' && Number.isInteger(runs) && runs >= 1) return
-  if (typeof runs === 'number') {
+/** `trials: 3` or `trials: { bestOf: 5 }`, refused in the words of whichever it was meant to be. */
+function checkTrials(trials: unknown, where: string): void {
+  if (typeof trials === 'number' && Number.isInteger(trials) && trials >= 1) return
+  if (typeof trials === 'number') {
     throw new UsageError(
-      `runs in ${where} must be a whole number of at least 1 (got ${JSON.stringify(runs)})`,
+      `trials in ${where} must be a whole number of at least 1 (got ${JSON.stringify(trials)})`,
     )
   }
-  if (!isObjectLike(runs)) {
+  if (!isObjectLike(trials)) {
     throw new UsageError(
-      `runs in ${where} must be a whole number of at least 1, or { bestOf: n } (got ${JSON.stringify(runs)})`,
+      `trials in ${where} must be a whole number of at least 1, or { bestOf: n } (got ${JSON.stringify(trials)})`,
     )
   }
-  const extra = Object.keys(runs).find((k) => k !== 'bestOf')
+  const extra = Object.keys(trials).find((k) => k !== 'bestOf')
   if (extra !== undefined) {
     throw new UsageError(
-      `runs in ${where} takes { bestOf: n } only (got the key "${extra}"), e.g. runs: { bestOf: 3 }`,
+      `trials in ${where} takes { bestOf: n } only (got the key "${extra}"), e.g. trials: { bestOf: 3 }`,
     )
   }
-  const { bestOf } = runs
+  const { bestOf } = trials
   if (!(Number.isInteger(bestOf) && (bestOf as number) >= 3 && (bestOf as number) % 2 === 1)) {
     throw new UsageError(
-      `runs.bestOf in ${where} must be an odd whole number of 3 or more, so one side always has a majority, e.g. runs: { bestOf: 3 } (got ${JSON.stringify(bestOf)})`,
+      `trials.bestOf in ${where} must be an odd whole number of 3 or more, so one side always has a majority, e.g. trials: { bestOf: 3 } (got ${JSON.stringify(bestOf)})`,
     )
   }
 }
 
-/** The most attempts `runs` plans a cell, and its `bestOf` when it has one. */
-export const runsOf = (runs: Runs): { runs: number; bestOf?: number } =>
-  typeof runs === 'number' ? { runs } : { runs: runs.bestOf, bestOf: runs.bestOf }
+/** The most trials `trials` plans a cell, and its `bestOf` when it has one. */
+export const trialsOf = (trials: Trials): { trials: number; bestOf?: number } =>
+  typeof trials === 'number' ? { trials } : { trials: trials.bestOf, bestOf: trials.bestOf }
 
-/** How many of a best-of cell's attempts always run: the majority. */
+/** How many of a best-of cell's trials always run: the majority. */
 export const majorityOf = (bestOf: number) => (bestOf + 1) / 2
 
 /** Throws on keys that aren't options, and on values of the wrong shape, suggesting a fix. */
@@ -316,7 +318,7 @@ export function checkOptions(options: object, where: string, allowed = KNOWN): v
     throw new UsageError(`Unknown option "${key}" in ${where}.${hint}`)
   }
   const o = options as EvalOptions
-  if (o.runs !== undefined) checkRuns(o.runs, where)
+  if (o.trials !== undefined) checkTrials(o.trials, where)
   if (o.target !== undefined) checkTarget(o.target, where)
   if (
     o.tags !== undefined &&
@@ -354,9 +356,9 @@ export function checkOptions(options: object, where: string, allowed = KNOWN): v
   if (o.compare !== undefined) {
     const problem = compareProblem(o.compare, where, z.custom<Environment>(isEnvironment))
     if (problem) throw new UsageError(problem)
-    const { control, variants } = o.compare
+    const { baseline, variants } = o.compare
     for (const [label, env] of [
-      ['compare.control', control],
+      ['compare.baseline', baseline],
       ...variants.map((v, i) => [`compare.variants[${i}]`, v] as const),
     ] as const) {
       const bad = env && environmentDataProblem(env, label, where)
@@ -367,7 +369,7 @@ export function checkOptions(options: object, where: string, allowed = KNOWN): v
     const bad = Array.isArray(o.pin) ? o.pin.filter((k) => !PINNABLE.includes(k)) : [o.pin]
     if (bad.length) {
       throw new UsageError(
-        `pin in ${where} lists agents, runs and/or compare (got ${bad.map((k) => JSON.stringify(k)).join(', ')})`,
+        `pin in ${where} lists agents, trials and/or compare (got ${bad.map((k) => JSON.stringify(k)).join(', ')})`,
       )
     }
   }
@@ -640,7 +642,7 @@ function checkUnique(list: HarnessDescriptor[], where: string) {
 export type Level = { options: EvalOptions; where: string }
 
 export type NormalizedCompare = {
-  control: Environment
+  baseline: Environment
   variants: Environment[]
   minLift?: number
   /** Agent ids; unset means every agent the eval runs. */
@@ -676,7 +678,7 @@ const variesBy = (
 
 const FACTOR_FIX: Record<PairFactor, (r: Pick<Resolved, 'harness'>, where: string) => string> = {
   environment: (_, where) =>
-    `varies the environment (across: 'environment'), but ${where} runs one environment, so it has no pairs to ask. Run it in two or more, environments: [a, b], or compare: { control, variants: [...] }`,
+    `varies the environment (across: 'environment'), but ${where} runs one environment, so it has no pairs to ask. Run it in two or more, environments: [a, b], or compare: { baseline, variants: [...] }`,
   agent: (r, where) =>
     `varies the agent (across: 'agent'), but ${where} runs one agent (${r.harness.map(harnessId).join(', ')}), so it has no pairs to ask. Run it on two or more, agents: [a, b]`,
 }
@@ -687,9 +689,9 @@ export type Resolved = {
   /** Each is its own cell beside each harness; empty runs one empty environment. Unused with `compare`. */
   environments: Environment[]
   compare: NormalizedCompare | undefined
-  /** Attempts per cell; with `bestOf`, the most a cell runs. */
-  runs: number
-  /** Set by `runs: { bestOf }`, which `runs` then equals. */
+  /** Trials per cell; with `bestOf`, the most a cell runs. */
+  trials: number
+  /** Set by `trials: { bestOf }`, which `trials` then equals. */
   bestOf: number | undefined
   /** Unset means `capability()`. */
   target: Target | undefined
@@ -700,7 +702,7 @@ export type Resolved = {
   capture: CaptureOptions
   /** Defaults for every question; applied to the questions once the cascade ends. */
   question: QuestionOptions
-  /** Asked after the attempts; empty without any, or once a profile's limit leaves nothing to pair. */
+  /** Asked after the trials; empty without any, or once a profile's limit leaves nothing to pair. */
   questions: PlannedQuestion[]
   timeout: Duration | undefined
   snapshot: ResolvedSnapshot
@@ -715,7 +717,7 @@ export type Resolved = {
 function normalizeCompare(value: EvalOptions['compare']): NormalizedCompare | undefined {
   if (value === undefined) return undefined
   return {
-    control: value.control,
+    baseline: value.baseline,
     variants: value.variants,
     ...(value.minLift !== undefined ? { minLift: value.minLift } : {}),
     ...(value.agents
@@ -725,14 +727,14 @@ function normalizeCompare(value: EvalOptions['compare']): NormalizedCompare | un
   }
 }
 
-/** Resolved but for `runs`, which stays unset until the cascade picks its default. */
-export type Cascading = Omit<Resolved, 'runs'> & { runs: number | undefined }
+/** Resolved but for `trials`, which stays unset until the cascade picks its default. */
+export type Cascading = Omit<Resolved, 'trials'> & { trials: number | undefined }
 
 /**
- * Runs per cell when no level sets `runs`: a compare with variants runs `COMPARE_RUNS` a side;
+ * Trials per cell when no level sets `trials`: a compare with variants runs `COMPARE_TRIALS` a side;
  * anything else runs once, two or more cases with a compare included, whose lift pairs cases.
  */
-export const COMPARE_DEFAULT_RUNS = COMPARE_RUNS
+export const COMPARE_DEFAULT_TRIALS = COMPARE_TRIALS
 
 function applyLevel(
   out: Cascading,
@@ -750,9 +752,9 @@ function applyLevel(
   if (options.sandbox !== undefined) out.sandbox = options.sandbox
   out.environments = applyEnvironments(out.environments, options.environments, where)
   if (options.compare !== undefined) out.compare = normalizeCompare(options.compare)
-  if (options.runs !== undefined) {
-    const { runs, bestOf } = runsOf(options.runs)
-    out.runs = runs
+  if (options.trials !== undefined) {
+    const { trials, bestOf } = trialsOf(options.trials)
+    out.trials = trials
     out.bestOf = bestOf
   }
   if (options.target !== undefined) out.target = options.target
@@ -788,7 +790,7 @@ export type ResolvedEval = {
 
 /**
  * Config, then the profile's defaults, then each enclosing group, then the eval; then the
- * profile's limit (narrowing only, except pinned keys); then `--runs`.
+ * profile's limit (narrowing only, except pinned keys); then `--trials`.
  */
 export function cascade(
   base: Cascading,
@@ -796,7 +798,7 @@ export function cascade(
   where: string,
   options: {
     profile?: ResolvedProfile | null
-    runs?: number
+    trials?: number
     skipped?: boolean
     /** A case of an eval with `cases`, whose lift pools over the cases, not the runs. */
     pooled?: boolean
@@ -824,12 +826,12 @@ export function cascade(
       'inherited',
     )
   }
-  // An inherited compare runs its own control, so environments set under it would never run.
+  // An inherited compare runs its own baseline, so environments set under it would never run.
   let compareAt: string | undefined
   for (const { options: own, where: at } of levels) {
     if (compareAt && own.environments !== undefined) {
       throw new UsageError(
-        `${at} sets environments, but ${compareAt} sets compare, which runs its control in their place. Set compare: { control, variants: [...] } on ${at} instead, or move ${at} out of ${compareAt}.`,
+        `${at} sets environments, but ${compareAt} sets compare, which runs its baseline in their place. Set compare: { baseline, variants: [...] } on ${at} instead, or move ${at} out of ${compareAt}.`,
       )
     }
     applyLevel(out, own, at)
@@ -870,7 +872,7 @@ export function cascade(
     for (const factor of pairFactors(q.across)) {
       if (authored[factor]) continue
       throw new UsageError(
-        `questions "${q.question}" in ${where} ${FACTOR_FIX[factor](out, where)}, or leave out across to ask each attempt on its own.`,
+        `questions "${q.question}" in ${where} ${FACTOR_FIX[factor](out, where)}, or leave out across to ask each trial on its own.`,
       )
     }
   }
@@ -883,17 +885,17 @@ export function cascade(
     )
   }
   for (const v of out.compare?.variants ?? []) {
-    if (v.name === out.compare?.control.name) {
+    if (v.name === out.compare?.baseline.name) {
       throw new UsageError(
-        `compare in ${where} lists ${v.name}, which is the control. List only the other environments.`,
+        `compare in ${where} lists ${v.name}, which is the baseline. List only the other environments.`,
       )
     }
-    const control = out.compare?.control
-    const shared = control && sameWorkspaceOnly(control, v)
-    if (control && shared) {
+    const baseline = out.compare?.baseline
+    const shared = baseline && sameWorkspaceOnly(baseline, v)
+    if (baseline && shared) {
       const at = shared.ref ? `at ref "${shared.ref}"` : 'with no ref (the repository HEAD)'
       throw new UsageError(
-        `compare in ${where} runs ${v.name} and ${control.name} on the same tree: past what they share, each sets only workspace, and both are git("${shared.repo}") ${at}${shared.path ? `, path "${shared.path}"` : ''}. A ref read from an unset variable is undefined, so check the variables the arms take their refs from, and give each arm its own ref.`,
+        `compare in ${where} runs ${v.name} and ${baseline.name} on the same tree: past what they share, each sets only workspace, and both are git("${shared.repo}") ${at}${shared.path ? `, path "${shared.path}"` : ''}. A ref read from an unset variable is undefined, so check the variables the environments take their refs from, and give each environment its own ref.`,
       )
     }
   }
@@ -919,7 +921,7 @@ export function cascade(
         notes.push(`agents ${out.harness.length} → ${kept.length} (${tag})`)
         out.harness = kept
         // With every agent compare.agents names gone, no agent runs a variant, so the
-        // compare is off and its controls gate as limit.compare: false leaves them.
+        // compare is off and its baselines gate as limit.compare: false leaves them.
         const scope = out.compare?.agents
         if (
           out.compare?.variants.length &&
@@ -948,18 +950,18 @@ export function cascade(
     }
     // After the compare's narrowing, so a compare the limit turns off defaults to one run.
     defaultRuns(out, notes, options)
-    // --runs replaces the runs outright, so the profile's limit doesn't apply.
+    // --trials replaces the trials outright, so the profile's limit doesn't apply.
     if (
-      limit.runs !== undefined &&
-      options.runs === undefined &&
-      !pinned('runs') &&
-      (out.runs ?? 1) > limit.runs
+      limit.trials !== undefined &&
+      options.trials === undefined &&
+      !pinned('trials') &&
+      (out.trials ?? 1) > limit.trials
     ) {
-      const was = out.bestOf !== undefined ? `best of ${out.bestOf}` : String(out.runs)
-      notes.push(`runs ${was} → ${limit.runs} (${tag})`)
-      out.runs = limit.runs
+      const was = out.bestOf !== undefined ? `best of ${out.bestOf}` : String(out.trials)
+      notes.push(`trials ${was} → ${limit.trials} (${tag})`)
+      out.trials = limit.trials
       out.bestOf = undefined
-      out.sources = { ...out.sources, runs: `profiles.${profile.name}.limit` }
+      out.sources = { ...out.sources, trials: `profiles.${profile.name}.limit` }
     }
     const pins = out.pin.filter((k) =>
       k === 'compare'
@@ -969,7 +971,7 @@ export function cascade(
     if (pins.length) notes.push(`pinned: ${pins.join(', ')}`)
   }
   if (profile) {
-    // A pairwise question needs two attempts that differ in a factor it varies, which the
+    // A pairwise question needs two trials that differ in a factor it varies, which the
     // profile's defaults or limit may have narrowed away.
     // One that varies several keeps those still varied, so the plan names the pairs it asks.
     const varies = variesBy(out)
@@ -988,14 +990,14 @@ export function cascade(
     if (narrowed) notes.push(`${plural(narrowed)} narrowed (profile ${profile.name})`)
     out.questions = kept
   }
-  // --runs replaces the runs outright, so a best-of it replaces can't be refused.
-  if (options.runs !== undefined) out.bestOf = undefined
+  // --trials replaces the trials outright, so a best-of it replaces can't be refused.
+  if (options.trials !== undefined) out.bestOf = undefined
   // After a profile's limit, which may turn the compare off or the best-of into a fixed count.
   if (out.bestOf !== undefined && out.compare?.variants.length) {
-    const from = out.sources?.runs ?? 'the config'
+    const from = out.sources?.trials ?? 'the config'
     const set = from === where ? '' : ` from ${from}`
     throw new UsageError(
-      `${where} compares environments, so it can't take runs: { bestOf: ${out.bestOf} }${set}: a lift needs the same number of attempts on each side, and best-of stops each cell on its own. Set a fixed count on it, e.g. runs: 4.`,
+      `${where} compares environments, so it can't take trials: { bestOf: ${out.bestOf} }${set}: a lift needs the same number of trials on each side, and best-of stops each cell on its own. Set a fixed count on it, e.g. trials: 4.`,
     )
   }
   if (out.compare?.minLift !== undefined && out.compare.variants.length && !blocks(out.target)) {
@@ -1005,29 +1007,29 @@ export function cascade(
     )
   }
   defaultRuns(out, notes, options)
-  const resolved: Resolved = { ...out, runs: options.runs ?? out.runs ?? 1 }
+  const resolved: Resolved = { ...out, trials: options.trials ?? out.trials ?? 1 }
   return { resolved, notes, harnesses, ...(skip ? { skip } : {}) }
 }
 
-/** Gives `out` its default runs when no level set them and `--runs` doesn't replace them. */
+/** Gives `out` its default trials when no level set them and `--trials` doesn't replace them. */
 function defaultRuns(
   out: Cascading,
   notes: string[],
-  options: { runs?: number; pooled?: boolean },
+  options: { trials?: number; pooled?: boolean },
 ): void {
-  if (out.runs !== undefined || options.runs !== undefined) return
+  if (out.trials !== undefined || options.trials !== undefined) return
   if (!out.compare?.variants.length) {
-    out.runs = 1
+    out.trials = 1
     return
   }
   if (options.pooled) {
-    out.runs = 1
-    notes.push('runs 1 a case (compare with cases: the lift pairs cases)')
+    out.trials = 1
+    notes.push('trials 1 a case (compare with cases: the lift pairs cases)')
     return
   }
-  out.runs = COMPARE_DEFAULT_RUNS
-  out.sources = { ...out.sources, runs: `compare default: ${COMPARE_DEFAULT_RUNS} a side` }
-  notes.push(`runs ${COMPARE_DEFAULT_RUNS} (compare default)`)
+  out.trials = COMPARE_DEFAULT_TRIALS
+  out.sources = { ...out.sources, trials: `compare default: ${COMPARE_DEFAULT_TRIALS} a side` }
+  notes.push(`trials ${COMPARE_DEFAULT_TRIALS} (compare default)`)
 }
 
 /**
@@ -1055,7 +1057,7 @@ export function checkLimitHarness(
   )
 }
 
-export type PlannedAttempt = {
+export type PlannedTrial = {
   cell: Cell
   harness: HarnessDescriptor
   sandbox: SandboxDescriptor
@@ -1063,9 +1065,9 @@ export type PlannedAttempt = {
   egress: PlannedEgress
   gate: CellGate
   minLift?: number
-  /** Set by `runs: { bestOf }`. */
+  /** Set by `trials: { bestOf }`. */
   bestOf?: number
-  /** The eval's target, which its attempts pass at the threshold of. */
+  /** The eval's target, which its trials pass at the threshold of. */
   target: Target
   n: number
   label: string
@@ -1074,21 +1076,21 @@ export type PlannedAttempt = {
 }
 
 /**
- * The sandbox an attempt runs in: the resolved environment's (including an `.extend()`
+ * The sandbox a trial runs in: the resolved environment's (including an `.extend()`
  * parent's), else the cascaded option (`defineConfig` / profile defaults / group / eval), else
  * implicit Docker. A named environment is a total override: the config environment's sandbox is
  * not inherited.
  */
-export const attemptSandbox = (resolved: Resolved, env: AppliedEnvironment): SandboxDescriptor =>
+export const trialSandbox = (resolved: Resolved, env: AppliedEnvironment): SandboxDescriptor =>
   env.layers.findLast((l) => l.spec.sandbox)?.spec.sandbox ?? sandboxOf([], resolved.sandbox)
 
 /**
- * Which level set this attempt's sandbox: the cascade source of the environment that named one
+ * Which level set this trial's sandbox: the cascade source of the environment that named one
  * (an `.extend()` child still names that environment), else the cascaded `sandbox` option, else
  * the config (implicit Docker).
  */
 export function sandboxSetBy(
-  planned: Pick<PlannedAttempt, 'environment' | 'cell'>,
+  planned: Pick<PlannedTrial, 'environment' | 'cell'>,
   resolved: Resolved,
   configFile: string,
 ): string {
@@ -1101,7 +1103,7 @@ export function sandboxSetBy(
 }
 
 /**
- * Per harness: the control, then each variant it compares on; then run numbers. `vertex` is the
+ * Per harness: the baseline, then each variant it compares on; then run numbers. `vertex` is the
  * run's `vertex()` settings, for each harness that resolved to Vertex AI.
  */
 const cellTraits = (env: AppliedEnvironment): Pick<Cell, 'traits'> => {
@@ -1113,26 +1115,26 @@ export function expand(
   resolved: Resolved,
   vertex?: VertexSettings,
   placeSandbox?: (sandbox: SandboxDescriptor) => SandboxDescriptor,
-): PlannedAttempt[] {
+): PlannedTrial[] {
   const { compare } = resolved
   // The cell keeps the sandbox's id as written, wherever it's placed.
   const sandboxFor = (env: AppliedEnvironment) => {
-    const sandbox = attemptSandbox(resolved, env)
+    const sandbox = trialSandbox(resolved, env)
     const sid = sandboxId(sandbox)
     const placed = placeSandbox?.(sandbox) ?? sandbox
     return { sid, sandbox: placed === sandbox ? sandbox : { ...placed, id: sid } }
   }
-  // An environment from another level is not applied beside a compare's control.
+  // An environment from another level is not applied beside a compare's baseline.
   const own: Array<Environment | undefined> = compare
-    ? [compare.control]
+    ? [compare.baseline]
     : resolved.environments.length
       ? resolved.environments
       : [undefined]
-  const controls = own.map((e) => applied(e))
+  const baselines = own.map((e) => applied(e))
   const target = resolved.target ?? DEFAULT_TARGET
   const policy = targetGate(target, resolved.bestOf !== undefined)
   const gateIf = (gated: boolean): CellGate => (gated ? policy : 'none')
-  const attempts: PlannedAttempt[] = []
+  const trials: PlannedTrial[] = []
   for (const harness of resolved.harness) {
     const hid = harnessId(harness)
     const onVertex = harness.gateway === 'vertex' && harness.kind !== 'fake' ? vertex : undefined
@@ -1141,7 +1143,7 @@ export function expand(
       sandbox: SandboxDescriptor
       cell: Cell
       gate: CellGate
-    }> = controls.map((env) => {
+    }> = baselines.map((env) => {
       const { sandbox, sid } = sandboxFor(env)
       return {
         env,
@@ -1151,11 +1153,11 @@ export function expand(
           harness: hid,
           environment: env.name,
           sandbox: sid,
-          role: 'control' as const,
+          role: 'baseline' as const,
           ...cellTraits(env),
         },
         // A compare a profile's limit left without variants has nothing to compare the
-        // control against, so the target applies to it as to an eval without compare.
+        // baseline against, so the target applies to it as to an eval without compare.
         gate: gateIf(!compare || compare.variants.length === 0),
       }
     })
@@ -1183,16 +1185,18 @@ export function expand(
       const axes = [
         resolved.harness.length > 1 ? hid : '',
         compare
-          ? cell.role === 'control'
-            ? 'control'
+          ? cell.role === 'baseline'
+            ? 'baseline'
             : env.name
-          : controls.length > 1
+          : baselines.length > 1
             ? env.name
             : '',
       ].filter(Boolean)
-      for (let n = 1; n <= resolved.runs; n++) {
-        const label = [axes.join(' · '), resolved.runs > 1 ? `#${n}` : ''].filter(Boolean).join(' ')
-        attempts.push({
+      for (let n = 1; n <= resolved.trials; n++) {
+        const label = [axes.join(' · '), resolved.trials > 1 ? `#${n}` : '']
+          .filter(Boolean)
+          .join(' ')
+        trials.push({
           cell,
           harness,
           sandbox,
@@ -1211,13 +1215,13 @@ export function expand(
       }
     }
   }
-  return attempts
+  return trials
 }
 
 /** Warnings about what an eval's environments pull in, e.g. skills at a moving git ref. */
-export function environmentWarnings(attempts: PlannedAttempt[]): string[] {
+export function environmentWarnings(trials: PlannedTrial[]): string[] {
   const out = new Set<string>()
-  for (const a of attempts) {
+  for (const a of trials) {
     const workspace = workspaceOf(a.environment.layers)
     if (workspace && isMovingRef(workspace.ref)) {
       const ref = workspace.ref ? `moving ref "${workspace.ref}"` : 'no ref (the default branch)'
@@ -1245,10 +1249,10 @@ export function environmentWarnings(attempts: PlannedAttempt[]): string[] {
   return [...out]
 }
 
-/** Secrets an isolated sandbox's attempt would get as real values, because they have no `hosts`. */
-export function unbrokered(env: EnvVars, attempts: PlannedAttempt[]): UnbrokeredSecret[] {
+/** Secrets an isolated sandbox's trial would get as real values, because they have no `hosts`. */
+export function unbrokered(env: EnvVars, trials: PlannedTrial[]): UnbrokeredSecret[] {
   const out = new Map<string, UnbrokeredSecret>()
-  for (const a of attempts) {
+  for (const a of trials) {
     if (!capabilitiesOf(a.sandbox).isolated) continue
     for (const s of unbrokeredSecrets(env, a.environment.layers)) out.set(s.label, s)
   }
@@ -1264,22 +1268,22 @@ const reachesSandbox = (s: UnbrokeredSecret) =>
   (!s.optional || Boolean(process.env[s.from])) && !isPlaceholder(process.env[s.from])
 
 /** `GEMINI_API_KEY → generativelanguage.googleapis.com` for each secret with `hosts`. */
-const withHosts = (env: EnvVars, attempt: PlannedAttempt): string[] => [
+const withHosts = (env: EnvVars, trial: PlannedTrial): string[] => [
   ...new Set(
-    plannedSecrets(env, attempt.environment.layers).flatMap((s) =>
+    plannedSecrets(env, trial.environment.layers).flatMap((s) =>
       s.hosts ? [`${s.label} → ${s.hosts.join(', ')}`] : [],
     ),
   ),
 ]
 
-/** The secrets an attempt brokers: only a sandbox that brokers swaps a placeholder for its value. */
-export const brokeredIn = (env: EnvVars, attempt: PlannedAttempt): string[] =>
-  capabilitiesOf(attempt.sandbox).brokers ? withHosts(env, attempt) : []
+/** The secrets a trial brokers: only a sandbox that brokers swaps a placeholder for its value. */
+export const brokeredIn = (env: EnvVars, trial: PlannedTrial): string[] =>
+  capabilitiesOf(trial.sandbox).brokers ? withHosts(env, trial) : []
 
 /** The plan's note for secrets with `hosts` on a sandbox that can't broker them, which only ever has their placeholder. */
-function unbrokeredHere(env: EnvVars, attempts: PlannedAttempt[]): string[] {
+function unbrokeredHere(env: EnvVars, trials: PlannedTrial[]): string[] {
   const byProvider = new Map<string, Set<string>>()
-  for (const a of attempts) {
+  for (const a of trials) {
     if (capabilitiesOf(a.sandbox).brokers) continue
     const names = withHosts(env, a)
     if (!names.length) continue
@@ -1294,9 +1298,9 @@ function unbrokeredHere(env: EnvVars, attempts: PlannedAttempt[]): string[] {
   )
 }
 
-/** The host variables an attempt's secrets read, brokered or not. */
-export const secretVarsIn = (env: EnvVars, attempt: PlannedAttempt): string[] => [
-  ...new Set(plannedSecrets(env, attempt.environment.layers).map((s) => s.from)),
+/** The host variables a trial's secrets read, brokered or not. */
+export const secretVarsIn = (env: EnvVars, trial: PlannedTrial): string[] => [
+  ...new Set(plannedSecrets(env, trial.environment.layers).map((s) => s.from)),
 ]
 
 const brokerHint = (s: UnbrokeredSecret) =>
@@ -1312,10 +1316,10 @@ export const unbrokeredWarning = (s: UnbrokeredSecret) =>
 export const unbrokeredError = (s: UnbrokeredSecret, where: string, configFile: string) =>
   `${s.label} in ${where} isn't brokered, and secrets.unbrokered is 'error' in ${configFile}. To broker it, ${brokerHint(s)}.`
 
-/** The attempts' MCP headers written as plain strings that look like credentials, once each. */
-export function plainHeaders(attempts: PlannedAttempt[]): PlainCredentialHeader[] {
+/** The trials' MCP headers written as plain strings that look like credentials, once each. */
+export function plainHeaders(trials: PlannedTrial[]): PlainCredentialHeader[] {
   const out = new Map<string, PlainCredentialHeader>()
-  for (const a of attempts) {
+  for (const a of trials) {
     for (const h of plainCredentialHeaders(a.environment.layers)) out.set(h.label, h)
   }
   return [...out.values()]
@@ -1330,10 +1334,10 @@ export const plainHeaderWarning = (h: PlainCredentialHeader) =>
 export const plainHeaderError = (h: PlainCredentialHeader, where: string, configFile: string) =>
   `${h.label} in ${where} is a plain string, and secrets.unbrokered is 'error' in ${configFile}. To broker it, ${templateHint(h)}.`
 
-/** The attempts' `env` strings that look like credentials, once each. */
-export function plainEnv(env: EnvVars, attempts: PlannedAttempt[]): PlainCredentialEnv[] {
+/** The trials' `env` strings that look like credentials, once each. */
+export function plainEnv(env: EnvVars, trials: PlannedTrial[]): PlainCredentialEnv[] {
   const out = new Map<string, PlainCredentialEnv>()
-  for (const a of attempts) {
+  for (const a of trials) {
     for (const e of plainCredentialEnv(env, a.environment.layers)) out.set(e.label, e)
   }
   return [...out.values()]
@@ -1373,17 +1377,17 @@ export const levelFromSource = (source: string): SandboxWarning['level'] => {
 export const levelOf = (where: string): SandboxWarning['level'] => levelFromSource(where)
 
 /**
- * A warning per privilege an attempt's Docker sandbox adds, naming the level that set the
+ * A warning per privilege a trial's Docker sandbox adds, naming the level that set the
  * environment which owns that sandbox: the config when no profile, group or eval did.
  */
 export function sandboxWarnings(
-  attempts: PlannedAttempt[],
+  trials: PlannedTrial[],
   resolved: Resolved,
   origin: { configFile: string; file: string | null },
 ): SandboxWarning[] {
   const out: SandboxWarning[] = []
   const seen = new Set<string>()
-  for (const a of attempts) {
+  for (const a of trials) {
     const privileges = sandboxKind(a.sandbox).privileges(a.sandbox)
     const devices = privileges.devices ?? []
     if (!privileges.root && !privileges.capabilities.length && !devices.length) continue
@@ -1436,16 +1440,12 @@ export function sandboxWarnings(
 /** The plan row for an eval. */
 export function evalPlan(
   r: ResolvedEval,
-  attempts: PlannedAttempt[],
+  trials: PlannedTrial[],
   origin: { configFile: string; file: string | null },
 ): EvalPlan {
   const { resolved, skip } = r
   const capture = captureNote(resolved.capture)
-  const notes = [
-    ...r.notes,
-    ...(capture ? [capture] : []),
-    ...unbrokeredHere(resolved.env, attempts),
-  ]
+  const notes = [...r.notes, ...(capture ? [capture] : []), ...unbrokeredHere(resolved.env, trials)]
   return {
     harnesses: skip ? 0 : resolved.harness.length,
     variants: resolved.compare
@@ -1453,28 +1453,28 @@ export function evalPlan(
       : null,
     ...(resolved.compare
       ? {
-          compare: { baseline: resolved.compare.control.name },
+          compare: { baseline: resolved.compare.baseline.name },
         }
       : {}),
     ...(!skip && resolved.questions.length ? { questions: resolved.questions } : {}),
-    runs: resolved.runs,
+    trials: resolved.trials,
     ...(resolved.bestOf !== undefined ? { bestOf: resolved.bestOf } : {}),
     target: resolved.target ?? DEFAULT_TARGET,
-    attempts: skip ? 0 : attempts.length,
+    totalTrials: skip ? 0 : trials.length,
     notes,
     ...(skip ? { skip } : {}),
     warnings: [
-      ...environmentWarnings(attempts),
+      ...environmentWarnings(trials),
       ...(skip ? [] : questionWarnings(resolved)),
-      ...unbrokered(r.resolved.env, attempts).filter(reachesSandbox).map(unbrokeredWarning),
-      ...plainHeaders(attempts).map(plainHeaderWarning),
-      ...plainEnv(r.resolved.env, attempts).map(plainEnvWarning),
+      ...unbrokered(r.resolved.env, trials).filter(reachesSandbox).map(unbrokeredWarning),
+      ...plainHeaders(trials).map(plainHeaderWarning),
+      ...plainEnv(r.resolved.env, trials).map(plainEnvWarning),
     ],
-    sandboxWarnings: skip ? [] : sandboxWarnings(attempts, resolved, origin),
-    brokered: [...new Set(attempts.flatMap((a) => brokeredIn(r.resolved.env, a)))],
+    sandboxWarnings: skip ? [] : sandboxWarnings(trials, resolved, origin),
+    brokered: [...new Set(trials.flatMap((a) => brokeredIn(r.resolved.env, a)))],
     egress: [
       ...new Map(
-        attempts.map((a) => {
+        trials.map((a) => {
           const e = {
             environment: a.environment.name,
             harness: harnessId(a.harness),
@@ -1487,7 +1487,7 @@ export function evalPlan(
     ],
     workspaces: [
       ...new Set(
-        attempts.flatMap((a) => {
+        trials.flatMap((a) => {
           const w = workspaceOf(a.environment.layers)
           return w ? [workspaceLabel(w)] : []
         }),

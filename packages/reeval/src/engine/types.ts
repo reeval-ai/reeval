@@ -1,8 +1,8 @@
-// What the engine hands the CLI: the plan it collected and each attempt's result.
-import type { AttemptMeta, RunContext } from '../types.ts'
+// What the engine hands the CLI: the plan it collected and each trial's result.
+import type { RunContext, TrialMeta } from '../types.ts'
 import type { EvalResult, ReevalEvent } from '../ui/events.ts'
 
-/** One attempt's result. */
+/** One trial's result. */
 export type EngineEval = EvalResult
 
 export type EngineRun = {
@@ -14,8 +14,8 @@ export type EngineRun = {
   stopped: boolean
 }
 
-/** One planned attempt, from collecting the eval files without running them. */
-export type PlannedItem = { id: string; key: string; file: string; attempt: AttemptMeta }
+/** One planned trial, from collecting the eval files without running them. */
+export type PlannedItem = { id: string; key: string; file: string; trial: TrialMeta }
 
 /** An eval collection left out: `.skip`, `.todo`, or a sibling of an `.only`. */
 export type ExcludedEval = { id: string; mode: 'skip' | 'todo' }
@@ -31,7 +31,7 @@ export type CollectedPlan = {
   unmatched: string[]
   /** The harness ids the collected files' evals run on before a profile's limit, whatever the filters pick. */
   harnesses: string[]
-  /** The trait keys the control environments of the evals the tags select define, for `--trait`. */
+  /** The trait keys the baseline environments of the evals the tags select define, for `--trait`. */
   traits: string[]
   /** A path filter left some eval files uncollected. */
   partial: boolean
@@ -40,27 +40,27 @@ export type CollectedPlan = {
 export type EngineOptions = {
   run: RunContext
   filters: string[]
-  /** `--cell`: only attempts on these cell keys or `cell#n` ids; each matches exactly. */
+  /** `--cell`: only trials on these cell keys or `cell#n` ids; each matches exactly. */
   cells?: string[]
   /** Called once the eval files are known, with how many there are. */
   onRunStart?: (files: number) => void
-  /** Collection, start, progress, console output and result of each attempt, as they happen. */
+  /** Collection, start, progress, console output and result of each trial, as they happen. */
   onEvent?: (e: ReevalEvent) => void
   /** Called once the engine can be canceled, with a function that cancels the run. */
   onCancelable?: (cancel: () => void) => void
   /**
-   * Called with every attempt the run would start, after collecting the files and before any
-   * attempt runs. Resolve false to stop there; throw to fail the run.
+   * Called with every trial the run would start, after collecting the files and before any
+   * trial runs. Resolve false to stop there; throw to fail the run.
    */
   onPlan?: (collected: CollectedPlan) => Promise<boolean>
   /** What answers workers' `call`s; a call with none fails. */
   services?: Services
   /**
-   * `beat` gets the keys of the attempts in progress, in the order they started (each one started
+   * `beat` gets the keys of the trials in progress, in the order they started (each one started
    * and without a result yet, on a worker that hasn't exited): once as the files start to run,
    * every `ms` while they do, and with `done`, and no keys, once they have all ended.
    */
-  heartbeat?: { ms: number; beat: (attempts: string[], done: boolean) => void }
+  heartbeat?: { ms: number; beat: (trials: string[], done: boolean) => void }
 }
 
 /** Services the run's workers share, in the main process: the machine pools. */

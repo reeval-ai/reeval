@@ -127,10 +127,10 @@ describe('findEvalFiles and filterFiles', () => {
   })
 
   test('--cell matches a cell key or cell#n exactly', () => {
-    const attempt = { cell: { key: 'fake/-/fake' }, n: 2 }
-    assert.equal(matchesCell(attempt, 'fake/-/fake'), true)
-    assert.equal(matchesCell(attempt, 'fake/-/fake#2'), true)
-    assert.equal(matchesCell(attempt, 'fake#2'), false)
+    const trial = { cell: { key: 'fake/-/fake' }, n: 2 }
+    assert.equal(matchesCell(trial, 'fake/-/fake'), true)
+    assert.equal(matchesCell(trial, 'fake/-/fake#2'), true)
+    assert.equal(matchesCell(trial, 'fake#2'), false)
     assert.equal(matchesCell(undefined, 'fake'), false)
   })
 })

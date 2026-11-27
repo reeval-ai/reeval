@@ -15,7 +15,7 @@ import { sha256 } from '../src/ids.ts'
 import { fakeSandbox } from '../src/sandbox.ts'
 import { templateName } from '../src/view/family.ts'
 import { harnessLabel, languageLabel, runtimeLabel } from '../src/view/model.ts'
-import { readableRecord } from '../src/view/record.ts'
+import { MIGRATIONS, readableRecord } from '../src/view/record.ts'
 import {
   baseEnv,
   fakeConfig,
@@ -125,7 +125,7 @@ import { prompt } from './helpers.ts'
 const unused = 1
 export default defineEval({
   revision: ${revision},
-  runs: ${runs},
+  trials: ${runs},
   tags: [${tags}]${extra},
   graders: [judge('Did it write hello.txt?', { inputs: { diff: true } })],
   async task(c) {
@@ -195,7 +195,7 @@ export default defineEval({
 
     await write(importing({ prompt: "prompt + '!'" }))
     assert.deepEqual(await agentRow(p.dir), ['drift', ['body changed']])
-    await write(importing({ runs: 2, extra: ", timeout: '10m'" }))
+    await write(importing({ trials: 2, extra: ", timeout: '10m'" }))
     assert.deepEqual(await agentRow(p.dir), ['same', []], 'runs and timeout change nothing')
     await write(importing({ extra: ", pin: ['agents']" }))
     const [status, changes] = await agentRow(p.dir)
@@ -291,7 +291,7 @@ export default defineEval({
       first.out,
       /^No earlier recorded run to compare \S+ with, so every eval is new\.$/m,
     )
-    assert.match(first.out, /^✓ flips {2}mean 100% · 1\/1 run at 100% {2}regression\(1\)$/m)
+    assert.match(first.out, /^✓ flips {2}mean 100% · 1\/1 trial at 100% {2}regression\(1\)$/m)
     assert.match(first.out, /^1 new eval \(1 on target\)$/m)
     assert.equal((await compareCode('--fail-on-regression')).code, 0)
     assert.equal(JSON.parse((await compareCode('--json')).out).base, null)
@@ -301,7 +301,7 @@ export default defineEval({
     assert.match(newFailing.out, /^1 new eval \(1 below\)$/m)
     assert.match(
       (await compareCode('--md')).out,
-      /^# flips\n[\s\S]*\*\*mean 0% · 0\/1 run at 100%\*\*/m,
+      /^# flips\n[\s\S]*\*\*mean 0% · 0\/1 trial at 100%\*\*/m,
       'compare --md with no base is the head RunReport',
     )
 
@@ -410,7 +410,7 @@ export default defineEval({
   })
 
   test('reeval compare has one row for an eval with cases, gated on its pooled minLift, and --fail-on-regression fails when it goes from pass to fail', async () => {
-    // The control passes only with REEVAL_TEST_BASE_OK set: then the cases still pass on their
+    // The baseline passes only with REEVAL_TEST_BASE_OK set: then the cases still pass on their
     // own, but the pooled lift is 0 and falls below minLift.
     const pooled = (minLift: number) => `import assert from 'node:assert/strict'
 import { defineEnvironment, defineEval } from 'reeval'
@@ -423,10 +423,10 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
 }))
 export default defineEval({
   cases: [{ key: 'ada' }, { key: 'grace' }, { key: 'linus' }, { key: 'margaret' }, { key: 'dennis' }, { key: 'barbara' }],
-  compare: { control: plain, variants: [skilled], minLift: ${minLift} },
+  compare: { baseline: plain, variants: [skilled], minLift: ${minLift} },
   async task(c) {
     await c.send('go')
-    if (c.attempt.cell.role === 'control' && process.env.REEVAL_TEST_BASE_OK) return
+    if (c.trial.cell.role === 'baseline' && process.env.REEVAL_TEST_BASE_OK) return
     assert.notEqual(await c.readFile('ok.txt'), null)
   },
 })
@@ -493,7 +493,7 @@ export default defineEval({
 
   test("reeval compare names a config target change and re-scores base under head's gate", async () => {
     const config = (target: string) =>
-      fakeConfig({ harness: harness(), extra: `runs: 2, target: ${target},` })
+      fakeConfig({ harness: harness(), extra: `trials: 2, target: ${target},` })
     const p = await gitProject('compare-gate', {
       'reeval.config.ts': config('capability(1, { blocking: true })'),
       'evals/flaky.eval.ts': `import assert from 'node:assert/strict'
@@ -501,7 +501,7 @@ import { defineEval } from 'reeval'
 export default defineEval({
   async task(c) {
     await c.send('go')
-    const miss = process.env.REEVAL_TEST_BREAK || (c.attempt.n === 2 && !process.env.REEVAL_TEST_STEADY)
+    const miss = process.env.REEVAL_TEST_BREAK || (c.trial.n === 2 && !process.env.REEVAL_TEST_STEADY)
     assert.equal(miss ? 'miss' : 'ok', 'ok')
   },
 })
@@ -565,7 +565,7 @@ export default defineEval({
     const same = await row()
     assert.deepEqual([same?.status, same?.changes, same?.gate], ['same', undefined, undefined])
 
-    // A regression() threshold decides each attempt's outcome, so runs under another one differ.
+    // A regression() threshold decides each trial's outcome, so runs under another one differ.
     await setGate('regression(0.7)')
     assert.equal((await runCli(p.dir, ['run', '--record'])).code, 1)
     await setGate('regression(0.8)')
@@ -595,10 +595,10 @@ const skilled = defineEnvironment('skilled', ({ skill }) => ({
 }))
 export default defineEval({
   cases: [{ key: 'ada' }, { key: 'grace' }, { key: 'linus' }, { key: 'margaret' }, { key: 'dennis' }, { key: 'barbara' }],
-  compare: { control: plain, variants: [skilled], minLift: 0.2 },
+  compare: { baseline: plain, variants: [skilled], minLift: 0.2 },
   async task(c) {
     await c.send('go')
-    if (c.attempt.cell.role === 'control' && process.env.REEVAL_TEST_BASE_OK) return
+    if (c.trial.cell.role === 'baseline' && process.env.REEVAL_TEST_BASE_OK) return
     assert.notEqual(await c.readFile('ok.txt'), null)
   },
 })
@@ -812,7 +812,7 @@ export default defineEval({
       const r = await runCli(p.dir, ['compare', ...args])
       return { code: r.code, out: r.stdout + r.stderr }
     }
-    // One attempt at a time, so `flips` has finished by the time `slow` starts waiting.
+    // One trial at a time, so `flips` has finished by the time `slow` starts waiting.
     const interrupted = async (env: Record<string, string>) => {
       await rm(started, { force: true })
       let pid = 0
@@ -866,7 +866,7 @@ export default defineEval({
     assert.ok(e?.read(e.trial.files.trajectory?.path ?? '').includes(long))
   })
 
-  test('cells join environments by digest, not name; attempts have keys', async () => {
+  test('cells join environments by digest, not name; trials have keys', async () => {
     const p = await project('joins', {
       'reeval.config.ts': fakeConfig({ extra: 'concurrency: 1,' }),
       'evals/uses-one.eval.ts': `import { defineEnvironment, defineEval } from 'reeval'
@@ -875,7 +875,7 @@ import { fakeSandbox } from 'reeval/sandbox'
 const one = defineEnvironment('tools', { sandbox: fakeSandbox(), env: { FLAVOR: 'one' } })
 export default defineEval({
   environment: one,
-  runs: 3,
+  trials: 3,
   graders: [judge('Is it fine?', { inputs: { diff: true } })],
   async task(c) {
     await c.send('x')
@@ -915,19 +915,19 @@ export default defineEval({
     assert.notEqual(cell('uses-none')?.environmentDigest, cell('uses-one')?.environmentDigest)
     assert.deepEqual([cell('uses-one')?.harnessKind, cell('uses-one')?.model], ['fake', null])
 
-    const attempts = run.evals.flatMap((e) => e.attempts)
+    const trials = run.evals.flatMap((e) => e.trials)
     assert.deepEqual(
-      attempts.map((a) => a.seq).sort((a, b) => (a ?? 0) - (b ?? 0)),
+      trials.map((a) => a.seq).sort((a, b) => (a ?? 0) - (b ?? 0)),
       [1, 2, 3, 4, 5],
       'concurrency 1: one start order across the run',
     )
     const one = run.evals.find((e) => e.name === 'uses-one')
     assert.deepEqual(
-      one?.attempts.map((a) => a.key),
+      one?.trials.map((a) => a.key),
       [1, 2, 3].map((n) => `${one?.key} # fake/tools/fake#${n}`),
     )
-    assert.ok(attempts.every((a) => a.startedAt && a.imageId === null))
-    assert.equal(one?.attempts[0]?.grades?.[0]?.grader, 'judge:Is it fine?')
+    assert.ok(trials.every((a) => a.startedAt && a.imageId === null))
+    assert.equal(one?.trials[0]?.grades?.[0]?.grader, 'judge:Is it fine?')
     assert.equal('config' in run && 'harnesses' in run.config, false)
     assert.equal(run.runner.kind === 'local' || run.runner.pr !== undefined, true)
   })
@@ -970,7 +970,7 @@ export default defineEval({ async task() { assert.equal('this config', 'never ru
     assert.match(run.stdout, /^ {2}➜ {2}Config: +\.\.\/\.\.\/\.\.\/reeval\.config\.ts$/m)
     const first = readRun(p.dir).run
     assert.deepEqual(
-      first.evals.flatMap((e) => e.attempts.map((a) => `${e.id} ${a.id}`)),
+      first.evals.flatMap((e) => e.trials.map((a) => `${e.id} ${a.id}`)),
       ['agent root/fake/fake#1'],
       "the config's .env.local, not the current directory's",
     )
@@ -986,7 +986,7 @@ export default defineEval({ async task() { assert.equal('this config', 'never ru
     )
     assert.equal(JSON.parse((await ok(['show', 'latest', '--json'])).stdout).kind, 'reeval-run')
     assert.match((await ok(['compare'])).stdout, /same/i)
-    assert.deepEqual(JSON.parse((await ok(['query', 'failing_attempts', '--json'])).stdout), [])
+    assert.deepEqual(JSON.parse((await ok(['query', 'failing_trials', '--json'])).stdout), [])
     assert.ok(existsSync(join(p.dir, '.reeval/history.db')))
     await ok(['explain', '--context'])
     assert.match(
@@ -1025,7 +1025,7 @@ export default defineEval({ async task() { assert.equal('this config', 'never ru
     // Twin: the parent's config, found from its own tree or named with --config, runs its eval.
     const parent = await runCli(join(p.dir, 'evals'))
     assert.equal(parent.code, 1, parent.stdout + parent.stderr)
-    assert.match(parent.stdout, /^└─ ✗ parent {2}mean 0% · 0\/1 run at 100% {2}regression\(1\)$/m)
+    assert.match(parent.stdout, /^└─ ✗ parent {2}mean 0% · 0\/1 trial at 100% {2}regression\(1\)$/m)
     const named = await runCli(lib, ['run', '--config', '../../../../reeval.config.ts'])
     assert.equal(named.code, 1, named.stdout + named.stderr)
     assert.deepEqual(
@@ -1071,8 +1071,8 @@ describe('records from before a field existed', () => {
       r.evals[0]?.cells.map(() => null),
     )
     assert.deepEqual(
-      r.evals[0]?.attempts.map((a) => [a.effort, a.servedEffort]),
-      r.evals[0]?.attempts.map(() => [null, null]),
+      r.evals[0]?.trials.map((a) => [a.effort, a.servedEffort]),
+      r.evals[0]?.trials.map(() => [null, null]),
     )
   })
 
@@ -1159,10 +1159,13 @@ describe('records from a newer reeval', () => {
   const oldRun = '20260927T151935Z_facb81b_cursor-agent_07sv'
   const newRun = '20270101T000000Z_facb81b_cursor-agent_zz01'
 
-  /** Writes a copy of the old run as `newRun`, changed by `edit`, with its artifacts. */
+  /** Writes a copy of the old run, at this reeval's version, as `newRun`, changed by `edit`, with its artifacts. */
   async function future(dir: string, edit: (r: Record<string, unknown>) => void) {
     const history = join(dir, HISTORY)
-    const r = JSON.parse(readFileSync(join(history, `${oldRun}.json`), 'utf8'))
+    let r = JSON.parse(readFileSync(join(history, `${oldRun}.json`), 'utf8'))
+    for (const [from, migrate] of Object.entries(MIGRATIONS['run-record'] ?? {})) {
+      if (r.schemaVersion === Number(from)) r = (migrate as (v: unknown) => typeof r)(r)
+    }
     r.runId = newRun
     edit(r)
     await writeFile(join(history, `${newRun}.json`), JSON.stringify(r, null, 2))
@@ -1173,10 +1176,10 @@ describe('records from a newer reeval', () => {
     const p = await fixture(OLD)
     await portBefore100(p.dir)
     await future(p.dir, (r) => {
-      r.schemaVersion = 3
+      r.schemaVersion = 4
     })
     const upgrade =
-      /written by a newer reeval \(schemaVersion 3; this reeval reads up to 2\)\. Upgrade reeval to read it\./
+      /written by a newer reeval \(schemaVersion 4; this reeval reads up to 3\)\. Upgrade reeval to read it\./
     const shown = await runCli(p.dir, ['show', newRun])
     assert.notEqual(shown.code, 0, shown.stdout + shown.stderr)
     assert.match(shown.stderr, upgrade)
@@ -1205,11 +1208,11 @@ describe('records from a newer reeval', () => {
       withUnknownFields(schema, r, () => ({ by: 'a newer reeval', list: [1] }))
       const record = r as unknown as RunRecord
       record.status = 'paused' as RunRecord['status']
-      const attempt = record.evals[0]?.attempts[0] as RunRecord['evals'][number]['attempts'][number]
-      attempt.outcome = 'canceled' as typeof attempt.outcome
-      attempt.error = { kind: 'quota' as never, message: 'a kind this reeval does not know' }
-      attempt.turns[0] = {
-        ...(attempt.turns[0] as (typeof attempt.turns)[number]),
+      const trial = record.evals[0]?.trials[0] as RunRecord['evals'][number]['trials'][number]
+      trial.outcome = 'canceled' as typeof trial.outcome
+      trial.error = { kind: 'quota' as never, message: 'a kind this reeval does not know' }
+      trial.turns[0] = {
+        ...(trial.turns[0] as (typeof trial.turns)[number]),
         status: 'paused' as never,
       }
     })
@@ -1306,9 +1309,9 @@ describe('history recorded with evaluate.each by reeval 0.18', () => {
         ['add user authentication', 'add social login and email/password auth'],
       ],
     )
-    // Twin: the attempts keep the case they ran as, under the eval's new name.
+    // Twin: the trials keep the case they ran as, under the eval's new name.
     assert.deepEqual(
-      [...new Set(family?.attempts.map((a) => a.case))],
+      [...new Set(family?.trials.map((a) => a.case))],
       ['add user authentication', 'add social login and email/password auth'],
     )
   })
@@ -1342,7 +1345,7 @@ describe('history recorded with evaluate.each by reeval 0.18', () => {
   test("the port's options hash as 0.18 hashed its singular keys and compare.baseline", () => {
     const [discovery, , options] = raw().evals
     assert.equal(
-      optionsHash([{ compare: { control: plain, variants: [withSkill] } }]),
+      optionsHash([{ compare: { baseline: plain, variants: [withSkill] } }]),
       discovery?.source?.options,
     )
     assert.equal(
@@ -1351,7 +1354,7 @@ describe('history recorded with evaluate.each by reeval 0.18', () => {
     )
     // Canary: an option that really changed still changes the hash.
     assert.notEqual(
-      optionsHash([{ compare: { control: plain, variants: [withSkill], minLift: 0.2 } }]),
+      optionsHash([{ compare: { baseline: plain, variants: [withSkill], minLift: 0.2 } }]),
       discovery?.source?.options,
     )
   })
@@ -1371,7 +1374,7 @@ const withSkill = defineEnvironment('with-skill', { sandbox: fakeSandbox() })
 
 export default defineEval({
   cases: [{ key: 'add user authentication' }, { key: 'add social login and email/password auth' }],
-  compare: { control: plain, variants: [withSkill] },
+  compare: { baseline: plain, variants: [withSkill] },
   async task(c, { key: prompt }) {
     await c.send(prompt)
     assert.notEqual(await c.readFile('greet.js'), null)

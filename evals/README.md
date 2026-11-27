@@ -9,7 +9,7 @@ so `pnpm test` and CI never run them.
 pnpm build
 pnpm reeval run --dry-run                          # the plan, no keys or Docker
 pnpm reeval run --config reeval.fake.config.ts     # the canary: every eval scores under 100%
-pnpm reeval run evals/skill --runs 2               # Cursor, with CURSOR_API_KEY in .env.local
+pnpm reeval run evals/skill --trials 2               # Cursor, with CURSOR_API_KEY in .env.local
 ```
 
 ## skill: how should an agent learn reeval?
@@ -17,9 +17,9 @@ pnpm reeval run evals/skill --runs 2               # Cursor, with CURSOR_API_KEY
 An agent writing evals with reeval has never seen it. [`evals/skill/`](./skill) gives Cursor one
 channel to learn it from and four authoring tasks, and compares the channels:
 
-| Arm | What the agent gets |
+| Environment | What the agent gets |
 |---|---|
-| `skill-current` (control) | The reeval skill as one 638-line `SKILL.md`, before the split |
+| `skill-current` (baseline) | The reeval skill as one 638-line `SKILL.md`, before the split |
 | `skill-split` | [`skills/reeval/`](../skills/reeval): a short `SKILL.md` and references it opens on demand |
 | `docs` | The docs site's pages in `reeval-docs/`, no skill |
 | `mcp` | `reeval mcp` (the run history as MCP tools), no skill or docs |
@@ -27,31 +27,31 @@ channel to learn it from and four authoring tasks, and compares the channels:
 | Task | Starts from | Checks |
 |---|---|---|
 | `judge.eval.ts` | A CLI and a fake-agent config | The eval it writes typechecks, plans, passes on the fake agent, has a judge grader named `explains-usage` and fails the run on a miss |
-| `compare.eval.ts` | An eval that screenshots a page | The plan has 2 cells, 4 attempts and a pairwise question that sees the screenshot |
-| `fix-config.eval.ts` | A config with four mistakes | `--dry-run` plans 2 cells × 3 runs, `reeval run` passes, `docs/` untouched |
+| `compare.eval.ts` | An eval that screenshots a page | The plan has 2 cells, 4 trials and a pairwise question that sees the screenshot |
+| `fix-config.eval.ts` | A config with four mistakes | `--dry-run` plans 2 cells × 3 trials, `reeval run` passes, `docs/` untouched |
 | `debug.eval.ts` | A run whose grader is wrong | The fixed eval passes, keeps the grader, and the answer names it |
 
-Every arm passed every task on Cursor (`composer-2.5`), so the difference is in effort. The
+Every environment passed every task on Cursor (`composer-2.5`), so the difference is in effort. The
 split skill matched the full one on tool calls and time with fewer tokens; docs alone and
 `reeval mcp` alone cost up to three times as much, because the agent fell back to reading
 reeval's compiled `dist/`:
 
 ```text
-fixes the config and the eval                  8/8 · pass@1 – gated  8 attempts
-  cursor:composer-2.5/skill-current/docker  control    2/2  pass@1 100%   438k in (205k cached)
+fixes the config and the eval                  8/8 · pass@1 – gated  8 trials
+  cursor:composer-2.5/skill-current/docker  baseline    2/2  pass@1 100%   438k in (205k cached)
   cursor:composer-2.5/skill-split/docker    variant    2/2  pass@1 100%   lift +0 pts (95% −66…+66, 2/2 vs 2/2), within noise   359k in (148k cached)
-    effort: tools 11 vs 9 (×1.22), agent 20s vs 16s (×1.27), tokens 181k vs 221k (×0.82): too few attempts to test
+    effort: tools 11 vs 9 (×1.22), agent 20s vs 16s (×1.27), tokens 181k vs 221k (×0.82): too few trials to test
   cursor:composer-2.5/docs/docker           variant    2/2  pass@1 100%   lift +0 pts (95% −66…+66, 2/2 vs 2/2), within noise   1,193k in (572k cached)
-    effort: tools 26 vs 9 (×2.89), agent 34s vs 16s (×2.17), tokens 600k vs 221k (×2.72): too few attempts to test
+    effort: tools 26 vs 9 (×2.89), agent 34s vs 16s (×2.17), tokens 600k vs 221k (×2.72): too few trials to test
   cursor:composer-2.5/mcp/docker            variant    2/2  pass@1 100%   lift +0 pts (95% −66…+66, 2/2 vs 2/2), within noise   1,527k in (730k cached)
-    effort: tools 28.5 vs 9 (×3.17), agent 38s vs 16s (×2.46), tokens 767k vs 221k (×3.47): too few attempts to test
+    effort: tools 28.5 vs 9 (×3.17), agent 38s vs 16s (×2.46), tokens 767k vs 221k (×3.47): too few trials to test
 ```
 
 `reeval query skill_files` shows the split skill's references opening on demand: the
 screenshot-question task read `references/capture.md` and `references/compare.md` every time, and
 no other task opened them.
 
-Every attempt installs this checkout's reeval from `evals/skill/vendor/` (`node
+Every trial installs this checkout's reeval from `evals/skill/vendor/` (`node
 evals/skill/scripts/vendor.mjs` packs it, renders the docs and extracts the pre-split skill).
 `evals/skill/reeval.oracle.config.ts` runs a fake agent that applies a known-good answer to each
 task, so every grader must pass there.
@@ -59,7 +59,7 @@ task, so every grader must pass there.
 ## contributing: can an agent contribute to reeval?
 
 [`evals/contributing/`](./contributing) asks a real agent for four merged reeval pull requests
-again, each from its parent commit, and checks the change the way review would. The control has
+again, each from its parent commit, and checks the change the way review would. The baseline has
 `AGENTS.md` and the [feature contract](../packages/reeval/test/features/README.md) deleted; the
 variant has both.
 
@@ -70,19 +70,19 @@ variant has both.
 | A `toHaveChanged` matcher | [#314](https://github.com/reeval-ai/reeval/pull/314) | A feature fixture with a canary, listed in the inventory |
 | `question.model` as a cascading default | [#366](https://github.com/reeval-ai/reeval/pull/366) | Refusal rows and a plan case |
 
-Every attempt must leave tests and docs changed, then pass `pnpm build`, `pnpm lint`, typecheck
+Every trial must leave tests and docs changed, then pass `pnpm build`, `pnpm lint`, typecheck
 and `pnpm docs:check`. Last, the merged pull request's own tests are copied in, so the agent never
 sees them, and must pass. On Cursor (`composer-2.5`), two runs of each cell:
 
 ```text
-✓ a toHaveChanged matcher (#314)                       0/2 · pass@1 – gated  2 attempts
-    cursor:composer-2.5/to-have-changed-no-guides/reeval-repo  control    0/1  pass@1   0%   not gated   1,598k in (792k cached) · 8,743 out
+✓ a toHaveChanged matcher (#314)                       0/2 · pass@1 – gated  2 trials
+    cursor:composer-2.5/to-have-changed-no-guides/reeval-repo  baseline    0/1  pass@1   0%   not gated   1,598k in (792k cached) · 8,743 out
     cursor:composer-2.5/to-have-changed-guides/reeval-repo     variant    0/1  pass@1   0%   lift +0 pts (95% −79…+79, 0/1 vs 0/1), within noise   4,931k in (2,423k cached) · 13k out
-      effort: tools 65 vs 55 (×1.18), agent 6m 09s vs 1m 50s (×3.37), tokens 4,944k vs 1,606k (×3.08): too few attempts to test
+      effort: tools 65 vs 55 (×1.18), agent 6m 09s vs 1m 50s (×3.37), tokens 4,944k vs 1,606k (×3.08): too few trials to test
       checks: updates the docs 1/1 vs 0/1 · adds a feature fixture with a canary 1/1 vs 0/1 · lists it in the feature inventory 1/1 vs 0/1 · … · pnpm lint 0/1 vs 0/1 (doesn't discriminate) · …
 ```
 
-| Over 8 attempts an arm | Control | Variant |
+| Over 8 trials an environment | Baseline | Variant |
 |---|---|---|
 | Every check | 2/8 | 1/8 |
 | Every check but lint | 4/8 | 6/8 |
@@ -93,7 +93,7 @@ sees them, and must pass. On Cursor (`composer-2.5`), two runs of each cell:
 The agents write working code with or without the guides: the hidden tests pass 7 times in 8 on
 both sides. The guides change whether the rest of the pull request is there, the docs, the
 fixture with its canary and the inventory. What both sides miss is formatting: every lint failure
-is Biome's formatter, because neither arm ran `pnpm format`.
+is Biome's formatter, because neither environment ran `pnpm format`.
 
 ```bash
 node evals/contributing/scripts/lockfiles.mjs   # each task's lockfile, for the image's pnpm store
@@ -103,37 +103,37 @@ pnpm reeval run --config evals/contributing/reeval.oracle.config.ts   # every ev
 pnpm reeval run contributing --config reeval.fake.config.ts         # every eval under 100%
 ```
 
-Each attempt starts from the task's parent commit (`git('../..', { ref })`) in an image whose
+Each trial starts from the task's parent commit (`git('../..', { ref })`) in an image whose
 pnpm store already holds every task's dependencies, so `pnpm install` takes about 3 seconds
 offline. The sandbox is Docker under every config, so the oracle and the canary need Docker and
 `lockfiles.mjs` too. `reeval.oracle.config.ts` runs a fake agent that applies the merged pull
 request, so every check must pass there; the fake agent changes nothing, so every check that
 reads its work fails.
 
-`REEVAL_CONTRIBUTING_GUIDES=<branch>` adds a third arm: that branch's changes to the guides,
+`REEVAL_CONTRIBUTING_GUIDES=<branch>` adds a third environment: that branch's changes to the guides,
 applied to each task's starting commit. With #374's "Before you finish" checklist, every check
-passed in 6 of 8 attempts, against 1 of 8 with the guides it replaced. Every one of those
-attempts ran `pnpm format`. The variant places the guides as they were at each task's parent
-commit, all from before #374 merged, so only this arm has the checklist.
+passed in 6 of 8 trials, against 1 of 8 with the guides it replaced. Every one of those
+trials ran `pnpm format`. The variant places the guides as they were at each task's parent
+commit, all from before #374 merged, so only this environment has the checklist.
 
 ## setup: can an agent set reeval up for someone?
 
 [`evals/setup/`](./setup) asks the agent to "set up reeval here", in two turns: the
-first should end with a question about what to evaluate, the second answers it. The control has
+first should end with a question about what to evaluate, the second answers it. The baseline has
 the reeval skill; the variant adds [`skills/setup/`](../skills/setup).
 
 | Target | Starts from | Checks beyond the shared ones |
 |---|---|---|
 | `supabase` | supabase/agent-skills, no reeval | A skill compare, skills and docs untouched |
 | `firebase-set-up` | firebase/agent-skills after `reeval init` | The `greet` eval and `environments.ts` kept |
-| `firebase-tools` | firebase/firebase-tools before its first skill (a CLI with `GEMINI.md`) | Runs something, in the real repo, comparing `GEMINI.md` with the rules and config kept from the control |
+| `firebase-tools` | firebase/firebase-tools before its first skill (a CLI with `GEMINI.md`) | Runs something, in the real repo, comparing `GEMINI.md` with the rules and config kept from the baseline |
 | `empty` | An empty directory; turn 2 asks for Tailwind CSS v4 | Researched first, evals about v4's `@import` |
 
 Every target checks that the agent asks before writing evals, adds one to three that plan with
 `--dry-run`, runs `reeval doctor`, names the harness key and never forces `init`. On Cursor
-(`composer-2.5`, one attempt a cell) the control set up 0 of 3 every time; the variant went
+(`composer-2.5`, one trial a cell) the baseline set up 0 of 3 every time; the variant went
 1, 2, 3 and 3 of 3 over four iterations of the skill. Claude Code (`claude-sonnet-5`) set up
-`supabase` and `firebase-set-up`. On `firebase-tools` the control ran a plain `reeval init`
+`supabase` and `firebase-set-up`. On `firebase-tools` the baseline ran a plain `reeval init`
 and kept its `greet` example, 0 of 2. The variant passed 1 of 2 at first, with evals on stub
 files of its own, then 2, 2 and 1 of 1, with a `GEMINI.md` compare in the real repo.
 
@@ -146,22 +146,22 @@ pnpm reeval run --config reeval.oracle.config.ts --profile canary # every eval u
 pnpm reeval run --config reeval.claude.config.ts                  # Claude Code
 ```
 
-The root config pins `params: { fast: 'false' }`: at standard prices, an attempt costs about
+The root config pins `params: { fast: 'false' }`: at standard prices, a trial costs about
 $0.30 to $0.70.
 
 ## mcp-debugging: does `reeval mcp` help an agent debug a failing run?
 
 [`evals/mcp-debugging/`](./mcp-debugging) hands the agent a broken reeval project and asks why it
-fails. The control has the CLI; the variant has the same project with `reeval mcp` configured.
+fails. The baseline has the CLI; the variant has the same project with `reeval mcp` configured.
 The prompt is the same on both sides and never mentions MCP.
 
 ```ts
 // evals/mcp-debugging/environments.ts
-const control = defineEnvironment(fixture, ({ directory, file }) => ({
+const baseline = defineEnvironment(fixture, ({ directory, file }) => ({
   files: { ...directory(`./fixtures/${base}`), '~/.dogfood-seed.mjs': file('./scripts/seed-history.mjs') },
   setup: [install, `node ~/.dogfood-seed.mjs ${fixture}`],
 }))
-const variant = control.extendEnvironment(`${fixture}-with-mcp`, ({ mcp }) => ({
+const variant = baseline.extendEnvironment(`${fixture}-with-mcp`, ({ mcp }) => ({
   mcp: { reeval: mcp.stdio('sh', ['-c', 'cd /reeval/workspace 2>/dev/null; exec node_modules/.bin/reeval mcp']) },
 }))
 ```
@@ -172,7 +172,7 @@ const variant = control.extendEnvironment(`${fixture}-with-mcp`, ({ mcp }) => ({
 | reads the history | `flaky-since` | Name the eval that turned flaky over 10 recorded runs, the commit that did it, and whether the race is in the check |
 | | `regression` | List the evals that passed at tag `v1.2` and fail in the latest run, 4 batches of changes later, and none that were broken already or recovered |
 | | `is-new` | Split the latest run's failures into new and old |
-| | `big-record` | Fix an 82-attempt run (its record is about 1.2 MB) whose export check moved |
+| | `big-record` | Fix an 82-trial run (its record is about 1.2 MB) whose export check moved |
 
 The history tasks start from a git repository the setup step writes, with a recorded run for
 each commit. Every grader is deterministic: the named eval, commit or cause, `reeval run`
@@ -193,27 +193,27 @@ the `check` cause in `flaky_cells` and trimmed `history` and `compare`
 | Claude Code `claude-sonnet-5` | before | 7/8 | 8/8 | ×0.95 | ×1.06 | ×1.34 |
 | | after | 8/8 | 8/8 | ×0.53 | ×0.45 | ×0.58 |
 
-The ratios are the median attempt with MCP over the median without, across the four history
+The ratios are the median trial with MCP over the median without, across the four history
 tasks. Before, the server misled as often as it helped. Cursor's two misses both copied
 `flaky_cells`' old cause, `agent`, for a race in the check:
 
 ```text
-     ○ flaky-since      2/4 · not gated  4 attempts
-         cursor:composer-2.5/flaky-since/docker           control    2/2  pass@1 100%   628k in (286k cached) · 4,930 out
+     ○ flaky-since      2/4 · not gated  4 trials
+         cursor:composer-2.5/flaky-since/docker           baseline    2/2  pass@1 100%   628k in (286k cached) · 4,930 out
          cursor:composer-2.5/flaky-since-with-mcp/docker  variant    0/2  pass@1   0%   lift −100 pts (95% −100…−7, 0/2 vs 2/2)   2,878k in (1,397k cached) · 12k out
-           effort: tools 36 vs 23.5 (×1.53), agent 44s vs 29s (×1.51), tokens 1,445k vs 316k (×4.57): too few attempts to test
+           effort: tools 36 vs 23.5 (×1.53), agent 44s vs 29s (×1.51), tokens 1,445k vs 316k (×4.57): too few trials to test
 ```
 
 After, `failures` answers "is this failure new" in one call:
 
 ```text
-     ✓ is-new               4/4 · not gated  4 attempts
-         claude-code:claude-sonnet-5/is-new/docker           control    2/2  pass@1 100%   836k in (807k cached) · 6,240 out
+     ✓ is-new               4/4 · not gated  4 trials
+         claude-code:claude-sonnet-5/is-new/docker           baseline    2/2  pass@1 100%   836k in (807k cached) · 6,240 out
          claude-code:claude-sonnet-5/is-new-with-mcp/docker  variant    2/2  pass@1 100%   lift +0 pts (95% −66…+66, 2/2 vs 2/2), within noise   270k in (246k cached) · 1,246 out
-           effort: tools 2 vs 10 (×0.20), agent 9.9s vs 39s (×0.25), tokens 136k vs 421k (×0.32): too few attempts to test
+           effort: tools 2 vs 10 (×0.20), agent 9.9s vs 39s (×0.25), tokens 136k vs 421k (×0.32): too few trials to test
 ```
 
-With 2 runs a cell, no single cell's effort difference is significant. The direction holds,
+With 2 trials a cell, no single cell's effort difference is significant. The direction holds,
 though: after the fixes, the MCP side used fewer tokens in 15 of 16 history cells across both
 harnesses, against 4 of 8 before. Pass rates barely move, since both sides nearly always get
 there.
@@ -221,7 +221,7 @@ there.
 ### Run it
 
 ```bash
-pnpm reeval run evals/mcp-debugging --runs 2                        # Cursor, with CURSOR_API_KEY
+pnpm reeval run evals/mcp-debugging --trials 2                        # Cursor, with CURSOR_API_KEY
 REEVAL_DOGFOOD_TARBALL=$PWD/reeval.tgz pnpm reeval run evals/mcp-debugging   # a packed checkout's reeval
 ```
 

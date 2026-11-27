@@ -6,7 +6,7 @@ import type {
   ResolvedQuestionStateOptions,
 } from '../types.ts'
 
-/** The error a per-attempt answer carries when the run stopped before a model answered it. */
+/** The error a per-trial answer carries when the run stopped before a model answered it. */
 export const STOPPED_FIRST = 'the run stopped before it was answered'
 
 /**

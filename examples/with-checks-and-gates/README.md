@@ -2,7 +2,7 @@
 
 **Shows:** named graders that each score on their own, and an `EvalError` that fails the task when
 the rest would mean nothing. The agent adds `divide(a, b)` to a small package, throwing on zero.
-The task throws `EvalError` if `src/math.js` doesn't parse, so the attempt scores 0 and no grader
+The task throws `EvalError` if `src/math.js` doesn't parse, so the trial scores 0 and no grader
 runs; otherwise four graders, each with a `name`, score one requirement.
 
 **Needs:** nothing for the fake agent; in this repo, run `pnpm install && pnpm build` at the root
@@ -29,7 +29,7 @@ below 1, here with the fake agent's throw removed:
 
 ```text
 with-checks-and-gates.eval.ts
-  · with-checks-and-gates  mean 50% · 0/1 run at 100% (pass@1)  capability(1)
+  · with-checks-and-gates  mean 50% · 0/1 trial at 100% (pass@1)  capability(1)
     #1  50%  throws-a-range-error 0%, tests-pass 0%
 ```
 
@@ -38,7 +38,7 @@ With a `src/math.js` that doesn't parse, the task fails with the `EvalError`'s r
 
 ```text
 with-checks-and-gates.eval.ts
-  · with-checks-and-gates  mean 0% · 0/1 run at 100% (pass@1)  capability(1)
+  · with-checks-and-gates  mean 0% · 0/1 trial at 100% (pass@1)  capability(1)
     #1  0%  src/math.js doesn't parse
       stderr: …/src/math.js:2 SyntaxError: Unexpected end of input …
       after turn 1

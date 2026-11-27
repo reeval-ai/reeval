@@ -17,7 +17,7 @@ For more information about config keys, see [Options](/reference/options). For m
 
 ## `REEVAL_CONCURRENCY`
 
-`REEVAL_CONCURRENCY` is how many attempts run together (`--concurrency`, then the `concurrency` key). Unset, the cap is 8, one per CPU and per GB of memory where the sandboxes run, and at least 1. A cloud run ignores it. A value that is not a whole number of at least 1 stops the command.
+`REEVAL_CONCURRENCY` is how many trials run together (`--concurrency`, then the `concurrency` key). Unset, the cap is 8, one per CPU and per GB of memory where the sandboxes run, and at least 1. A cloud run ignores it. A value that is not a whole number of at least 1 stops the command.
 
 ## `REEVAL_PRICES`
 
@@ -69,7 +69,7 @@ For more information about config keys, see [Options](/reference/options). For m
 
 ## `REEVAL_EVENTS_HEARTBEAT`
 
-`REEVAL_EVENTS_HEARTBEAT` is how often a run's event stream gets a `heartbeat` line naming the attempts in progress. With no value, it is 30 seconds. `0` turns it off. A bare number is seconds, and `ms`, `s`, or `m` names the unit, from 1 second to 10 minutes. Another value stops the command.
+`REEVAL_EVENTS_HEARTBEAT` is how often a run's event stream gets a `heartbeat` line naming the trials in progress. With no value, it is 30 seconds. `0` turns it off. A bare number is seconds, and `ms`, `s`, or `m` names the unit, from 1 second to 10 minutes. Another value stops the command.
 
 ## `REEVAL_DEBUG`
 
@@ -77,7 +77,7 @@ A non-empty `REEVAL_DEBUG` prints worker output, image-prepare lines, egress-gat
 
 ## `REEVAL_RAW_TRAJECTORY`
 
-A non-empty `REEVAL_RAW_TRAJECTORY` stores each turn's unnormalized stream parts. With no value, the attempt omits them.
+A non-empty `REEVAL_RAW_TRAJECTORY` stores each turn's unnormalized stream parts. With no value, the trial omits them.
 
 ## `REEVAL_NO_REPORT_HINT`
 
@@ -113,7 +113,7 @@ A non-empty `REEVAL_NO_REPORT_HINT` hides the `reeval report` hint after a crash
 
 ## `OTEL_EXPORTER_OTLP_ENDPOINT`
 
-`OTEL_EXPORTER_OTLP_ENDPOINT`, or a signal's own `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` or `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, makes `reeval run` send each attempt's agent trace (the agent, its turns, model calls and tool calls, with their tokens, and its checks and judgments as evaluation events) to that OpenTelemetry collector, each turn and its tool calls as the turn ends and the rest when the attempt ends, over OTLP/HTTP protobuf, or JSON with `OTEL_EXPORTER_OTLP_PROTOCOL` of `http/json`. `OTEL_EXPORTER_OTLP_HEADERS`, `OTEL_EXPORTER_OTLP_COMPRESSION` (`gzip`), `OTEL_EXPORTER_OTLP_TIMEOUT`, `OTEL_EXPORTER_OTLP_CERTIFICATE`, `OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE` and `OTEL_EXPORTER_OTLP_CLIENT_KEY`, and each signal's `_TRACES_`, `_LOGS_` or `_METRICS_` form, set its requests; `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` describe the service. `OTEL_TRACES_EXPORTER`, `OTEL_LOGS_EXPORTER` or `OTEL_METRICS_EXPORTER` of `none` turns that signal off, and `OTEL_SDK_DISABLED` of `true` all of them. `OTEL_BSP_SCHEDULE_DELAY`, `OTEL_BSP_MAX_EXPORT_BATCH_SIZE`, `OTEL_BSP_MAX_QUEUE_SIZE` and `OTEL_BSP_EXPORT_TIMEOUT` (and `OTEL_BLRP_*` for logs) batch the spans, and `OTEL_METRIC_EXPORT_INTERVAL` and `OTEL_METRIC_EXPORT_TIMEOUT` set how often the metrics go. An export times out after 5 seconds unless its `_EXPORT_TIMEOUT` says otherwise, so an `OTEL_EXPORTER_OTLP_TIMEOUT` above 5 seconds needs a longer `_EXPORT_TIMEOUT` too, and the run waits at most 5 seconds for what's left when it ends. A `grpc` protocol, or a failed export, warns. See [Export to OpenTelemetry](/results/inspection/opentelemetry).
+`OTEL_EXPORTER_OTLP_ENDPOINT`, or a signal's own `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` or `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, makes `reeval run` send each trial's agent trace (the agent, its turns, model calls and tool calls, with their tokens, and its checks and judgments as evaluation events) to that OpenTelemetry collector, each turn and its tool calls as the turn ends and the rest when the trial ends, over OTLP/HTTP protobuf, or JSON with `OTEL_EXPORTER_OTLP_PROTOCOL` of `http/json`. `OTEL_EXPORTER_OTLP_HEADERS`, `OTEL_EXPORTER_OTLP_COMPRESSION` (`gzip`), `OTEL_EXPORTER_OTLP_TIMEOUT`, `OTEL_EXPORTER_OTLP_CERTIFICATE`, `OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE` and `OTEL_EXPORTER_OTLP_CLIENT_KEY`, and each signal's `_TRACES_`, `_LOGS_` or `_METRICS_` form, set its requests; `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` describe the service. `OTEL_TRACES_EXPORTER`, `OTEL_LOGS_EXPORTER` or `OTEL_METRICS_EXPORTER` of `none` turns that signal off, and `OTEL_SDK_DISABLED` of `true` all of them. `OTEL_BSP_SCHEDULE_DELAY`, `OTEL_BSP_MAX_EXPORT_BATCH_SIZE`, `OTEL_BSP_MAX_QUEUE_SIZE` and `OTEL_BSP_EXPORT_TIMEOUT` (and `OTEL_BLRP_*` for logs) batch the spans, and `OTEL_METRIC_EXPORT_INTERVAL` and `OTEL_METRIC_EXPORT_TIMEOUT` set how often the metrics go. An export times out after 5 seconds unless its `_EXPORT_TIMEOUT` says otherwise, so an `OTEL_EXPORTER_OTLP_TIMEOUT` above 5 seconds needs a longer `_EXPORT_TIMEOUT` too, and the run waits at most 5 seconds for what's left when it ends. A `grpc` protocol, or a failed export, warns. See [Export to OpenTelemetry](/results/inspection/opentelemetry).
 
 ## `REEVAL_OTEL_*`
 

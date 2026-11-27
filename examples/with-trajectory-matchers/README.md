@@ -30,7 +30,7 @@ fake agent's script has no `exec` step:
 
 ```text
 with-trajectory-matchers.eval.ts
-  · with-trajectory-matchers  mean 67% · 0/1 run at 100% (pass@1)  capability(1)
+  · with-trajectory-matchers  mean 67% · 0/1 trial at 100% (pass@1)  capability(1)
     #1  67%  ran:/node --test|npm (test|t)\b/ 0%
 ```
 

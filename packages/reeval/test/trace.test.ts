@@ -4,7 +4,7 @@ import { hostname } from 'node:os'
 import { join } from 'node:path'
 import { describe, test } from 'node:test'
 import { type RunTrace, runTrace } from '../src/history/trace.ts'
-import type { AttemptRecord, RunRecord } from '../src/history/types.ts'
+import type { RunRecord, TrialRecord } from '../src/history/types.ts'
 import type { TrajectoryLine } from '../src/view/model.ts'
 import { fakeConfig, project, readRun, runCli, tempDir } from './helpers.ts'
 import { traceProblems } from './support/trace.ts'
@@ -12,8 +12,8 @@ import { traceProblems } from './support/trace.ts'
 const T0 = Date.parse('2026-11-02T10:00:00.000Z')
 const iso = (ms: number) => new Date(T0 + ms).toISOString()
 
-/** An attempt that started `at` ms into the run; only the fields the trace reads. */
-function attempt(id: string, at: number | null, durationMs: number, extra: object = {}) {
+/** A trial that started `at` ms into the run; only the fields the trace reads. */
+function trial(id: string, at: number | null, durationMs: number, extra: object = {}) {
   return {
     key: `a # fake/default/fake#${id}`,
     id,
@@ -27,16 +27,16 @@ function attempt(id: string, at: number | null, durationMs: number, extra: objec
     judgements: [],
     timings: { setupMs: 0, agentMs: 0, diffMs: 0, checksMs: 0, judgeMs: 0 },
     ...extra,
-  } as unknown as AttemptRecord
+  } as unknown as TrialRecord
 }
 
-const record = (attempts: AttemptRecord[], durationMs = 60_000) =>
+const record = (trials: TrialRecord[], durationMs = 60_000) =>
   ({
     runId: 'run-1',
     status: 'complete',
     startedAt: iso(0),
     endedAt: iso(durationMs),
-    evals: [{ name: 'a', attempts }],
+    evals: [{ name: 'a', trials }],
   }) as unknown as RunRecord
 
 /** The slices of lane `lane`, or of the run's own track. */
@@ -63,7 +63,7 @@ function stageLive(dir: string) {
       phase: 'running',
       planned: 1,
       counts: { done: 0, passed: 0, failed: 0, errored: 0, skipped: 0, running: 1 },
-      attempts: [
+      trials: [
         {
           key: 'e # fake/default/fake#1',
           evalId: 'e',
@@ -81,22 +81,22 @@ function stageLive(dir: string) {
 }
 
 describe('reeval show --trace', () => {
-  test('lays attempts out in lanes by overlap, leaving out the ones that never started', () => {
+  test('lays trials out in lanes by overlap, leaving out the ones that never started', () => {
     const trace = runTrace(
       record([
-        attempt('x#1', 1000, 10_000),
-        attempt('x#2', 5000, 10_000),
-        attempt('x#3', 11_000, 10_000),
-        attempt('x#4', null, 0),
+        trial('x#1', 1000, 10_000),
+        trial('x#2', 5000, 10_000),
+        trial('x#3', 11_000, 10_000),
+        trial('x#4', null, 0),
       ]),
     )
     assert.deepEqual(traceProblems(trace), [])
-    assert.deepEqual(trace.otherData, { runId: 'run-1', lanes: 2, attempts: 3 })
+    assert.deepEqual(trace.otherData, { runId: 'run-1', lanes: 2, trials: 3 })
     assert.deepEqual(slices(trace, 1), ['a x#1 1+10', 'a x#3 11+10'])
     assert.deepEqual(slices(trace, 2), ['a x#2 5+10'])
     assert.deepEqual(slices(trace, 'run'), [
       'run complete 0+60',
-      'before the first attempt (plan, preflight) 0+1',
+      'before the first trial (plan, preflight) 0+1',
     ])
     const running = trace.traceEvents
       .filter((e) => e.ph === 'C')
@@ -108,7 +108,7 @@ describe('reeval show --trace', () => {
   test('places setup before the first turn and the diff, checks and judge after the last', () => {
     const trace = runTrace(
       record([
-        attempt('x#1', 0, 10_000, {
+        trial('x#1', 0, 10_000, {
           turns: [
             { prompt: 'p', status: 'completed', startedAt: iso(2000), durationMs: 3000 },
             { prompt: 'q', status: 'completed', startedAt: iso(5500), durationMs: 1000 },
@@ -144,7 +144,7 @@ describe('reeval show --trace', () => {
   })
 
   test('nests trajectory events under their turn, clipping calls that overlap', () => {
-    const a = attempt('x#1', 0, 10_000, {
+    const a = trial('x#1', 0, 10_000, {
       turns: [{ prompt: 'p', status: 'completed', startedAt: iso(1000), durationMs: 5000 }],
     })
     const line = (at: number, event: object) =>
@@ -172,8 +172,8 @@ describe('reeval show --trace', () => {
     assert.deepEqual(read?.args, { ok: true, durationMs: 2000, clippedMs: 500 })
   })
 
-  test('keeps an attempt that started and ended at once as a slice, out of the counter', () => {
-    const trace = runTrace(record([attempt('x#1', 1000, 0), attempt('x#2', 2000, 1000)]))
+  test('keeps a trial that started and ended at once as a slice, out of the counter', () => {
+    const trace = runTrace(record([trial('x#1', 1000, 0), trial('x#2', 2000, 1000)]))
     assert.deepEqual(traceProblems(trace), [])
     assert.deepEqual(slices(trace, 1), ['a x#1 1+0', 'a x#2 2+1'])
     const running = trace.traceEvents
@@ -195,7 +195,7 @@ export default defineEval({
 })
 `,
     })
-    assert.equal((await runCli(p.dir, ['run', '--runs', '2'])).code, 0)
+    assert.equal((await runCli(p.dir, ['run', '--trials', '2'])).code, 0)
     const { run } = readRun(p.dir)
     const shown = await runCli(p.dir, ['show', '--trace'])
     assert.equal(shown.code, 0, shown.stderr)
@@ -203,10 +203,9 @@ export default defineEval({
     assert.match(shown.stdout, /^Wrote \S+\.json: open it at https:\/\/ui\.perfetto\.dev/)
     const trace = JSON.parse(readFileSync(file, 'utf8')) as RunTrace
     assert.deepEqual(traceProblems(trace), [])
-    assert.equal(trace.otherData.attempts, 2)
+    assert.equal(trace.otherData.trials, 2)
     const names = new Set(trace.traceEvents.map((e) => e.name))
-    for (const name of ['turn 1', 'check cat hello.txt', 'attempts'])
-      assert.ok(names.has(name), name)
+    for (const name of ['turn 1', 'check cat hello.txt', 'trials']) assert.ok(names.has(name), name)
     const out = join(tempDir('trace-out'), 'nested', 'run.json')
     assert.equal((await runCli(p.dir, ['show', run.runId, '--trace', '--out', out])).code, 0)
     assert.ok(existsSync(out))
@@ -230,7 +229,7 @@ export default defineEval({
     assert.match(
       newest.stderr,
       new RegExp(
-        `note: ${liveId} is still running \\(0 of 1 attempts finished\\); reeval show reads the newest finished run`,
+        `note: ${liveId} is still running \\(0 of 1 trials finished\\); reeval show reads the newest finished run`,
       ),
     )
     assert.match((await runCli(p.dir, ['show', 'latest'])).stderr, /note: .* is still running/)

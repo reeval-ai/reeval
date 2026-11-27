@@ -24,7 +24,7 @@ const levelSchema = z.enum(['high', 'medium', 'low'])
 const anomalyKindSchema = z.enum(['reeval-bug', 'eval-design', 'judge', 'noise', 'other'])
 const actionKindSchema = z.enum(['skill', 'docs', 'eval', 'judge', 'reeval', 'harness'])
 const roleSchema = z.enum(['finding', 'caveat', 'action'])
-const attemptRefsSchema = z.array(z.object({ attemptId: z.string(), path: z.string() }))
+const trialRefsSchema = z.array(z.object({ trialId: z.string(), path: z.string() }))
 
 const analysisClaimSchema = z.object({
   text: z.string(),
@@ -34,7 +34,7 @@ const analysisClaimSchema = z.object({
   unverifiedNumbers: z.array(z.string()).optional(),
   evalId: z.string().optional(),
   role: roleSchema.optional(),
-  attempts: attemptRefsSchema.optional(),
+  trials: trialRefsSchema.optional(),
 })
 
 const analysisAnomalySchema = z.object({
@@ -44,7 +44,7 @@ const analysisAnomalySchema = z.object({
   unverifiedNumbers: z.array(z.string()).optional(),
   evalId: z.string().optional(),
   role: roleSchema.optional(),
-  attempts: attemptRefsSchema.optional(),
+  trials: trialRefsSchema.optional(),
 })
 
 const analysisActionSchema = z.object({
@@ -60,7 +60,7 @@ const analysisActionSchema = z.object({
   cites: z.array(z.string()),
   evalId: z.string().optional(),
   role: roleSchema.optional(),
-  attempts: attemptRefsSchema.optional(),
+  trials: trialRefsSchema.optional(),
 })
 
 const analysisBodySchema = z.object({
@@ -92,7 +92,7 @@ const analysisScopeSchema = z.object({
 /** A document's keys it doesn't list pass, unchecked: a newer reeval may have added them. */
 export const analysisDocSchema = z.object({
   kind: z.literal('reeval-analysis'),
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   scope: analysisScopeSchema,
   anchor: z.string(),
   inputs: z.object({
@@ -110,9 +110,9 @@ export const analysisDocSchema = z.object({
   author: z.string(),
   validation: analysisValidationSchema,
   analysis: analysisBodySchema,
-  attempts: z.record(
+  trials: z.record(
     z.string(),
-    z.object({ runId: z.string(), evalSlug: z.string(), attempt: z.string() }),
+    z.object({ runId: z.string(), evalSlug: z.string(), trial: z.string() }),
   ),
   cited: z.record(z.string(), z.string()),
   error: z.string().optional(),

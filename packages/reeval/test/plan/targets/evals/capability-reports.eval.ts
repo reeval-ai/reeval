@@ -1,3 +1,3 @@
 import { capability, defineEval } from 'reeval'
 
-export default defineEval({ runs: 3, target: capability(0.5), task: async () => {} })
+export default defineEval({ trials: 3, target: capability(0.5), task: async () => {} })
