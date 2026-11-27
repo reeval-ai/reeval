@@ -5,7 +5,7 @@
  ██     ██   ▄ ██   ▄  ████  ██  ██ ██
  ██      ▀▀▀▀   ▀▀▀▀    ▀▀    ▀▀▀▀▀ ▀▀
 
- Evaluation runner for SDKs, CLIs, MCP servers, and docs.
+ Evaluation harness for SDKs, CLIs, MCP servers, skills, and docs.
 
  # Get started using the `/setup` skill:
  npx skills add reeval-ai/reeval --skill setup
@@ -19,7 +19,7 @@
 
 # reeval
 
-reeval is an open-source evaluation runner for developer tools. It gives a real coding agent a task in a fresh sandbox, then checks the result with assertions on files, commands, and the trajectory, and with an LLM judge where an assertion can't decide. Run the same task with and without a skill, doc, or MCP server, and reeval reports whether the change helped.
+**reeval** is an open-source TypeScript evaluation harness. It gives a real coding agent a task in a fresh sandbox, then grades the final state with deterministic graders and, where code can't decide, a model grader. Run the same task with and without a skill, doc, or MCP server, and reeval reports whether the change helped.
 
 Each task is a `*.eval.ts` file in `evals/`, next to the tool it tests. Each run writes a JSON record, and recorded runs commit to Git, so `reeval compare` can diff a pull request's run against the last recorded one and fail the job when a task regresses.
 
@@ -27,11 +27,14 @@ Each task is a `*.eval.ts` file in `evals/`, next to the tool it tests. Each run
 
 Cursor ⋅ Claude Code ⋅ Codex ⋅ Antigravity ⋅ OpenCode ⋅ Goose ⋅ pi ⋅ fx ⋅ Grok Build
 
-- **Real agents**: each harness runs the agent itself, with its own tools, skills, and rules, as it works on a developer's machine ([Choose an agent](docs/configuration/agents/index.mdx)).
-- **Keys stay on the host**: each attempt starts in a fresh sandbox that holds only a placeholder key. reeval's egress gateway swaps in the real key on requests to that provider and nowhere else ([Pass secrets](docs/configuration/environments/secrets.mdx)).
-- **Compare a change**: one eval runs a baseline and its variants with the same prompt and checks, then prints whether each variant helped, made it worse, or did the same ([Measure lift against a baseline](docs/results/compare/lift.mdx)).
-- **Pinned environments**: an environment starts from a workspace, such as a git repository at a fixed ref, then adds files, setup steps, rules, skills, and MCP servers, so every attempt starts from the same state ([Define an environment](docs/configuration/environments/index.mdx)).
-- **History in Git**: recorded runs sit beside the code. `reeval query` reads them with SQL, and `reeval studio` shows each attempt's trajectory, diff, and checks ([Record runs in Git](docs/evaluations/runs/recording.mdx)).
+- **Real agents**: each agent harness runs the coding agent itself, with its own tools, skills, and rules, as it works on a developer's machine ([Choose an agent](docs/configuration/agents/index.mdx)).
+- **Reliability across trials**: each task runs several trials per agent. `capability()` asks whether the agent can pass at all (pass@k), and `regression()` asks whether it passes every time (pass^k) ([Statistics](docs/reference/statistics.mdx)).
+- **Grading and trajectories**: deterministic graders check the final state, and a model grader judges only what code can't decide. Each trial keeps its trajectory, and `reeval regrade` grades recorded trials again without another agent run ([Assertions](docs/evaluations/grading/assertions.mdx)).
+- **Variant comparisons**: one task runs a baseline and its variants with the same prompt and graders, then prints whether each variant helped, made it worse, or did the same ([Measure lift against a baseline](docs/results/compare/lift.mdx)).
+- **Regression gates in CI**: `reeval compare --fail-on-regression` diffs a run against its nearest recorded ancestor and fails the job when a task regresses ([Compare past runs](docs/results/compare/past-runs.mdx)).
+- **Keys stay on the host**: each trial starts in a fresh sandbox that holds only a placeholder key. reeval's egress gateway swaps in the real key on requests to that provider and nowhere else ([Pass secrets](docs/configuration/environments/secrets.mdx)).
+- **Pinned environments**: an environment starts from a workspace, such as a git repository at a fixed ref, then adds files, setup steps, rules, skills, and MCP servers, so every trial starts from the same state ([Define an environment](docs/configuration/environments/index.mdx)).
+- **History in Git**: recorded runs sit beside the code. `reeval query` reads them with SQL, and `reeval studio` shows each trial's trajectory, diff, and graders ([Record runs in Git](docs/evaluations/runs/recording.mdx)).
 
 ## Install
 
